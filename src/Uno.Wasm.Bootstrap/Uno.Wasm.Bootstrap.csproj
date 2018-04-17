@@ -1,0 +1,69 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+		<DefineConstants>NET_CORE</DefineConstants>
+    <NoWarn>1701;1702;1705;649</NoWarn>
+		<AssemblyName>Uno.Wasm.Bootstrap.v0</AssemblyName>
+		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
+		<PackageId>Uno.Wasm.Bootstrap</PackageId>
+		<IsTool>true</IsTool>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>nventive</Authors>
+		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+		<RepositoryUrl>https://github.com/nventive/Uno.Core</RepositoryUrl>
+		<Description>This package provides a Wasm bootstap for netstandard 2.0 projects.</Description>
+		<Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Build" Version="15.3.409" />
+		<PackageReference Include="Microsoft.Build.Framework" Version="15.3.409" />
+		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.3.409" />
+		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.3.409" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="linker\**" />
+		<Compile Remove="linker\**" />
+		<Compile Include="linker\linker\Linker\**\*.cs" />
+		<Compile Include="linker\linker\Linker.Steps\**\*.cs" />
+		<Compile Include="linker\cecil\Mono.Cecil\**\*.cs" />
+		<Compile Include="linker\cecil\Mono.Cecil.Cil\**\*.cs" />
+		<Compile Include="linker\cecil\Mono.Cecil.Metadata\**\*.cs" />
+		<Compile Include="linker\cecil\Mono.Cecil.PE\**\*.cs" />
+		<Compile Include="linker\cecil\Mono.Collections.Generic\**\*.cs*" />
+		<Compile Include="linker\cecil\symbols\mdb\Mono.Cecil.Mdb\**\*.cs*" />
+		<Compile Include="linker\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\**\*.cs*" />
+		<Compile Include="linker\cecil\symbols\pdb\Microsoft.Cci.Pdb\**\*.cs*" />
+		<Compile Include="linker\cecil\symbols\pdb\Mono.Cecil.Pdb\**\*.cs*" />
+		<Compile Include="linker\cecil\Mono\**\*.cs" />
+
+		<Compile Remove="linker\cecil\symbols\mdb\Mono.Cecil.Mdb\AssemblyInfo.cs" />
+		<Compile Remove="linker\cecil\symbols\pdb\Mono.Cecil.Pdb\AssemblyInfo.cs" />
+		<Compile Remove="linker\linker\Linker\Driver.cs" />
+		<Compile Remove="linker\linker\Linker\AssemblyInfo.cs" />
+		<Compile Remove="linker\cecil\Mono.Cecil\AssemblyInfo.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Templates\Index.html" />
+	  <None Remove="WasmScripts\uno-bootstrap.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="build\Uno.Wasm.Bootstrap.targets">
+			<Pack>true</Pack>
+			<PackagePath>build</PackagePath>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="WasmScripts\uno-bootstrap.js" />
+	  <EmbeddedResource Include="Templates\Index.html" />
+	</ItemGroup>
+
+</Project>

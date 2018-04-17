@@ -1,0 +1,33 @@
+image: Visual Studio 2017
+
+branches:
+  only:
+  - master
+  - stable
+
+# Don't create a build when a PR is opened
+skip_branch_with_pr: true
+
+nuget:
+  disable_publish_on_pr: true
+
+skip_commits:
+  files:
+    - 'doc/**/*.*'  
+
+init:
+- ps: git config --global core.autocrlf true
+
+build_script:
+  - cmd: git submodule update --init --recursive
+  - ps: .\build\build.ps1 -script build\build.cake
+
+artifacts:
+- path: .\build\nuget\*.nupkg
+
+deploy:
+  provider: NuGet
+  api_key:
+    secure: q2moGyPXNP7agMjH6aHxbg8a9Q4ftB/al9aZPYL97Fdte0cZ+d1ak0yoBFc1eWNr
+  skip_symbols: true
+  artifact: /.*\.nupkg/

@@ -1,0 +1,26 @@
+﻿<Project>
+
+	<PropertyGroup>
+		<_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
+
+		<WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
+		<WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
+
+		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
+		<MonoRuntimeDebugLogging Condition="'$(WasmRuntimeDebug)'==''">false</MonoRuntimeDebugLogging>
+	</PropertyGroup>
+
+	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
+
+	<Target Name="BuildDist" AfterTargets="AfterBuild">
+		<ShellTask_v0
+			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
+			OutputPath="$(OutputPath)"
+			LinkerDescriptors="@(LinkerDescriptor)"
+			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
+			RuntimeDebugLogging="$(MonoRuntimeDebugLogging)"
+			Assets="@(Content)"
+			ReferencePath="@(ReferencePath)" />
+	</Target>
+
+</Project>
