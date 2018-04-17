@@ -21,7 +21,7 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrapp" Version="1.0.0-dev.16" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.0.0-dev.1" />
   </ItemGroup>
 
 </Project>
