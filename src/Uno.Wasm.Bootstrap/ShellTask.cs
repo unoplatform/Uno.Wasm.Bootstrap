@@ -34,7 +34,7 @@ namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		private const string SdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-webassembly/62/label=highsierra/Azure/processDownloadRequest/62/highsierra/sdks/wasm/mono-wasm-ddf4e7be31b.zip";
+		private const string SdkUrl = "https://xamjenkinsartifact.azureedge.net/test-mono-mainline-webassembly/62/highsierra/sdks/wasm/mono-wasm-ddf4e7be31b.zip";
 
 		private string _distPath;
 		private string _managedPath;
