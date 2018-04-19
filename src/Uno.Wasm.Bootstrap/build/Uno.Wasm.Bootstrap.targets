@@ -6,6 +6,9 @@
 		<WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
 		<WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
 
+		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
+		<WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
+
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebugLogging Condition="'$(WasmRuntimeDebug)'==''">false</MonoRuntimeDebugLogging>
 	</PropertyGroup>
@@ -17,6 +20,8 @@
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
 			LinkerDescriptors="@(LinkerDescriptor)"
+			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebugLogging="$(MonoRuntimeDebugLogging)"
 			Assets="@(Content)"

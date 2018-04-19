@@ -26,15 +26,12 @@ using System.Net;
 using System.Text;
 using Microsoft.Build.Utilities;
 using Mono.Cecil;
-using Mono.Cecil.Cil;
-using Mono.Linker;
-using Mono.Linker.Steps;
 
 namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		private const string SdkUrl = "https://xamjenkinsartifact.azureedge.net/test-mono-mainline-webassembly/62/highsierra/sdks/wasm/mono-wasm-ddf4e7be31b.zip";
+		private const string DefaultSdkUrl = "https://xamjenkinsartifact.azureedge.net/test-mono-mainline-webassembly/62/highsierra/sdks/wasm/mono-wasm-ddf4e7be31b.zip";
 
 		private string _distPath;
 		private string _managedPath;
@@ -53,6 +50,11 @@ namespace Uno.Wasm.Bootstrap
 		public string OutputPath { get; set; }
 
 		public string ReferencePath { get; set; }
+
+		[Microsoft.Build.Framework.Required]
+		public string IndexHtmlPath { get; set; }
+
+		public string MonoWasmSDKUri { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
 
@@ -88,23 +90,33 @@ namespace Uno.Wasm.Bootstrap
 
 		private void InstallSdk()
 		{
-			var sdkName = Path.GetFileNameWithoutExtension(new Uri(SdkUrl).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
-			Log.LogMessage("SDK: " + sdkName);
-			_sdkPath = Path.Combine(Path.GetTempPath(), sdkName);
-			Log.LogMessage("SDK Path: " + _sdkPath);
+			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? DefaultSdkUrl : MonoWasmSDKUri;
 
-			if (Directory.Exists(_sdkPath))
+			try
 			{
-				return;
+				var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
+				Log.LogMessage("SDK: " + sdkName);
+				_sdkPath = Path.Combine(Path.GetTempPath(), sdkName);
+				Log.LogMessage("SDK Path: " + _sdkPath);
+
+				if (Directory.Exists(_sdkPath))
+				{
+					return;
+				}
+
+				var client = new WebClient();
+				var zipPath = _sdkPath + ".zip";
+				Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
+				Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
+				client.DownloadFile(DefaultSdkUrl, zipPath);
+
+				ZipFile.ExtractToDirectory(zipPath, _sdkPath);
+				Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
 			}
-
-			var client = new WebClient();
-			var zipPath = _sdkPath + ".zip";
-			Log.LogMessage($"Downloading {sdkName} to {zipPath}");
-			client.DownloadFile(SdkUrl, zipPath);
-
-			ZipFile.ExtractToDirectory(zipPath, _sdkPath);
-			Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
+			catch(Exception e)
+			{
+				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}");
+			}
 		}
 
 		private void GetBcl()
@@ -156,107 +168,6 @@ namespace Uno.Wasm.Bootstrap
 					File.Copy(fullSourcePath, dest, true);
 				}
 			}
-		}
-
-		class Logger : ILogger
-		{
-			private TaskLoggingHelper log;
-
-			public Logger(TaskLoggingHelper log) => this.log = log;
-
-			public void LogMessage(MessageImportance importance, string message, params object[] values)
-			{
-				switch (importance)
-				{
-					case MessageImportance.High:
-						log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, message, values);
-						break;
-					case MessageImportance.Normal:
-						log.LogMessage(Microsoft.Build.Framework.MessageImportance.Normal, message, values);
-						break;
-					case MessageImportance.Low:
-						log.LogMessage(Microsoft.Build.Framework.MessageImportance.Low, message, values);
-						break;
-				}
-			}
-		}
-
-		void LinkAssemblies()
-		{
-			var references = ReferencePath.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
-			_referencedAssemblies = new List<string>();
-			foreach (var r in references)
-			{
-				var name = Path.GetFileName(r);
-				if (_bclAssemblies.ContainsKey(name))
-				{
-					_referencedAssemblies.Add(_bclAssemblies[name]);
-				}
-				else
-				{
-					_referencedAssemblies.Add(r);
-				}
-			}
-
-			var asmPath = Path.GetFullPath(Assembly);
-
-			var pipeline = GetLinkerPipeline();
-			using (var context = new LinkContext(pipeline))
-			{
-				context.CoreAction = AssemblyAction.Link;
-				context.UserAction = AssemblyAction.Link;
-
-				// Disabled until we can actually use symbols, and that 
-				// the rewriter does not fail for a memory allocation error.
-				// context.SymbolReaderProvider = new DefaultSymbolReaderProvider(true);
-				// context.SymbolWriterProvider = new DefaultSymbolWriterProvider();
-				// context.LinkSymbols = true;
-				context.Logger = new Logger(Log);
-				context.LogMessages = true;
-				context.KeepTypeForwarderOnlyAssemblies = true;
-				context.OutputDirectory = _managedPath;
-
-				pipeline.PrependStep(new ResolveFromAssemblyStep(asmPath, ResolveFromAssemblyStep.RootVisibility.Any));
-
-				var refdirs = _referencedAssemblies.Select(x => Path.GetDirectoryName(x)).Distinct().ToList();
-				refdirs.Insert(0, Path.Combine(_bclPath, "Facades"));
-				refdirs.Insert(0, _bclPath);
-				foreach (var d in refdirs.Distinct())
-				{
-					context.Resolver.AddSearchDirectory(d);
-				}
-
-				pipeline.AddStepAfter(typeof(LoadReferencesStep), new LoadI18nAssemblies(I18nAssemblies.None));
-
-				foreach (var dll in Directory.GetFiles(_managedPath, "*.dll"))
-				{
-					File.Delete(dll);
-				}
-
-				pipeline.Process(context);
-			}
-
-			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*.dll")
-				.Concat(Directory.GetFiles(_managedPath, "*.exe"))
-				.OrderBy(x => Path.GetFileName(x))
-				.ToList();
-		}
-
-		Pipeline GetLinkerPipeline()
-		{
-			var p = new Pipeline();
-			p.AppendStep(new LoadReferencesStep());
-			p.AppendStep(new PreserveUsingAttributesStep(_bclAssemblies.Values.Select(Path.GetFileNameWithoutExtension)));
-			p.AppendStep(new PreserveTypeConverters());
-			p.AppendStep(new BlacklistStep());
-			p.AppendStep(new ExplicitBlacklistStep(LinkerDescriptors?.Select(l => l.ItemSpec)));
-			p.AppendStep(new TypeMapStep());
-			p.AppendStep(new MarkStep());
-			p.AppendStep(new SweepStep());
-			p.AppendStep(new CleanStep());
-			p.AppendStep(new RegenerateGuidStep());
-			p.AppendStep(new OutputStep());
-			return p;
 		}
 
 		private void ExtractAdditionalJS()
@@ -343,17 +254,10 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
 			{
-				string indexHtmlResName = $"{GetType().Assembly.GetName().Name}.Templates.Index.html";
-				var stream = this.GetType().Assembly.GetManifestResourceStream(indexHtmlResName);
-
-				if (stream == null)
+				using (var reader = new StreamReader(IndexHtmlPath))
 				{
-					throw new InvalidOperationException($"Unable to find {indexHtmlResName}");
-				}
+					var html = reader.ReadToEnd();
 
-				using (var sr = new StreamReader(stream))
-				{
-					var html = sr.ReadToEnd();
 					var assemblies = string.Join(", ", _linkedAsmPaths.Select(x => $"\"{Path.GetFileName(x)}\""));
 
 					html = html.Replace("$(ASSEMBLIES_LIST)", assemblies);
@@ -370,10 +274,11 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
 
 					w.Write(html);
+
+
+					Log.LogMessage($"HTML {htmlPath}");
 				}
 
-
-				Log.LogMessage($"HTML {htmlPath}");
 			}
 		}
 	}

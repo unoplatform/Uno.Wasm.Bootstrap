@@ -53,13 +53,29 @@ Additional CSS files are supported through the inclusion of `EmbeddedResource`  
 Additional CSS files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
 
 ### Linker configuration
-The linker may be configured via the inclusion of `LinkerDescriptors` msbuild item files.
+The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
 
 The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
+
+## Index.html content override
+The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
+
+This file should contain the following markers, for the runtime to initialize properly: 
+- `$(ASSEMBLIES_LIST)`
+- `$(MAIN_ASSEMBLY_NAME)`
+- `$(MAIN_NAMESPACE)`
+- `$(MAIN_TYPENAME)`
+- `$(MAIN_METHOD)`
+- `$(ENABLE_RUNTIMEDEBUG)`
+- `$(ADDITIONAL_SCRIPTS)`
+- `$(ADDITIONAL_CSS)`
+
+Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
 
 ### Configuration of the runtime
 - The msbuild property `RuntimeDebugLogging` can be set to `true` to allow for mono to output additional debugging details.
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime, but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
+- The msbuild property `MonoWasmSDKUri` allows the override of the default SDK path.
 
 ## TODO
 Lots! 
