@@ -24,7 +24,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Text;
-using Microsoft.Build.Utilities;
 using Mono.Cecil;
 
 namespace Uno.Wasm.Bootstrap
@@ -158,12 +157,27 @@ namespace Uno.Wasm.Bootstrap
 
 				foreach (var sourceFile in Assets)
 				{
-					var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
+					(string fullPath, string relativePath) GetFilePaths()
+					{
+						if(sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
+						{
+							// This case is mainly for shared projects
+							return (sourceFile.ItemSpec, link);
+						}
+						else
+						{
+							// This is for project-local defined content
+							var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
 
-					Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(sourceFile.ToString())));
+							return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
+						}
+					}
 
-					var dest = Path.Combine(_distPath, sourceFile.ItemSpec);
-					var fullSourcePath = Path.Combine(baseSourceFile, sourceFile.ItemSpec);
+					(var fullSourcePath, var relativePath) = GetFilePaths();
+
+					Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
+
+					var dest = Path.Combine(_distPath, relativePath);
 					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
 					File.Copy(fullSourcePath, dest, true);
 				}
