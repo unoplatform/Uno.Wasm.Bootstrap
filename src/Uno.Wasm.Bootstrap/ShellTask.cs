@@ -63,7 +63,7 @@ namespace Uno.Wasm.Bootstrap
 		public string RuntimeConfiguration { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public bool RuntimeDebugLogging { get; set; }
+		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public override bool Execute()
 		{
@@ -279,7 +279,7 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(MAIN_NAMESPACE)", entryPoint.DeclaringType.Namespace);
 					html = html.Replace("$(MAIN_TYPENAME)", entryPoint.DeclaringType.Name);
 					html = html.Replace("$(MAIN_METHOD)", entryPoint.Name);
-					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebugLogging.ToString().ToLower());
+					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebuggerEnabled.ToString().ToLower());
 
 					var scripts = string.Join("\r\n", _additionalScripts.Select(s => $"<script defer type=\"text/javascript\" src=\"{s}\"></script>"));
 					html = html.Replace("$(ADDITIONAL_SCRIPTS)", scripts);

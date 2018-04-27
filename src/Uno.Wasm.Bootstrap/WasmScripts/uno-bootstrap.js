@@ -47,7 +47,7 @@ var MonoRuntime = {
         this.mono_string_get_utf8 = Module.cwrap('mono_wasm_string_get_utf8', 'number', ['number']);
         this.mono_string = Module.cwrap('mono_wasm_string_from_js', 'number', ['string']);
 
-        this.load_runtime("managed", 1);
+        this.load_runtime("managed", debug ? 1 : 0);
 
         if (debug) console.log("Done initializing the runtime.");
 
