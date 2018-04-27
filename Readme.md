@@ -73,7 +73,7 @@ This file should contain the following markers, for the runtime to initialize pr
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
 
 ### Configuration of the runtime
-- The msbuild property `RuntimeDebugLogging` can be set to `true` to allow for mono to output additional debugging details.
+- The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime, but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 - The msbuild property `MonoWasmSDKUri` allows the override of the default SDK path.
 
