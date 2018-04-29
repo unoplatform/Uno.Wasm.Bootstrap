@@ -1,9 +1,10 @@
 ﻿var debug = false;
 
 
-function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, isDebug) {
+function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, remoteManagedPath, isDebug) {
     Module.entryPoint = { "a": mainAsmName, "n": mainNamespace, "t": mainClassName, "m": mainMethodName };
     Module.assemblies = assemblies;
+    Module.remoteManagedPath = remoteManagedPath;
     debug = isDebug;
 }
 
@@ -17,7 +18,7 @@ var Module = {
         this.assemblies.forEach(function (asm_name) {
             if (debug) console.log("Loading", asm_name);
             ++pending;
-            fetch("managed/" + asm_name, { credentials: 'same-origin' }).then(function (response) {
+            fetch(Module.remoteManagedPath + "/" + asm_name, { credentials: 'same-origin' }).then(function (response) {
                 if (!response.ok)
                     throw "failed to load Assembly '" + asm_name + "'";
                 return response['arrayBuffer']();
@@ -95,7 +96,9 @@ var WebAssemblyApp = {
 
         this.runApp();
 
-        this.loading.hidden = true;
+        if (loading) {
+            this.loading.hidden = true;
+        }
     },
 
     runApp: function () {
