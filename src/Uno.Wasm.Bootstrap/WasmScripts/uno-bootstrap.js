@@ -95,7 +95,9 @@ var WebAssemblyApp = {
 
         this.runApp();
 
-        this.loading.hidden = true;
+        if (this.loading) {
+            this.loading.hidden = true;
+        }
     },
 
     runApp: function () {
