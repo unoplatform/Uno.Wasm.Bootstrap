@@ -23,6 +23,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using Mono.Cecil;
 
@@ -75,6 +76,7 @@ namespace Uno.Wasm.Bootstrap
 				CopyContent();
 				CopyRuntime();
 				LinkAssemblies();
+				HashManagedPath();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GenerateHtml();
@@ -85,6 +87,30 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogErrorFromException(ex, false, true, null);
 				return false;
 			}
+		}
+
+		private void HashManagedPath()
+		{
+			var hashFunction = SHA1.Create();
+
+			IEnumerable<byte> ComputeHash(string file)
+			{
+				using (var s = File.OpenRead(file))
+				{
+					return hashFunction.ComputeHash(s);
+				}
+			}
+
+			var allBytes = Directory.GetFiles(_managedPath)
+				.Select(ComputeHash)
+				.SelectMany(h => h)
+				.ToArray();
+
+			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
+
+			var oldManagedPath = _managedPath;
+			_managedPath = _managedPath + "-" + hashFunction;
+			Directory.Move(oldManagedPath, _managedPath);
 		}
 
 		private void InstallSdk()
@@ -280,6 +306,7 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(MAIN_TYPENAME)", entryPoint.DeclaringType.Name);
 					html = html.Replace("$(MAIN_METHOD)", entryPoint.Name);
 					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebuggerEnabled.ToString().ToLower());
+					html = html.Replace("$(REMOTE_MANAGED_PATH)", Path.GetFileName(_managedPath));
 
 					var scripts = string.Join("\r\n", _additionalScripts.Select(s => $"<script defer type=\"text/javascript\" src=\"{s}\"></script>"));
 					html = html.Replace("$(ADDITIONAL_SCRIPTS)", scripts);

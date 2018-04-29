@@ -69,6 +69,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ENABLE_RUNTIMEDEBUG)`
 - `$(ADDITIONAL_SCRIPTS)`
 - `$(ADDITIONAL_CSS)`
+- `$(REMOTE_MANAGED_PATH)`
 
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
 
@@ -76,8 +77,3 @@ Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime, but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 - The msbuild property `MonoWasmSDKUri` allows the override of the default SDK path.
-
-## TODO
-Lots! 
-- The main missing part is the ability to change the index.html, but it should pretty easy to add.
-- The other one is the ability to use an actual release of the mono-wasm release.
