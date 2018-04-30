@@ -109,7 +109,7 @@ namespace Uno.Wasm.Bootstrap
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
 			var oldManagedPath = _managedPath;
-			_managedPath = _managedPath + "-" + hashFunction;
+			_managedPath = _managedPath + "-" + hash;
 			Directory.Move(oldManagedPath, _managedPath);
 		}
 
