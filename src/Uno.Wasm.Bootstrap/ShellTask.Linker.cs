@@ -89,10 +89,29 @@ namespace Uno.Wasm.Bootstrap
 				pipeline.Process(context);
 			}
 
-			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*.dll")
-				.Concat(Directory.GetFiles(_managedPath, "*.exe"))
+			RenameFiles("dll");
+			RenameFiles("exe");
+
+			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*.clrdll")
+				.Concat(Directory.GetFiles(_managedPath, "*.clrexe"))
 				.OrderBy(x => Path.GetFileName(x))
 				.ToList();
+		}
+
+		/// <summary>
+		/// Renames the files to avoid quarantine by antivirus software such as Symantec, 
+		/// which are quite present in the enterprise space.
+		/// </summary>
+		/// <param name="extension">The extension to rename</param>
+		private void RenameFiles(string extension)
+		{
+			foreach (var dllFile in Directory.GetFiles(_managedPath, "*." + extension))
+			{
+				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + ".clr" + extension);
+
+				Log.LogMessage($"Renaming {dllFile} to {destDirName}");
+				Directory.Move(dllFile, destDirName);
+			}
 		}
 
 		Pipeline GetLinkerPipeline()

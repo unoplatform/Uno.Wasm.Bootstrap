@@ -24,7 +24,8 @@ var Module = {
                 return response['arrayBuffer']();
             }).then(function (blob) {
                 var asm = new Uint8Array(blob);
-                Module.FS_createDataFile("managed/" + asm_name, null, asm, true, true, true);
+                var adjustedName = asm_name.replace(/\.clr(dll|exe)/i, ".$1");
+                Module.FS_createDataFile("managed/" + adjustedName, null, asm, true, true, true);
                 --pending;
                 if (pending == 0)
                     Module.bclLoadingDone();
