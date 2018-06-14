@@ -28,4 +28,12 @@
 			ReferencePath="@(ReferencePath)" />
 	</Target>
 
+	<Target Name="_CleanDist" BeforeTargets="Clean">
+		<ItemGroup>
+			<_DistFilesToDelete Include="$(OutputPath)dist\**" />
+		</ItemGroup>
+
+		<Delete Files="@(_DistFilesToDelete)" />
+	</Target>
+
 </Project>
