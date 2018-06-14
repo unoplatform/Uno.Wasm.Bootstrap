@@ -24,21 +24,6 @@ namespace Uno.Wasm.Sample
 		static void Main(string[] args) 
 		{
 			Console.WriteLine("Main!");
-
-			try
-			{
-				NewMethod();
-			}
-			catch(Exception e)
-			{
-				Console.WriteLine(e);
-			}
-		}
-
-		private static void NewMethod()
-		{
-			ImmutableDictionary<string, string> s = ImmutableDictionary<string, string>.Empty;
-			Console.WriteLine($"test new method {s.Count}");
 		}
 	}
 }
