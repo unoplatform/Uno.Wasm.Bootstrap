@@ -56,6 +56,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string MonoWasmSDKUri { get; set; }
 
+		public string AssembliesFileExtension { get; set; } = "clr";
+
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] LinkerDescriptors { get; set; }
@@ -307,6 +309,7 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(MAIN_METHOD)", entryPoint.Name);
 					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebuggerEnabled.ToString().ToLower());
 					html = html.Replace("$(REMOTE_MANAGED_PATH)", Path.GetFileName(_managedPath));
+					html = html.Replace("$(ASSEMBLY_FILE_EXTENSION)", AssembliesFileExtension);
 
 					var scripts = string.Join("\r\n", _additionalScripts.Select(s => $"<script defer type=\"text/javascript\" src=\"{s}\"></script>"));
 					html = html.Replace("$(ADDITIONAL_SCRIPTS)", scripts);

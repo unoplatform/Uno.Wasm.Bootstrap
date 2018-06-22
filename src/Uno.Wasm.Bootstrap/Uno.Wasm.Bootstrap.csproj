@@ -8,6 +8,7 @@
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
+		<Version>1.0.1-test.1</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>

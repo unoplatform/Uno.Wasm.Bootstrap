@@ -70,6 +70,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_SCRIPTS)`
 - `$(ADDITIONAL_CSS)`
 - `$(REMOTE_MANAGED_PATH)`
+- `$(ASSEMBLY_FILE_EXTENSION)`
 
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
 
