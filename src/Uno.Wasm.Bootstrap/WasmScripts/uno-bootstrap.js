@@ -1,9 +1,10 @@
 ﻿var debug = false;
 
 
-function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, remoteManagedPath, isDebug) {
+function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, remoteManagedPath, assemblyFileExtension, isDebug) {
     Module.entryPoint = { "a": mainAsmName, "n": mainNamespace, "t": mainClassName, "m": mainMethodName };
     Module.assemblies = assemblies;
+    Module.assemblyFileExtension = assemblyFileExtension;
     Module.remoteManagedPath = remoteManagedPath;
     debug = isDebug;
 }
@@ -24,7 +25,7 @@ var Module = {
                 return response['arrayBuffer']();
             }).then(function (blob) {
                 var asm = new Uint8Array(blob);
-                var adjustedName = asm_name.replace(/\.clr(dll|exe)/i, ".$1");
+                var adjustedName = asm_name.replace("." + Module.assemblyFileExtension, ".dll");
                 Module.FS_createDataFile("managed/" + adjustedName, null, asm, true, true, true);
                 --pending;
                 if (pending == 0)

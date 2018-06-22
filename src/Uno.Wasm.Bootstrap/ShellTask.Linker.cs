@@ -90,10 +90,8 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			RenameFiles("dll");
-			RenameFiles("exe");
 
-			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*.clrdll")
-				.Concat(Directory.GetFiles(_managedPath, "*.clrexe"))
+			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*." + AssembliesFileExtension)
 				.OrderBy(x => Path.GetFileName(x))
 				.ToList();
 		}
@@ -107,7 +105,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			foreach (var dllFile in Directory.GetFiles(_managedPath, "*." + extension))
 			{
-				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + ".clr" + extension);
+				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + "." + AssembliesFileExtension);
 
 				Log.LogMessage($"Renaming {dllFile} to {destDirName}");
 				Directory.Move(dllFile, destDirName);
