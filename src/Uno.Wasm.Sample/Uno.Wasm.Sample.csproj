@@ -5,6 +5,8 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+		<!--<AssemblyName>uno.wasm.sample</AssemblyName>-->
   </PropertyGroup>
 
 	<ItemGroup>

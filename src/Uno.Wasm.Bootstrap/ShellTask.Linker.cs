@@ -59,11 +59,15 @@ namespace Uno.Wasm.Bootstrap
 				context.CoreAction = AssemblyAction.Link;
 				context.UserAction = AssemblyAction.Link;
 
-				// Disabled until we can actually use symbols, and that 
-				// the rewriter does not fail for a memory allocation error.
-				// context.SymbolReaderProvider = new DefaultSymbolReaderProvider(true);
-				// context.SymbolWriterProvider = new DefaultSymbolWriterProvider();
-				// context.LinkSymbols = true;
+				if (RuntimeDebuggerEnabled)
+				{
+					// Disabled until we can actually use symbols, and that 
+					// the rewriter does not fail for a memory allocation error.
+					context.SymbolReaderProvider = new DefaultSymbolReaderProvider(true);
+					context.SymbolWriterProvider = new DefaultSymbolWriterProvider();
+					context.LinkSymbols = true;
+				}
+
 				context.Logger = new LinkerLogger(Log);
 				context.LogMessages = true;
 				context.KeepTypeForwarderOnlyAssemblies = true;
@@ -94,6 +98,17 @@ namespace Uno.Wasm.Bootstrap
 			_linkedAsmPaths = Directory.GetFiles(_managedPath, "*." + AssembliesFileExtension)
 				.OrderBy(x => Path.GetFileName(x))
 				.ToList();
+
+			if (RuntimeDebuggerEnabled)
+			{
+				_linkedAsmPaths = _linkedAsmPaths.Concat(
+						Directory.GetFiles(_managedPath, "*.pdb")
+						// Required because of this 
+						.Where(f => !Path.GetFileNameWithoutExtension(f).Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
+						.OrderBy(x => Path.GetFileName(x))
+
+					).ToList();
+			}
 		}
 
 		/// <summary>
