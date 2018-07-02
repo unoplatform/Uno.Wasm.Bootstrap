@@ -10,26 +10,33 @@ function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, 
 }
 
 var Module = {
+
+    // Required for debugging purposes until https://github.com/mono/mono/pull/9402 is merged.
     onRuntimeInitialized: function () {
         if (debug) console.log("Done with WASM module instantiation.");
 
         Module.FS_createPath("/", "managed", true, true);
 
         var pending = 0;
+        var loaded_files = [];
         this.assemblies.forEach(function (asm_name) {
             if (debug) console.log("Loading", asm_name);
             ++pending;
             fetch(Module.remoteManagedPath + "/" + asm_name, { credentials: 'same-origin' }).then(function (response) {
                 if (!response.ok)
                     throw "failed to load Assembly '" + asm_name + "'";
+                loaded_files.push(response.url);
                 return response['arrayBuffer']();
             }).then(function (blob) {
                 var asm = new Uint8Array(blob);
                 var adjustedName = asm_name.replace("." + Module.assemblyFileExtension, ".dll");
                 Module.FS_createDataFile("managed/" + adjustedName, null, asm, true, true, true);
                 --pending;
-                if (pending == 0)
+                if (pending == 0) {
+                    // Required for debugging purposes until https://github.com/mono/mono/pull/9402 is merged.
+                    MONO.loaded_files = loaded_files;
                     Module.bclLoadingDone();
+                }
             });
         });
     },
@@ -51,6 +58,9 @@ var MonoRuntime = {
         this.mono_string = Module.cwrap('mono_wasm_string_from_js', 'number', ['string']);
 
         this.load_runtime("managed", debug ? 1 : 0);
+
+        // Required for debugging purposes until https://github.com/mono/mono/pull/9402 is merged.
+        MONO.mono_wasm_runtime_ready();
 
         if (debug) console.log("Done initializing the runtime.");
 

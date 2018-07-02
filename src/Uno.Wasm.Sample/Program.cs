@@ -23,7 +23,9 @@ namespace Uno.Wasm.Sample
     {
 		static void Main(string[] args) 
 		{
-			Console.WriteLine("Main!");
+			var i = 42;
+			var now = DateTime.Now.ToString();
+			Console.WriteLine($"Main! {i} {now}");
 		}
 	}
 }

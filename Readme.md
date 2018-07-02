@@ -41,6 +41,28 @@ class Program
 * Run the `server.py`, which will open an HTTP server on http://localhost:8000.  On Windows, use Python tools or the excellent Linux Subsystem.
 * The output of the Console.WriteLine will appear in the javascript debugging console
 
+## Mono-wasm Debugger Support
+Mono-wasm now has integrated **preliminary** support for debugging. Refer to
+[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to setup the debugging.
+
+To enable debugging in **Uno.Wasm.Boostrap**, add the following line to your csproj:
+
+```xml
+<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+```
+
+This will enable the deployment of `pdb` files to the browser, and allow for the [debugger proxy](https://github.com/kumpera/ws-proxy) to pick those up.
+
+For the time being, you will also need to make sure that mscorlib is disabled in the Linker configuration file: 
+
+```xml
+	<!-- Required for debugging -->
+	<assembly fullname="mscorlib">
+	</assembly>
+	<assembly fullname="System.Core">
+	</assembly>
+```
+
 ## Features
 ### Support for additional JS files
 Providing additional JS files is done through the inclusion of `EmbeddedResource`  msbuild item  files, in a project folder named `WasmScripts`.

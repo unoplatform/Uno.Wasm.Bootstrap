@@ -2,4 +2,10 @@
 	<assembly fullname="Uno.Wasm.Sample">
 		<namespace fullname="Uno.Wasm.Sample" />
 	</assembly>
+	
+	<!-- Required for debugging -->
+	<assembly fullname="mscorlib">
+	</assembly>
+	<assembly fullname="System.Core">
+	</assembly>
 </linker>

@@ -10,7 +10,7 @@
 		<WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
-		<MonoRuntimeDebuggerEnabled Condition="'$(WasmDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
+		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
 	</PropertyGroup>
 
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
