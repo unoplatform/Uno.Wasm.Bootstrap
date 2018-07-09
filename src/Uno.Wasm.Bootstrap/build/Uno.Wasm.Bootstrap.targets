@@ -21,6 +21,7 @@
 			OutputPath="$(OutputPath)"
 			LinkerDescriptors="@(LinkerDescriptor)"
 			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			PWAManifestFile="$(WasmPWAManifestFile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"

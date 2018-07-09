@@ -68,6 +68,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
+		public string PWAManifestFile { get; set; }
+
 		public override bool Execute()
 		{
 			try
@@ -316,6 +318,14 @@ namespace Uno.Wasm.Bootstrap
 
 					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
+
+					var extraBuilder = new StringBuilder();
+					if (!string.IsNullOrWhiteSpace(PWAManifestFile))
+					{
+						extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
+					}
+
+					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
 
 					w.Write(html);
 
