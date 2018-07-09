@@ -60,9 +60,13 @@ var MonoRuntime = {
         this.load_runtime("managed", debug ? 1 : 0);
 
         // Required for debugging purposes until https://github.com/mono/mono/pull/9402 is merged.
-        MONO.mono_wasm_runtime_ready();
+        if (debug) {
+            MONO.mono_wasm_runtime_ready();
+        }
 
-        if (debug) console.log("Done initializing the runtime.");
+        if (debug) {
+            console.log("Done initializing the runtime.");
+        }
 
         WebAssemblyApp.init();
     },
