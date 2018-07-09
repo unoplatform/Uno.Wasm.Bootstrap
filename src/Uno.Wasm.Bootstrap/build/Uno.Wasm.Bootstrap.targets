@@ -20,6 +20,7 @@
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
 			LinkerDescriptors="@(LinkerDescriptor)"
+			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
 			MonoWasmSDKUri="$(MonoWasmSDKUri)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"

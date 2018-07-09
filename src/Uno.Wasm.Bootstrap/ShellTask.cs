@@ -52,6 +52,9 @@ namespace Uno.Wasm.Bootstrap
 		public string ReferencePath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public string TargetFrameworkIdentifier { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; }
 
 		public string MonoWasmSDKUri { get; set; }
@@ -74,6 +77,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			try
 			{
+				if(TargetFrameworkIdentifier != ".NETStandard")
+				{
+					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
+					return true;
+				}
+
 				InstallSdk();
 				GetBcl();
 				CreateDist();
