@@ -67,16 +67,24 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		static bool IsTypePreserved(TypeDefinition m)
+		static bool IsTypePreserved(TypeDefinition typeDefinition)
 		{
 			// Exclude WasmRuntime to that timer can get called properly
 			// https://github.com/mono/mono/blob/a49aa771c10889c6ac1974af81f9fcc375d391cb/mcs/class/corlib/System.Threading/Timer.cs#L56
-			if (m.Name.EndsWith("WasmRuntime"))
+			if (typeDefinition.Name.EndsWith("WasmRuntime"))
 			{
 				return true;
 			}
 
-			return m.CustomAttributes.FirstOrDefault(x => x.AttributeType.Name.StartsWith("Preserve", StringComparison.Ordinal)) != null;
+			// System.String, otherwise "cannot find CreateString for .ctor" happens.
+			// The linker shows a reflection dependency on some String.CreateString
+			// method. Workaround for now is to link the whole System.String type.
+			if (typeDefinition.FullName.EndsWith("System.String"))
+			{
+				return true;
+			}
+
+			return typeDefinition.CustomAttributes.FirstOrDefault(x => x.AttributeType.Name.StartsWith("Preserve", StringComparison.Ordinal)) != null;
 		}
 
 		static bool IsMethodPreserved(MethodDefinition m)
