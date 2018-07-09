@@ -5,8 +5,11 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
+  </PropertyGroup>
+	
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
-		<!--<AssemblyName>uno.wasm.sample</AssemblyName>-->
   </PropertyGroup>
 
 	<ItemGroup>
@@ -32,6 +35,14 @@
 
 	<ItemGroup>
 	  <Content Include="Content\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="manifest.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="manifest.json" />
 	</ItemGroup>
 	
 </Project>

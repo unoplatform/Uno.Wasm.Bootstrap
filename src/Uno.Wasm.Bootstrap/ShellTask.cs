@@ -52,6 +52,9 @@ namespace Uno.Wasm.Bootstrap
 		public string ReferencePath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public string TargetFrameworkIdentifier { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; }
 
 		public string MonoWasmSDKUri { get; set; }
@@ -68,10 +71,18 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
+		public string PWAManifestFile { get; set; }
+
 		public override bool Execute()
 		{
 			try
 			{
+				if(TargetFrameworkIdentifier != ".NETStandard")
+				{
+					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
+					return true;
+				}
+
 				InstallSdk();
 				GetBcl();
 				CreateDist();
@@ -316,6 +327,14 @@ namespace Uno.Wasm.Bootstrap
 
 					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
+
+					var extraBuilder = new StringBuilder();
+					if (!string.IsNullOrWhiteSpace(PWAManifestFile))
+					{
+						extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
+					}
+
+					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
 
 					w.Write(html);
 

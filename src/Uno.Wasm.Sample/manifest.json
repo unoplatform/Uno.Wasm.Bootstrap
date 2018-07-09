@@ -1,0 +1,16 @@
+{
+  "dir": "ltr",
+  "lang": "en-us",
+  "name": "Uno.Wasm.Sample",
+  "scope": "/",
+  "display": "browser",
+  "start_url": "/",
+  "short_name": "Uno.Wasm.Sample",
+  "theme_color": "transparent",
+  "description": "A sample PWA for testing purposes",
+  "orientation": "any",
+  "background_color": "transparent",
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "icons": []
+}

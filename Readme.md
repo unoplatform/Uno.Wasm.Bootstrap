@@ -74,6 +74,12 @@ Additional CSS files are supported through the inclusion of `EmbeddedResource`  
 ### Support for additional Content files
 Additional CSS files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
 
+### Support for PWA Manifest File
+A **Progressive Web App** manifest link definition can be added to the index.html file's head:
+- Use the `WasmPWAManifestFile` property to set the file name
+- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest) 
+- Set the `Content` build action to this new file so it gets copied to the output folder
+
 ### Linker configuration
 The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
 
@@ -93,6 +99,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_CSS)`
 - `$(REMOTE_MANAGED_PATH)`
 - `$(ASSEMBLY_FILE_EXTENSION)`
+- `$(ADDITIONAL_HEAD)`
 
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
 
