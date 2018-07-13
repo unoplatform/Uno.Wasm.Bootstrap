@@ -11,6 +11,12 @@
 
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
+
+		<!-- 
+		Force all applicable references to be present in the ReferenceCopyLocalPaths property.
+		Otherwise, the ReferencePath property only contains reference assemblies if those are available.
+		-->
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
@@ -27,7 +33,7 @@
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
 			Assets="@(Content)"
-			ReferencePath="@(ReferencePath)" />
+			ReferencePath="@(ReferenceCopyLocalPaths)" />
 	</Target>
 
 	<Target Name="_CleanDist" BeforeTargets="Clean">
