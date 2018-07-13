@@ -22,6 +22,14 @@
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 
 	<Target Name="BuildDist" AfterTargets="AfterBuild">
+
+		<ItemGroup>
+			<!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
+			<_AssembliesForReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)"
+																						 Condition="'%(Extension)' == '.dll'" />
+		</ItemGroup>
+
+
 		<ShellTask_v0
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
@@ -33,7 +41,7 @@
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
 			Assets="@(Content)"
-			ReferencePath="@(ReferenceCopyLocalPaths)" />
+			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
 	</Target>
 
 	<Target Name="_CleanDist" BeforeTargets="Clean">
