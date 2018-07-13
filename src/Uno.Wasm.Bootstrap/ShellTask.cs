@@ -198,10 +198,15 @@ namespace Uno.Wasm.Bootstrap
 				{
 					(string fullPath, string relativePath) GetFilePaths()
 					{
-						if(sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
+						if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
 						{
 							// This case is mainly for shared projects
 							return (sourceFile.ItemSpec, link);
+						}
+						else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
+						{
+							// This is fore files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+							return (fullPath, sourceFile.ToString());
 						}
 						else
 						{
