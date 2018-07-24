@@ -31,7 +31,7 @@ namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		private const string DefaultSdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/463/label=ubuntu-1804-amd64/Azure/processDownloadRequest/463/ubuntu-1804-amd64/sdks/wasm/mono-wasm-643e6c47ee5.zip";
+		private const string DefaultSdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/598/Azure/processDownloadRequest/598/ubuntu-1804-amd64/sdks/wasm/mono-wasm-f07691d5125.zip";
 
 		private string _distPath;
 		private string _managedPath;
@@ -146,7 +146,7 @@ namespace Uno.Wasm.Bootstrap
 				var zipPath = _sdkPath + ".zip";
 				Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
 				Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-				client.DownloadFile(DefaultSdkUrl, zipPath);
+				client.DownloadFile(sdkUri, zipPath);
 
 				ZipFile.ExtractToDirectory(zipPath, _sdkPath);
 				Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
