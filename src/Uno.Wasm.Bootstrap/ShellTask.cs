@@ -301,7 +301,7 @@ namespace Uno.Wasm.Bootstrap
 				return def;
 			}
 
-			throw new Exception($"{Path.GetFileName(Assembly)} is missing an entry point");
+			throw new Exception($"{Path.GetFileName(Assembly)} is missing an entry point. Add <OutputType>Exe</OutputType> in the project file and a static main.");
 		}
 
 		private void GenerateHtml()
