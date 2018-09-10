@@ -36,7 +36,12 @@ namespace Uno.Wasm.Bootstrap
 	{
 		void LinkAssemblies()
 		{
-			var references = ReferencePath.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+			var references = ReferencePath
+				?.Split(';')
+				.Select(x => x.Trim())
+				.Where(x => x.Length > 0)
+				.ToList() ?? new List<string>();
+
 			_referencedAssemblies = new List<string>();
 			foreach (var r in references)
 			{
