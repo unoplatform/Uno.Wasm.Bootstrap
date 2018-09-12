@@ -45,10 +45,11 @@ class Program
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 
 Here's how to install it:
-- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu- Install Ubuntu 18.04 or later, and follow the instructions during the first run3
-- Once you've built your project, you should see a path to the built project dll
-- In the Ubuntu shell, type `cd ``wslpath "[the_path_to_your_bin_folder]\dist"`
+- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu- Install Ubuntu 18.04 or later, and follow the instructions during the first run
+- Once you've built your project, you should see a path to the project dll
+- In the Ubuntu shell, type `cd `wslpath "[the_path_to_your_bin_folder]\dist"``
 - Type `python3 server.py`
+	- If this command does not exist, run the following `sudo apt-get install python3`
 - Using your favorite browser, navigate to `http://localhost:8000`
 
 ## Mono-wasm Debugger Support
