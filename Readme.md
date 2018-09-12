@@ -41,6 +41,16 @@ class Program
 * Run the `server.py`, which will open an HTTP server on http://localhost:8000.  On Windows, use Python tools or the excellent Linux Subsystem.
 * The output of the Console.WriteLine will appear in the javascript debugging console
 
+## Server the Waam app through Windows Linux Subsystem
+Using Windows 10, serving the app through a small Web Server is done through WSL.
+
+Here's how to install it:
+- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu- Install Ubuntu 18.04 or later, and follow the instructions during the first run3
+- Once you've built your project, you should see a path to the built project dll
+- In the Ubuntu shell, type `cd ``wslpath "[the_path_to_your_bin_folder]\dist"`
+- Type `python3 server.py`
+- Using your favorite browser, navigate to `http://localhost:8000`
+
 ## Mono-wasm Debugger Support
 Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
 [this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to setup the debugging.
