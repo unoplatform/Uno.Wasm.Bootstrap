@@ -1,9 +1,10 @@
 ﻿var debug = false;
 
 
-function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, remoteManagedPath, assemblyFileExtension, isDebug) {
+function unoWasmMain(mainAsmName, mainNamespace, mainClassName, mainMethodName, assemblies, dependencies, remoteManagedPath, assemblyFileExtension, isDebug) {
     Module.entryPoint = { "a": mainAsmName, "n": mainNamespace, "t": mainClassName, "m": mainMethodName };
     Module.assemblies = assemblies;
+    Module.dependencies = dependencies;
     Module.assemblyFileExtension = assemblyFileExtension;
     Module.remoteManagedPath = remoteManagedPath;
     debug = isDebug;
@@ -32,7 +33,7 @@ var Module = {
                 var adjustedName = asm_name.replace("." + Module.assemblyFileExtension, ".dll");
                 Module.FS_createDataFile("managed/" + adjustedName, null, asm, true, true, true);
                 --pending;
-                if (pending == 0) {
+                if (pending === 0) {
                     // Required for debugging purposes until https://github.com/mono/mono/pull/9402 is merged.
                     MONO.loaded_files = loaded_files;
                     Module.bclLoadingDone();
@@ -42,8 +43,55 @@ var Module = {
     },
 
     bclLoadingDone: function () {
-        if (debug) console.log("Done loading the BCL.");
-        MonoRuntime.init();
+        if (debug) console.log("Done loading the BCL");
+
+        if (this.dependencies && this.dependencies.length !== 0) {
+
+
+            var pending = 0;
+
+            var checkDone = (dependency) => {
+                --pending;
+                if (pending === 0) {
+                    if (debug) console.log(`Loaded dependency (${dependency})`);
+                    MonoRuntime.init();
+                }
+            };
+
+            this.dependencies.forEach(function (dependency) {
+                ++pending;
+                if (debug) console.log(`Loading dependency (${dependency})`);
+
+                require(
+                    [dependency],
+                    instance => {
+
+                        if (instance && instance.HEAP8 !== undefined) {
+
+                            var existingInitializer = instance.onRuntimeInitialized;
+
+                            if (debug) console.log(`Waiting for dependency (${dependency}) initialization`);
+
+                            instance.onRuntimeInitialized = () => {
+
+                                checkDone(dependency);
+
+                                if (existingInitializer)
+                                    existingInitializer();
+                            };
+                        }
+                        else {
+                            checkDone(dependency);
+                        }
+                    }
+                );
+
+            });
+
+        }
+        else {
+            MonoRuntime.init();
+        }
     }
 };
 
@@ -72,7 +120,7 @@ var MonoRuntime = {
     },
 
     conv_string: function (mono_obj) {
-        if (mono_obj == 0)
+        if (mono_obj === 0)
             return null;
         var raw = this.mono_string_get_utf8(mono_obj);
         var res = Module.UTF8ToString(raw);
@@ -95,7 +143,7 @@ var MonoRuntime = {
         Module._free(args_mem);
         Module._free(eh_throw);
 
-        if (eh_res != 0) {
+        if (eh_res !== 0) {
             var msg = this.conv_string(res);
             throw new Error(msg);
         }

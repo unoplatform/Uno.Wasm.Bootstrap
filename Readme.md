@@ -45,7 +45,8 @@ class Program
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 
 Here's how to install it:
-- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu- Install Ubuntu 18.04 or later, and follow the instructions during the first run
+- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu
+- Install Ubuntu 18.04 or later, and follow the instructions during the first run
 - Once you've built your project, you should see a path to the project dll
 - In the Ubuntu shell, type `cd `wslpath "[the_path_to_your_bin_folder]\dist"``
 - Type `python3 server.py`
@@ -96,6 +97,33 @@ The linker may be configured via the inclusion of `LinkerDescriptor` msbuild ite
 
 The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
 
+### Dependency management
+The Uno Bootstrapper uses RequireJS for the dependency management, allowing for dependencies to be resolved in a stable manner. 
+
+For instance, a script defined this way, placed in the `WasmScripts` folder:
+
+```javascript
+define(() => {
+    var txt = document.createTextNode("Loaded !");
+    var parent = document.getElementById('uno-body');
+    parent.insertBefore(txt, parent.lastChild);
+});
+```
+
+will be executed appropriately.
+
+Dependencies can also be declared this way: 
+
+```javascript
+define([], function() { return MyModule; });
+```
+
+### Dependency management for Emscripten
+
+Emscrpiten modules initialization is performed in an asynchronous way, and the bootstapper 
+will ensure that a  dependency that exposes a module will have finished its initialization 
+for starting the `Main` method of the C# code.
+
 ## Index.html content override
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
@@ -106,7 +134,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(MAIN_TYPENAME)`
 - `$(MAIN_METHOD)`
 - `$(ENABLE_RUNTIMEDEBUG)`
-- `$(ADDITIONAL_SCRIPTS)`
+- `$(DEPENDENCIES_LIST)`
 - `$(ADDITIONAL_CSS)`
 - `$(REMOTE_MANAGED_PATH)`
 - `$(ASSEMBLY_FILE_EXTENSION)`
