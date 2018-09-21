@@ -46,8 +46,6 @@ var Module = {
         if (debug) console.log("Done loading the BCL");
 
         if (this.dependencies && this.dependencies.length !== 0) {
-
-
             var pending = 0;
 
             var checkDone = (dependency) => {
@@ -65,7 +63,6 @@ var Module = {
                 require(
                     [dependency],
                     instance => {
-
                         if (instance && instance.HEAP8 !== undefined) {
 
                             var existingInitializer = instance.onRuntimeInitialized;
@@ -73,7 +70,6 @@ var Module = {
                             if (debug) console.log(`Waiting for dependency (${dependency}) initialization`);
 
                             instance.onRuntimeInitialized = () => {
-
                                 checkDone(dependency);
 
                                 if (existingInitializer)
@@ -85,9 +81,7 @@ var Module = {
                         }
                     }
                 );
-
             });
-
         }
         else {
             MonoRuntime.init();

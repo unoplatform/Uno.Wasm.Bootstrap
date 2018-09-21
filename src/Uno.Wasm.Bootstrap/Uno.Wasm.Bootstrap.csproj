@@ -51,11 +51,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="WasmScripts\require.js" />
-	  <None Remove="WasmScripts\uno-bootstrap.js" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Content Include="build\Uno.Wasm.Bootstrap.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
