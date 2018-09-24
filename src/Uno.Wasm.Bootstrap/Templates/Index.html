@@ -12,9 +12,11 @@
     <div id="uno-body" class="container-fluid">
         <p id="loading"><i class="fa fa-refresh fa-spin" style="font-size:14px;margin-right:0.5em;"></i> Loading...</p>
     </div>
+    <script defer type="text/javascript" src="require.js"></script>
     <script defer type="text/javascript" src="uno-bootstrap.js"></script>
     <script type="text/javascript">
         var assemblies = [$(ASSEMBLIES_LIST)];
+        var dependencies = [$(DEPENDENCIES_LIST)];
         document.addEventListener(
             "DOMContentLoaded",
             function (event) {
@@ -24,6 +26,7 @@
                     "$(MAIN_TYPENAME)",
                     "$(MAIN_METHOD)",
                     assemblies,
+                    dependencies,
                     "$(REMOTE_MANAGED_PATH)",
                     "$(ASSEMBLY_FILE_EXTENSION)",
                     $(ENABLE_RUNTIMEDEBUG)
@@ -32,6 +35,5 @@
         );
     </script>
     <script defer type="text/javascript" src="mono.js"></script>
-    $(ADDITIONAL_SCRIPTS)
 </body>
 </html>

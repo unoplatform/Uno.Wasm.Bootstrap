@@ -40,7 +40,7 @@ namespace Uno.Wasm.Bootstrap
 		private List<string> _referencedAssemblies;
 		private Dictionary<string, string> _bclAssemblies;
 		private string _sdkPath;
-		private List<string> _additionalScripts = new List<string>();
+		private List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
 
 		[Microsoft.Build.Framework.Required]
@@ -235,9 +235,9 @@ namespace Uno.Wasm.Bootstrap
 
 			q.AsParallel().ForAll(res =>
 			{
-				if (res.name != "uno-bootstrap.js")
+				if (res.source.Name.Name != GetType().Assembly.GetName().Name)
 				{
-					_additionalScripts.Add(res.name);
+					_dependencies.Add(res.name);
 				}
 
 				CopyResourceToOutput(res.name, res.resource);
@@ -276,7 +276,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private IEnumerable<(string name, EmbeddedResource resource)> EnumerateResources(string extension, string folder)
+		private IEnumerable<(string name, AssemblyDefinition source, EmbeddedResource resource)> EnumerateResources(string extension, string folder)
 		{
 			var fullExtension = "." + extension;
 			var fullFolder = "." + folder + ".";
@@ -288,6 +288,7 @@ namespace Uno.Wasm.Bootstrap
 				   where res.Name.Contains(fullFolder)
 				   select (
 					name: res.Name.Substring(res.Name.IndexOf(fullFolder) + fullFolder.Length),
+					source: asm,
 					resource: res
 					);
 		}
@@ -317,8 +318,10 @@ namespace Uno.Wasm.Bootstrap
 					var html = reader.ReadToEnd();
 
 					var assemblies = string.Join(", ", _linkedAsmPaths.Select(x => $"\"{Path.GetFileName(x)}\""));
+					var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
 
 					html = html.Replace("$(ASSEMBLIES_LIST)", assemblies);
+					html = html.Replace("$(DEPENDENCIES_LIST)", dependencies);
 					html = html.Replace("$(MAIN_ASSEMBLY_NAME)", entryPoint.DeclaringType.Module.Assembly.Name.Name);
 					html = html.Replace("$(MAIN_NAMESPACE)", entryPoint.DeclaringType.Namespace);
 					html = html.Replace("$(MAIN_TYPENAME)", entryPoint.DeclaringType.Name);
@@ -326,9 +329,6 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebuggerEnabled.ToString().ToLower());
 					html = html.Replace("$(REMOTE_MANAGED_PATH)", Path.GetFileName(_managedPath));
 					html = html.Replace("$(ASSEMBLY_FILE_EXTENSION)", AssembliesFileExtension);
-
-					var scripts = string.Join("\r\n", _additionalScripts.Select(s => $"<script defer type=\"text/javascript\" src=\"{s}\"></script>"));
-					html = html.Replace("$(ADDITIONAL_SCRIPTS)", scripts);
 
 					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
