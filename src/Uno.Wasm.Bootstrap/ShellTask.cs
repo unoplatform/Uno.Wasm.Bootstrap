@@ -49,7 +49,7 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string OutputPath { get; set; }
 
-		public string ReferencePath { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string TargetFrameworkIdentifier { get; set; }
