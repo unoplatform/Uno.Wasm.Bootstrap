@@ -36,23 +36,20 @@ namespace Uno.Wasm.Bootstrap
 	{
 		void LinkAssemblies()
 		{
-			var references = ReferencePath
-				?.Split(';')
-				.Select(x => x.Trim())
-				.Where(x => x.Length > 0)
-				.ToList() ?? new List<string>();
-
 			_referencedAssemblies = new List<string>();
-			foreach (var r in references)
+			foreach (var r in ReferencePath)
 			{
-				var name = Path.GetFileName(r);
-				if (_bclAssemblies.ContainsKey(name))
+				var name = Path.GetFileName(r.ItemSpec);
+				if (
+					r.GetMetadata("NuGetPackageId") == null 
+					&& _bclAssemblies.ContainsKey(name)
+				)
 				{
 					_referencedAssemblies.Add(_bclAssemblies[name]);
 				}
 				else
 				{
-					_referencedAssemblies.Add(r);
+					_referencedAssemblies.Add(r.ItemSpec);
 				}
 			}
 
@@ -81,8 +78,8 @@ namespace Uno.Wasm.Bootstrap
 				pipeline.PrependStep(new ResolveFromAssemblyStep(asmPath, ResolveFromAssemblyStep.RootVisibility.Any));
 
 				var refdirs = _referencedAssemblies.Select(x => Path.GetDirectoryName(x)).Distinct().ToList();
-				refdirs.Insert(0, Path.Combine(_bclPath, "Facades"));
-				refdirs.Insert(0, _bclPath);
+				refdirs.Add(_bclPath);
+				refdirs.Add(Path.Combine(_bclPath, "Facades"));
 				foreach (var d in refdirs.Distinct())
 				{
 					context.Resolver.AddSearchDirectory(d);
