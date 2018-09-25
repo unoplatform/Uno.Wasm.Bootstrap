@@ -41,8 +41,14 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var name = Path.GetFileName(r.ItemSpec);
 				if (
-					r.GetMetadata("NuGetPackageId") == null 
-					&& _bclAssemblies.ContainsKey(name)
+					_bclAssemblies.ContainsKey(name)
+
+					// NUnitLite is a particular case, as it is distributed
+					// as part of the mono runtime BCL, which prevents the nuget
+					// package from overriding it. We exclude it here, and cache the
+					// proper assembly in the resolver farther below, so that it gets 
+					// picked up first.
+					&& name != "nunitlite.dll"
 				)
 				{
 					_referencedAssemblies.Add(_bclAssemblies[name]);
@@ -78,11 +84,18 @@ namespace Uno.Wasm.Bootstrap
 				pipeline.PrependStep(new ResolveFromAssemblyStep(asmPath, ResolveFromAssemblyStep.RootVisibility.Any));
 
 				var refdirs = _referencedAssemblies.Select(x => Path.GetDirectoryName(x)).Distinct().ToList();
-				refdirs.Add(_bclPath);
-				refdirs.Add(Path.Combine(_bclPath, "Facades"));
+				refdirs.Insert(0, Path.Combine(_bclPath, "Facades"));
+				refdirs.Insert(0, _bclPath);
 				foreach (var d in refdirs.Distinct())
 				{
 					context.Resolver.AddSearchDirectory(d);
+				}
+
+				var nunitlitePath = _referencedAssemblies.FirstOrDefault(s => s.EndsWith("nunitlite.dll", StringComparison.OrdinalIgnoreCase));
+				if (!string.IsNullOrWhiteSpace(nunitlitePath))
+				{
+					Log.LogMessage("Found NUnitLite in references, overriding path to use referenced instead of mono-wasm provided one");
+					context.Resolver.CacheAssembly(AssemblyDefinition.ReadAssembly(nunitlitePath, context.ReaderParameters));
 				}
 
 				pipeline.AddStepAfter(typeof(LoadReferencesStep), new LoadI18nAssemblies(I18nAssemblies.None));
