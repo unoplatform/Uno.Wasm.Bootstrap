@@ -233,34 +233,36 @@ namespace Uno.Wasm.Bootstrap
 			var q = EnumerateResources("js", "WasmDist")
 				.Concat(EnumerateResources("js", "WasmScripts"));
 
-			q.AsParallel().ForAll(res =>
-			{
-				if (res.source.Name.Name != GetType().Assembly.GetName().Name)
+			foreach(var (name, source, resource) in q)
+			{ 
+				if (source.Name.Name != GetType().Assembly.GetName().Name)
 				{
-					_dependencies.Add(res.name);
+					_dependencies.Add(name);
 				}
 
-				CopyResourceToOutput(res.name, res.resource);
+				CopyResourceToOutput(name, resource);
 
-				Log.LogMessage($"Additional JS {res.name}");
-			});
+				Log.LogMessage($"Additional JS {name}");
+			}
 		}
 
 		private void ExtractAdditionalCSS()
 		{
 			var q = EnumerateResources("css", "WasmCSS");
 
-			_additionalStyles = q.AsParallel().Select(res => {
-				using (var srcs = res.resource.GetResourceStream())
+			foreach (var (name, source, resource) in q)
+			{
+				using (var srcs = resource.GetResourceStream())
 				{
-					CopyResourceToOutput(res.name, res.resource);
+					CopyResourceToOutput(name, resource);
 
-					Log.LogMessage($"Additional CSS {res.name}");
+					Log.LogMessage($"Additional CSS {name}");
 				}
+			}
 
-				return res.name;
-			})
-			.ToArray();
+			_additionalStyles = q
+				.Select(res => res.name)
+				.ToArray();
 		}
 
 		private void CopyResourceToOutput(string name, EmbeddedResource resource)
