@@ -37,25 +37,28 @@ namespace Uno.Wasm.Bootstrap
 		void LinkAssemblies()
 		{
 			_referencedAssemblies = new List<string>();
-			foreach (var r in ReferencePath)
+			if (ReferencePath != null)
 			{
-				var name = Path.GetFileName(r.ItemSpec);
-				if (
-					_bclAssemblies.ContainsKey(name)
+				foreach (var r in ReferencePath)
+				{
+					var name = Path.GetFileName(r.ItemSpec);
+					if (
+						_bclAssemblies.ContainsKey(name)
 
-					// NUnitLite is a particular case, as it is distributed
-					// as part of the mono runtime BCL, which prevents the nuget
-					// package from overriding it. We exclude it here, and cache the
-					// proper assembly in the resolver farther below, so that it gets 
-					// picked up first.
-					&& name != "nunitlite.dll"
-				)
-				{
-					_referencedAssemblies.Add(_bclAssemblies[name]);
-				}
-				else
-				{
-					_referencedAssemblies.Add(r.ItemSpec);
+						// NUnitLite is a particular case, as it is distributed
+						// as part of the mono runtime BCL, which prevents the nuget
+						// package from overriding it. We exclude it here, and cache the
+						// proper assembly in the resolver farther below, so that it gets 
+						// picked up first.
+						&& name != "nunitlite.dll"
+					)
+					{
+						_referencedAssemblies.Add(_bclAssemblies[name]);
+					}
+					else
+					{
+						_referencedAssemblies.Add(r.ItemSpec);
+					}
 				}
 			}
 
