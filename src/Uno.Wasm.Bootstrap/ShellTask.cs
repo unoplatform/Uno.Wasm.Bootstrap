@@ -19,20 +19,20 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Mono.Cecil;
 
 namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		private const string DefaultSdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/598/Azure/processDownloadRequest/598/ubuntu-1804-amd64/sdks/wasm/mono-wasm-f07691d5125.zip";
-
 		private string _distPath;
 		private string _managedPath;
 		private string _bclPath;
@@ -42,6 +42,7 @@ namespace Uno.Wasm.Bootstrap
 		private string _sdkPath;
 		private List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
+		private string _packagerBinPath;
 
 		[Microsoft.Build.Framework.Required]
 		public string Assembly { get; set; }
@@ -59,6 +60,9 @@ namespace Uno.Wasm.Bootstrap
 
 		public string MonoWasmSDKUri { get; set; }
 
+		[Microsoft.Build.Framework.Required]
+		public bool MonoAOT { get; set; }
+
 		public string AssembliesFileExtension { get; set; } = "clr";
 
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
@@ -75,6 +79,9 @@ namespace Uno.Wasm.Bootstrap
 
 		public override bool Execute()
 		{
+			var t = typeof(Mono.Options.Command);
+			var t2 = typeof(Mono.Cecil.ArrayType);
+
 			try
 			{
 				if(TargetFrameworkIdentifier != ".NETStandard")
@@ -88,17 +95,116 @@ namespace Uno.Wasm.Bootstrap
 				CreateDist();
 				CopyContent();
 				CopyRuntime();
-				LinkAssemblies();
+				RunPackager();
 				HashManagedPath();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GenerateHtml();
+				GenerateConfig();
 				return true;
 			}
 			catch (Exception ex)
 			{
 				Log.LogErrorFromException(ex, false, true, null);
 				return false;
+			}
+		}
+
+		private void RunPackager()
+		{
+			BuildReferencedAssembliesList();
+
+			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
+			var aotOption = this.MonoAOT ? "--aot" : "";
+
+			var psi = new ProcessStartInfo(_packagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}")
+			{
+				WorkingDirectory = _distPath,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
+			};
+
+			Log.LogMessage($"Running [{_distPath}]: {psi.FileName} {psi.Arguments}");
+			var p = Process.Start(psi);
+
+			var output = p.StandardOutput.ReadToEnd();
+			var error = p.StandardError.ReadToEnd();
+
+			p.WaitForExit();
+
+			if (p.ExitCode != 0)
+			{
+				Log.LogMessage(output);
+				Log.LogError(error);
+			}
+			else
+			{
+				Log.LogMessage(output);
+				Log.LogMessage(error);
+			}
+
+			if (MonoAOT)
+			{
+				RunAOT();
+			}
+		}
+
+		private void RunAOT()
+		{
+			var ninjaPsi = new ProcessStartInfo("ninja")
+			{
+				WorkingDirectory = _distPath,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
+			};
+
+			var ninjaProcess = Process.Start(ninjaPsi);
+
+			var ninjaOutput = ninjaProcess.StandardOutput.ReadToEnd();
+			var ninjaError = ninjaProcess.StandardError.ReadToEnd();
+
+
+			if (ninjaProcess.ExitCode != 0)
+			{
+				Log.LogMessage(ninjaOutput);
+				Log.LogError(ninjaError);
+			}
+			else
+			{
+				Log.LogMessage(ninjaOutput);
+				Log.LogMessage(ninjaError);
+			}
+		}
+
+		private void BuildReferencedAssembliesList()
+		{
+			_referencedAssemblies = new List<string>();
+
+			if (ReferencePath != null)
+			{
+				foreach (var r in ReferencePath)
+				{
+					var name = Path.GetFileName(r.ItemSpec);
+					if (
+						_bclAssemblies.ContainsKey(name)
+
+						// NUnitLite is a particular case, as it is distributed
+						// as part of the mono runtime BCL, which prevents the nuget
+						// package from overriding it. We exclude it here, and cache the
+						// proper assembly in the resolver farther below, so that it gets 
+						// picked up first.
+						&& name != "nunitlite.dll"
+					)
+					{
+						_referencedAssemblies.Add(_bclAssemblies[name]);
+					}
+					else
+					{
+						_referencedAssemblies.Add(r.ItemSpec);
+					}
+				}
 			}
 		}
 
@@ -115,6 +221,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			var allBytes = Directory.GetFiles(_managedPath)
+				.OrderBy(s => s)
 				.Select(ComputeHash)
 				.SelectMany(h => h)
 				.ToArray();
@@ -123,12 +230,45 @@ namespace Uno.Wasm.Bootstrap
 
 			var oldManagedPath = _managedPath;
 			_managedPath = _managedPath + "-" + hash;
+
+			if (Directory.Exists(_managedPath))
+			{
+				Directory.Delete(_managedPath, true);
+			}
+
 			Directory.Move(oldManagedPath, _managedPath);
+
+			RenameFiles("dll");
+		}
+
+		/// <summary>
+		/// Renames the files to avoid quarantine by antivirus software such as Symantec, 
+		/// which are quite present in the enterprise space.
+		/// </summary>
+		/// <param name="extension">The extension to rename</param>
+		private void RenameFiles(string extension)
+		{
+			foreach (var dllFile in Directory.GetFiles(_managedPath, "*." + extension))
+			{
+				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + "." + AssembliesFileExtension);
+
+				Log.LogMessage($"Renaming {dllFile} to {destDirName}");
+				Directory.Move(dllFile, destDirName);
+			}
 		}
 
 		private void InstallSdk()
 		{
-			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? DefaultSdkUrl : MonoWasmSDKUri;
+			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
+
+			var m = Regex.Match(sdkUri, @"(?!.*\-)(.*?)\.zip$");
+
+			if (!m.Success)
+			{
+				throw new InvalidDataException($"Unable to find SHA in {sdkUri}");
+			}
+
+			var buildHash = m.Groups[1].Value;
 
 			try
 			{
@@ -137,23 +277,85 @@ namespace Uno.Wasm.Bootstrap
 				_sdkPath = Path.Combine(Path.GetTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + _sdkPath);
 
-				if (Directory.Exists(_sdkPath))
+				var client = new WebClient();
+
+				if (!Directory.Exists(_sdkPath))
 				{
-					return;
+					var zipPath = _sdkPath + ".zip";
+					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
+					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
+					client.DownloadFile(sdkUri, zipPath);
+
+					ZipFile.ExtractToDirectory(zipPath, _sdkPath);
+					Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
 				}
 
-				var client = new WebClient();
-				var zipPath = _sdkPath + ".zip";
-				Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
-				Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-				client.DownloadFile(sdkUri, zipPath);
+				// Download the corresponding packager
+				var packagerFilePath = Path.Combine(Path.GetTempPath(), sdkName, "packager.cs");
 
-				ZipFile.ExtractToDirectory(zipPath, _sdkPath);
-				Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
+				if (!File.Exists(packagerFilePath))
+				{
+					string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
+					Log.LogMessage($"Using packager: {address}");
+					var packagerCS = client.DownloadString(address);
+					File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\""));
+				}
+
+				_packagerBinPath = Path.Combine(_sdkPath, "packager2.exe");
+
+				var cscPath = Path.Combine(Path.GetDirectoryName(new Uri(Log.GetType().Assembly.Location).LocalPath), "Roslyn", "csc.exe");
+				var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
+
+				var references = new[] {
+					Path.Combine(thisPath, "Mono.Cecil.dll"),
+					Path.Combine(thisPath, "Mono.Options.dll"),
+					"mscorlib.dll",
+					"System.Runtime.dll",
+					"System.Collections.dll",
+					"System.ObjectModel.dll",
+					"System.IO.dll",
+				}.Select(r => "/r:" + r);
+
+				var psi = new ProcessStartInfo(cscPath, $"{packagerFilePath} {string.Join(" ", references)} /out:{_packagerBinPath}")
+				{
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true
+				};
+
+				Log.LogMessage($"Running {psi.FileName} {psi.Arguments}");
+				var p = Process.Start(psi);
+
+				var output = p.StandardOutput.ReadToEnd();
+				var error = p.StandardError.ReadToEnd();
+
+				p.WaitForExit();
+
+				if (p.ExitCode != 0)
+				{
+					Log.LogError(error);
+				}
+				else
+				{
+					Log.LogMessage(output);
+					Log.LogMessage(error);
+				}
+
+				if (!File.Exists(_packagerBinPath))
+				{
+					throw new InvalidOperationException("Packager build is invalid");
+				}
+				else
+				{
+					Log.LogMessage($"Built {_packagerBinPath}");
+				}
+
+				File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(_sdkPath, "Mono.Cecil.dll"), true);
+				File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(_sdkPath, "Mono.Options.dll"), true);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
-				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}");
+				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}, {e}");
 			}
 		}
 
@@ -307,30 +509,35 @@ namespace Uno.Wasm.Bootstrap
 			throw new Exception($"{Path.GetFileName(Assembly)} is missing an entry point. Add <OutputType>Exe</OutputType> in the project file and a static main.");
 		}
 
+		private void GenerateConfig()
+		{
+			var unoConfigJsPath = Path.Combine(_distPath, "uno-config.js");
+
+			using (var w = new StreamWriter(unoConfigJsPath, false, new UTF8Encoding(false)))
+			{
+				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
+				var entryPoint = DiscoverEntryPoint();
+
+				var config =
+					$"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";" +
+					$"config.uno_dependencies = [{dependencies}];" +
+					$"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";" +
+					$"config.assemblyFileExtension = \"{AssembliesFileExtension}\";"
+					;
+
+				w.Write(config);
+			}
+		}
+
 		private void GenerateHtml()
 		{
 			var htmlPath = Path.Combine(_distPath, "index.html");
-
-			var entryPoint = DiscoverEntryPoint();
 
 			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
 			{
 				using (var reader = new StreamReader(IndexHtmlPath))
 				{
 					var html = reader.ReadToEnd();
-
-					var assemblies = string.Join(", ", _linkedAsmPaths.Select(x => $"\"{Path.GetFileName(x)}\""));
-					var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
-
-					html = html.Replace("$(ASSEMBLIES_LIST)", assemblies);
-					html = html.Replace("$(DEPENDENCIES_LIST)", dependencies);
-					html = html.Replace("$(MAIN_ASSEMBLY_NAME)", entryPoint.DeclaringType.Module.Assembly.Name.Name);
-					html = html.Replace("$(MAIN_NAMESPACE)", entryPoint.DeclaringType.Namespace);
-					html = html.Replace("$(MAIN_TYPENAME)", entryPoint.DeclaringType.Name);
-					html = html.Replace("$(MAIN_METHOD)", entryPoint.Name);
-					html = html.Replace("$(ENABLE_RUNTIMEDEBUG)", RuntimeDebuggerEnabled.ToString().ToLower());
-					html = html.Replace("$(REMOTE_MANAGED_PATH)", Path.GetFileName(_managedPath));
-					html = html.Replace("$(ASSEMBLY_FILE_EXTENSION)", AssembliesFileExtension);
 
 					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);

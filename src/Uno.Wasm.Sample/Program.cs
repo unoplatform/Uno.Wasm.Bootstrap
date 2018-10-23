@@ -22,7 +22,7 @@ namespace Uno.Wasm.Sample
     public static class Program	 
     {
 		static void Main(string[] args) 
-		{
+		{	
 			var i = 42;
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");

@@ -25,29 +25,8 @@
 		<PackageReference Include="Microsoft.Build.Framework" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.3.409" PrivateAssets="All" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Remove="linker\**" />
-		<Compile Remove="linker\**" />
-		<Compile Include="linker\linker\Linker\**\*.cs" />
-		<Compile Include="linker\linker\Linker.Steps\**\*.cs" />
-		<Compile Include="linker\cecil\Mono.Cecil\**\*.cs" />
-		<Compile Include="linker\cecil\Mono.Cecil.Cil\**\*.cs" />
-		<Compile Include="linker\cecil\Mono.Cecil.Metadata\**\*.cs" />
-		<Compile Include="linker\cecil\Mono.Cecil.PE\**\*.cs" />
-		<Compile Include="linker\cecil\Mono.Collections.Generic\**\*.cs*" />
-		<Compile Include="linker\cecil\symbols\mdb\Mono.Cecil.Mdb\**\*.cs*" />
-		<Compile Include="linker\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\**\*.cs*" />
-		<Compile Include="linker\cecil\symbols\pdb\Microsoft.Cci.Pdb\**\*.cs*" />
-		<Compile Include="linker\cecil\symbols\pdb\Mono.Cecil.Pdb\**\*.cs*" />
-		<Compile Include="linker\cecil\Mono\**\*.cs" />
-
-		<Compile Remove="linker\cecil\symbols\mdb\Mono.Cecil.Mdb\AssemblyInfo.cs" />
-		<Compile Remove="linker\cecil\symbols\pdb\Mono.Cecil.Pdb\AssemblyInfo.cs" />
-		<Compile Remove="linker\linker\Linker\Driver.cs" />
-		<Compile Remove="linker\linker\Linker\AssemblyInfo.cs" />
-		<Compile Remove="linker\cecil\Mono.Cecil\AssemblyInfo.cs" />
+		<PackageReference Include="Mono.Cecil" Version="0.10.1" PrivateAssets="All" />
+		<PackageReference Include="Mono.Options" Version="5.3.0.1" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -58,6 +37,22 @@
 		<Content Include="Templates\Index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools\templates</PackagePath>
+		</Content>
+		<Content Include="$(NuGetPackageRoot)mono.cecil\0.10.1\lib\netstandard1.3\*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+		</Content>
+		<Content Include="$(NuGetPackageRoot)mono.cecil\0.10.1\lib\netstandard1.3\*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+			<Visible>false</Visible>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="$(NuGetPackageRoot)mono.options\5.3.0.1\lib\netstandard1.3\*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+			<Visible>false</Visible>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 

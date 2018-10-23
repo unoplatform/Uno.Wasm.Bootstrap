@@ -12,6 +12,8 @@
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
 
+		<WasmShellEnableAOT Condition="'$(WasmShellEnableAOT)'==''">false</WasmShellEnableAOT>
+		
 		<!-- 
 		Force all applicable references to be present in the ReferenceCopyLocalPaths property.
 		Otherwise, the ReferencePath property only contains reference assemblies if those are available.
@@ -40,6 +42,7 @@
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
+			MonoAOT="$(WasmShellEnableAOT)"
 			Assets="@(Content)"
 			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
 	</Target>
