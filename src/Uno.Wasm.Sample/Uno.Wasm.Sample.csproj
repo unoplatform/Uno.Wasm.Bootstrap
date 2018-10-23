@@ -6,7 +6,8 @@
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-  </PropertyGroup>
+		<WasmShellEnableAOT>true</WasmShellEnableAOT>
+	</PropertyGroup>
 	
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>

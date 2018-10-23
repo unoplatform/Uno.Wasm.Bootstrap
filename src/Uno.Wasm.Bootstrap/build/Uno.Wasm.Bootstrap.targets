@@ -6,14 +6,14 @@
 		<WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
 		<WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
 
-		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
+		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/Index.html</WasmShellIndexHtmlPath>
 		<WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
 
 		<WasmShellEnableAOT Condition="'$(WasmShellEnableAOT)'==''">false</WasmShellEnableAOT>
-		
+
 		<!-- 
 		Force all applicable references to be present in the ReferenceCopyLocalPaths property.
 		Otherwise, the ReferencePath property only contains reference assemblies if those are available.
@@ -39,7 +39,7 @@
 		</UnoInstallSDKTask_v0>
 
 		<MSBuild Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
-		
+
 		<ShellTask_v0
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"

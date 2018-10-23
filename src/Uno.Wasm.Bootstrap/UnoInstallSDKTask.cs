@@ -48,6 +48,7 @@ namespace Uno.Wasm.Bootstrap
 			try
 			{
 				var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
+
 				Log.LogMessage("SDK: " + sdkName);
 				SdkPath = Path.Combine(Path.GetTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
@@ -63,6 +64,12 @@ namespace Uno.Wasm.Bootstrap
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+
+					var aotZipPath = SdkPath + ".aot.zip";
+					client.DownloadFile(Constants.DefaultAotUrl, aotZipPath);
+
+					ZipFile.ExtractToDirectory(aotZipPath, SdkPath);
+					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
 				}
 
 				// Download the corresponding packager
@@ -76,7 +83,7 @@ namespace Uno.Wasm.Bootstrap
 					string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
 					Log.LogMessage($"Using packager: {address}");
 					var packagerCS = client.DownloadString(address);
-					File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\""));
+					File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\"").Replace("framework_prefix = tool_prefix;", "framework_prefix = Path.Combine (tool_prefix, \"framework\");"));
 				}
 
 				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");

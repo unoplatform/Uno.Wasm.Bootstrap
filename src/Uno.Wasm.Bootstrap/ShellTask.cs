@@ -86,7 +86,7 @@ namespace Uno.Wasm.Bootstrap
 
 			try
 			{
-				if(TargetFrameworkIdentifier != ".NETStandard")
+				if (TargetFrameworkIdentifier != ".NETStandard")
 				{
 					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
 					return true;
@@ -116,7 +116,7 @@ namespace Uno.Wasm.Bootstrap
 			BuildReferencedAssembliesList();
 
 			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
-			var aotOption = this.MonoAOT ? "--aot" : "";
+			var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"~/github/emsdk\" --builddir=\"{_distPath}/../aot_tmp\"" : "";
 
 			var psi = new ProcessStartInfo(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}")
 			{
@@ -155,7 +155,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var ninjaPsi = new ProcessStartInfo("ninja")
 			{
-				WorkingDirectory = _distPath,
+				WorkingDirectory = Path.Combine(_distPath, "..", "aot_tmp"),
 				UseShellExecute = false,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true
@@ -166,6 +166,7 @@ namespace Uno.Wasm.Bootstrap
 			var ninjaOutput = ninjaProcess.StandardOutput.ReadToEnd();
 			var ninjaError = ninjaProcess.StandardError.ReadToEnd();
 
+			ninjaProcess.WaitForExit();
 
 			if (ninjaProcess.ExitCode != 0)
 			{
@@ -334,8 +335,8 @@ namespace Uno.Wasm.Bootstrap
 			var q = EnumerateResources("js", "WasmDist")
 				.Concat(EnumerateResources("js", "WasmScripts"));
 
-			foreach(var (name, source, resource) in q)
-			{ 
+			foreach (var (name, source, resource) in q)
+			{
 				if (source.Name.Name != GetType().Assembly.GetName().Name)
 				{
 					_dependencies.Add(name);

@@ -1,6 +1,22 @@
 ﻿
 config.fetch_file_cb = asset => App.fetchFile(asset);
 
+var Module = {
+    onRuntimeInitialized: function () {
+        MONO.mono_load_runtime_and_bcl(
+            config.vfs_prefix,
+            config.deploy_prefix,
+            config.enable_debugging,
+            config.file_list,
+            function () {
+                config.add_bindings();
+                App.init();
+            },
+            config.fetch_file_cb
+        );
+    },
+};
+
 var App = {
 
     init: function () {
@@ -25,8 +41,9 @@ var App = {
 
         if (asset.lastIndexOf(".dll") !== -1) {
             asset = asset.replace(".dll", "." + config.assemblyFileExtension);
-            asset = asset.replace("/managed/", "/" + config.uno_remote_managedpath + "/");
         }
+
+        asset = asset.replace("/managed/", "/" + config.uno_remote_managedpath + "/");
 
         return fetch(asset, { credentials: 'same-origin' });
     },
