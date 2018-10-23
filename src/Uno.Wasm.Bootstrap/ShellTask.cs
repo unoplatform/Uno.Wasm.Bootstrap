@@ -39,16 +39,20 @@ namespace Uno.Wasm.Bootstrap
 		private List<string> _linkedAsmPaths;
 		private List<string> _referencedAssemblies;
 		private Dictionary<string, string> _bclAssemblies;
-		private string _sdkPath;
 		private List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
-		private string _packagerBinPath;
 
 		[Microsoft.Build.Framework.Required]
 		public string Assembly { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string OutputPath { get; set; }
+
+		[Microsoft.Build.Framework.Required]
+		public string MonoWasmSDKPath { get; set; }
+
+		[Microsoft.Build.Framework.Required]
+		public string PackagerBinPath { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
@@ -57,8 +61,6 @@ namespace Uno.Wasm.Bootstrap
 
 		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; }
-
-		public string MonoWasmSDKUri { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public bool MonoAOT { get; set; }
@@ -90,7 +92,6 @@ namespace Uno.Wasm.Bootstrap
 					return true;
 				}
 
-				InstallSdk();
 				GetBcl();
 				CreateDist();
 				CopyContent();
@@ -117,7 +118,7 @@ namespace Uno.Wasm.Bootstrap
 			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 			var aotOption = this.MonoAOT ? "--aot" : "";
 
-			var psi = new ProcessStartInfo(_packagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}")
+			var psi = new ProcessStartInfo(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}")
 			{
 				WorkingDirectory = _distPath,
 				UseShellExecute = false,
@@ -257,111 +258,9 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void InstallSdk()
-		{
-			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
-
-			var m = Regex.Match(sdkUri, @"(?!.*\-)(.*?)\.zip$");
-
-			if (!m.Success)
-			{
-				throw new InvalidDataException($"Unable to find SHA in {sdkUri}");
-			}
-
-			var buildHash = m.Groups[1].Value;
-
-			try
-			{
-				var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
-				Log.LogMessage("SDK: " + sdkName);
-				_sdkPath = Path.Combine(Path.GetTempPath(), sdkName);
-				Log.LogMessage("SDK Path: " + _sdkPath);
-
-				var client = new WebClient();
-
-				if (!Directory.Exists(_sdkPath))
-				{
-					var zipPath = _sdkPath + ".zip";
-					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
-					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-					client.DownloadFile(sdkUri, zipPath);
-
-					ZipFile.ExtractToDirectory(zipPath, _sdkPath);
-					Log.LogMessage($"Extracted {sdkName} to {_sdkPath}");
-				}
-
-				// Download the corresponding packager
-				var packagerFilePath = Path.Combine(Path.GetTempPath(), sdkName, "packager.cs");
-
-				if (!File.Exists(packagerFilePath))
-				{
-					string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
-					Log.LogMessage($"Using packager: {address}");
-					var packagerCS = client.DownloadString(address);
-					File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\""));
-				}
-
-				_packagerBinPath = Path.Combine(_sdkPath, "packager2.exe");
-
-				var cscPath = Path.Combine(Path.GetDirectoryName(new Uri(Log.GetType().Assembly.Location).LocalPath), "Roslyn", "csc.exe");
-				var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
-
-				var references = new[] {
-					Path.Combine(thisPath, "Mono.Cecil.dll"),
-					Path.Combine(thisPath, "Mono.Options.dll"),
-					"mscorlib.dll",
-					"System.Runtime.dll",
-					"System.Collections.dll",
-					"System.ObjectModel.dll",
-					"System.IO.dll",
-				}.Select(r => "/r:" + r);
-
-				var psi = new ProcessStartInfo(cscPath, $"{packagerFilePath} {string.Join(" ", references)} /out:{_packagerBinPath}")
-				{
-					UseShellExecute = false,
-					RedirectStandardOutput = true,
-					RedirectStandardError = true
-				};
-
-				Log.LogMessage($"Running {psi.FileName} {psi.Arguments}");
-				var p = Process.Start(psi);
-
-				var output = p.StandardOutput.ReadToEnd();
-				var error = p.StandardError.ReadToEnd();
-
-				p.WaitForExit();
-
-				if (p.ExitCode != 0)
-				{
-					Log.LogError(error);
-				}
-				else
-				{
-					Log.LogMessage(output);
-					Log.LogMessage(error);
-				}
-
-				if (!File.Exists(_packagerBinPath))
-				{
-					throw new InvalidOperationException("Packager build is invalid");
-				}
-				else
-				{
-					Log.LogMessage($"Built {_packagerBinPath}");
-				}
-
-				File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(_sdkPath, "Mono.Cecil.dll"), true);
-				File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(_sdkPath, "Mono.Options.dll"), true);
-			}
-			catch (Exception e)
-			{
-				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}, {e}");
-			}
-		}
-
 		private void GetBcl()
 		{
-			_bclPath = Path.Combine(_sdkPath, "bcl");
+			_bclPath = Path.Combine(MonoWasmSDKPath, "bcl");
 			var reals = Directory.GetFiles(_bclPath, "*.dll");
 			var facades = Directory.GetFiles(Path.Combine(_bclPath, "Facades"), "*.dll");
 			var allFiles = reals.Concat(facades);
@@ -378,7 +277,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyRuntime()
 		{
-			var runtimePath = Path.Combine(_sdkPath, RuntimeConfiguration.ToLower());
+			var runtimePath = Path.Combine(MonoWasmSDKPath, RuntimeConfiguration.ToLower());
 
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
@@ -387,14 +286,14 @@ namespace Uno.Wasm.Bootstrap
 				File.Copy(sourceFile, dest, true);
 			}
 
-			File.Copy(Path.Combine(_sdkPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
+			File.Copy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
 		}
 
 		private void CopyContent()
 		{
 			if (Assets != null)
 			{
-				var runtimePath = Path.Combine(_sdkPath, RuntimeConfiguration.ToLower());
+				var runtimePath = Path.Combine(MonoWasmSDKPath, RuntimeConfiguration.ToLower());
 
 				foreach (var sourceFile in Assets)
 				{
