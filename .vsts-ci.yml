@@ -37,7 +37,7 @@ jobs:
     vmImage: 'ubuntu 16.04'
 
   variables:
-    NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
+    NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
 
   steps:
   - bash: |
@@ -59,7 +59,7 @@ jobs:
       versionSpec: 4.7.0
       checkLatest: false
 
-  - powershell: msbuild /p:Configuration=Release src\Uno.Wasm.bootstrap.sln
+  - powershell: msbuild /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
     displayName: Build 
 
   - task: CopyFiles@2
