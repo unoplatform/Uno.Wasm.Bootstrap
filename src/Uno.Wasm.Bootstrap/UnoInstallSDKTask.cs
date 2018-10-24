@@ -66,6 +66,7 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 
 					var aotZipPath = SdkPath + ".aot.zip";
+					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {Constants.DefaultAotUrl} to {aotZipPath}");
 					client.DownloadFile(Constants.DefaultAotUrl, aotZipPath);
 
 					ZipFile.ExtractToDirectory(aotZipPath, SdkPath);
