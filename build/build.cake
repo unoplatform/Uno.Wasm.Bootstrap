@@ -1,6 +1,6 @@
 #addin "nuget:?package=Cake.FileHelpers"
 #addin "nuget:?package=Cake.Powershell"
-#tool "nuget:?package=GitVersion.CommandLine"
+#tool "nuget:?package=GitVersion.CommandLine&version=3.6.5"
 
 using System;
 using System.Linq;
