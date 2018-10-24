@@ -44,7 +44,7 @@ jobs:
   - bash: |
       cd $(Agent.WorkFolder)
       wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
-      unzip ninja-linux.zip ninja-linux
+      unzip ninja-linux.zip -d ninja-linux
      
     displayName: 'Install Ninja'
 
@@ -97,7 +97,7 @@ jobs:
   - bash: |
       cd $(Agent.WorkFolder)
       wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
-      unzip ninja-mac.zip ninja-mac
+      unzip ninja-mac.zip -d ninja-mac
      
     displayName: 'Install Ninja'
 
