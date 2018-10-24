@@ -169,8 +169,14 @@ namespace Uno.Wasm.Bootstrap
 
 			if (MonoAOT)
 			{
+				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+				if (string.IsNullOrEmpty(emsdkPath))
+				{
+					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+				}
+
 				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
-				var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"~/github/emsdk\" --builddir=\"{workAotPath}\"" : "";
+				var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
 				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}", _distPath);
 
