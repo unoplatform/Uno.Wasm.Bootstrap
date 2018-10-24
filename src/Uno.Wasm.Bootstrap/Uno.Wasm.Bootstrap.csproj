@@ -38,17 +38,17 @@
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
+		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
+		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)mono.options/5.3.0.1/lib/netstandard1.3/*.dll">
+		<Content Include="$(NuGetPackageRoot)/mono.options/5.3.0.1/lib/netstandard1.3/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
