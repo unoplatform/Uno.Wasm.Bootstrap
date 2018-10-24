@@ -38,7 +38,6 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
-    SourceLinkEnabled: false
 
   steps:
   - bash: |
@@ -92,6 +91,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
+    SourceLinkEnabled: false
 
   steps:
   - bash: |

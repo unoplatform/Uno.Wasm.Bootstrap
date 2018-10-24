@@ -13,7 +13,11 @@ namespace Uno.Wasm.Bootstrap
 {
 	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task
 	{
+		[Required]
 		public string MonoWasmSDKUri { get; set; }
+
+		[Required]
+		public bool IsOSUnixLike { get; set; }
 
 		[Output]
 		public string SdkPath { get; set; }
@@ -71,6 +75,11 @@ namespace Uno.Wasm.Bootstrap
 
 					ZipFile.ExtractToDirectory(aotZipPath, SdkPath);
 					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
+
+					if (IsOSUnixLike)
+					{
+						Process.Start("chmod", $"-R +x {SdkPath}");
+					}
 				}
 
 				// Download the corresponding packager
