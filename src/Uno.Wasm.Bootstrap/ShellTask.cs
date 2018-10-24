@@ -36,7 +36,6 @@ namespace Uno.Wasm.Bootstrap
 		private string _distPath;
 		private string _managedPath;
 		private string _bclPath;
-		private List<string> _linkedAsmPaths;
 		private List<string> _referencedAssemblies;
 		private Dictionary<string, string> _bclAssemblies;
 		private List<string> _dependencies = new List<string>();

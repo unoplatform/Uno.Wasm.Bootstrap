@@ -59,7 +59,7 @@ jobs:
       versionSpec: 4.7.0
       checkLatest: false
 
-  - powershell: msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+  - powershell: msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)\build.binlog
     displayName: Build 
 
   - task: CopyFiles@2
@@ -72,6 +72,7 @@ jobs:
       flattenFolders: false
 
   - task: PublishBuildArtifacts@1
+    condition: always()
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)
       ArtifactName: uno-wasm-bootstrap-aot
