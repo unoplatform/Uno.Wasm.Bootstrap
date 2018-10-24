@@ -134,7 +134,7 @@ Task("Version")
 	var files = new[] {
 		@"..\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj",
 		@"..\src\Uno.Wasm.Bootstrap\ShellTask.cs",
-		@"..\src\Uno.Wasm.Bootstrap\ShellTask.Linker.cs",
+		@"..\src\Uno.Wasm.Bootstrap\UnoInstallSDKTask.cs",
 		@"..\src\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets"
 	};
 	
