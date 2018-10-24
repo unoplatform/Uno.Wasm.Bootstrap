@@ -38,8 +38,16 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
+    SourceLinkEnabled: false
 
   steps:
+  - bash: |
+      cd $(Agent.WorkFolder)
+      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
+      unzip ninja-linux.zip ninja-linux
+     
+    displayName: 'Install Ninja'
+
   - bash: |
       cd $(Agent.WorkFolder)
       git clone https://github.com/juj/emsdk.git
@@ -55,6 +63,7 @@ jobs:
       checkLatest: false
 
   - bash: |
+      export PATH=$PATH:$(Agent.WorkFolder)/ninja-linux
       source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
       msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
 
@@ -76,7 +85,6 @@ jobs:
       ArtifactName: uno-wasm-bootstrap-aot
       ArtifactType: Container
 
-
 - job: macOS
 
   pool:
@@ -88,17 +96,19 @@ jobs:
   steps:
   - bash: |
       cd $(Agent.WorkFolder)
+      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
+      unzip ninja-mac.zip ninja-mac
+     
+    displayName: 'Install Ninja'
+
+  - bash: |
+      cd $(Agent.WorkFolder)
       git clone https://github.com/juj/emsdk.git
       cd emsdk
       ./emsdk install latest
       ./emsdk activate latest
 
     displayName: 'Install Emscripten'
-    
-  - bash: |
-      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
-
-    displayName: 'Enable Emscripten'
 
   - task: NuGetToolInstaller@0
     inputs:
@@ -106,6 +116,7 @@ jobs:
       checkLatest: false
 
   - bash: |
+      export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
       source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
       msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-macos.binlog
 
