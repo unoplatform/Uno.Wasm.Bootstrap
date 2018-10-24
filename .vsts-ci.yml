@@ -1,0 +1,78 @@
+jobs:
+- job: Windows
+
+  pool:
+    vmImage: 'vs2017-win2016'
+    
+  variables:
+    NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
+
+  steps:
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.7.0
+      checkLatest: false
+
+  - powershell: .\build\build.ps1 -script build\build.cake
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)
+      Contents: ' $(build.sourcesdirectory)\build\nuget\*.nupkg'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-drop
+      ArtifactType: Container
+
+- job: Linux
+
+  pool:
+    vmImage: 'ubuntu 16.04'
+
+  variables:
+    NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
+
+  steps:
+  - bash: |
+      cd $(Agent.WorkFolder)
+      git clone https://github.com/juj/emsdk.git
+      cd emsdk
+      ./emsdk install latest
+      ./emsdk activate latest
+
+    displayName: 'Install Emscripten'
+    
+  - bash: |
+      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+
+    displayName: 'Enable Emscripten'
+
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.7.0
+      checkLatest: false
+
+  - powershell: msbuild /p:Configuration=Release src\Uno.Wasm.bootstrap.sln
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)
+      Contents: '$(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-aot
+      ArtifactType: Container
