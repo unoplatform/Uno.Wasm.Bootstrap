@@ -159,7 +159,9 @@ namespace Uno.Wasm.Bootstrap
 
 			Directory.CreateDirectory(workAotPath);
 
-			int r1 = RunProcess(PackagerBinPath, $"{string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}", _distPath);
+			var referenceAssembliesParameter = string.Join(" ", _referencedAssemblies.Select(r => $"\"{r}\""));
+
+			int r1 = RunProcess(PackagerBinPath, $"{referenceAssembliesParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 			if(r1 != 0)
 			{
@@ -177,7 +179,7 @@ namespace Uno.Wasm.Bootstrap
 				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 				var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
-				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}", _distPath);
+				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {referenceAssembliesParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 				if(r2 != 0)
 				{
