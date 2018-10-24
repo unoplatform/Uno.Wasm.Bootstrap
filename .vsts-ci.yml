@@ -48,18 +48,16 @@ jobs:
       ./emsdk activate latest
 
     displayName: 'Install Emscripten'
-    
-  - bash: |
-      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
-
-    displayName: 'Enable Emscripten'
 
   - task: NuGetToolInstaller@0
     inputs:
       versionSpec: 4.7.0
       checkLatest: false
 
-  - bash: msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
+  - bash: |
+      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
+
     displayName: Build 
 
   - task: CopyFiles@2
@@ -107,7 +105,10 @@ jobs:
       versionSpec: 4.7.0
       checkLatest: false
 
-  - bash: msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-macos.binlog
+  - bash: |
+      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-macos.binlog
+
     displayName: Build 
 
   - task: CopyFiles@2
