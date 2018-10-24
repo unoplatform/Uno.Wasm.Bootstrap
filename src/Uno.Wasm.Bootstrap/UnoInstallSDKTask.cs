@@ -13,7 +13,6 @@ namespace Uno.Wasm.Bootstrap
 {
 	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		[Required]
 		public string MonoWasmSDKUri { get; set; }
 
 		[Required]
