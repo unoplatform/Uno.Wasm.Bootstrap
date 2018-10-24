@@ -244,4 +244,4 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 build/tools/**
-!build/tools/packages.config
+*.binlog

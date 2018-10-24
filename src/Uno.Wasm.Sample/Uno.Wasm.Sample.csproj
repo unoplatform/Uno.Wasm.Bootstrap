@@ -6,16 +6,8 @@
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-		<WasmShellEnableAOT>true</WasmShellEnableAOT>
-<<<<<<< Updated upstream
-	</PropertyGroup>
-=======
-  </PropertyGroup>
->>>>>>> Stashed changes
-	
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
-  </PropertyGroup>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />

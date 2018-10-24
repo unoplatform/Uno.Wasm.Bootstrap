@@ -49,6 +49,9 @@ namespace Uno.Wasm.Bootstrap
 		public string OutputPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public string IntermediateOutputPath { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public string MonoWasmSDKPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
@@ -92,6 +95,8 @@ namespace Uno.Wasm.Bootstrap
 					return true;
 				}
 
+				// Debugger.Launch();
+
 				GetBcl();
 				CreateDist();
 				CopyContent();
@@ -106,8 +111,39 @@ namespace Uno.Wasm.Bootstrap
 			}
 			catch (Exception ex)
 			{
-				Log.LogErrorFromException(ex, false, true, null);
+				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private int RunProcess(string executable, string parameters, string workingDirectory = null)
+		{
+			var p = new Process();
+			p.StartInfo.WorkingDirectory = workingDirectory;
+			p.StartInfo.UseShellExecute = false;
+			p.StartInfo.RedirectStandardOutput = true;
+			p.StartInfo.RedirectStandardError = true;
+			p.StartInfo.FileName = executable;
+			p.StartInfo.Arguments = parameters;
+
+			Log.LogMessage($"Running [{p.StartInfo.WorkingDirectory}]: {p.StartInfo.FileName} {p.StartInfo.Arguments}");
+
+			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage(e.Data); } };
+			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError(e.Data); } };
+
+			if (p.Start())
+			{
+				p.BeginOutputReadLine();
+				p.BeginErrorReadLine();
+				p.WaitForExit();
+				var exitCore = p.ExitCode;
+				p.Close();
+
+				return exitCore;
+			}
+			else
+			{
+				throw new Exception($"Failed to start [{executable}]");
 			}
 		}
 
@@ -115,68 +151,40 @@ namespace Uno.Wasm.Bootstrap
 		{
 			BuildReferencedAssembliesList();
 
-			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
-			var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"~/github/emsdk\" --builddir=\"{_distPath}/../aot_tmp\"" : "";
+			var workAotPath = Path.Combine(IntermediateOutputPath, "workAot");
 
-			var psi = new ProcessStartInfo(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}")
+			if (Directory.Exists(workAotPath))
 			{
-				WorkingDirectory = _distPath,
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true
-			};
-
-			Log.LogMessage($"Running [{_distPath}]: {psi.FileName} {psi.Arguments}");
-			var p = Process.Start(psi);
-
-			var output = p.StandardOutput.ReadToEnd();
-			var error = p.StandardError.ReadToEnd();
-
-			p.WaitForExit();
-
-			if (p.ExitCode != 0)
-			{
-				Log.LogMessage(output);
-				Log.LogError(error);
+				Directory.Delete(workAotPath, true);
 			}
-			else
+
+			Directory.CreateDirectory(workAotPath);
+
+			int r1 = RunProcess(PackagerBinPath, $"{string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}", _distPath);
+
+			if(r1 != 0)
 			{
-				Log.LogMessage(output);
-				Log.LogMessage(error);
+				throw new Exception("Failed to generate wasm layout");
 			}
 
 			if (MonoAOT)
 			{
-				RunAOT();
-			}
-		}
+				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
+				var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"~/github/emsdk\" --builddir=\"{workAotPath}\"" : "";
 
-		private void RunAOT()
-		{
-			var ninjaPsi = new ProcessStartInfo("ninja")
-			{
-				WorkingDirectory = Path.Combine(_distPath, "..", "aot_tmp"),
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true
-			};
+				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {string.Join(" ", _referencedAssemblies)} {Path.GetFullPath(Assembly)}", _distPath);
 
-			var ninjaProcess = Process.Start(ninjaPsi);
+				if(r2 != 0)
+				{
+					throw new Exception("Failed to generate wasm layout");
+				}
 
-			var ninjaOutput = ninjaProcess.StandardOutput.ReadToEnd();
-			var ninjaError = ninjaProcess.StandardError.ReadToEnd();
+				int r3 = RunProcess("ninja", "", workAotPath);
 
-			ninjaProcess.WaitForExit();
-
-			if (ninjaProcess.ExitCode != 0)
-			{
-				Log.LogMessage(ninjaOutput);
-				Log.LogError(ninjaError);
-			}
-			else
-			{
-				Log.LogMessage(ninjaOutput);
-				Log.LogMessage(ninjaError);
+				if (r3 != 0)
+				{
+					throw new Exception("Failed to generate AOT layout");
+				}
 			}
 		}
 

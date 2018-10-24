@@ -43,6 +43,7 @@
 		<ShellTask_v0
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
+			IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
 			LinkerDescriptors="@(LinkerDescriptor)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
 			MonoWasmSDKPath="$(_UnoMonoSdkPath)"

@@ -12,6 +12,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap", "Uno.W
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Test.Empty", "Uno.Wasm.Tests.Empty\Uno.Wasm.Test.Empty.csproj", "{2DFA7173-E4AD-44C6-B25A-2A455CB513FD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotTests", "Uno.Wasm.AotTests\Uno.Wasm.AotTests.csproj", "{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,10 @@ Global
 		{2DFA7173-E4AD-44C6-B25A-2A455CB513FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DFA7173-E4AD-44C6-B25A-2A455CB513FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DFA7173-E4AD-44C6-B25A-2A455CB513FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
