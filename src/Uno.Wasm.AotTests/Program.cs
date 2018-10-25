@@ -15,7 +15,12 @@ namespace Uno.Wasm.Test.Empty
 			var w = Stopwatch.StartNew();
 			System.Console.WriteLine($"Start benchmark");
 
-			RayTraceBenchmark.Console.WriteLineCallback = System.Console.WriteLine;
+			RayTraceBenchmark.Console.WriteLineCallback = s =>
+			{
+				System.Console.WriteLine(s);
+				var r = Runtime.InvokeJS($"Interop.appendResult(\"{s}\")", out var result);
+			};
+
 			BenchmarkMain.SaveImageCallback = d =>
 			{
 				w.Stop();
