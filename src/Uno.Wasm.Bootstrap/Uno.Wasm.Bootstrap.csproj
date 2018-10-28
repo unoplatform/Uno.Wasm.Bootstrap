@@ -34,6 +34,10 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
+		<Content Include="build/packager.cs">
+			<Pack>true</Pack>
+			<PackagePath>build</PackagePath>
+		</Content>
 		<Content Include="Templates/Index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
@@ -57,8 +61,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="build\packager.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <EmbeddedResource Include="WasmScripts/require.js" />
 	  <EmbeddedResource Include="WasmScripts/uno-bootstrap.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="build\packager.cs" />
 	</ItemGroup>
 
 </Project>

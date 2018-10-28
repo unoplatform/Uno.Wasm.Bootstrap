@@ -18,6 +18,9 @@ namespace Uno.Wasm.Bootstrap
 		public string MonoTempFolder { get; set; }
 
 		[Required]
+		public string PackagerOverrideFile { get; set; }
+
+		[Required]
 		public bool IsOSUnixLike { get; set; }
 
 		[Output]
@@ -87,14 +90,15 @@ namespace Uno.Wasm.Bootstrap
 				var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
 
 				Directory.CreateDirectory(packagerPath);
+				File.Copy(PackagerOverrideFile, packagerFilePath, true);
 
-				if (!File.Exists(packagerFilePath))
-				{
-					string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
-					Log.LogMessage($"Using packager: {address}");
-					var packagerCS = client.DownloadString(address);
-					File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\"").Replace("framework_prefix = tool_prefix;", "framework_prefix = Path.Combine (tool_prefix, \"framework\");"));
-				}
+				//if (!File.Exists(packagerFilePath))
+				//{
+				//	string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
+				//	Log.LogMessage($"Using packager: {address}");
+				//	var packagerCS = client.DownloadString(address);
+				//	File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\"").Replace("framework_prefix = tool_prefix;", "framework_prefix = Path.Combine (tool_prefix, \"framework\");"));
+				//}
 
 				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
 

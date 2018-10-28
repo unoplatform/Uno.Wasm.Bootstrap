@@ -35,6 +35,7 @@
 		<UnoInstallSDKTask_v0 
 			MonoWasmSDKUri="$(MonoWasmSDKUri)"
 			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
+			PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
 			MonoTempFolder="$(WasmShellMonoTempFolder)">
 			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
 			<Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
