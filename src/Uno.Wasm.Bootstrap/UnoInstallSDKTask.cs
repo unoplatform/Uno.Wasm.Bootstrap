@@ -15,6 +15,8 @@ namespace Uno.Wasm.Bootstrap
 	{
 		public string MonoWasmSDKUri { get; set; }
 
+		public string MonoTempFolder { get; set; }
+
 		[Required]
 		public bool IsOSUnixLike { get; set; }
 
@@ -34,7 +36,6 @@ namespace Uno.Wasm.Bootstrap
 			return true;
 		}
 
-
 		private void InstallSdk()
 		{
 			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
@@ -53,7 +54,7 @@ namespace Uno.Wasm.Bootstrap
 				var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
 
 				Log.LogMessage("SDK: " + sdkName);
-				SdkPath = Path.Combine(Path.GetTempPath(), sdkName);
+				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
 				var client = new WebClient();
@@ -130,5 +131,13 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private string GetMonoTempPath()
+		{
+			var path = string.IsNullOrWhiteSpace(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder;
+
+			Directory.CreateDirectory(path);
+
+			return path;
+		}
 	}
 }

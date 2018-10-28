@@ -67,6 +67,11 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool MonoAOT { get; set; }
 
+		/// <summary>
+		/// Path override for the mono-wasm SDK folder
+		/// </summary>
+		public string MonoTempFolder { get; private set; }
+
 		public string AssembliesFileExtension { get; set; } = "clr";
 
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
@@ -159,9 +164,9 @@ namespace Uno.Wasm.Bootstrap
 
 			Directory.CreateDirectory(workAotPath);
 
-			var referenceAssembliesParameter = string.Join(" ", _referencedAssemblies.Select(r => $"\"{r}\""));
+			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"\"--search-path={r}\""));
 
-			int r1 = RunProcess(PackagerBinPath, $"{referenceAssembliesParameter} {Path.GetFullPath(Assembly)}", _distPath);
+			int r1 = RunProcess(PackagerBinPath, $"{referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 			if(r1 != 0)
 			{
@@ -177,9 +182,9 @@ namespace Uno.Wasm.Bootstrap
 				}
 
 				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
-				var aotOption = this.MonoAOT ? $"--aot --mono-sdkdir=\"{MonoWasmSDKPath}\" --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
+				var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
-				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {referenceAssembliesParameter} {Path.GetFullPath(Assembly)}", _distPath);
+				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 				if(r2 != 0)
 				{
@@ -411,6 +416,9 @@ namespace Uno.Wasm.Bootstrap
 					resource: res
 					);
 		}
+
+		private string GetMonoTempPath()
+			=> string.IsNullOrEmpty(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder;
 
 		private MethodDefinition DiscoverEntryPoint()
 		{

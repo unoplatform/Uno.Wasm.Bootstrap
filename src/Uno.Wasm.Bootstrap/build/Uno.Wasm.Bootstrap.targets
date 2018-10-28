@@ -32,7 +32,10 @@
 																						 Condition="'%(Extension)' == '.dll'" />
 		</ItemGroup>
 
-		<UnoInstallSDKTask_v0 MonoWasmSDKUri="$(MonoWasmSDKUri)" IsOSUnixLike="$([MSBuild]::IsOsUnixLike())">
+		<UnoInstallSDKTask_v0 
+			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
+			MonoTempFolder="$(WasmShellMonoTempFolder)">
 			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
 			<Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
 			<Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
@@ -53,6 +56,7 @@
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
 			MonoAOT="$(WasmShellEnableAOT)"
+			MonoTempFolder="$(WasmShellMonoTempFolder)"
 			Assets="@(Content)"
 			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
 	</Target>
