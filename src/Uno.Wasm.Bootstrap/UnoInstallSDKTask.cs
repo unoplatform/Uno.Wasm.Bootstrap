@@ -90,7 +90,11 @@ namespace Uno.Wasm.Bootstrap
 				var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
 
 				Directory.CreateDirectory(packagerPath);
-				File.Copy(PackagerOverrideFile, packagerFilePath, true);
+
+				if (!File.Exists(packagerFilePath))
+				{
+					File.Copy(PackagerOverrideFile, packagerFilePath, true);
+				}
 
 				//if (!File.Exists(packagerFilePath))
 				//{
