@@ -13,6 +13,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Test.Empty", "Uno.Wasm.Tests.Empty\Uno.Wasm.Test.Empty.csproj", "{2DFA7173-E4AD-44C6-B25A-2A455CB513FD}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotTests", "Uno.Wasm.AotTests\Uno.Wasm.AotTests.csproj", "{C1303FC0-AB94-4CF8-B9CD-BB10023618C9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A3899B5E-FDE5-4F5B-B960-6B2BE73685B1} = {A3899B5E-FDE5-4F5B-B960-6B2BE73685B1}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

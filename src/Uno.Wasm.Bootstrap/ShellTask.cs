@@ -454,7 +454,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GenerateHtml()
 		{
-			var htmlPath = Path.Combine(_distPath, "index.html");
+			var htmlPath = Path.Combine(_distPath, "Index.html");
 
 			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
 			{
