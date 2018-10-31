@@ -33,8 +33,13 @@ jobs:
 
 - job: Linux
 
-  pool:
-    vmImage: 'ubuntu 16.04'
+  resources:
+  containers:
+  - container: buildagent
+    image: vstsdevops.azurecr.io/nventive/vsts-linux-1804
+    endpoint: vstsdevops
+
+  container: buildagent
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
