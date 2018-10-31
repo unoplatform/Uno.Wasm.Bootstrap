@@ -1,3 +1,9 @@
+resources:
+  containers:
+  - container: buildagent
+    image: vstsdevops.azurecr.io/nventive/vsts-linux-1804
+    endpoint: vstsdevops
+
 jobs:
 - job: Windows
 
@@ -32,13 +38,6 @@ jobs:
       ArtifactType: Container
 
 - job: Linux
-
-  resources:
-  containers:
-  - container: buildagent
-    image: vstsdevops.azurecr.io/nventive/vsts-linux-1804
-    endpoint: vstsdevops
-
   container: buildagent
 
   variables:
