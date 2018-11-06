@@ -1,9 +1,3 @@
-resources:
-  containers:
-  - container: buildagent
-    image: vstsdevops.azurecr.io/nventive/vsts-linux-1804
-    endpoint: vstsdevops
-
 jobs:
 - job: Windows
 
@@ -38,8 +32,10 @@ jobs:
       ArtifactType: Container
 
 - job: Linux
-  container: buildagent
-
+ 
+  pool: 
+    vmImage: 'ubuntu 16.04' 
+    
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
 
