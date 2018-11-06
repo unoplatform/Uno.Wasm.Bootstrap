@@ -45,6 +45,8 @@ jobs:
 
   steps:
   - bash: |
+      sudo apt-get update
+      sudo apt-get install libc6
       cd $(Agent.WorkFolder)
       wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
       unzip ninja-linux.zip -d ninja-linux
