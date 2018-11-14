@@ -281,7 +281,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GetBcl()
 		{
-			_bclPath = Path.Combine(MonoWasmSDKPath, "bcl");
+			_bclPath = Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm");
 			var reals = Directory.GetFiles(_bclPath, "*.dll");
 			var facades = Directory.GetFiles(Path.Combine(_bclPath, "Facades"), "*.dll");
 			var allFiles = reals.Concat(facades);

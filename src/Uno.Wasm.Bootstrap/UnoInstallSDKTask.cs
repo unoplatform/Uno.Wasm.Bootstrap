@@ -8,6 +8,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
+using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
@@ -76,7 +77,11 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {Constants.DefaultAotUrl} to {aotZipPath}");
 					client.DownloadFile(Constants.DefaultAotUrl, aotZipPath);
 
-					ZipFile.ExtractToDirectory(aotZipPath, SdkPath);
+					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+					{
+						entry.ExtractRelativeToDirectory(SdkPath, true);
+					}
+
 					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
 
 					if (IsOSUnixLike)

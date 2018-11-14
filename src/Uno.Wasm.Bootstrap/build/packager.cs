@@ -1,4 +1,4 @@
-// This file is a copy of https://github.com/mono/mono/blob/40e19937c187bc45310088b69f67cf75b8d6d1c2/sdks/wasm/packager.cs
+// This file is a copy of https://github.com/mono/mono/blob/4ab5d5398fd7904b940d9ca46e95700d636deb49/sdks/wasm/packager.cs
 
 using System;
 using System.Linq;
@@ -41,7 +41,7 @@ class Driver {
 		Console.WriteLine ("\t--vfs=x         Set the VFS prefix to 'x' (default to 'managed')");
 		Console.WriteLine ("\t--template=x    Set the template name to  'x' (default to 'runtime.js')");
 		Console.WriteLine ("\t--asset=x       Add specified asset 'x' to list of assets to be copied");
-		Console.WriteLine ("\t--search-path=x Add specified path 'x' to list of paths used to resolve assemblies");
+		Console.WriteLine("\t--search-path=x Add specified path 'x' to list of paths used to resolve assemblies");
 		Console.WriteLine ("\t--copy=always|ifnewer        Set the type of copy to perform.");
 		Console.WriteLine ("\t\t              'always' overwrites the file if it exists.");
 		Console.WriteLine ("\t\t              'ifnewer' copies or overwrites the file if modified or size is different.");
@@ -262,10 +262,6 @@ class Driver {
 		if (sdkdir != null) {
 			framework_prefix = tool_prefix; //all framework assemblies are currently side built to packager.exe
 			bcl_prefix = Path.Combine (sdkdir, "wasm-bcl/wasm");
-		} else if (Directory.Exists (Path.Combine (tool_prefix, "framework"))) {
-			framework_prefix = Path.Combine (tool_prefix, "framework"); // Running from the build artifacts layout
-			bcl_prefix = Path.Combine (tool_prefix, "bcl");
-			sdkdir = tool_prefix;
 		} else if (Directory.Exists (Path.Combine (tool_prefix, "../out/wasm-bcl/wasm"))) {
 			framework_prefix = tool_prefix; //all framework assemblies are currently side built to packager.exe
 			bcl_prefix = Path.Combine (tool_prefix, "../out/wasm-bcl/wasm");
@@ -276,8 +272,6 @@ class Driver {
 			sdkdir = tool_prefix;
 		}
 		bcl_facades_prefix = Path.Combine (bcl_prefix, "Facades");
-		Console.WriteLine($"bcl_prefix={bcl_prefix}");
-		Console.WriteLine($"bcl_facades_prefix={bcl_facades_prefix}");
 
 		foreach (var ra in root_assemblies) {
 			AssemblyKind kind;
@@ -318,12 +312,17 @@ class Driver {
 			File.Delete (runtime_js);
 			File.Copy (runtimeTemplate, runtime_js);
 		} else {
-			if (File.Exists(runtime_js)) {
+			if (File.Exists(runtime_js) && (File.Exists(runtimeTemplate))) {
 				CopyFile (runtimeTemplate, runtime_js, CopyType.IfNewer, $"runtime template <{runtimeTemplate}> ");
 			} else {
-				var runtime_gen = "\nvar Module = {\n\tonRuntimeInitialized: function () {\n\t\tMONO.mono_load_runtime_and_bcl (\n\t\tconfig.vfs_prefix,\n\t\tconfig.deploy_prefix,\n\t\tconfig.enable_debugging,\n\t\tconfig.file_list,\n\t\tfunction () {\n\t\t\tconfig.add_bindings ();\n\t\t\tApp.init ();\n\t\t}\n\t)\n\t},\n};";
-				File.Delete (runtime_js);
-				File.WriteAllText (runtime_js, runtime_gen);
+				if (File.Exists(runtimeTemplate))
+					CopyFile (runtimeTemplate, runtime_js, CopyType.IfNewer, $"runtime template <{runtimeTemplate}> ");
+				else
+				{
+					var runtime_gen = "\nvar Module = {\n\tonRuntimeInitialized: function () {\n\t\tMONO.mono_load_runtime_and_bcl (\n\t\tconfig.vfs_prefix,\n\t\tconfig.deploy_prefix,\n\t\tconfig.enable_debugging,\n\t\tconfig.file_list,\n\t\tfunction () {\n\t\t\tconfig.add_bindings ();\n\t\t\tApp.init ();\n\t\t}\n\t)\n\t},\n};";
+					File.Delete (runtime_js);
+					File.WriteAllText (runtime_js, runtime_gen);
+				}
 			}
 		}
 
