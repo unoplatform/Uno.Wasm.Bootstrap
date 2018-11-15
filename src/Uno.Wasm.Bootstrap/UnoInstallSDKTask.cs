@@ -16,6 +16,8 @@ namespace Uno.Wasm.Bootstrap
 	{
 		public string MonoWasmSDKUri { get; set; }
 
+		public string MonoWasmAOTSDKUri { get; set; }
+
 		public string MonoTempFolder { get; set; }
 
 		[Required]
@@ -43,6 +45,7 @@ namespace Uno.Wasm.Bootstrap
 		private void InstallSdk()
 		{
 			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
+			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri;
 
 			var m = Regex.Match(sdkUri, @"(?!.*\-)(.*?)\.zip$");
 
@@ -74,8 +77,8 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 
 					var aotZipPath = SdkPath + ".aot.zip";
-					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {Constants.DefaultAotUrl} to {aotZipPath}");
-					client.DownloadFile(Constants.DefaultAotUrl, aotZipPath);
+					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
+					client.DownloadFile(aotUri, aotZipPath);
 
 					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
 					{

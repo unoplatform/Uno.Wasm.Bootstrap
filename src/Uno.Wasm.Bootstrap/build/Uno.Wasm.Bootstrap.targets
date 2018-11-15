@@ -34,6 +34,7 @@
 
 		<UnoInstallSDKTask_v0 
 			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
 			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
 			PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
 			MonoTempFolder="$(WasmShellMonoTempFolder)">
