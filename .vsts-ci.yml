@@ -8,6 +8,9 @@ jobs:
     NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
 
   steps:
+  - checkout: self
+    clean: true
+
   - task: NuGetToolInstaller@0
     inputs:
       versionSpec: 4.7.0
@@ -32,7 +35,9 @@ jobs:
       ArtifactType: Container
 
 - job: Linux
- 
+  workspace:
+    clean: all
+
   pool:
     name: Default
     demands:
@@ -42,6 +47,9 @@ jobs:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
 
   steps:
+  - checkout: self
+    clean: true
+  
   - bash: |
       sudo apt-get update
       sudo apt-get install libc6
