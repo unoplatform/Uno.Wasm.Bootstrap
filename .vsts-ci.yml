@@ -55,7 +55,7 @@ jobs:
       sudo apt-get install libc6
       cd $(Agent.WorkFolder)
       wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
-      unzip ninja-linux.zip -d ninja-linux
+      unzip -o ninja-linux.zip -d ninja-linux
      
     displayName: 'Install Ninja'
 
