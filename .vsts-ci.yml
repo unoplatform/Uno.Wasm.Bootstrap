@@ -82,8 +82,8 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)
-      Contents: '$(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist'
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)
       CleanTargetFolder: false
       OverWrite: false
@@ -93,7 +93,7 @@ jobs:
     condition: always()
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)
-      ArtifactName: uno-wasm-bootstrap-aot
+      ArtifactName: uno-wasm-bootstrap-linux-aot
       ArtifactType: Container
 
 - job: macOS
@@ -136,8 +136,8 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)
-      Contents: '$(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist'
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)
       CleanTargetFolder: false
       OverWrite: false
@@ -147,5 +147,5 @@ jobs:
     condition: always()
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)
-      ArtifactName: uno-wasm-bootstrap-aot
+      ArtifactName: uno-wasm-bootstrap-macos-aot
       ArtifactType: Container
