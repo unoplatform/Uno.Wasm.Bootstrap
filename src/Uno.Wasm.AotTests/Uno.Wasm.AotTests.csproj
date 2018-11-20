@@ -13,6 +13,11 @@
 	<ItemGroup>
 	  <None Remove="Uno.Wasm.AotTests.xml" />
 	  <None Remove="WasmScripts\image.js" />
+	  <None Remove="web.config" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="web.config" />
 	</ItemGroup>
 
 	<ItemGroup>
