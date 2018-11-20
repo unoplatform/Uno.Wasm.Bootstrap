@@ -38,7 +38,7 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="Templates/Index.html">
+		<Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>

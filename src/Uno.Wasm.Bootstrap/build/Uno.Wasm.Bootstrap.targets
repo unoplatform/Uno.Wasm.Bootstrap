@@ -6,7 +6,7 @@
 		<WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
 		<WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
 
-		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/Index.html</WasmShellIndexHtmlPath>
+		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
 		<WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
