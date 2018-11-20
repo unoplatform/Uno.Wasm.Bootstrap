@@ -15,6 +15,13 @@ jobs:
     inputs:
       versionSpec: 4.7.0
       checkLatest: false
+    
+  - task: GitVersion@3
+    # Ignore gitversion for forks, until this is fixed:
+    # https://developercommunity.visualstudio.com/content/problem/284991/public-vsts-previouw-cant-set-build-number-of-pr-b.html
+    condition: eq(variables['System.PullRequest.IsFork'], 'False')
+    inputs:
+      updateAssemblyInfo: false
 
   - powershell: .\build\build.ps1 -script build\build.cake
     displayName: Build 
