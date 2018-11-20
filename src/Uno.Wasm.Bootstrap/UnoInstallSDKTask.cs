@@ -64,21 +64,19 @@ namespace Uno.Wasm.Bootstrap
 				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
-				var client = new WebClient();
-
 				if (!Directory.Exists(SdkPath))
 				{
 					var zipPath = SdkPath + ".zip";
 					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
-					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-					client.DownloadFile(sdkUri, zipPath);
+
+					RetreiveSDKFile(sdkName, sdkUri, zipPath);
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 
 					var aotZipPath = SdkPath + ".aot.zip";
 					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-					client.DownloadFile(aotUri, aotZipPath);
+					RetreiveSDKFile(sdkName, aotUri, aotZipPath);
 
 					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
 					{
@@ -103,14 +101,6 @@ namespace Uno.Wasm.Bootstrap
 				{
 					File.Copy(PackagerOverrideFile, packagerFilePath, true);
 				}
-
-				//if (!File.Exists(packagerFilePath))
-				//{
-				//	string address = $"https://raw.githubusercontent.com/mono/mono/{buildHash}/sdks/wasm/packager.cs";
-				//	Log.LogMessage($"Using packager: {address}");
-				//	var packagerCS = client.DownloadString(address);
-				//	File.WriteAllText(packagerFilePath, packagerCS.Replace("\"wasm-bcl/wasm\"", "\"bcl\"").Replace("framework_prefix = tool_prefix;", "framework_prefix = Path.Combine (tool_prefix, \"framework\");"));
-				//}
 
 				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
 
@@ -145,6 +135,17 @@ namespace Uno.Wasm.Bootstrap
 			{
 				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}, {e}");
 			}
+		}
+
+		private void RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
+		{
+			var client = new WebClient();
+			var wp = WebRequest.DefaultWebProxy;
+			wp.Credentials = CredentialCache.DefaultCredentials;
+			client.Proxy = wp;
+
+			Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
+			client.DownloadFile(sdkUri, zipPath);
 		}
 
 		private string GetMonoTempPath()
