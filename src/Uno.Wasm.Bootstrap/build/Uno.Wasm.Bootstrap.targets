@@ -24,6 +24,28 @@
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
 
+	<Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
+		<!-- 
+		Use the LinkerDescriptor ItemGroup to generate 
+		the proper linker description file name.
+		-->
+
+		<ItemGroup>
+			<LinkerDescriptor Include="@(LinkerDescriptors)"></LinkerDescriptor>
+		</ItemGroup>
+		
+		<Error Condition="'@(LinkerDescriptor->Count())' &gt; 1" Text="There cannot be multiple linker descriptor files." />
+		
+		<ItemGroup>
+			<EmbeddedResource Include="@(LinkerDescriptor)">
+				<LogicalName>$(AssemblyName).xml</LogicalName>
+				<Visible>false</Visible>
+			</EmbeddedResource>
+		</ItemGroup>
+
+		<Message Importance="low" Text="Descriptor @(EmbeddedResource)" />
+	</Target>
+
 	<Target Name="BuildDist" AfterTargets="AfterBuild">
 
 		<ItemGroup>
@@ -49,7 +71,6 @@
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
 			IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
-			LinkerDescriptors="@(LinkerDescriptor)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
 			MonoWasmSDKPath="$(_UnoMonoSdkPath)"
 			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
