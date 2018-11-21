@@ -26,6 +26,9 @@ namespace Uno.Wasm.Bootstrap
 		[Required]
 		public bool IsOSUnixLike { get; set; }
 
+		[Microsoft.Build.Framework.Required]
+		public bool MonoAOT { get; set; }
+
 		[Output]
 		public string SdkPath { get; set; }
 
@@ -74,20 +77,23 @@ namespace Uno.Wasm.Bootstrap
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 
-					var aotZipPath = SdkPath + ".aot.zip";
-					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-					RetreiveSDKFile(sdkName, aotUri, aotZipPath);
-
-					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+					if (MonoAOT)
 					{
-						entry.ExtractRelativeToDirectory(SdkPath, true);
-					}
+						var aotZipPath = SdkPath + ".aot.zip";
+						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
+						RetreiveSDKFile(sdkName, aotUri, aotZipPath);
 
-					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
+						foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+						{
+							entry.ExtractRelativeToDirectory(SdkPath, true);
+						}
 
-					if (IsOSUnixLike)
-					{
-						Process.Start("chmod", $"-R +x {SdkPath}");
+						Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
+
+						if (IsOSUnixLike)
+						{
+							Process.Start("chmod", $"-R +x {SdkPath}");
+						}
 					}
 				}
 
