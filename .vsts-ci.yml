@@ -1,0 +1,158 @@
+jobs:
+- job: Windows
+
+  pool:
+    vmImage: 'vs2017-win2016'
+    
+  variables:
+    NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.7.0
+      checkLatest: false
+    
+  - task: GitVersion@3
+    # Ignore gitversion for forks, until this is fixed:
+    # https://developercommunity.visualstudio.com/content/problem/284991/public-vsts-previouw-cant-set-build-number-of-pr-b.html
+    condition: eq(variables['System.PullRequest.IsFork'], 'False')
+    inputs:
+      updateAssemblyInfo: false
+
+  - powershell: .\build\build.ps1 -script build\build.cake
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)
+      Contents: ' $(build.sourcesdirectory)\build\nuget\*.nupkg'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-drop
+      ArtifactType: Container
+
+- job: Linux
+  workspace:
+    clean: all
+
+  pool:
+    name: Default
+    demands:
+    - agent.os -equals Linux
+    
+  variables:
+    NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
+
+  steps:
+  - checkout: self
+    clean: true
+  
+  - bash: |
+      sudo apt-get update
+      sudo apt-get install libc6
+      cd $(Agent.WorkFolder)
+      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
+      unzip -o ninja-linux.zip -d ninja-linux
+     
+    displayName: 'Install Ninja'
+
+  - bash: |
+      cd $(Agent.WorkFolder)
+      git clone https://github.com/juj/emsdk.git
+      cd emsdk
+      ./emsdk install latest
+      ./emsdk activate latest
+
+    displayName: 'Install Emscripten'
+
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.7.0
+      checkLatest: false
+
+  - bash: |
+      export PATH=$PATH:$(Agent.WorkFolder)/ninja-linux
+      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
+
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      Contents: '**/*.*'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-linux-aot
+      ArtifactType: Container
+
+- job: macOS
+
+  pool:
+    vmImage: 'macOS-10.13'
+
+  variables:
+    NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
+    SourceLinkEnabled: false
+
+  steps:
+  - bash: |
+      cd $(Agent.WorkFolder)
+      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
+      unzip ninja-mac.zip -d ninja-mac
+     
+    displayName: 'Install Ninja'
+
+  - bash: |
+      cd $(Agent.WorkFolder)
+      git clone https://github.com/juj/emsdk.git
+      cd emsdk
+      ./emsdk install latest
+      ./emsdk activate latest
+
+    displayName: 'Install Emscripten'
+
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.7.0
+      checkLatest: false
+
+  - bash: |
+      export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
+      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-macos.binlog
+
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      Contents: '**/*.*'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-macos-aot
+      ArtifactType: Container

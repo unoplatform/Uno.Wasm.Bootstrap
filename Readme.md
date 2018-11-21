@@ -41,7 +41,24 @@ class Program
 * Run the `server.py`, which will open an HTTP server on http://localhost:8000.  On Windows, use Python tools or the excellent Linux Subsystem.
 * The output of the Console.WriteLine will appear in the javascript debugging console
 
-## Server the Waam app through Windows Linux Subsystem
+## Linker configuration
+The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/linker), and can be configured using a linker directives file.
+
+The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`, with the following sample content:
+
+```xml
+<linker>
+	<assembly fullname="Uno.Wasm.Sample">
+		<namespace fullname="Uno.Wasm.Sample" />
+	</assembly>
+
+	<assembly fullname="WebAssembly.Bindings" />
+</linker>
+```
+
+The documentation for this file [can be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
+
+## Server the Wasm app through Windows Linux Subsystem
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 
 Here's how to install it:
@@ -74,6 +91,16 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 <assembly fullname="System.Core">
 </assembly>
 ```
+
+## AOT Support
+The mono-wasm tooling now provides AOT support for WebAssembly. This mode can be enabled by using the `WasmShellEnableAOT` property, but is **currently only available on Linux** (18.04 and later, or similar).
+
+To ensure that AOT is only run under Linux, add the following to your project:
+```xml
+<WasmShellEnableAOT Condition="$([MSBuild]::IsOsPlatform('Linux'))">true</WasmShellEnableAOT>
+```
+
+The machine needs [ninja build](https://ninja-build.org/) installed, as well as a [registered Emscripten installation](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html).
 
 ## Features
 ### Support for additional JS files
@@ -120,24 +147,15 @@ define([], function() { return MyModule; });
 
 ### Dependency management for Emscripten
 
-Emscrpiten modules initialization is performed in an asynchronous way, and the bootstapper 
-will ensure that a  dependency that exposes a module will have finished its initialization 
+Emscripten modules initialization is performed in an asynchronous way, and the Bootstrapper 
+will ensure that a dependency that exposes a module will have finished its initialization 
 for starting the `Main` method of the C# code.
 
 ## Index.html content override
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
 This file should contain the following markers, for the runtime to initialize properly: 
-- `$(ASSEMBLIES_LIST)`
-- `$(MAIN_ASSEMBLY_NAME)`
-- `$(MAIN_NAMESPACE)`
-- `$(MAIN_TYPENAME)`
-- `$(MAIN_METHOD)`
-- `$(ENABLE_RUNTIMEDEBUG)`
-- `$(DEPENDENCIES_LIST)`
 - `$(ADDITIONAL_CSS)`
-- `$(REMOTE_MANAGED_PATH)`
-- `$(ASSEMBLY_FILE_EXTENSION)`
 - `$(ADDITIONAL_HEAD)`
 
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.

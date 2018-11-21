@@ -1,6 +1,6 @@
 #addin "nuget:?package=Cake.FileHelpers"
 #addin "nuget:?package=Cake.Powershell"
-#tool "nuget:?package=GitVersion.CommandLine"
+#tool "nuget:?package=GitVersion.CommandLine&version=3.6.5"
 
 using System;
 using System.Linq;
@@ -134,7 +134,7 @@ Task("Version")
 	var files = new[] {
 		@"..\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj",
 		@"..\src\Uno.Wasm.Bootstrap\ShellTask.cs",
-		@"..\src\Uno.Wasm.Bootstrap\ShellTask.Linker.cs",
+		@"..\src\Uno.Wasm.Bootstrap\UnoInstallSDKTask.cs",
 		@"..\src\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets"
 	};
 	
