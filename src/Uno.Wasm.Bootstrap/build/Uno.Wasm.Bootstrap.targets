@@ -12,6 +12,8 @@
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
 
+		<WasmShellEnableAOT Condition="'$(WasmShellEnableAOT)'==''">false</WasmShellEnableAOT>
+
 		<!-- 
 		Force all applicable references to be present in the ReferenceCopyLocalPaths property.
 		Otherwise, the ReferencePath property only contains reference assemblies if those are available.
@@ -20,6 +22,29 @@
 	</PropertyGroup>
 
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
+	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
+
+	<Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
+		<!-- 
+		Use the LinkerDescriptor ItemGroup to generate 
+		the proper linker description file name.
+		-->
+
+		<ItemGroup>
+			<LinkerDescriptor Include="@(LinkerDescriptors)"></LinkerDescriptor>
+		</ItemGroup>
+		
+		<Error Condition="'@(LinkerDescriptor->Count())' &gt; 1" Text="There cannot be multiple linker descriptor files." />
+		
+		<ItemGroup>
+			<EmbeddedResource Include="@(LinkerDescriptor)">
+				<LogicalName>$(AssemblyName).xml</LogicalName>
+				<Visible>false</Visible>
+			</EmbeddedResource>
+		</ItemGroup>
+
+		<Message Importance="low" Text="Descriptor @(EmbeddedResource)" />
+	</Target>
 
 	<Target Name="BuildDist" AfterTargets="AfterBuild">
 
@@ -29,17 +54,32 @@
 																						 Condition="'%(Extension)' == '.dll'" />
 		</ItemGroup>
 
+		<UnoInstallSDKTask_v0 
+			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
+			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
+			PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
+			MonoTempFolder="$(WasmShellMonoTempFolder)">
+			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
+			<Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
+			<Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
+		</UnoInstallSDKTask_v0>
+
+		<MSBuild Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
 
 		<ShellTask_v0
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			OutputPath="$(OutputPath)"
-			LinkerDescriptors="@(LinkerDescriptor)"
+			IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
-			MonoWasmSDKUri="$(MonoWasmSDKUri)"
+			MonoWasmSDKPath="$(_UnoMonoSdkPath)"
+			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
+			MonoAOT="$(WasmShellEnableAOT)"
+			MonoTempFolder="$(WasmShellMonoTempFolder)"
 			Assets="@(Content)"
 			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
 	</Target>
