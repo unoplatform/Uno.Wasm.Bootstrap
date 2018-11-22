@@ -140,7 +140,7 @@ var App = {
             });
         }
         else {
-            MonoRuntime.init();
+            App.mainInit();
         }
     }
 };
