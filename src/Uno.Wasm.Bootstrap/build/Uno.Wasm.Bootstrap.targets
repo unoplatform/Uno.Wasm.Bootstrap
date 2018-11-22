@@ -58,6 +58,7 @@
 			MonoWasmSDKUri="$(MonoWasmSDKUri)"
 			MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
 			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
+			MonoAOT="$(WasmShellEnableAOT)"
 			PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
 			MonoTempFolder="$(WasmShellMonoTempFolder)">
 			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
