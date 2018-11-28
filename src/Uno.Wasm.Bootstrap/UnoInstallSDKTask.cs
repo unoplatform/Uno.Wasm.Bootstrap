@@ -67,6 +67,12 @@ namespace Uno.Wasm.Bootstrap
 				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
+				if (Directory.Exists(SdkPath) && !Directory.Exists(Path.Combine(SdkPath, "wasm-bcl", "wasm")))
+				{
+					Log.LogMessage($"Removing invalid mono-wasm SDK: {SdkPath}");
+					Directory.Delete(SdkPath);
+				}
+
 				if (!Directory.Exists(SdkPath))
 				{
 					var zipPath = SdkPath + ".zip";
