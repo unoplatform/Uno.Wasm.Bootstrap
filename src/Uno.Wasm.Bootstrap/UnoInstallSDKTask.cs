@@ -67,10 +67,14 @@ namespace Uno.Wasm.Bootstrap
 				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
-				if (Directory.Exists(SdkPath) && !Directory.Exists(Path.Combine(SdkPath, "wasm-bcl", "wasm")))
+				if (
+					Directory.Exists(SdkPath) 
+					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-bcl", "wasm"))
+				)
 				{
+					// The temp folder may get cleaned-up by windows' storage sense.
 					Log.LogMessage($"Removing invalid mono-wasm SDK: {SdkPath}");
-					Directory.Delete(SdkPath);
+					Directory.Delete(SdkPath, true);
 				}
 
 				if (!Directory.Exists(SdkPath))
