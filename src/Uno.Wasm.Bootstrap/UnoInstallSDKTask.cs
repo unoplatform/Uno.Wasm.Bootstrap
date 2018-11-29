@@ -82,7 +82,7 @@ namespace Uno.Wasm.Bootstrap
 					var zipPath = SdkPath + ".zip";
 					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
 
-					RetreiveSDKFile(sdkName, sdkUri, zipPath);
+					zipPath = RetreiveSDKFile(sdkName, sdkUri, zipPath);
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
@@ -91,7 +91,7 @@ namespace Uno.Wasm.Bootstrap
 					{
 						var aotZipPath = SdkPath + ".aot.zip";
 						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-						RetreiveSDKFile(sdkName, aotUri, aotZipPath);
+						aotZipPath = RetreiveSDKFile(sdkName, aotUri, aotZipPath);
 
 						foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
 						{
@@ -107,45 +107,49 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				// Download the corresponding packager
-				var packagerPath = Path.Combine(SdkPath, "packager_build");
-				var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
+				//
+				// Disable the packager override as the local updates have been merged into mono master.
+				//
 
-				Directory.CreateDirectory(packagerPath);
+				//// Download the corresponding packager
+				//var packagerPath = Path.Combine(SdkPath, "packager_build");
+				//var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
 
-				if (!File.Exists(packagerFilePath))
-				{
-					File.Copy(PackagerOverrideFile, packagerFilePath, true);
-				}
+				//Directory.CreateDirectory(packagerPath);
 
-				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
+				//if (!File.Exists(packagerFilePath))
+				//{
+				//	File.Copy(PackagerOverrideFile, packagerFilePath, true);
+				//}
 
-				var projectFile = $@"
-					<Project Sdk=""Microsoft.NET.Sdk"">
-					  <PropertyGroup>
-						<TargetFramework>net462</TargetFramework>
-						<OutputType>Exe</OutputType>
-						<OutputPath>..</OutputPath>
-						<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-					  </PropertyGroup>
-						<ItemGroup>
-							<Reference Include=""Mono.Cecil"">
-								<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
-							</Reference>
-							<Reference Include=""Mono.Options"">
-								<HintPath>{SdkPath}/Mono.Options.dll</HintPath>
-							</Reference>
-						</ItemGroup>
-					</Project>
-				";
+				//PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
 
-				PackagerProjectFile = Path.Combine(packagerPath, "packager2.csproj");
-				File.WriteAllText(PackagerProjectFile, projectFile);
+				//var projectFile = $@"
+				//	<Project Sdk=""Microsoft.NET.Sdk"">
+				//	  <PropertyGroup>
+				//		<TargetFramework>net462</TargetFramework>
+				//		<OutputType>Exe</OutputType>
+				//		<OutputPath>..</OutputPath>
+				//		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+				//	  </PropertyGroup>
+				//		<ItemGroup>
+				//			<Reference Include=""Mono.Cecil"">
+				//				<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
+				//			</Reference>
+				//			<Reference Include=""Mono.Options"">
+				//				<HintPath>{SdkPath}/Mono.Options.dll</HintPath>
+				//			</Reference>
+				//		</ItemGroup>
+				//	</Project>
+				//";
 
-				var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
+				//PackagerProjectFile = Path.Combine(packagerPath, "packager2.csproj");
+				//File.WriteAllText(PackagerProjectFile, projectFile);
 
-				File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(SdkPath, "Mono.Cecil.dll"), true);
-				File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(SdkPath, "Mono.Options.dll"), true);
+				//var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
+
+				//File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(SdkPath, "Mono.Cecil.dll"), true);
+				//File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(SdkPath, "Mono.Options.dll"), true);
 			}
 			catch (Exception e)
 			{
@@ -153,15 +157,26 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
+		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
 		{
-			var client = new WebClient();
-			var wp = WebRequest.DefaultWebProxy;
-			wp.Credentials = CredentialCache.DefaultCredentials;
-			client.Proxy = wp;
+			var uri = new Uri(sdkUri);
 
-			Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-			client.DownloadFile(sdkUri, zipPath);
+			if (!uri.IsFile)
+			{
+				var client = new WebClient();
+				var wp = WebRequest.DefaultWebProxy;
+				wp.Credentials = CredentialCache.DefaultCredentials;
+				client.Proxy = wp;
+
+				Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
+				client.DownloadFile(sdkUri, zipPath);
+
+				return zipPath;
+			}
+			else
+			{
+				return uri.LocalPath;
+			}
 		}
 
 		private string GetMonoTempPath()

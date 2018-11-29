@@ -53,7 +53,6 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string MonoWasmSDKPath { get; set; }
 
-		[Microsoft.Build.Framework.Required]
 		public string PackagerBinPath { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
@@ -166,9 +165,10 @@ namespace Uno.Wasm.Bootstrap
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"\"--search-path={r}\""));
 
-			int r1 = RunProcess(PackagerBinPath, $"{referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
+			int packagerResults = RunProcess(packagerBinPath, $"{referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-			if(r1 != 0)
+			if(packagerResults != 0)
 			{
 				throw new Exception("Failed to generate wasm layout");
 			}
@@ -184,7 +184,7 @@ namespace Uno.Wasm.Bootstrap
 				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 				var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
-				int r2 = RunProcess(PackagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+				int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 				if(r2 != 0)
 				{
