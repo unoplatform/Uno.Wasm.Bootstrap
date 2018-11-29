@@ -163,4 +163,14 @@ Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file
 ### Configuration of the runtime
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime, but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
-- The msbuild property `MonoWasmSDKUri` allows the override of the default SDK path.
+
+### Updating the mono-sdk build
+The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` allow the override of the default SDK paths. Paths can be local files.
+
+To select a different sdk build:
+- Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
+- Select a build
+- Click on the "default" configuration
+- On the left click *Azure Artifacts*
+- Copy the `mono-wasm-xxxx.zip` uri to the `MonoWasmSDKUri` property
+- Copy the `wasm-release-Linux-xxx.zip` uri to the `MonoWasmSDKUri` property
