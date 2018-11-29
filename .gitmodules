@@ -1,3 +1,0 @@
-[submodule "src/Uno.Wasm.Bootstrap/linker"]
-	path = src/Uno.Wasm.Bootstrap/linker
-	url = https://github.com/mono/linker.git
