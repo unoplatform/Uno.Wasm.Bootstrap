@@ -86,27 +86,26 @@ namespace Uno.Wasm.Bootstrap
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
-
-					if (MonoAOT)
-					{
-						var aotZipPath = SdkPath + ".aot.zip";
-						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-						aotZipPath = RetreiveSDKFile(sdkName, aotUri, aotZipPath);
-
-						foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
-						{
-							entry.ExtractRelativeToDirectory(SdkPath, true);
-						}
-
-						Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
-
-						if (IsOSUnixLike)
-						{
-							Process.Start("chmod", $"-R +x {SdkPath}");
-						}
-					}
 				}
 
+				if (MonoAOT && !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release")))
+				{
+					var aotZipPath = SdkPath + ".aot.zip";
+					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
+					aotZipPath = RetreiveSDKFile(sdkName, aotUri, aotZipPath);
+
+					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+					{
+						entry.ExtractRelativeToDirectory(SdkPath, true);
+					}
+
+					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
+
+					if (IsOSUnixLike)
+					{
+						Process.Start("chmod", $"-R +x {SdkPath}");
+					}
+				}
 				//
 				// Disable the packager override as the local updates have been merged into mono master.
 				//
