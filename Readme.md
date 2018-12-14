@@ -172,5 +172,7 @@ To select a different sdk build:
 - Select a build
 - Click on the "default" configuration
 - On the left click *Azure Artifacts*
-- Copy the `mono-wasm-xxxx.zip` uri to the `MonoWasmSDKUri` property
-- Copy the `wasm-release-Linux-xxx.zip` uri to the `MonoWasmSDKUri` property
+- Copy the `mono-wasm-xxxx.zip` uri or local zip file path to the `MonoWasmSDKUri` property
+- Copy the `wasm-release-Linux-xxx.zip` uri or local zip file to the `MonoWasmAOTSDKUri` property
+
+> Note that both properties require a zip file as the source, not an uncompressed folder.
