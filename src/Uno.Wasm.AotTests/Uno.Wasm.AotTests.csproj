@@ -16,6 +16,10 @@
 	  <None Remove="web.config" />
 	</ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Uno.Wasm.MonoRuntime" Version="1.0.0-dev0000" />
+  </ItemGroup>
+
 	<ItemGroup>
 	  <Content Include="web.config" />
 	</ItemGroup>

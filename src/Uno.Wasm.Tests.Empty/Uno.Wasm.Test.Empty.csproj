@@ -7,6 +7,11 @@
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
   </PropertyGroup>
 
-	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
+    <PackageReference Include="Uno.Wasm.MonoRuntime" Version="1.0.0-dev0000" />
+  </ItemGroup>
+
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	
 </Project>
