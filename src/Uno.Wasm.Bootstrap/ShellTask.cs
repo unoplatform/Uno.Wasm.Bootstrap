@@ -163,7 +163,7 @@ namespace Uno.Wasm.Bootstrap
 
 			Directory.CreateDirectory(workAotPath);
 
-			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"\"--search-path={r}\""));
+			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
 
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
 			int packagerResults = RunProcess(packagerBinPath, $"{referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
