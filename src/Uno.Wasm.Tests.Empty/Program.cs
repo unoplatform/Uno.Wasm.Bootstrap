@@ -8,7 +8,7 @@ namespace Uno.Wasm.Test.Empty
 	{
 		static void Main(string[] args)
 		{
-
+            Console.WriteLine("Main");
 		}
 	}
 }

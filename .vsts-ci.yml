@@ -67,11 +67,13 @@ jobs:
     displayName: 'Install Ninja'
 
   - bash: |
-      cd $(Agent.WorkFolder)
+      cd $(build.sourcesdirectory)
       git clone https://github.com/juj/emsdk.git
       cd emsdk
-      ./emsdk install latest
-      ./emsdk activate latest
+      ./emsdk install sdk-1.38.13-64bit
+      ./emsdk activate sdk-1.38.13-64bit
+      cd emscripten/1.38.13
+      patch -N -p1 < $(build.sourcesdirectory)/build/fix-emscripten-7399.diff
 
     displayName: 'Install Emscripten'
 
@@ -82,7 +84,7 @@ jobs:
 
   - bash: |
       export PATH=$PATH:$(Agent.WorkFolder)/ninja-linux
-      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
+      source $(build.sourcesdirectory)/emsdk/emsdk_env.sh
       msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
 
     displayName: Build 

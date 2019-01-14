@@ -38,6 +38,10 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
+		<Content Include="build/CustomDebuggerProxy/**">
+			<Pack>true</Pack>
+			<PackagePath>build/CustomDebuggerProxy</PackagePath>
+		</Content>
 		<Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
@@ -65,6 +69,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="build\CustomDebuggerProxy\Mono.WebAssembly.DebuggerProxy.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <EmbeddedResource Include="WasmScripts/require.js" />
 	  <EmbeddedResource Include="WasmScripts/uno-bootstrap.js" />
 	</ItemGroup>
@@ -72,5 +80,10 @@
 	<ItemGroup>
 	  <None Include="build\packager.cs" />
 	</ItemGroup>
+
+  <Target Name="BuildManualDependencies" BeforeTargets="Build">
+    <!-- This is required because the non-reference dependencies are not properly handled -->
+    <MSBuild Properties="Configuration=$(Configuration);Platform=AnyCPU" Targets="Build" Projects="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj" RebaseOutputs="false" />
+  </Target>
 
 </Project>

@@ -73,7 +73,8 @@ var App = {
 
     mainInit: function () {
         try {
-            MonoRuntime.init()
+            App.attachDebuggerHotkey(config.file_list);
+            MonoRuntime.init();
 
             BINDING.call_static_method(config.uno_main, []);
         } catch (e) {
@@ -142,5 +143,71 @@ var App = {
         else {
             App.mainInit();
         }
+    },
+
+    hasDebuggingEnabled: function () {
+        return hasReferencedPdbs && App.currentBrowserIsChrome;
+    },
+
+    attachDebuggerHotkey: function (loadAssemblyUrls) {
+
+        //
+        // Imported from https://github.com/aspnet/Blazor/tree/release/0.7.0
+        //
+        // History:
+        //  2019-01-14: Adjustments to make the debugger helper compatible with Uno.Bootstrap.
+        //
+
+        App.currentBrowserIsChrome = window.chrome
+            && navigator.userAgent.indexOf('Edge') < 0; // Edge pretends to be Chrome
+
+        hasReferencedPdbs = loadAssemblyUrls
+            .some(function (url) { return /\.pdb$/.test(url); });
+
+        // Use the combination shift+alt+D because it isn't used by the major browsers
+        // for anything else by default
+        var altKeyName = navigator.platform.match(/^Mac/i) ? 'Cmd' : 'Alt';
+
+        if (App.hasDebuggingEnabled()) {
+            console.info("Debugging hotkey: Shift+" + altKeyName + "+D (when application has focus)");
+        }
+
+        // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
+        document.addEventListener('keydown', function (evt) {
+            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === 'KeyD') {
+                if (!hasReferencedPdbs) {
+                    console.error('Cannot start debugging, because the application was not compiled with debugging enabled.');
+                }
+                else if (!App.currentBrowserIsChrome) {
+                    console.error('Currently, only Chrome is supported for debugging.');
+                }
+                else {
+                    App.launchDebugger();
+                }
+            }
+        });
+    },
+
+    launchDebugger: function () {
+
+        //
+        // Imported from https://github.com/aspnet/Blazor/tree/release/0.7.0
+        //
+        // History:
+        //  2019-01-14: Adjustments to make the debugger helper compatible with Uno.Bootstrap.
+        //
+
+        // The noopener flag is essential, because otherwise Chrome tracks the association with the
+        // parent tab, and then when the parent tab pauses in the debugger, the child tab does so
+        // too (even if it's since navigated to a different page). This means that the debugger
+        // itself freezes, and not just the page being debugged.
+        //
+        // We have to construct a link element and simulate a click on it, because the more obvious
+        // window.open(..., 'noopener') always opens a new window instead of a new tab.
+        var link = document.createElement('a');
+        link.href = "_framework/debug?url=" + encodeURIComponent(location.href);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.click();
     }
 };
