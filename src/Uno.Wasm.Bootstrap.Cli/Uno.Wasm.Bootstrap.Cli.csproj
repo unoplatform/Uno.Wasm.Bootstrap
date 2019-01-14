@@ -8,6 +8,15 @@
     <PackageId>Uno.Wasm.Bootstrap.Cli</PackageId>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Authors>nventive</Authors>
+    <PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+    <PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+    <Description>This package provides CLI support for Wasm bootstrap projects</Description>
+    <Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />

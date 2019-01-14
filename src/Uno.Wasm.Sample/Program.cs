@@ -15,7 +15,6 @@
 //
 // ******************************************************************
 using System;
-using System.Collections.Immutable;
 
 namespace Uno.Wasm.Sample
 { 
@@ -23,8 +22,6 @@ namespace Uno.Wasm.Sample
     { 
 		static void Main(string[] args)  
 		{
-            Newtonsoft.Json.JsonConvert.DeserializeObject("{ 'test': 42}");
-
 			var i = 42; 
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}"); 

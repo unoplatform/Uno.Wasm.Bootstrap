@@ -11,18 +11,21 @@ This package only provides the bootstrapping features to run a .NET assembly and
 This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
 ## How to use the package
-* Create a .NET Standard 2.0 library, with the following basic definition:
+* Create a .NET Standard 2.0 library, and update it with the following basic definition:
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <MonoRuntimeDebuggerEnabled>false</MonoRuntimeDebuggerEnabled>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.0.0-dev.1" />
-  </ItemGroup>
+
+    <DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />
+ </ItemGroup>
 
 </Project>
 ```
@@ -37,9 +40,22 @@ class Program
     }
 }
 ```
-* Build the project, the WASM output will be located in `bin\Debug\netstandard2.0\dist`.
-* Run the `server.py`, which will open an HTTP server on http://localhost:8000.  On Windows, use Python tools or the excellent Linux Subsystem.
+* In visual studio, press `F5` or **Debug**, then **Start debugging**
+* A browser window will appear with your application
 * The output of the Console.WriteLine will appear in the javascript debugging console
+
+### Alternate deployment path using Linux (or Windows Subsystem for Linux)
+See below the instructions on how to install the **Windows Subsystem for Linux**.
+* Build the project, the WASM output will be located in `bin\Debug\netstandard2.0\dist`.
+* Run the `server.py`, which will open an HTTP server on http://localhost:8000. On Windows, use Python tools or the excellent Linux Subsystem.
+* The output of the `Console.WriteLine` will appear in the javascript debugging console
+
+### Upgrading from previous versions of the Uno.Wasm.Bootstrap package
+Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To emable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
+
+To upgrade a project:
+- Change `Microsoft.NET.Sdk` to `Microsoft.NET.Sdk.Web` in the Sdk attribute of your project
+- Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
 
 ## Linker configuration
 The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/linker), and can be configured using a linker directives file.
@@ -58,7 +74,7 @@ The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescri
 
 The documentation for this file [can be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
 
-## Server the Wasm app through Windows Linux Subsystem
+## Serve the Wasm app through Windows Linux Subsystem
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 
 Here's how to install it:
@@ -71,16 +87,16 @@ Here's how to install it:
 - Using your favorite browser, navigate to `http://localhost:8000`
 
 ## Mono-wasm Debugger Support
-Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
-[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to setup the debugging.
 
-To enable debugging in **Uno.Wasm.Boostrap**, add the following line to your csproj:
+Debugging is supported through the integration of a .NET Core CLI component, which acts as a static files server, as well as a debugger proxy for Chrome (other browsers are not supported).
 
+### Enable the Debugger support
+In order to debug an **Uno.Wasm.Boostrap** enabled project, the following is needed:
 ```xml
 <MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
 ```
 
-This will enable the deployment of `pdb` files to the browser, and allow for the [debugger proxy](https://github.com/kumpera/ws-proxy) to pick those up.
+This will enable the deployment of `pdb` files to the browser, and allow for the mono debugger proxy to use them. 
 
 For the time being, you will also need to make sure that mscorlib is disabled in the Linker configuration file: 
 
@@ -91,6 +107,21 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 <assembly fullname="System.Core">
 </assembly>
 ```
+
+Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
+[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to setup the debugging.
+
+### How to use the debugger
+In Visual Studio:
+- Make your project the startup project (right-click **set as startup**)
+- In the debugging toolbar:
+  - Select **IIS Express** as the debugging target
+  - Select **Chrome** as the Web Browser
+  - Make sure script debugging is disabled
+- Start the debugging session using F5 (or Start Debug)
+- Once your application has started, press `Alt+Shift+D`
+- Follow the instructions on the web page
+- You may need to refresh the original tab if you want to debug the entry point (Main) of your application.
 
 ## AOT Support
 The mono-wasm tooling now provides AOT support for WebAssembly. This mode can be enabled by using the `WasmShellEnableAOT` property, but is **currently only available on Linux** (18.04 and later, or similar).
