@@ -27,6 +27,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Framework;
 using Mono.Cecil;
 
 namespace Uno.Wasm.Bootstrap
@@ -83,6 +84,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
+		public string CustomDebuggerPath { get; set; }
+
 		public string PWAManifestFile { get; set; }
 
 		public override bool Execute()
@@ -105,6 +108,7 @@ namespace Uno.Wasm.Bootstrap
 				CopyContent();
 				CopyRuntime();
 				RunPackager();
+				TryDeployDebuggerProxy();
 				HashManagedPath();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
@@ -119,7 +123,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private int RunProcess(string executable, string parameters, string workingDirectory = null)
+        private int RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
 			var p = new Process();
 			p.StartInfo.WorkingDirectory = workingDirectory;
@@ -150,6 +154,57 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+        private void TryDeployDebuggerProxy()
+        {
+            if (RuntimeDebuggerEnabled)
+            {
+                var sdkName = Path.GetFileName(MonoWasmSDKPath);
+
+                var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
+                Directory.CreateDirectory(wasmDebuggerRootPath);
+
+                var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
+
+                Log.LogMessage(MessageImportance.High, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+
+                if (!Directory.Exists(debuggerLocalPath))
+                {
+                    foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
+                    {
+                        Directory.Delete(debugger, recursive: true);
+                    }
+
+                    Directory.CreateDirectory(debuggerLocalPath);
+
+                    string[] debuggerFiles = new[] {
+                        "Mono.WebAssembly.DebuggerProxy.dll",
+                        "Mono.Cecil.dll",
+                        "Mono.Cecil.Mdb.dll",
+                        "Mono.Cecil.Pdb.dll",
+                        "Mono.Cecil.Rocks.dll",
+                    };
+
+                    foreach (var debuggerFile in debuggerFiles)
+                    {
+                        var sourceBasePath = string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath;
+
+                        string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
+                        string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
+
+                        if (File.Exists(sourceFileName))
+                        {
+                            Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
+                            File.Copy(sourceFileName, destFileName);
+                        }
+                        else
+                        {
+                            Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
+                        }
+                    }
+                }
+            }
+        }
+
 		private void RunPackager()
 		{
 			BuildReferencedAssembliesList();
@@ -165,8 +220,9 @@ namespace Uno.Wasm.Bootstrap
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
 
+			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
-			int packagerResults = RunProcess(packagerBinPath, $"{referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+			int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
 			if(packagerResults != 0)
 			{
@@ -181,7 +237,6 @@ namespace Uno.Wasm.Bootstrap
 					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
 				}
 
-				var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 				var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
 				int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
@@ -454,7 +509,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GenerateHtml()
 		{
-			var htmlPath = Path.Combine(_distPath, "Index.html");
+			var htmlPath = Path.Combine(_distPath, "index.html");
 
 			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
 			{

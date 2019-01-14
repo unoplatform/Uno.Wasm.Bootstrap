@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyName>dotnet-unowasm</AssemblyName>
+    <PackageId>Uno.Wasm.Bootstrap.Cli</PackageId>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>nventive</Authors>
+    <PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+    <PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+    <Description>This package provides CLI support for Wasm bootstrap projects</Description>
+    <Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
+    <PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+    Explicit references to an arbitrary version of the Mono.WebAssembly.DebuggerProxy assembly, to allow
+    for the server to compile. The references are marked as public so the binaries are not copied to the output
+    folder, and the proper assemblies can be loaded from the active mono-wasm version.
+    -->
+    <Reference Include="Mono.Cecil">
+      <HintPath>External\Mono.Cecil.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mono.WebAssembly.DebuggerProxy">
+      <HintPath>External\Mono.WebAssembly.DebuggerProxy.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  
+</Project>

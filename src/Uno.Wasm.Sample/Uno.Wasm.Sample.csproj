@@ -1,45 +1,39 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-		<OutputType>Exe</OutputType>
-		<IsPackable>false</IsPackable>
-		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
-		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-		<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
-	</PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+    <WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
+    <MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+    <AdditionalRunArguments></AdditionalRunArguments>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
     <PackageReference Include="Uno.Wasm.MonoRuntime" Version="1.0.0-dev0000" />
   </ItemGroup>
 
-    <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 
-	<ItemGroup>
-		<None Include="WasmScripts\**\*.js" />
-		<None Include="WasmCSS\**\*.css" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="WasmScripts\**\*.js" />
+    <None Include="WasmCSS\**\*.css" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="WasmScripts\**\*.js" />
-		<EmbeddedResource Include="WasmCSS\**\*.css" />
-	</ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="WasmScripts\**\*.js" />
+    <EmbeddedResource Include="WasmCSS\**\*.css" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<LinkerDescriptor Include="LinkerConfig.xml"/>
-	</ItemGroup>
+  <ItemGroup>
+    <LinkerDescriptor Include="LinkerConfig.xml" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <Content Include="Content\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Remove="manifest.json" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Content Include="manifest.json" />
-	</ItemGroup>
-	
 </Project>
