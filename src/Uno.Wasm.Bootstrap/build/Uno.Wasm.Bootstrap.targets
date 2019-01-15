@@ -44,9 +44,11 @@
 
     <!-- Web Project Run Parameters -->
     <RunCommand>dotnet</RunCommand>
-    <_unoCliLocation>unowasm</_unoCliLocation>
-    <_unoCliLocation Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll</_unoCliLocation>
-    <RunArguments>exec &quot;$(_unoCliLocation)&quot; serve --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
+    <!-- Nuget deployed run parameters -->
+    <_unoBinArgs>unowasm serve</_unoBinArgs>
+    <!-- Uno.Wasm.Bootstrap internal args -->
+    <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">serve &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll&quot;  $(_unoRunArgs)</_unoBinArgs>
+    <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 
 	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
