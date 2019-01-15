@@ -10,7 +10,7 @@ namespace Uno.Wasm.Bootstrap.Cli
         {
             var app = new CommandLineApplication(throwOnUnexpectedArg: false)
             {
-                Name = "unoplatform-cli"
+                Name = "unowasm-cli"
             };
             app.HelpOption("-?|-h|--help");
 
