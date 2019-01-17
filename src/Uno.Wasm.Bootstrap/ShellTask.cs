@@ -67,6 +67,9 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool MonoAOT { get; set; }
 
+		[Microsoft.Build.Framework.Required]
+		public bool MonoILLinker { get; set; }
+
 		/// <summary>
 		/// Path override for the mono-wasm SDK folder
 		/// </summary>
@@ -85,6 +88,8 @@ namespace Uno.Wasm.Bootstrap
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public string CustomDebuggerPath { get; set; }
+
+		public string CustomLinkerPath { get; set; }
 
 		public string PWAManifestFile { get; set; }
 
@@ -165,7 +170,7 @@ namespace Uno.Wasm.Bootstrap
 
                 var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
-                Log.LogMessage(MessageImportance.High, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+                Log.LogMessage(MessageImportance.Low, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
                 if (!Directory.Exists(debuggerLocalPath))
                 {
@@ -219,41 +224,89 @@ namespace Uno.Wasm.Bootstrap
 			Directory.CreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
-
 			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
-			int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-			if(packagerResults != 0)
-			{
-				throw new Exception("Failed to generate wasm layout");
-			}
+            //
+            // Run the packager to create the original layout. The AOT will optionally run over this pass.
+            //
+            int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-			if (MonoAOT)
-			{
-				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-				if (string.IsNullOrEmpty(emsdkPath))
-				{
-					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-				}
+            if (packagerResults != 0)
+            {
+                throw new Exception("Failed to generate wasm layout");
+            }
 
-				var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
+            if (MonoAOT)
+            {
+                var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+                if (string.IsNullOrEmpty(emsdkPath))
+                {
+                    throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+                }
 
-				int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+                var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
-				if(r2 != 0)
-				{
-					throw new Exception("Failed to generate wasm layout");
-				}
+                int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-				int r3 = RunProcess("ninja", "", workAotPath);
+                if (r2 != 0)
+                {
+                    throw new Exception("Failed to generate wasm layout");
+                }
 
-				if (r3 != 0)
-				{
-					throw new Exception("Failed to generate AOT layout");
-				}
-			}
-		}
+                int r3 = RunProcess("ninja", "", workAotPath);
+
+                if (r3 != 0)
+                {
+                    throw new Exception("Failed to generate AOT layout");
+                }
+            }
+            else
+            {
+                //
+                // Run the IL Linker on the interpreter based output, as the packager does not yet do it.
+                //
+                if (
+                    MonoILLinker 
+                    && !string.IsNullOrEmpty(CustomLinkerPath)
+                )
+                {
+                    string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+                    if (Directory.Exists(linkerInput))
+                    {
+                        Directory.Delete(linkerInput, true);
+                    }
+
+                    Directory.Move(_managedPath, linkerInput);
+                    Directory.CreateDirectory(_managedPath);
+
+                    var skipLink = new[] {
+                        "WebAssembly.Bindings.dll",
+                    };
+
+                    var files = new[] {
+                       Path.GetFileName(Assembly),
+                       "WebAssembly.Bindings.dll",
+                    }
+                    .Select(f => Path.Combine(linkerInput, f))
+                    .Where(File.Exists);
+
+                    string getILLinkParam(string file) => skipLink.Contains(Path.GetFileName(file)) ? "p copy" : "a";
+
+                    // var filesParameters = string.Join(" ", Directory.GetFiles(linkerInput, "*.dll").Select(p => $"-{getILLinkParam(p)} \"{p}\" "));
+                    var filesParameters = string.Join(" ", files.Select(p => $"-{getILLinkParam(p)} \"{p}\" "));
+
+                    var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
+
+                    int linkerResults = RunProcess(linkerPath, $"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting {filesParameters} -c link -d {_managedPath}", _managedPath);
+
+                    if (linkerResults != 0)
+                    {
+                        throw new Exception("Failed to execute the linker");
+                    }
+                }
+            }
+        }
 
 		private void BuildReferencedAssembliesList()
 		{
@@ -395,6 +448,8 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					(var fullSourcePath, var relativePath) = GetFilePaths();
+
+                    relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
 					Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
 

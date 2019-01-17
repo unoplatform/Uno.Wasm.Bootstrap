@@ -155,6 +155,9 @@ The linker may be configured via the inclusion of `LinkerDescriptor` msbuild ite
 
 The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
 
+The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to 
+false. This property has no effect when building with AOT enabled.
+
 ### Dependency management
 The Uno Bootstrapper uses RequireJS for the dependency management, allowing for dependencies to be resolved in a stable manner. 
 
