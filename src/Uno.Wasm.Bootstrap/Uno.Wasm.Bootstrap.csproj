@@ -38,11 +38,15 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="build/CustomDebuggerProxy/**">
-			<Pack>true</Pack>
-			<PackagePath>build/CustomDebuggerProxy</PackagePath>
-		</Content>
-		<Content Include="Templates\index.html">
+    <Content Include="build/CustomDebuggerProxy/**">
+      <Pack>true</Pack>
+      <PackagePath>build/CustomDebuggerProxy</PackagePath>
+    </Content>
+    <Content Include="build/linker/**">
+      <Pack>true</Pack>
+      <PackagePath>build/CustomDebuggerProxy</PackagePath>
+    </Content>
+    <Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
@@ -79,6 +83,10 @@
 
 	<ItemGroup>
 	  <None Include="build\packager.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="build\linker\" />
 	</ItemGroup>
 
   <Target Name="BuildManualDependencies" BeforeTargets="Build">

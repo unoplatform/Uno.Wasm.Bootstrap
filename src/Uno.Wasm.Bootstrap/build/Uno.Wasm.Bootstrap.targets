@@ -11,12 +11,14 @@
 
 		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
+    <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
     
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
     in the active mono-wasm folder.
     -->
     <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)/CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
+    <MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
 
 		<WasmShellEnableAOT Condition="'$(WasmShellEnableAOT)'==''">false</WasmShellEnableAOT>
 
@@ -47,7 +49,7 @@
     <!-- Nuget deployed run parameters -->
     <_unoBinArgs>unowasm serve</_unoBinArgs>
     <!-- Uno.Wasm.Bootstrap internal args -->
-    <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">serve &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll&quot;  $(_unoRunArgs)</_unoBinArgs>
+    <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
     <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 
@@ -110,7 +112,9 @@
 			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
       CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
+      CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
 			MonoAOT="$(WasmShellEnableAOT)"
+			MonoILLinker="$(WasmShellILLinkerEnabled)"
 			MonoTempFolder="$(WasmShellMonoTempFolder)"
 			Assets="@(Content)"
 			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
@@ -124,29 +128,8 @@
 		<Delete Files="@(_DistFilesToDelete)" />
 	</Target>
 
-  <Target Name="_UnoWasmGetCopyToPublishDirectory"
-        BeforeTargets="GetCopyToPublishDirectoryItems"
-        Condition="'$(OutputType.ToLowerInvariant())'=='exe'">
-    <ItemGroup>
-      <!-- Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
-      <ResolvedAssembliesToPublish Remove="@(ResolvedAssembliesToPublish)" />
 
-      <!-- Move wwwroot files to output root -->
-      <ContentWithTargetPath Update="@(ContentWithTargetPath)" Condition="$([System.String]::new(%(TargetPath)).StartsWith('wwwroot\')) OR $([System.String]::new(%(TargetPath)).StartsWith('wwwroot/'))">
-        <TargetPath>$(UnoWasmPublishDistDir)$([System.String]::new(%(TargetPath)).Substring(8))</TargetPath>
-      </ContentWithTargetPath>
-
-      <_UnoWasmDistFiles Include="$(OutputPath)dist\**"/>
-      <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
-        <TargetPath>$(UnoWasmPublishDistDir)$([MSBuild]::MakeRelative('$(TargetDir)dist\', %(Identity)))</TargetPath>
-      </_UnoWasmDist>
-
-      <ContentWithTargetPath Include="@(_UnoWasmDist)">
-        <TargetPath>%(TargetPath)</TargetPath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </ContentWithTargetPath>
-    </ItemGroup>
-  </Target>
+  <Import Project="Uno.Wasm.Bootstrap.Publish.targets"/>
 
 
 </Project>
