@@ -280,25 +280,16 @@ namespace Uno.Wasm.Bootstrap
                     Directory.Move(_managedPath, linkerInput);
                     Directory.CreateDirectory(_managedPath);
 
-                    var skipLink = new[] {
-                        "WebAssembly.Bindings.dll",
-                    };
-
-                    var files = new[] {
-                       Path.GetFileName(Assembly),
-                       "WebAssembly.Bindings.dll",
-                    }
-                    .Select(f => Path.Combine(linkerInput, f))
-                    .Where(File.Exists);
-
-                    string getILLinkParam(string file) => skipLink.Contains(Path.GetFileName(file)) ? "p copy" : "a";
-
-                    // var filesParameters = string.Join(" ", Directory.GetFiles(linkerInput, "*.dll").Select(p => $"-{getILLinkParam(p)} \"{p}\" "));
-                    var filesParameters = string.Join(" ", files.Select(p => $"-{getILLinkParam(p)} \"{p}\" "));
+                    var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
+                    var bindingsPath = Path.Combine(linkerInput, "WebAssembly.Bindings.dll");
 
                     var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
 
-                    int linkerResults = RunProcess(linkerPath, $"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting {filesParameters} -c link -d {_managedPath}", _managedPath);
+                    int linkerResults = RunProcess(
+                        linkerPath, 
+                        $"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d {_managedPath}",
+                        _managedPath
+                       );
 
                     if (linkerResults != 0)
                     {

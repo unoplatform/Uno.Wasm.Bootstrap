@@ -5,7 +5,7 @@
 		<OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
 		<WasmShellEnableAOT Condition="$([MSBuild]::IsOsPlatform('Linux'))">true</WasmShellEnableAOT>
-    <MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+    <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
     <DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
   </PropertyGroup>
 
