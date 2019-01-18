@@ -30,11 +30,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="build/Uno.Wasm.Bootstrap.targets">
-			<Pack>true</Pack>
-			<PackagePath>build</PackagePath>
-		</Content>
-		<Content Include="build/packager.cs">
+    <Content Include="build/*.targets">
+      <Pack>true</Pack>
+      <PackagePath>build</PackagePath>
+    </Content>
+    <Content Include="build/*.props">
+      <Pack>true</Pack>
+      <PackagePath>build</PackagePath>
+    </Content>
+    <Content Include="build/packager.cs">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
@@ -44,7 +48,7 @@
     </Content>
     <Content Include="build/linker/**">
       <Pack>true</Pack>
-      <PackagePath>build/CustomDebuggerProxy</PackagePath>
+      <PackagePath>build/linker</PackagePath>
     </Content>
     <Content Include="Templates\index.html">
 			<Pack>true</Pack>
