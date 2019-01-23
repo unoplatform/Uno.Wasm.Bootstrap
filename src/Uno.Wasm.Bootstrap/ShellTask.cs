@@ -58,6 +58,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] MonoEnvironment { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string TargetFrameworkIdentifier { get; set; }
 
@@ -567,14 +569,21 @@ namespace Uno.Wasm.Bootstrap
 				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
 				var entryPoint = DiscoverEntryPoint();
 
-				var config =
-					$"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";" +
-					$"config.uno_dependencies = [{dependencies}];" +
-					$"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";" +
-					$"config.assemblyFileExtension = \"{AssembliesFileExtension}\";"
-					;
+                var config = new StringBuilder();
 
-				w.Write(config);
+                config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
+                config.AppendLine($"config.uno_dependencies = [{dependencies}];");
+                config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
+                config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+
+                config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
+
+                foreach(var env in MonoEnvironment)
+                {
+                    config.AppendLine($"config.environmentVariables[\"{env.ItemSpec}\"] = \"{env.GetMetadata("Value")}\";");
+                }
+
+                w.Write(config.ToString());
 			}
 		}
 
