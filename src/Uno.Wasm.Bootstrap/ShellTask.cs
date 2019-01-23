@@ -569,19 +569,22 @@ namespace Uno.Wasm.Bootstrap
 				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
 				var entryPoint = DiscoverEntryPoint();
 
-                var config = new StringBuilder();
+				var config = new StringBuilder();
 
-                config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
-                config.AppendLine($"config.uno_dependencies = [{dependencies}];");
-                config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
-                config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
+				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
+				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
+				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
 
-                config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
+				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
-                foreach(var env in MonoEnvironment)
-                {
-                    config.AppendLine($"config.environmentVariables[\"{env.ItemSpec}\"] = \"{env.GetMetadata("Value")}\";");
-                }
+				if(MonoEnvironment != null)
+				{
+					foreach(var env in MonoEnvironment)
+					{
+						config.AppendLine($"config.environmentVariables[\"{env.ItemSpec}\"] = \"{env.GetMetadata("Value")}\";");
+					}
+				}
 
                 w.Write(config.ToString());
 			}
