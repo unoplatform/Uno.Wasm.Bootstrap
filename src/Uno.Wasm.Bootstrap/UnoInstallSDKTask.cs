@@ -68,7 +68,7 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage("SDK Path: " + SdkPath);
 
 				if (
-					Directory.Exists(SdkPath) 
+					Directory.Exists(SdkPath)
 					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-bcl", "wasm"))
 				)
 				{
