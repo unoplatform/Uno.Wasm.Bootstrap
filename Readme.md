@@ -158,6 +158,22 @@ The file format of the descriptor can [be found here](https://github.com/mono/li
 The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to 
 false. This property has no effect when building with AOT enabled.
 
+## Environment variables
+Mono provides the ability to configure some features at initialization, such as logging or GC.
+
+To set those variables, add the following to your project file:
+
+```xml
+<ItemGroup>
+  <WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
+  <WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
+  <WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
+</ItemGroup>
+```
+
+These lines change the configuration of the GC and logging, to determine when a GC occurs. More options are available 
+in the `Environment Variables` section of [the mono documentation](http://docs.go-mono.com/?link=man%3amono(1)). 
+
 ### Dependency management
 The Uno Bootstrapper uses RequireJS for the dependency management, allowing for dependencies to be resolved in a stable manner. 
 

@@ -58,6 +58,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] MonoEnvironment { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string TargetFrameworkIdentifier { get; set; }
 
@@ -128,7 +130,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-        private int RunProcess(string executable, string parameters, string workingDirectory = null)
+		private int RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
 			var p = new Process();
 			p.StartInfo.WorkingDirectory = workingDirectory;
@@ -159,56 +161,56 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-        private void TryDeployDebuggerProxy()
-        {
-            if (RuntimeDebuggerEnabled)
-            {
-                var sdkName = Path.GetFileName(MonoWasmSDKPath);
+		private void TryDeployDebuggerProxy()
+		{
+			if (RuntimeDebuggerEnabled)
+			{
+				var sdkName = Path.GetFileName(MonoWasmSDKPath);
 
-                var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
-                Directory.CreateDirectory(wasmDebuggerRootPath);
+				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
+				Directory.CreateDirectory(wasmDebuggerRootPath);
 
-                var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
+				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
-                Log.LogMessage(MessageImportance.Low, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+				Log.LogMessage(MessageImportance.Low, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
-                if (!Directory.Exists(debuggerLocalPath))
-                {
-                    foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
-                    {
-                        Directory.Delete(debugger, recursive: true);
-                    }
+				if (!Directory.Exists(debuggerLocalPath))
+				{
+					foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
+					{
+						Directory.Delete(debugger, recursive: true);
+					}
 
-                    Directory.CreateDirectory(debuggerLocalPath);
+					Directory.CreateDirectory(debuggerLocalPath);
 
-                    string[] debuggerFiles = new[] {
-                        "Mono.WebAssembly.DebuggerProxy.dll",
-                        "Mono.Cecil.dll",
-                        "Mono.Cecil.Mdb.dll",
-                        "Mono.Cecil.Pdb.dll",
-                        "Mono.Cecil.Rocks.dll",
-                    };
+					string[] debuggerFiles = new[] {
+						"Mono.WebAssembly.DebuggerProxy.dll",
+						"Mono.Cecil.dll",
+						"Mono.Cecil.Mdb.dll",
+						"Mono.Cecil.Pdb.dll",
+						"Mono.Cecil.Rocks.dll",
+					};
 
-                    foreach (var debuggerFile in debuggerFiles)
-                    {
-                        var sourceBasePath = string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath;
+					foreach (var debuggerFile in debuggerFiles)
+					{
+						var sourceBasePath = string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath;
 
-                        string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
-                        string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
+						string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
+						string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
 
-                        if (File.Exists(sourceFileName))
-                        {
-                            Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
-                            File.Copy(sourceFileName, destFileName);
-                        }
-                        else
-                        {
-                            Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
-                        }
-                    }
-                }
-            }
-        }
+						if (File.Exists(sourceFileName))
+						{
+							Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
+							File.Copy(sourceFileName, destFileName);
+						}
+						else
+						{
+							Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
+						}
+					}
+				}
+			}
+		}
 
 		private void RunPackager()
 		{
@@ -224,105 +226,105 @@ namespace Uno.Wasm.Bootstrap
 			Directory.CreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
-			var debugOption = this.RuntimeDebuggerEnabled ? "--debug" : "";
+			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
 
-            //
-            // Run the packager to create the original layout. The AOT will optionally run over this pass.
-            //
-            int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+			//
+			// Run the packager to create the original layout. The AOT will optionally run over this pass.
+			//
+			int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-            if (packagerResults != 0)
-            {
-                throw new Exception("Failed to generate wasm layout");
-            }
+			if (packagerResults != 0)
+			{
+				throw new Exception("Failed to generate wasm layout");
+			}
 
-            if (MonoAOT)
-            {
-                var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-                if (string.IsNullOrEmpty(emsdkPath))
-                {
-                    throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-                }
+			if (MonoAOT)
+			{
+				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+				if (string.IsNullOrEmpty(emsdkPath))
+				{
+					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+				}
 
-                var aotOption = this.MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
+				var aotOption = MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
 
-                int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+				int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
 
-                if (r2 != 0)
-                {
-                    throw new Exception("Failed to generate wasm layout");
-                }
+				if (r2 != 0)
+				{
+					throw new Exception("Failed to generate wasm layout");
+				}
 
-                int r3 = RunProcess("ninja", "", workAotPath);
+				int r3 = RunProcess("ninja", "", workAotPath);
 
-                if (r3 != 0)
-                {
-                    throw new Exception("Failed to generate AOT layout");
-                }
-            }
-            else
-            {
-                //
-                // Run the IL Linker on the interpreter based output, as the packager does not yet do it.
-                //
-                if (
-                    MonoILLinker 
-                    && !string.IsNullOrEmpty(CustomLinkerPath)
-                )
-                {
-                    string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
-                    if (Directory.Exists(linkerInput))
-                    {
-                        Directory.Delete(linkerInput, true);
-                    }
+				if (r3 != 0)
+				{
+					throw new Exception("Failed to generate AOT layout");
+				}
+			}
+			else
+			{
+				//
+				// Run the IL Linker on the interpreter based output, as the packager does not yet do it.
+				//
+				if (
+					MonoILLinker
+					&& !string.IsNullOrEmpty(CustomLinkerPath)
+				)
+				{
+					string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+					if (Directory.Exists(linkerInput))
+					{
+						Directory.Delete(linkerInput, true);
+					}
 
-                    Directory.Move(_managedPath, linkerInput);
-                    Directory.CreateDirectory(_managedPath);
+					Directory.Move(_managedPath, linkerInput);
+					Directory.CreateDirectory(_managedPath);
 
-                    var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
-                    var bindingsPath = Path.Combine(linkerInput, "WebAssembly.Bindings.dll");
+					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
+					var bindingsPath = Path.Combine(linkerInput, "WebAssembly.Bindings.dll");
 
-                    var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
+					var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
 
-                    int linkerResults = RunProcess(
-                        linkerPath, 
-                        $"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d {_managedPath}",
-                        _managedPath
-                       );
+					int linkerResults = RunProcess(
+						linkerPath,
+						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d {_managedPath}",
+						_managedPath
+					   );
 
-                    if (linkerResults != 0)
-                    {
-                        throw new Exception("Failed to execute the linker");
-                    }
+					if (linkerResults != 0)
+					{
+						throw new Exception("Failed to execute the linker");
+					}
 
-                    //
-                    // The linker removes files after the mono-config.js file has been 
-                    // generated by the packager. Synchronize the list with the actual list.
-                    //
-                    var deletedFiles = Directory
-                        .GetFiles(linkerInput)
-                        .Select(Path.GetFileName)
-                        .Except(Directory
-                            .GetFiles(_managedPath)
-                            .Select(Path.GetFileName)
-                        );
+					//
+					// The linker removes files after the mono-config.js file has been 
+					// generated by the packager. Synchronize the list with the actual list.
+					//
+					var deletedFiles = Directory
+						.GetFiles(linkerInput)
+						.Select(Path.GetFileName)
+						.Except(Directory
+							.GetFiles(_managedPath)
+							.Select(Path.GetFileName)
+						);
 
-                    string monoConfigFilePath = Path.Combine(_distPath, "mono-config.js");
-                    var monoConfig = File.ReadAllText(monoConfigFilePath);
+					string monoConfigFilePath = Path.Combine(_distPath, "mono-config.js");
+					var monoConfig = File.ReadAllText(monoConfigFilePath);
 
-                    foreach(var deletedFile in deletedFiles)
-                    {
-                        Log.LogMessage($"Removing linker deleted file [{deletedFile}] from mono-config.js");
-                        monoConfig = monoConfig
-                            .Replace($"\"{deletedFile}\",", "")
-                            .Replace($"\"{deletedFile}\"", "");
-                    }
+					foreach (var deletedFile in deletedFiles)
+					{
+						Log.LogMessage($"Removing linker deleted file [{deletedFile}] from mono-config.js");
+						monoConfig = monoConfig
+							.Replace($"\"{deletedFile}\",", "")
+							.Replace($"\"{deletedFile}\"", "");
+					}
 
-                    File.WriteAllText(monoConfigFilePath, monoConfig);
-                }
-            }
-        }
+					File.WriteAllText(monoConfigFilePath, monoConfig);
+				}
+			}
+		}
 
 		private void BuildReferencedAssembliesList()
 		{
@@ -465,7 +467,7 @@ namespace Uno.Wasm.Bootstrap
 
 					(var fullSourcePath, var relativePath) = GetFilePaths();
 
-                    relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
+					relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
 					Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
 
@@ -531,7 +533,7 @@ namespace Uno.Wasm.Bootstrap
 			var fullExtension = "." + extension;
 			var fullFolder = "." + folder + ".";
 
-			return from asmPath in _referencedAssemblies.Concat(new[] { Assembly, this.GetType().Assembly.Location })
+			return from asmPath in _referencedAssemblies.Concat(new[] { Assembly, GetType().Assembly.Location })
 				   let asm = AssemblyDefinition.ReadAssembly(asmPath)
 				   from res in asm.MainModule.Resources.OfType<EmbeddedResource>()
 				   where res.Name.EndsWith(fullExtension)
@@ -567,14 +569,24 @@ namespace Uno.Wasm.Bootstrap
 				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
 				var entryPoint = DiscoverEntryPoint();
 
-				var config =
-					$"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";" +
-					$"config.uno_dependencies = [{dependencies}];" +
-					$"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";" +
-					$"config.assemblyFileExtension = \"{AssembliesFileExtension}\";"
-					;
+				var config = new StringBuilder();
 
-				w.Write(config);
+				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
+				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
+				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
+				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+
+				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
+
+				if (MonoEnvironment != null)
+				{
+					foreach (var env in MonoEnvironment)
+					{
+						config.AppendLine($"config.environmentVariables[\"{env.ItemSpec}\"] = \"{env.GetMetadata("Value")}\";");
+					}
+				}
+
+				w.Write(config.ToString());
 			}
 		}
 

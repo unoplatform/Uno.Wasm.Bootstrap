@@ -33,6 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
+    <WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
+    <WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
+  </ItemGroup>
+
+  <ItemGroup>
     <LinkerDescriptor Include="LinkerConfig.xml" />
   </ItemGroup>
 

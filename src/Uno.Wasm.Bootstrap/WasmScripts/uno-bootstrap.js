@@ -1,8 +1,17 @@
 ﻿
 config.fetch_file_cb = asset => App.fetchFile(asset);
+config.environmentVariables = config.environmentVariables || { };
 
 var Module = {
     onRuntimeInitialized: function () {
+
+        if (config.environment) {
+            for (var key in config.environment) {
+                if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
+                ENV[key] = config.environmentVariables[key];
+            }
+        }
+
         MONO.mono_load_runtime_and_bcl(
             config.vfs_prefix,
             config.deploy_prefix,

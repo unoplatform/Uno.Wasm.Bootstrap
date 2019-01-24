@@ -113,6 +113,7 @@
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
       CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
       CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
+      MonoEnvironment="@(WasmShellMonoEnvironment)"
 			MonoAOT="$(WasmShellEnableAOT)"
 			MonoILLinker="$(WasmShellILLinkerEnabled)"
 			MonoTempFolder="$(WasmShellMonoTempFolder)"
