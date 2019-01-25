@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -37,6 +37,8 @@
 		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
 
 		<MonoRuntimeMixedModeExcludedAssembly Include="Newtonsoft.Json" />
+		<MonoRuntimeMixedModeExcludedAssembly Include="System.Data" />
+		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml" />
 	</ItemGroup>
 
 	<ItemGroup>

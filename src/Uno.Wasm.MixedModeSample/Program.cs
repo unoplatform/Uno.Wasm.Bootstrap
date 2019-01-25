@@ -26,7 +26,9 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");
 
-			Newtonsoft.Json.JsonConvert.DeserializeObject("{ \"test\": true }");
+			var o = Newtonsoft.Json.JsonConvert.DeserializeObject("{ \"test\": true }");
+
+			global::System.Console.WriteLine("deserialized " + o);
 		}
 	}
 }

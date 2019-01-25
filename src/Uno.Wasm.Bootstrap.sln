@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.Cli", "U
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MixedModeSample", "Uno.Wasm.MixedModeSample\Uno.Wasm.MixedModeSample.csproj", "{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MixedModeRoslynSample", "Uno.Wasm.MixedModeRoslynSample\Uno.Wasm.MixedModeRoslynSample.csproj", "{15C3F459-5FE5-48F2-A33C-A7864969FEA4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
