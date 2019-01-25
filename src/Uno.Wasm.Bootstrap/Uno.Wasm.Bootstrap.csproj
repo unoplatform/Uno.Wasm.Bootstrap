@@ -93,9 +93,12 @@
 	  <Folder Include="build\linker\" />
 	</ItemGroup>
 
-  <Target Name="BuildManualDependencies" BeforeTargets="Build">
-    <!-- This is required because the non-reference dependencies are not properly handled -->
-    <MSBuild Properties="Configuration=$(Configuration);Platform=AnyCPU" Targets="Build" Projects="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj" RebaseOutputs="false" />
-  </Target>
+	<ItemGroup>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+	</ItemGroup>
 
 </Project>

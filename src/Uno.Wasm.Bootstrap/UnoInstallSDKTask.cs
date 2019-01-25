@@ -27,7 +27,7 @@ namespace Uno.Wasm.Bootstrap
 		public bool IsOSUnixLike { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public bool MonoAOT { get; set; }
+		public string MonoRuntimeExecutionMode { get; set; }
 
 		[Output]
 		public string SdkPath { get; set; }
@@ -47,6 +47,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void InstallSdk()
 		{
+			var runtimeExecutionMode = ParseRuntimeExecutionMode();
+
 			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
 			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri;
 
@@ -88,7 +90,13 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 				}
 
-				if (MonoAOT && !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release")))
+				if (
+					(
+					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
+					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
+					)
+					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
+				)
 				{
 					var aotZipPath = SdkPath + ".aot.zip";
 					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
@@ -185,6 +193,20 @@ namespace Uno.Wasm.Bootstrap
 			Directory.CreateDirectory(path);
 
 			return path;
+		}
+
+		private RuntimeExecutionMode ParseRuntimeExecutionMode()
+		{
+			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out var runtimeExecutionMode))
+			{
+				Log.LogMessage(MessageImportance.Low, $"MonoRuntimeExecutionMode={MonoRuntimeExecutionMode}");
+			}
+			else
+			{
+				throw new NotSupportedException($"The MonoRuntimeExecutionMode {MonoRuntimeExecutionMode} is not supported");
+			}
+
+			return runtimeExecutionMode;
 		}
 	}
 }
