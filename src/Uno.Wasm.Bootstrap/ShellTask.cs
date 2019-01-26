@@ -252,7 +252,7 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var mixedModeAotAssembliesParam = MixedModeExcludedAssembly.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
+				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 
 				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
 				var aotOptions = $"{aotMode} --link-mode=all --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
