@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.168
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28516.95
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample", "Uno.Wasm.Sample\Uno.Wasm.Sample.csproj", "{5641753C-F10C-4CC0-881B-1734B25E0F48}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -18,6 +18,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotTests", "Uno.Wa
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.Cli", "Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj", "{AA1C47D5-53C6-4BD6-9206-FDD812D67C13}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MixedModeSample", "Uno.Wasm.MixedModeSample\Uno.Wasm.MixedModeSample.csproj", "{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MixedModeRoslynSample", "Uno.Wasm.MixedModeRoslynSample\Uno.Wasm.MixedModeRoslynSample.csproj", "{15C3F459-5FE5-48F2-A33C-A7864969FEA4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +49,14 @@ Global
 		{AA1C47D5-53C6-4BD6-9206-FDD812D67C13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA1C47D5-53C6-4BD6-9206-FDD812D67C13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA1C47D5-53C6-4BD6-9206-FDD812D67C13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF5FF703-BAC7-427B-BAEA-2E49B65DBF6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15C3F459-5FE5-48F2-A33C-A7864969FEA4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

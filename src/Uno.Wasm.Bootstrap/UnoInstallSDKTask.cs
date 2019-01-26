@@ -27,7 +27,7 @@ namespace Uno.Wasm.Bootstrap
 		public bool IsOSUnixLike { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public bool MonoAOT { get; set; }
+		public string MonoRuntimeExecutionMode { get; set; }
 
 		[Output]
 		public string SdkPath { get; set; }
@@ -47,6 +47,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void InstallSdk()
 		{
+			var runtimeExecutionMode = ParseRuntimeExecutionMode();
+
 			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
 			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri;
 
@@ -88,7 +90,13 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
 				}
 
-				if (MonoAOT && !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release")))
+				if (
+					(
+					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
+					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
+					)
+					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
+				)
 				{
 					var aotZipPath = SdkPath + ".aot.zip";
 					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
@@ -110,45 +118,45 @@ namespace Uno.Wasm.Bootstrap
 				// Disable the packager override as the local updates have been merged into mono master.
 				//
 
-				//// Download the corresponding packager
-				//var packagerPath = Path.Combine(SdkPath, "packager_build");
-				//var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
+				// Download the corresponding packager
+				var packagerPath = Path.Combine(SdkPath, "packager_build");
+				var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
 
-				//Directory.CreateDirectory(packagerPath);
+				Directory.CreateDirectory(packagerPath);
 
-				//if (!File.Exists(packagerFilePath))
-				//{
-				//	File.Copy(PackagerOverrideFile, packagerFilePath, true);
-				//}
+				if (!File.Exists(packagerFilePath))
+				{
+					File.Copy(PackagerOverrideFile, packagerFilePath, true);
+				}
 
-				//PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
+				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
 
-				//var projectFile = $@"
-				//	<Project Sdk=""Microsoft.NET.Sdk"">
-				//	  <PropertyGroup>
-				//		<TargetFramework>net462</TargetFramework>
-				//		<OutputType>Exe</OutputType>
-				//		<OutputPath>..</OutputPath>
-				//		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-				//	  </PropertyGroup>
-				//		<ItemGroup>
-				//			<Reference Include=""Mono.Cecil"">
-				//				<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
-				//			</Reference>
-				//			<Reference Include=""Mono.Options"">
-				//				<HintPath>{SdkPath}/Mono.Options.dll</HintPath>
-				//			</Reference>
-				//		</ItemGroup>
-				//	</Project>
-				//";
+				var projectFile = $@"
+					<Project Sdk=""Microsoft.NET.Sdk"">
+					  <PropertyGroup>
+						<TargetFramework>net462</TargetFramework>
+						<OutputType>Exe</OutputType>
+						<OutputPath>..</OutputPath>
+						<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+					  </PropertyGroup>
+						<ItemGroup>
+							<Reference Include=""Mono.Cecil"">
+								<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
+							</Reference>
+							<Reference Include=""Mono.Options"">
+								<HintPath>{SdkPath}/Mono.Options.dll</HintPath>
+							</Reference>
+						</ItemGroup>
+					</Project>
+				";
 
-				//PackagerProjectFile = Path.Combine(packagerPath, "packager2.csproj");
-				//File.WriteAllText(PackagerProjectFile, projectFile);
+				PackagerProjectFile = Path.Combine(packagerPath, "packager2.csproj");
+				File.WriteAllText(PackagerProjectFile, projectFile);
 
-				//var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
+				var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
 
-				//File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(SdkPath, "Mono.Cecil.dll"), true);
-				//File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(SdkPath, "Mono.Options.dll"), true);
+				File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(SdkPath, "Mono.Cecil.dll"), true);
+				File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(SdkPath, "Mono.Options.dll"), true);
 			}
 			catch (Exception e)
 			{
@@ -185,6 +193,20 @@ namespace Uno.Wasm.Bootstrap
 			Directory.CreateDirectory(path);
 
 			return path;
+		}
+
+		private RuntimeExecutionMode ParseRuntimeExecutionMode()
+		{
+			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out var runtimeExecutionMode))
+			{
+				Log.LogMessage(MessageImportance.Low, $"MonoRuntimeExecutionMode={MonoRuntimeExecutionMode}");
+			}
+			else
+			{
+				throw new NotSupportedException($"The MonoRuntimeExecutionMode {MonoRuntimeExecutionMode} is not supported");
+			}
+
+			return runtimeExecutionMode;
 		}
 	}
 }

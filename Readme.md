@@ -123,15 +123,54 @@ In Visual Studio:
 - Follow the instructions on the web page
 - You may need to refresh the original tab if you want to debug the entry point (Main) of your application.
 
-## AOT Support
-The mono-wasm tooling now provides AOT support for WebAssembly. This mode can be enabled by using the `WasmShellEnableAOT` property, but is **currently only available on Linux** (18.04 and later, or similar).
+## Runtime Execution Modes
+The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT and Mixed Mode Interpreter/AOT.
+
+The execution mode can be set as follows:
+```xml
+<WasmShellMonoRuntimeExecutionMode>Interpreter</WasmShellMonoRuntimeExecutionMode>
+```
+The possible values are:
+- `Interpreter` (the default mode)
+- `FullAOT`
+- `InterpreterAndAOT`
+
+### Interpreter mode
+This modes is the slowest of all three, but allows for a large flexibility and debugging, as well as an efficient payload size. 
+
+The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
+
+### AOT Mode
+This mode generates WebAssembly binary for all the referenced assemblies and provides the fastest code execution, but also generates the largest payload. This mode will not allow the execution of code that was not known at compile time (e.g. dynamically generated assemblies or loaded through `Assembly.LoadFrom`).
+
+It is **currently only available on Linux** (18.04 and later, or similar).
 
 To ensure that AOT is only run under Linux, add the following to your project:
 ```xml
-<WasmShellEnableAOT Condition="$([MSBuild]::IsOsPlatform('Linux'))">true</WasmShellEnableAOT>
+<WasmShellMonoRuntimeExecutionMode>FullAOT</WasmShellMonoRuntimeExecutionMode>
 ```
 
-The machine needs [ninja build](https://ninja-build.org/) installed, as well as a [registered Emscripten installation](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html).
+### Mixed AOT/Interpreter Mode
+This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
+
+This allows for a fine balance between payload size and execution performance.
+
+At this time, it is only possible to exclude assemblies from being compiled to WebAssembly through the use of this item group:
+
+```xml
+<ItemGroup>
+  <MonoRuntimeMixedModeExcludedAssembly Include="Newtonsoft.Json" />
+</ItemGroup>
+```
+Adding assemblies to this list will exclude them from being compiled to WebAssembly.
+
+## Required configuration for AOT Compilation
+- A Linux 18.04 machine or [WSL 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
+- A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
+- An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
+- A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
+	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
 ### Support for additional JS files

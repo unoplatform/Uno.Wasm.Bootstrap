@@ -67,7 +67,7 @@ namespace Uno.Wasm.Bootstrap
 		public string IndexHtmlPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public bool MonoAOT { get; set; }
+		public string MonoRuntimeExecutionMode { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public bool MonoILLinker { get; set; }
@@ -83,6 +83,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] LinkerDescriptors { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] MixedModeExcludedAssembly { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string RuntimeConfiguration { get; set; }
 
@@ -97,9 +99,6 @@ namespace Uno.Wasm.Bootstrap
 
 		public override bool Execute()
 		{
-			var t = typeof(Mono.Options.Command);
-			var t2 = typeof(Mono.Cecil.ArrayType);
-
 			try
 			{
 				if (TargetFrameworkIdentifier != ".NETStandard")
@@ -236,10 +235,12 @@ namespace Uno.Wasm.Bootstrap
 
 			if (packagerResults != 0)
 			{
-				throw new Exception("Failed to generate wasm layout");
+				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (MonoAOT)
+			var runtimeExecutionMode = ParseRuntimeExecutionMode();
+
+			if (runtimeExecutionMode == RuntimeExecutionMode.FullAOT || runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT)
 			{
 				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
 				if (string.IsNullOrEmpty(emsdkPath))
@@ -247,20 +248,27 @@ namespace Uno.Wasm.Bootstrap
 					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
 				}
 
-				var aotOption = MonoAOT ? $"--aot --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"" : "";
+				var mixedModeExcluded = MixedModeExcludedAssembly
+					?.Select(a => a.ItemSpec)
+					.ToArray() ?? Array.Empty<string>();
 
-				int r2 = RunProcess(packagerBinPath, $"{debugOption} {aotOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 
-				if (r2 != 0)
+				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
+				var aotOptions = $"{aotMode} --link-mode=all --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
+
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} {aotOptions} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+
+				if (aotPackagerResult != 0)
 				{
-					throw new Exception("Failed to generate wasm layout");
+					throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 
-				int r3 = RunProcess("ninja", "", workAotPath);
+				var ninjaResult = RunProcess("ninja", "", workAotPath);
 
-				if (r3 != 0)
+				if (ninjaResult != 0)
 				{
-					throw new Exception("Failed to generate AOT layout");
+					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 			}
 			else
@@ -324,6 +332,20 @@ namespace Uno.Wasm.Bootstrap
 					File.WriteAllText(monoConfigFilePath, monoConfig);
 				}
 			}
+		}
+
+		private RuntimeExecutionMode ParseRuntimeExecutionMode()
+		{
+			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out var runtimeExecutionMode))
+			{
+				Log.LogMessage(MessageImportance.Low, $"MonoRuntimeExecutionMode={MonoRuntimeExecutionMode}");
+			}
+			else
+			{
+				throw new NotSupportedException($"The MonoRuntimeExecutionMode {MonoRuntimeExecutionMode} is not supported");
+			}
+
+			return runtimeExecutionMode;
 		}
 
 		private void BuildReferencedAssembliesList()

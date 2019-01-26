@@ -1,18 +1,18 @@
 ﻿<Project>
 
-	<PropertyGroup>
-		<_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
+  <PropertyGroup>
+    <_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
 
-		<WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
-		<WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
+    <WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
+    <WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
 
-		<WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
-		<WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
+    <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
+    <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
-		<MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
-		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
+    <MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
+    <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
-    
+
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
     in the active mono-wasm folder.
@@ -20,14 +20,12 @@
     <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)/CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
     <MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
 
-		<WasmShellEnableAOT Condition="'$(WasmShellEnableAOT)'==''">false</WasmShellEnableAOT>
-
-		<!-- 
+    <!-- 
 		Force all applicable references to be present in the ReferenceCopyLocalPaths property.
 		Otherwise, the ReferencePath property only contains reference assemblies if those are available.
 		-->
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
     <!-- 
       When using IISExpress with a standalone app, there's no point restarting IISExpress
       after build. It slows things unnecessarily and breaks in-flight HTTP requests.
@@ -44,6 +42,12 @@
 
     <UnoWasmPublishDistDir>$(AssemblyName)\dist\</UnoWasmPublishDistDir>
 
+    <!-- Possible values: Interpreter, FullAOT, InterpreterAndAOT -->
+    <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellMonoRuntimeExecutionMode)'==''">Interpreter</WasmShellMonoRuntimeExecutionMode>
+
+    <!-- Compatibility with previous version of the task using WasmShellEnableAOT -->
+    <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellEnableAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
+
     <!-- Web Project Run Parameters -->
     <RunCommand>dotnet</RunCommand>
     <!-- Nuget deployed run parameters -->
@@ -53,81 +57,82 @@
     <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 
-	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
-	<UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
 
-	<Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
-		<!-- 
+  <Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
+    <!-- 
 		Use the LinkerDescriptor ItemGroup to generate 
 		the proper linker description file name.
 		-->
 
-		<ItemGroup>
-			<LinkerDescriptor Include="@(LinkerDescriptors)"></LinkerDescriptor>
-		</ItemGroup>
-		
-		<Error Condition="'@(LinkerDescriptor->Count())' &gt; 1" Text="There cannot be multiple linker descriptor files." />
-		
-		<ItemGroup>
-			<EmbeddedResource Include="@(LinkerDescriptor)">
-				<LogicalName>$(AssemblyName).xml</LogicalName>
-				<Visible>false</Visible>
-			</EmbeddedResource>
-		</ItemGroup>
+    <ItemGroup>
+      <LinkerDescriptor Include="@(LinkerDescriptors)"></LinkerDescriptor>
+    </ItemGroup>
 
-		<Message Importance="low" Text="Descriptor @(EmbeddedResource)" />
-	</Target>
+    <Error Condition="'@(LinkerDescriptor->Count())' &gt; 1" Text="There cannot be multiple linker descriptor files." />
 
-	<Target Name="BuildDist" AfterTargets="AfterBuild">
+    <ItemGroup>
+      <EmbeddedResource Include="@(LinkerDescriptor)">
+        <LogicalName>$(AssemblyName).xml</LogicalName>
+        <Visible>false</Visible>
+      </EmbeddedResource>
+    </ItemGroup>
 
-		<ItemGroup>
-			<!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
-			<_AssembliesForReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)"
-																						 Condition="'%(Extension)' == '.dll'" />
-		</ItemGroup>
+    <Message Importance="low" Text="Descriptor @(EmbeddedResource)" />
+  </Target>
 
-		<UnoInstallSDKTask_v0 
-			MonoWasmSDKUri="$(MonoWasmSDKUri)"
-			MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
-			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
-			MonoAOT="$(WasmShellEnableAOT)"
-			PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
-			MonoTempFolder="$(WasmShellMonoTempFolder)">
-			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
-			<Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
-			<Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
-		</UnoInstallSDKTask_v0>
+  <Target Name="BuildDist" AfterTargets="AfterBuild">
 
-		<MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
+    <ItemGroup>
+      <!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
+      <_AssembliesForReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)"
+                                             Condition="'%(Extension)' == '.dll'" />
+    </ItemGroup>
 
-		<ShellTask_v0
-			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
-			OutputPath="$(OutputPath)"
-			IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
-			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
-			MonoWasmSDKPath="$(_UnoMonoSdkPath)"
-			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
-			PWAManifestFile="$(WasmPWAManifestFile)"
-			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
-			RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
-			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
-      CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
-      CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
-      MonoEnvironment="@(WasmShellMonoEnvironment)"
-			MonoAOT="$(WasmShellEnableAOT)"
-			MonoILLinker="$(WasmShellILLinkerEnabled)"
-			MonoTempFolder="$(WasmShellMonoTempFolder)"
-			Assets="@(Content)"
-			ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
-	</Target>
+    <UnoInstallSDKTask_v0
+        MonoWasmSDKUri="$(MonoWasmSDKUri)"
+        MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
+        IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
+        MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
+        PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
+        MonoTempFolder="$(WasmShellMonoTempFolder)">
+      <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
+      <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
+      <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
+    </UnoInstallSDKTask_v0>
 
-	<Target Name="_CleanDist" BeforeTargets="Clean">
-		<ItemGroup>
-			<_DistFilesToDelete Include="$(OutputPath)dist\**" />
-		</ItemGroup>
+    <MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
 
-		<Delete Files="@(_DistFilesToDelete)" />
-	</Target>
+    <ShellTask_v0
+        Assembly="$(IntermediateOutputPath)$(TargetFileName)"
+        OutputPath="$(OutputPath)"
+        IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
+        TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
+        MonoWasmSDKPath="$(_UnoMonoSdkPath)"
+        PackagerBinPath="$(_UnoMonoPackagerBinPath)"
+        PWAManifestFile="$(WasmPWAManifestFile)"
+        IndexHtmlPath="$(WasmShellIndexHtmlPath)"
+        RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
+        RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
+        CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
+        CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
+        MonoEnvironment="@(WasmShellMonoEnvironment)"
+        MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
+        MixedModeExcludedAssembly="@(MonoRuntimeMixedModeExcludedAssembly)"
+        MonoILLinker="$(WasmShellILLinkerEnabled)"
+        MonoTempFolder="$(WasmShellMonoTempFolder)"
+        Assets="@(Content)"
+        ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
+  </Target>
+
+  <Target Name="_CleanDist" BeforeTargets="Clean">
+    <ItemGroup>
+      <_DistFilesToDelete Include="$(OutputPath)dist\**" />
+    </ItemGroup>
+
+    <Delete Files="@(_DistFilesToDelete)" />
+  </Target>
 
 
   <Import Project="Uno.Wasm.Bootstrap.Publish.targets"/>
