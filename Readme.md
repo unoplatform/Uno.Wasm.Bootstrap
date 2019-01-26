@@ -150,8 +150,6 @@ To ensure that AOT is only run under Linux, add the following to your project:
 <WasmShellMonoRuntimeExecutionMode>FullAOT</WasmShellMonoRuntimeExecutionMode>
 ```
 
-The machine needs [ninja build](https://ninja-build.org/) installed, as well as a [registered Emscripten installation](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html).
-
 ### Mixed AOT/Interpreter Mode
 This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
 
@@ -165,6 +163,14 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 </ItemGroup>
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
+
+## Required configuration for AOT Compilation
+- A Linux 18.04 machine or [WSL 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
+- A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
+- An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
+- A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
+	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
 ### Support for additional JS files
