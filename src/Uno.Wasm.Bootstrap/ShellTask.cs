@@ -242,7 +242,7 @@ namespace Uno.Wasm.Bootstrap
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+			int packagerResults = RunProcess(packagerBinPath, $"{debugOption} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 			if (packagerResults != 0)
 			{
@@ -268,7 +268,7 @@ namespace Uno.Wasm.Bootstrap
 				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
 				var aotOptions = $"{aotMode} --link-mode=all --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} {aotOptions} {referencePathsParameter} {Path.GetFullPath(Assembly)}", _distPath);
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 				if (aotPackagerResult != 0)
 				{
@@ -308,7 +308,7 @@ namespace Uno.Wasm.Bootstrap
 
 					int linkerResults = RunProcess(
 						linkerPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d {_managedPath}",
+						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
