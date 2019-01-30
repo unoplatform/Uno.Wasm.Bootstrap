@@ -1,14 +1,16 @@
 ﻿
 config.fetch_file_cb = asset => App.fetchFile(asset);
-config.environmentVariables = config.environmentVariables || { };
+config.environmentVariables = config.environmentVariables || {};
 
 var Module = {
     onRuntimeInitialized: function () {
 
         if (config.environment) {
             for (var key in config.environment) {
-                if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
-                ENV[key] = config.environmentVariables[key];
+                if (config.environment.hasOwnProperty(key)) {
+                    if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
+                    ENV[key] = config.environmentVariables[key];
+                }
             }
         }
 
@@ -24,6 +26,97 @@ var Module = {
             config.fetch_file_cb
         );
     },
+    instantiateWasm: function (imports, successCallback) {
+
+        // There's no way to get the filename from mono.js right now.
+        // so we just hardcode it.
+        const wasmUrl = "mono.wasm";
+
+        const startDownloadUsingXHR = function () {
+            const request = new XMLHttpRequest();
+            request.open('GET', wasmUrl);
+            request.responseType = 'arraybuffer';
+
+            request.onload = function () {
+                const bytes = request.response;
+                WebAssembly
+                    .instantiate(bytes, imports)
+                    .then(results => {
+                        successCallback(results.instance);
+                    });
+            };
+
+            request.onprogress = function (evt) {
+                App.reportProgressWasmLoading(evt.loaded, evt.total);
+            };
+
+            request.send();
+        };
+
+        const startDownloadUsingStreaming = function () {
+            // First we try a streaming download using streaming...
+            fetch(wasmUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw Error(`${response.status} ${response.statusText}`);
+                    }
+                    if (!response.body) {
+                        // streaming not supported by this browser,
+                        // fallback to XHR.
+                        startDownloadUsingXHR();
+                        return;
+                    }
+
+                    const contentLengthStr = response.headers.get("content-length");
+                    const total = parseInt(contentLengthStr, 10);
+                    var loaded = 0;
+
+                    // Wrap original stream with another one, while reporting progress.
+                    const stream = new ReadableStream({
+                        start(ctl) {
+                            const reader = response.body.getReader();
+
+                            read();
+
+                            function read() {
+                                reader.read()
+                                    .then(
+                                        ({ done, value }) => {
+                                            if (done) {
+                                                ctl.close();
+                                                return;
+                                            }
+                                            loaded += value.byteLength;
+                                            App.reportProgressWasmLoading(loaded, total);
+                                            ctl.enqueue(value);
+                                            read();
+                                        })
+                                    .catch(error => {
+                                        console.error(error);
+                                        ctl.error(error);
+                                    });
+                            }
+                        }
+                    });
+
+                    // We copy the previous response to keep original headers.
+                    // Not only the WebAssembly will require the right content-type,
+                    // but we also need it for streaming optimizations:
+                    // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
+                    var responseWithProgress = new Response(stream, response);
+
+                    WebAssembly
+                        .instantiateStreaming(responseWithProgress, imports)
+                        .then(results => {
+                            successCallback(results.instance);
+                        });
+                });
+        };
+
+        startDownloadUsingStreaming();
+
+        return {}; // Compiling asynchronously, no exports.
+    }
 };
 
 var MonoRuntime = {
@@ -69,10 +162,16 @@ var MonoRuntime = {
         }
 
         return res;
-    },
+    }
 };
 
 var App = {
+
+    preInit() {
+        this.body = document.getElementById("uno-body");
+
+        this.initProgress();
+    },
 
     init: function () {
         this.loading = document.getElementById("loading");
@@ -92,6 +191,27 @@ var App = {
 
         if (this.loading) {
             this.loading.hidden = true;
+        }
+
+        if (this.progress && this.progress.parentNode) {
+            this.progress.parentNode.removeChild(this.progress);
+        }
+    },
+
+    initProgress() {
+        if (this.body) {
+            const progress = document.createElement("progress");
+            progress.classList.add("uno-progress");
+            progress.max = 100;
+            progress.value = ""; // indeterminate
+            this.progress = progress;
+            document.getElementsByTagName("BODY")[0].append(progress);
+        }
+    },
+
+    reportProgressWasmLoading(loaded, total) {
+        if (this.progress) {
+            this.progress.value = 100 * loaded / total;
         }
     },
 
@@ -220,3 +340,5 @@ var App = {
         link.click();
     }
 };
+
+App.preInit();

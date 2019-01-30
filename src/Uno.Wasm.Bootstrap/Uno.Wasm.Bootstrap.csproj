@@ -77,10 +77,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="build\CustomDebuggerProxy\Mono.WebAssembly.DebuggerProxy.dll" />
-	</ItemGroup>
-
-	<ItemGroup>
+	  <EmbeddedResource Include="WasmCSS\uno-bootstrap.css" />
 	  <EmbeddedResource Include="WasmScripts/require.js" />
 	  <EmbeddedResource Include="WasmScripts/uno-bootstrap.js" />
 	</ItemGroup>
