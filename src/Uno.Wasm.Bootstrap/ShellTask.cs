@@ -593,10 +593,19 @@ namespace Uno.Wasm.Bootstrap
 
 				var config = new StringBuilder();
 
+				var (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles) = GetFilesDetails();
+				var assembliesSize = string.Join(
+					",",
+					assemblyFiles.Select(fi => $"\"{fi.Name}\":{fi.Length}"));
+
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+				config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
+				config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
+				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
+				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
@@ -610,6 +619,22 @@ namespace Uno.Wasm.Bootstrap
 
 				w.Write(config.ToString());
 			}
+		}
+
+		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, FileInfo[] assemblyFiles) GetFilesDetails()
+		{
+			const string monoWasmFileName = "mono.wasm";
+
+			var monoWasmSize = new FileInfo(Path.Combine(_distPath, monoWasmFileName)).Length;
+
+			var assemblyFiles = Directory
+				.EnumerateFiles(_managedPath, "*." + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
+				.Select(f => new FileInfo(f))
+				.ToArray();
+
+			var totalAssembliesSize = assemblyFiles.Sum(fi => fi.Length);
+
+			return (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles);
 		}
 
 		private void GenerateHtml()
