@@ -30,90 +30,16 @@ var Module = {
 
         // There's no way to get the filename from mono.js right now.
         // so we just hardcode it.
-        const wasmUrl = "mono.wasm";
+        const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
 
-        const startDownloadUsingXHR = function () {
-            const request = new XMLHttpRequest();
-            request.open('GET', wasmUrl);
-            request.responseType = 'arraybuffer';
-
-            request.onload = function () {
-                const bytes = request.response;
-                WebAssembly
-                    .instantiate(bytes, imports)
-                    .then(results => {
-                        successCallback(results.instance);
-                    });
-            };
-
-            request.onprogress = function (evt) {
-                App.reportProgressWasmLoading(evt.loaded, evt.total);
-            };
-
-            request.send();
-        };
-
-        const startDownloadUsingStreaming = function () {
-            // First we try a streaming download using streaming...
-            fetch(wasmUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw Error(`${response.status} ${response.statusText}`);
-                    }
-                    if (!response.body) {
-                        // streaming not supported by this browser,
-                        // fallback to XHR.
-                        startDownloadUsingXHR();
-                        return;
-                    }
-
-                    const contentLengthStr = response.headers.get("content-length");
-                    const total = parseInt(contentLengthStr, 10);
-                    var loaded = 0;
-
-                    // Wrap original stream with another one, while reporting progress.
-                    const stream = new ReadableStream({
-                        start(ctl) {
-                            const reader = response.body.getReader();
-
-                            read();
-
-                            function read() {
-                                reader.read()
-                                    .then(
-                                        ({ done, value }) => {
-                                            if (done) {
-                                                ctl.close();
-                                                return;
-                                            }
-                                            loaded += value.byteLength;
-                                            App.reportProgressWasmLoading(loaded, total);
-                                            ctl.enqueue(value);
-                                            read();
-                                        })
-                                    .catch(error => {
-                                        console.error(error);
-                                        ctl.error(error);
-                                    });
-                            }
-                        }
-                    });
-
-                    // We copy the previous response to keep original headers.
-                    // Not only the WebAssembly will require the right content-type,
-                    // but we also need it for streaming optimizations:
-                    // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
-                    var responseWithProgress = new Response(stream, response);
-
-                    WebAssembly
-                        .instantiateStreaming(responseWithProgress, imports)
-                        .then(results => {
-                            successCallback(results.instance);
-                        });
-                });
-        };
-
-        startDownloadUsingStreaming();
+        App.fetchWithProgress(
+                wasmUrl,
+                loaded => App.reportProgressWasmLoading(loaded))
+            .then(response => WebAssembly
+                .instantiateStreaming(response, imports)
+                .then(results => {
+                    successCallback(results.instance);
+                }));
 
         return {}; // Compiling asynchronously, no exports.
     }
@@ -198,21 +124,75 @@ var App = {
         }
     },
 
-    initProgress() {
+    initProgress: function() {
         if (this.body) {
+            const totalBytesToDownload = config.mono_wasm_runtime_size + config.total_assemblies_size;
             const progress = document.createElement("progress");
             progress.classList.add("uno-progress");
-            progress.max = 100;
+            progress.max = totalBytesToDownload;
             progress.value = ""; // indeterminate
             this.progress = progress;
             document.getElementsByTagName("BODY")[0].append(progress);
         }
     },
 
-    reportProgressWasmLoading(loaded, total) {
+    reportProgressWasmLoading: function(loaded) {
         if (this.progress) {
-            this.progress.value = 100 * loaded / total;
+            this.progress.value = loaded;
         }
+    },
+
+    reportAssemblyLoading: function(adding) {
+        if (this.progress) {
+            this.progress.value += adding;
+        }
+    },
+
+    fetchWithProgress: function(url, progressCallback) {
+        // First we try a streaming download using streaming...
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw Error(`${response.status} ${response.statusText}`);
+                }
+
+                var loaded = 0;
+
+                // Wrap original stream with another one, while reporting progress.
+                const stream = new ReadableStream({
+                    start(ctl) {
+                        const reader = response.body.getReader();
+
+                        read();
+
+                        function read() {
+                            reader.read()
+                                .then(
+                                    ({ done, value }) => {
+                                        if (done) {
+                                            ctl.close();
+                                            return;
+                                        }
+                                        loaded += value.byteLength;
+                                        progressCallback(loaded, value.byteLength);
+                                        ctl.enqueue(value);
+                                        read();
+                                    })
+                                .catch(error => {
+                                    console.error(error);
+                                    ctl.error(error);
+                                });
+                        }
+                    }
+                });
+
+                // We copy the previous response to keep original headers.
+                // Not only the WebAssembly will require the right content-type,
+                // but we also need it for streaming optimizations:
+                // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
+                var responseWithProgress = new Response(stream, response);
+                return responseWithProgress;
+            });
     },
 
     fetchFile: function (asset) {
@@ -222,6 +202,11 @@ var App = {
         }
 
         asset = asset.replace("/managed/", "/" + config.uno_remote_managedpath + "/");
+
+        const assemblyName = asset.substring(asset.lastIndexOf('/') + 1);
+        if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
+            return this.fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+        }
 
         return fetch(asset, { credentials: 'same-origin' });
     },

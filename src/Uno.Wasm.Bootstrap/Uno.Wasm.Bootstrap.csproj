@@ -73,6 +73,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- This is intentionnal! -->
 	  <Compile Remove="build\packager.cs" />
 	</ItemGroup>
 
