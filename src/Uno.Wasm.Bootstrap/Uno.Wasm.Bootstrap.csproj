@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<DefineConstants>NET_CORE</DefineConstants>
-    <NoWarn>1701;1702;1705;649</NoWarn>
+		<NoWarn>1701;1702;1705;649</NoWarn>
 		<AssemblyName>Uno.Wasm.Bootstrap.v0</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
@@ -30,27 +30,27 @@
 	</ItemGroup>
 
 	<ItemGroup>
-    <Content Include="build/*.targets">
-      <Pack>true</Pack>
-      <PackagePath>build</PackagePath>
-    </Content>
-    <Content Include="build/*.props">
-      <Pack>true</Pack>
-      <PackagePath>build</PackagePath>
-    </Content>
-    <Content Include="build/packager.cs">
+		<Content Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-    <Content Include="build/CustomDebuggerProxy/**">
-      <Pack>true</Pack>
-      <PackagePath>build/CustomDebuggerProxy</PackagePath>
-    </Content>
-    <Content Include="build/linker/**">
-      <Pack>true</Pack>
-      <PackagePath>build/linker</PackagePath>
-    </Content>
-    <Content Include="Templates\index.html">
+		<Content Include="build/*.props">
+			<Pack>true</Pack>
+			<PackagePath>build</PackagePath>
+		</Content>
+		<Content Include="build/packager.cs">
+			<Pack>true</Pack>
+			<PackagePath>build</PackagePath>
+		</Content>
+		<Content Include="build/CustomDebuggerProxy/**">
+			<Pack>true</Pack>
+			<PackagePath>build/CustomDebuggerProxy</PackagePath>
+		</Content>
+		<Content Include="build/linker/**">
+			<Pack>true</Pack>
+			<PackagePath>build/linker</PackagePath>
+		</Content>
+		<Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
@@ -74,20 +74,20 @@
 
 	<ItemGroup>
 		<!-- This file is built as part of the UnoInstallSDKTask_v0 task -->
-	  <Compile Remove="build\packager.cs" />
+		<Compile Remove="build\packager.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Update="WasmCSS\*.css" />
-	  <EmbeddedResource Update="WasmScripts/*.js" />
+		<EmbeddedResource Include="WasmCSS\*.css" />
+		<EmbeddedResource Include="WasmScripts/*.js" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include="build\packager.cs" />
+		<None Include="build\packager.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="build\linker\" />
+		<Folder Include="build\linker\" />
 	</ItemGroup>
 
 	<ItemGroup>

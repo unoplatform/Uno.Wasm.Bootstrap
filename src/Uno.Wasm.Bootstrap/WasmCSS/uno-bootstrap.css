@@ -94,12 +94,6 @@
         display: none;
     }
 
-    /*.uno-loader[loading-alert='info'] .alert:after {
-        content: attr(loading-value);
-        font-size: 16px;
-        top: 6px;
-    }*/
-
     .uno-loader[loading-alert='error'] .alert:after {
         animation-name: pulse;
         animation-duration: 2500ms;

@@ -6,7 +6,7 @@ var Module = {
     onRuntimeInitialized: function () {
 
         if (config.environment) {
-            for (var key in config.environment) {
+            for (let key in config.environment) {
                 if (config.environment.hasOwnProperty(key)) {
                     if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
                     ENV[key] = config.environmentVariables[key];
@@ -49,41 +49,41 @@ var MonoRuntime = {
     // This block is present for backward compatibility when "MonoRuntime" was provided by mono-wasm.
 
     init: function () {
-        this.load_runtime = Module.cwrap('mono_wasm_load_runtime', null, ['string', 'number']);
-        this.assembly_load = Module.cwrap('mono_wasm_assembly_load', 'number', ['string']);
-        this.find_class = Module.cwrap('mono_wasm_assembly_find_class', 'number', ['number', 'string', 'string']);
-        this.find_method = Module.cwrap('mono_wasm_assembly_find_method', 'number', ['number', 'string', 'number']);
-        this.invoke_method = Module.cwrap('mono_wasm_invoke_method', 'number', ['number', 'number', 'number']);
-        this.mono_string_get_utf8 = Module.cwrap('mono_wasm_string_get_utf8', 'number', ['number']);
-        this.mono_string = Module.cwrap('mono_wasm_string_from_js', 'number', ['string']);
+        this.load_runtime = Module.cwrap("mono_wasm_load_runtime", null, ["string", "number"]);
+        this.assembly_load = Module.cwrap("mono_wasm_assembly_load", "number", ["string"]);
+        this.find_class = Module.cwrap("mono_wasm_assembly_find_class", "number", ["number", "string", "string"]);
+        this.find_method = Module.cwrap("mono_wasm_assembly_find_method", "number", ["number", "string", "number"]);
+        this.invoke_method = Module.cwrap("mono_wasm_invoke_method", "number", ["number", "number", "number"]);
+        this.mono_string_get_utf8 = Module.cwrap("mono_wasm_string_get_utf8", "number", ["number"]);
+        this.mono_string = Module.cwrap("mono_wasm_string_from_js", "number", ["string"]);
     },
 
     conv_string: function (mono_obj) {
         if (mono_obj === 0)
             return null;
-        var raw = this.mono_string_get_utf8(mono_obj);
-        var res = Module.UTF8ToString(raw);
+        const raw = this.mono_string_get_utf8(mono_obj);
+        const res = Module.UTF8ToString(raw);
         Module._free(raw);
 
         return res;
     },
 
     call_method: function (method, this_arg, args) {
-        var args_mem = Module._malloc(args.length * 4);
-        var eh_throw = Module._malloc(4);
-        for (var i = 0; i < args.length; ++i)
+        const args_mem = Module._malloc(args.length * 4);
+        const eh_throw = Module._malloc(4);
+        for (let i = 0; i < args.length; ++i)
             Module.setValue(args_mem + i * 4, args[i], "i32");
         Module.setValue(eh_throw, 0, "i32");
 
-        var res = this.invoke_method(method, this_arg, args_mem, eh_throw);
+        const res = this.invoke_method(method, this_arg, args_mem, eh_throw);
 
-        var eh_res = Module.getValue(eh_throw, "i32");
+        const eh_res = Module.getValue(eh_throw, "i32");
 
         Module._free(args_mem);
         Module._free(eh_throw);
 
         if (eh_res !== 0) {
-            var msg = this.conv_string(res);
+            const msg = this.conv_string(res);
             throw new Error(msg);
         }
 
@@ -170,7 +170,7 @@ var App = {
 
         let title = alert.getAttribute("title");
         if (title) {
-            title += "\n" + err;
+            title += `\n${err}`;
         } else {
             title = `${err}`;
         }
@@ -206,7 +206,7 @@ var App = {
                     throw Error(`${response.status} ${response.statusText}`);
                 }
 
-                var loaded = 0;
+                let loaded = 0;
 
                 // Wrap original stream with another one, while reporting progress.
                 const stream = new ReadableStream({
@@ -246,9 +246,9 @@ var App = {
     },
 
     getFetchInit: function (url) {
-        const fileName = url.substring(url.lastIndexOf('/') + 1);
+        const fileName = url.substring(url.lastIndexOf("/") + 1);
 
-        var init = { credentials: 'omit' };
+        const init = { credentials: "omit" };
 
         if (config.files_integrity.hasOwnProperty(fileName)) {
             init.integrity = config.files_integrity[fileName];
@@ -260,12 +260,12 @@ var App = {
     fetchFile: function (asset) {
 
         if (asset.lastIndexOf(".dll") !== -1) {
-            asset = asset.replace(".dll", "." + config.assemblyFileExtension);
+            asset = asset.replace(".dll", `.${config.assemblyFileExtension}`);
         }
 
-        asset = asset.replace("/managed/", "/" + config.uno_remote_managedpath + "/");
+        asset = asset.replace("/managed/", `/${config.uno_remote_managedpath}/`);
 
-        const assemblyName = asset.substring(asset.lastIndexOf('/') + 1);
+        const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
         if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
             return this
                 .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
@@ -279,9 +279,9 @@ var App = {
         if (config.enable_debugging) console.log("Done loading the BCL");
 
         if (config.uno_dependencies && config.uno_dependencies.length !== 0) {
-            var pending = 0;
+            let pending = 0;
 
-            var checkDone = (dependency) => {
+            const checkDone = (dependency) => {
                 --pending;
                 if (pending === 0) {
                     if (config.enable_debugging) console.log(`Loaded dependency (${dependency})`);
@@ -300,7 +300,7 @@ var App = {
                         // If the module is built on emscripten, intercept its loading.
                         if (instance && instance.HEAP8 !== undefined) {
 
-                            var existingInitializer = instance.onRuntimeInitialized;
+                            const existingInitializer = instance.onRuntimeInitialized;
 
                             if (config.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
 
@@ -337,27 +337,27 @@ var App = {
         //
 
         App.currentBrowserIsChrome = window.chrome
-            && navigator.userAgent.indexOf('Edge') < 0; // Edge pretends to be Chrome
+            && navigator.userAgent.indexOf("Edge") < 0; // Edge pretends to be Chrome
 
         hasReferencedPdbs = loadAssemblyUrls
             .some(function (url) { return /\.pdb$/.test(url); });
 
         // Use the combination shift+alt+D because it isn't used by the major browsers
         // for anything else by default
-        var altKeyName = navigator.platform.match(/^Mac/i) ? 'Cmd' : 'Alt';
+        const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
         if (App.hasDebuggingEnabled()) {
-            console.info("Debugging hotkey: Shift+" + altKeyName + "+D (when application has focus)");
+            console.info(`Debugging hotkey: Shift+${altKeyName}+D (when application has focus)`);
         }
 
         // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
-        document.addEventListener('keydown', function (evt) {
-            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === 'KeyD') {
+        document.addEventListener("keydown", function (evt) {
+            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyD") {
                 if (!hasReferencedPdbs) {
-                    console.error('Cannot start debugging, because the application was not compiled with debugging enabled.');
+                    console.error("Cannot start debugging, because the application was not compiled with debugging enabled.");
                 }
                 else if (!App.currentBrowserIsChrome) {
-                    console.error('Currently, only Chrome is supported for debugging.');
+                    console.error("Currently, only Chrome is supported for debugging.");
                 }
                 else {
                     App.launchDebugger();
@@ -382,10 +382,10 @@ var App = {
         //
         // We have to construct a link element and simulate a click on it, because the more obvious
         // window.open(..., 'noopener') always opens a new window instead of a new tab.
-        var link = document.createElement('a');
-        link.href = "_framework/debug?url=" + encodeURIComponent(location.href);
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
+        const link = document.createElement("a");
+        link.href = `_framework/debug?url=${encodeURIComponent(location.href)}`;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
         link.click();
     }
 };
