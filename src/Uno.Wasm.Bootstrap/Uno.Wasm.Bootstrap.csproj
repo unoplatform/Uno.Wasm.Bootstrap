@@ -73,7 +73,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- This is intentionnal! -->
+		<!-- This file is built as part of the UnoInstallSDKTask_v0 task -->
 	  <Compile Remove="build\packager.cs" />
 	</ItemGroup>
 
