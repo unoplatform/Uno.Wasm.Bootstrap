@@ -39,7 +39,7 @@ namespace Uno.Wasm.Bootstrap
 		private string _bclPath;
 		private List<string> _referencedAssemblies;
 		private Dictionary<string, string> _bclAssemblies;
-		private List<string> _dependencies = new List<string>();
+		private readonly List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
 
 		[Microsoft.Build.Framework.Required]
@@ -55,6 +55,8 @@ namespace Uno.Wasm.Bootstrap
 		public string MonoWasmSDKPath { get; set; }
 
 		public string PackagerBinPath { get; set; }
+
+		public bool UseFileIntegrity { get; set; } = true;
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
@@ -131,13 +133,22 @@ namespace Uno.Wasm.Bootstrap
 
 		private int RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
-			var p = new Process();
-			p.StartInfo.WorkingDirectory = workingDirectory;
-			p.StartInfo.UseShellExecute = false;
-			p.StartInfo.RedirectStandardOutput = true;
-			p.StartInfo.RedirectStandardError = true;
-			p.StartInfo.FileName = executable;
-			p.StartInfo.Arguments = parameters;
+			var p = new Process
+			{
+				StartInfo =
+				{
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
+					FileName = executable,
+					Arguments = parameters
+				}
+			};
+
+			if (workingDirectory != null)
+			{
+				p.StartInfo.WorkingDirectory = workingDirectory;
+			}
 
 			Log.LogMessage($"Running [{p.StartInfo.WorkingDirectory}]: {p.StartInfo.FileName} {p.StartInfo.Arguments}");
 
@@ -593,10 +604,13 @@ namespace Uno.Wasm.Bootstrap
 
 				var config = new StringBuilder();
 
-				var (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles) = GetFilesDetails();
+				var (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity) = GetFilesDetails();
 				var assembliesSize = string.Join(
 					",",
-					assemblyFiles.Select(fi => $"\"{fi.Name}\":{fi.Length}"));
+					assemblyFiles.Select(ass => $"\"{ass.fileName}\":{ass.length}"));
+				var filesIntegrityStr = string.Join(
+					",",
+					filesIntegrity.Select(f => $"\"{f.fileName}\":\"{f.integrity}\""));
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
@@ -605,6 +619,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
 				config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
 				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
+				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
@@ -621,20 +636,58 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, FileInfo[] assemblyFiles) GetFilesDetails()
+		private static readonly SHA384Managed _sha384 = new SHA384Managed();
+
+		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
 			const string monoWasmFileName = "mono.wasm";
 
-			var monoWasmSize = new FileInfo(Path.Combine(_distPath, monoWasmFileName)).Length;
+			var monoWasmFilePathAndName = Path.Combine(_distPath, monoWasmFileName);
+			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
 
-			var assemblyFiles = Directory
+			var assemblyPathAndFiles = Directory
 				.EnumerateFiles(_managedPath, "*." + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
-				.Select(f => new FileInfo(f))
 				.ToArray();
 
-			var totalAssembliesSize = assemblyFiles.Sum(fi => fi.Length);
+			var assemblyFiles = assemblyPathAndFiles
+				.Select(f =>
+				{
+					var fi = new FileInfo(f);
+					return (fileName: fi.Name, length: fi.Length);
+				})
+				.ToArray();
 
-			return (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles);
+			var totalAssembliesSize = assemblyFiles.Sum(fi => fi.length);
+
+			(string fileName, string integrity)[] filesIntegrity;
+			if (UseFileIntegrity)
+			{
+				var integrities = new List<(string fileName, string integrity)>();
+
+				void AddFileIntegrity(string filePath)
+				{
+					var bytes = File.ReadAllBytes(filePath);
+					var hash = _sha384.ComputeHash(bytes);
+					var integrity = Convert.ToBase64String(hash);
+					integrities.Add((Path.GetFileName(filePath), $"sha384-{integrity}"));
+				}
+
+				AddFileIntegrity(monoWasmFilePathAndName);
+
+				foreach (var f in assemblyPathAndFiles)
+				{
+					AddFileIntegrity(f);
+				}
+
+
+				filesIntegrity = integrities.ToArray();
+			}
+			else
+			{
+				filesIntegrity = new (string fileName, string integrity)[0];
+			}
+
+			return (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
 		}
 
 		private void GenerateHtml()

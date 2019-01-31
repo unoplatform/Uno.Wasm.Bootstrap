@@ -78,9 +78,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="WasmCSS\uno-bootstrap.css" />
-	  <EmbeddedResource Include="WasmScripts/require.js" />
-	  <EmbeddedResource Include="WasmScripts/uno-bootstrap.js" />
+	  <EmbeddedResource Update="WasmCSS\*.css" />
+	  <EmbeddedResource Update="WasmScripts/*.js" />
 	</ItemGroup>
 
 	<ItemGroup>

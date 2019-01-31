@@ -33,8 +33,8 @@ var Module = {
         const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
 
         App.fetchWithProgress(
-                wasmUrl,
-                loaded => App.reportProgressWasmLoading(loaded))
+            wasmUrl,
+            loaded => App.reportProgressWasmLoading(loaded))
             .then(response => WebAssembly
                 .instantiateStreaming(response, imports)
                 .then(results => {
@@ -100,7 +100,6 @@ var App = {
     },
 
     init: function () {
-        this.loading = document.getElementById("loading");
 
         this.initializeRequire();
     },
@@ -115,42 +114,93 @@ var App = {
             console.error(e);
         }
 
-        if (this.loading) {
-            this.loading.hidden = true;
-        }
+        this.cleanupInit();
+    },
 
-        if (this.progress && this.progress.parentNode) {
-            this.progress.parentNode.removeChild(this.progress);
+    cleanupInit: function () {
+        // Remove loader node, not needed anymore
+        if (this.loader && this.loader.parentNode) {
+            this.loader.parentNode.removeChild(this.loader);
         }
     },
 
-    initProgress: function() {
-        if (this.body) {
+    initProgress: function () {
+        this.loader = this.body.querySelector(".uno-loader");
+
+        if (this.loader) {
             const totalBytesToDownload = config.mono_wasm_runtime_size + config.total_assemblies_size;
-            const progress = document.createElement("progress");
-            progress.classList.add("uno-progress");
+            const progress = this.loader.querySelector("progress");
             progress.max = totalBytesToDownload;
             progress.value = ""; // indeterminate
             this.progress = progress;
-            document.getElementsByTagName("BODY")[0].append(progress);
+        }
+
+        const manifest = window["UnoAppManifest"];
+
+        if (manifest && manifest.splashScreenColor) {
+            this.loader.style["--bg-color"] = manifest.splashScreenColor;
+        }
+        if (manifest && manifest.accentColor) {
+            this.loader.style["--accent-color"] = manifest.accentColor;
+        }
+        const img = this.loader.querySelector("img");
+        if (manifest && manifest.splashScreenImage) {
+            img.setAttribute("src", manifest.splashScreenImage);
+        } else {
+            img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
         }
     },
 
-    reportProgressWasmLoading: function(loaded) {
+    reportProgressWasmLoading: function (loaded) {
         if (this.progress) {
             this.progress.value = loaded;
         }
     },
 
-    reportAssemblyLoading: function(adding) {
+    reportAssemblyLoading: function (adding) {
         if (this.progress) {
             this.progress.value += adding;
         }
     },
 
-    fetchWithProgress: function(url, progressCallback) {
-        // First we try a streaming download using streaming...
-        return fetch(url)
+    raiseLoadingError: function (err) {
+        this.loader.setAttribute("loading-alert", "error");
+
+        const alert = this.loader.querySelector(".alert");
+
+        let title = alert.getAttribute("title");
+        if (title) {
+            title += "\n" + err;
+        } else {
+            title = `${err}`;
+        }
+        alert.setAttribute("title", title);
+    },
+
+    raiseLoadingWarning: function (msg) {
+        if (this.loader.getAttribute("loading-alert") !== "error") {
+            this.loader.setAttribute("loading-alert", "warning");
+        }
+
+        const alert = this.loader.querySelector(".alert");
+
+        let title = alert.getAttribute("title");
+        if (title) {
+            title += `\n${msg}`;
+        } else {
+            title = `${msg}`;
+        }
+        alert.setAttribute("title", title);
+    },
+
+    fetchWithProgress: function (url, progressCallback) {
+
+        if (!this.loader) {
+            // No active loader, simply use the fetch API directly...
+            return fetch(url, this.getFetchInit(url));
+        }
+
+        return fetch(url, this.getFetchInit(url))
             .then(response => {
                 if (!response.ok) {
                     throw Error(`${response.status} ${response.statusText}`);
@@ -190,9 +240,21 @@ var App = {
                 // Not only the WebAssembly will require the right content-type,
                 // but we also need it for streaming optimizations:
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
-                var responseWithProgress = new Response(stream, response);
-                return responseWithProgress;
-            });
+                return new Response(stream, response);
+            })
+            .catch(err => this.raiseLoadingError(err));
+    },
+
+    getFetchInit: function (url) {
+        const fileName = url.substring(url.lastIndexOf('/') + 1);
+
+        var init = { credentials: 'omit' };
+
+        if (config.files_integrity.hasOwnProperty(fileName)) {
+            init.integrity = config.files_integrity[fileName];
+        }
+
+        return init;
     },
 
     fetchFile: function (asset) {
@@ -205,10 +267,12 @@ var App = {
 
         const assemblyName = asset.substring(asset.lastIndexOf('/') + 1);
         if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
-            return this.fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+            return this
+                .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
         }
 
-        return fetch(asset, { credentials: 'same-origin' });
+        return fetch(asset, this.getFetchInit(asset))
+            .catch(err => this.raiseLoadingError(err));
     },
 
     initializeRequire: function () {
@@ -326,4 +390,4 @@ var App = {
     }
 };
 
-App.preInit();
+document.addEventListener("DOMContentLoaded", () => App.preInit());
