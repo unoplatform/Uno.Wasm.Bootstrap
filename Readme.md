@@ -199,7 +199,7 @@ false. This property has no effect when building with AOT enabled.
 
 ### Support for Subresource Integrity
 By default, the _msbuild task_ will calculate a hash for binary files in your project and will use the [Subresource Integrity](https://www.w3.org/TR/SRI/)
-to valide you're using the right set of files at runtime.
+to validate that the right set of files are loaded at runtime.
 
 You can deactivate this feature by setting this property in your `.csproj` file:
 
