@@ -6,7 +6,7 @@ var Module = {
     onRuntimeInitialized: function () {
 
         if (config.environment) {
-            for (var key in config.environment) {
+            for (let key in config.environment) {
                 if (config.environment.hasOwnProperty(key)) {
                     if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
                     ENV[key] = config.environmentVariables[key];
@@ -33,8 +33,8 @@ var Module = {
         const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
 
         App.fetchWithProgress(
-                wasmUrl,
-                loaded => App.reportProgressWasmLoading(loaded))
+            wasmUrl,
+            loaded => App.reportProgressWasmLoading(loaded))
             .then(response => WebAssembly
                 .instantiateStreaming(response, imports)
                 .then(results => {
@@ -49,41 +49,41 @@ var MonoRuntime = {
     // This block is present for backward compatibility when "MonoRuntime" was provided by mono-wasm.
 
     init: function () {
-        this.load_runtime = Module.cwrap('mono_wasm_load_runtime', null, ['string', 'number']);
-        this.assembly_load = Module.cwrap('mono_wasm_assembly_load', 'number', ['string']);
-        this.find_class = Module.cwrap('mono_wasm_assembly_find_class', 'number', ['number', 'string', 'string']);
-        this.find_method = Module.cwrap('mono_wasm_assembly_find_method', 'number', ['number', 'string', 'number']);
-        this.invoke_method = Module.cwrap('mono_wasm_invoke_method', 'number', ['number', 'number', 'number']);
-        this.mono_string_get_utf8 = Module.cwrap('mono_wasm_string_get_utf8', 'number', ['number']);
-        this.mono_string = Module.cwrap('mono_wasm_string_from_js', 'number', ['string']);
+        this.load_runtime = Module.cwrap("mono_wasm_load_runtime", null, ["string", "number"]);
+        this.assembly_load = Module.cwrap("mono_wasm_assembly_load", "number", ["string"]);
+        this.find_class = Module.cwrap("mono_wasm_assembly_find_class", "number", ["number", "string", "string"]);
+        this.find_method = Module.cwrap("mono_wasm_assembly_find_method", "number", ["number", "string", "number"]);
+        this.invoke_method = Module.cwrap("mono_wasm_invoke_method", "number", ["number", "number", "number"]);
+        this.mono_string_get_utf8 = Module.cwrap("mono_wasm_string_get_utf8", "number", ["number"]);
+        this.mono_string = Module.cwrap("mono_wasm_string_from_js", "number", ["string"]);
     },
 
     conv_string: function (mono_obj) {
         if (mono_obj === 0)
             return null;
-        var raw = this.mono_string_get_utf8(mono_obj);
-        var res = Module.UTF8ToString(raw);
+        const raw = this.mono_string_get_utf8(mono_obj);
+        const res = Module.UTF8ToString(raw);
         Module._free(raw);
 
         return res;
     },
 
     call_method: function (method, this_arg, args) {
-        var args_mem = Module._malloc(args.length * 4);
-        var eh_throw = Module._malloc(4);
-        for (var i = 0; i < args.length; ++i)
+        const args_mem = Module._malloc(args.length * 4);
+        const eh_throw = Module._malloc(4);
+        for (let i = 0; i < args.length; ++i)
             Module.setValue(args_mem + i * 4, args[i], "i32");
         Module.setValue(eh_throw, 0, "i32");
 
-        var res = this.invoke_method(method, this_arg, args_mem, eh_throw);
+        const res = this.invoke_method(method, this_arg, args_mem, eh_throw);
 
-        var eh_res = Module.getValue(eh_throw, "i32");
+        const eh_res = Module.getValue(eh_throw, "i32");
 
         Module._free(args_mem);
         Module._free(eh_throw);
 
         if (eh_res !== 0) {
-            var msg = this.conv_string(res);
+            const msg = this.conv_string(res);
             throw new Error(msg);
         }
 
@@ -100,7 +100,6 @@ var App = {
     },
 
     init: function () {
-        this.loading = document.getElementById("loading");
 
         this.initializeRequire();
     },
@@ -115,48 +114,99 @@ var App = {
             console.error(e);
         }
 
-        if (this.loading) {
-            this.loading.hidden = true;
-        }
+        this.cleanupInit();
+    },
 
-        if (this.progress && this.progress.parentNode) {
-            this.progress.parentNode.removeChild(this.progress);
+    cleanupInit: function () {
+        // Remove loader node, not needed anymore
+        if (this.loader && this.loader.parentNode) {
+            this.loader.parentNode.removeChild(this.loader);
         }
     },
 
-    initProgress: function() {
-        if (this.body) {
+    initProgress: function () {
+        this.loader = this.body.querySelector(".uno-loader");
+
+        if (this.loader) {
             const totalBytesToDownload = config.mono_wasm_runtime_size + config.total_assemblies_size;
-            const progress = document.createElement("progress");
-            progress.classList.add("uno-progress");
+            const progress = this.loader.querySelector("progress");
             progress.max = totalBytesToDownload;
             progress.value = ""; // indeterminate
             this.progress = progress;
-            document.getElementsByTagName("BODY")[0].append(progress);
+        }
+
+        const manifest = window["UnoAppManifest"];
+
+        if (manifest && manifest.splashScreenColor) {
+            this.loader.style["--bg-color"] = manifest.splashScreenColor;
+        }
+        if (manifest && manifest.accentColor) {
+            this.loader.style["--accent-color"] = manifest.accentColor;
+        }
+        const img = this.loader.querySelector("img");
+        if (manifest && manifest.splashScreenImage) {
+            img.setAttribute("src", manifest.splashScreenImage);
+        } else {
+            img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
         }
     },
 
-    reportProgressWasmLoading: function(loaded) {
+    reportProgressWasmLoading: function (loaded) {
         if (this.progress) {
             this.progress.value = loaded;
         }
     },
 
-    reportAssemblyLoading: function(adding) {
+    reportAssemblyLoading: function (adding) {
         if (this.progress) {
             this.progress.value += adding;
         }
     },
 
-    fetchWithProgress: function(url, progressCallback) {
-        // First we try a streaming download using streaming...
-        return fetch(url)
+    raiseLoadingError: function (err) {
+        this.loader.setAttribute("loading-alert", "error");
+
+        const alert = this.loader.querySelector(".alert");
+
+        let title = alert.getAttribute("title");
+        if (title) {
+            title += `\n${err}`;
+        } else {
+            title = `${err}`;
+        }
+        alert.setAttribute("title", title);
+    },
+
+    raiseLoadingWarning: function (msg) {
+        if (this.loader.getAttribute("loading-alert") !== "error") {
+            this.loader.setAttribute("loading-alert", "warning");
+        }
+
+        const alert = this.loader.querySelector(".alert");
+
+        let title = alert.getAttribute("title");
+        if (title) {
+            title += `\n${msg}`;
+        } else {
+            title = `${msg}`;
+        }
+        alert.setAttribute("title", title);
+    },
+
+    fetchWithProgress: function (url, progressCallback) {
+
+        if (!this.loader) {
+            // No active loader, simply use the fetch API directly...
+            return fetch(url, this.getFetchInit(url));
+        }
+
+        return fetch(url, this.getFetchInit(url))
             .then(response => {
                 if (!response.ok) {
                     throw Error(`${response.status} ${response.statusText}`);
                 }
 
-                var loaded = 0;
+                let loaded = 0;
 
                 // Wrap original stream with another one, while reporting progress.
                 const stream = new ReadableStream({
@@ -190,34 +240,48 @@ var App = {
                 // Not only the WebAssembly will require the right content-type,
                 // but we also need it for streaming optimizations:
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
-                var responseWithProgress = new Response(stream, response);
-                return responseWithProgress;
-            });
+                return new Response(stream, response);
+            })
+            .catch(err => this.raiseLoadingError(err));
+    },
+
+    getFetchInit: function (url) {
+        const fileName = url.substring(url.lastIndexOf("/") + 1);
+
+        const init = { credentials: "omit" };
+
+        if (config.files_integrity.hasOwnProperty(fileName)) {
+            init.integrity = config.files_integrity[fileName];
+        }
+
+        return init;
     },
 
     fetchFile: function (asset) {
 
         if (asset.lastIndexOf(".dll") !== -1) {
-            asset = asset.replace(".dll", "." + config.assemblyFileExtension);
+            asset = asset.replace(".dll", `.${config.assemblyFileExtension}`);
         }
 
-        asset = asset.replace("/managed/", "/" + config.uno_remote_managedpath + "/");
+        asset = asset.replace("/managed/", `/${config.uno_remote_managedpath}/`);
 
-        const assemblyName = asset.substring(asset.lastIndexOf('/') + 1);
+        const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
         if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
-            return this.fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+            return this
+                .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
         }
 
-        return fetch(asset, { credentials: 'same-origin' });
+        return fetch(asset, this.getFetchInit(asset))
+            .catch(err => this.raiseLoadingError(err));
     },
 
     initializeRequire: function () {
         if (config.enable_debugging) console.log("Done loading the BCL");
 
         if (config.uno_dependencies && config.uno_dependencies.length !== 0) {
-            var pending = 0;
+            let pending = 0;
 
-            var checkDone = (dependency) => {
+            const checkDone = (dependency) => {
                 --pending;
                 if (pending === 0) {
                     if (config.enable_debugging) console.log(`Loaded dependency (${dependency})`);
@@ -236,7 +300,7 @@ var App = {
                         // If the module is built on emscripten, intercept its loading.
                         if (instance && instance.HEAP8 !== undefined) {
 
-                            var existingInitializer = instance.onRuntimeInitialized;
+                            const existingInitializer = instance.onRuntimeInitialized;
 
                             if (config.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
 
@@ -273,27 +337,27 @@ var App = {
         //
 
         App.currentBrowserIsChrome = window.chrome
-            && navigator.userAgent.indexOf('Edge') < 0; // Edge pretends to be Chrome
+            && navigator.userAgent.indexOf("Edge") < 0; // Edge pretends to be Chrome
 
         hasReferencedPdbs = loadAssemblyUrls
             .some(function (url) { return /\.pdb$/.test(url); });
 
         // Use the combination shift+alt+D because it isn't used by the major browsers
         // for anything else by default
-        var altKeyName = navigator.platform.match(/^Mac/i) ? 'Cmd' : 'Alt';
+        const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
         if (App.hasDebuggingEnabled()) {
-            console.info("Debugging hotkey: Shift+" + altKeyName + "+D (when application has focus)");
+            console.info(`Debugging hotkey: Shift+${altKeyName}+D (when application has focus)`);
         }
 
         // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
-        document.addEventListener('keydown', function (evt) {
-            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === 'KeyD') {
+        document.addEventListener("keydown", function (evt) {
+            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyD") {
                 if (!hasReferencedPdbs) {
-                    console.error('Cannot start debugging, because the application was not compiled with debugging enabled.');
+                    console.error("Cannot start debugging, because the application was not compiled with debugging enabled.");
                 }
                 else if (!App.currentBrowserIsChrome) {
-                    console.error('Currently, only Chrome is supported for debugging.');
+                    console.error("Currently, only Chrome is supported for debugging.");
                 }
                 else {
                     App.launchDebugger();
@@ -318,12 +382,12 @@ var App = {
         //
         // We have to construct a link element and simulate a click on it, because the more obvious
         // window.open(..., 'noopener') always opens a new window instead of a new tab.
-        var link = document.createElement('a');
-        link.href = "_framework/debug?url=" + encodeURIComponent(location.href);
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
+        const link = document.createElement("a");
+        link.href = `_framework/debug?url=${encodeURIComponent(location.href)}`;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
         link.click();
     }
 };
 
-App.preInit();
+document.addEventListener("DOMContentLoaded", () => App.preInit());

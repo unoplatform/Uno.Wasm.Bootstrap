@@ -111,6 +111,7 @@
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         MonoWasmSDKPath="$(_UnoMonoSdkPath)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"
+        UseFileIntegrity="$(WashShellUseFileIntegrity)"
         PWAManifestFile="$(WasmPWAManifestFile)"
         IndexHtmlPath="$(WasmShellIndexHtmlPath)"
         RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"

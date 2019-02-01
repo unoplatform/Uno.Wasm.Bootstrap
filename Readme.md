@@ -197,6 +197,16 @@ The file format of the descriptor can [be found here](https://github.com/mono/li
 The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to 
 false. This property has no effect when building with AOT enabled.
 
+### Support for Subresource Integrity
+By default, the _msbuild task_ will calculate a hash for binary files in your project and will use the [Subresource Integrity](https://www.w3.org/TR/SRI/)
+to validate that the right set of files are loaded at runtime.
+
+You can deactivate this feature by setting this property in your `.csproj` file:
+
+```xml
+<WashShellUseFileIntegrity>False</WashShellUseFileIntegrity>
+```
+
 ## Environment variables
 Mono provides the ability to configure some features at initialization, such as logging or GC.
 
