@@ -265,10 +265,17 @@ var App = {
 
         asset = asset.replace("/managed/", `/${config.uno_remote_managedpath}/`);
 
-        const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
-        if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
-            return this
-                .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+        if (!config.enable_debugging) {
+            // Assembly fetch streaming is disabled during debug, it seems to
+            // interfere with the ability for mono or the chrome debugger to 
+            // initialize the debugging session properly. Streaming in debug is
+            // not particularly interesting, so we can skip it.
+
+            const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
+            if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
+                return this
+                    .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+            }
         }
 
         return fetch(asset, this.getFetchInit(asset))
