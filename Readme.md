@@ -189,6 +189,7 @@ The parameters for the compression are as follows:
     <WasmShellCompressedExtension Include=".db"/>
   </ItemGroup>
 ```
+- `WasmShellBrotliCompressionQuality` which controls the compression quality used to pre-compress the files. The default value is 7.
 
 Note that the pre-compressed files are optional, and if the rewriting rules are removed or not used (because the site is served without IIS), the original files are available at their normal locations.
 

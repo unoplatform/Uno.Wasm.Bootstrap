@@ -13,6 +13,7 @@
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'==''">true</WasmShellGenerateCompressedFiles>
+    <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
@@ -135,6 +136,7 @@
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
         CompressedExtensions="@(WasmShellCompressedExtension)"
+        BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         Assets="@(Content)"
         ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
   </Target>

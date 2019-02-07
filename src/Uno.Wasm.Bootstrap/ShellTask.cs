@@ -97,6 +97,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
+		public int BrotliCompressionQuality { get; set; } = 7;
+
 		public string CustomDebuggerPath { get; set; }
 
 		public string CustomLinkerPath { get; set; }
@@ -218,7 +220,7 @@ namespace Uno.Wasm.Bootstrap
 			using (var bs = new BrotliSharpLib.BrotliStream(output, CompressionMode.Compress))
 			{
 				// By default, BrotliSharpLib uses a quality value of 1 and window size of 22 if the methods are not called.
-				bs.SetQuality(11);
+				bs.SetQuality(BrotliCompressionQuality);
 				/** bs.SetWindow(windowSize); **/
 				/** bs.SetCustomDictionary(customDict); **/
 				input.CopyTo(bs);
