@@ -187,12 +187,12 @@ namespace Uno.Wasm.Bootstrap
 					{
 						if (File.GetCreationTime(compressedFileName) < File.GetCreationTime(fileName))
 						{
-							Log.LogMessage(MessageImportance.High, $"Deleting {compressedFileName} as the source has changed");
+							Log.LogMessage(MessageImportance.Low, $"Deleting {compressedFileName} as the source has changed");
 							File.Delete(compressedFileName);
 						}
 					}
 
-					Log.LogMessage(MessageImportance.Low, $"Compressing {fileName}->{compressedFileName}");
+					Log.LogMessage($"Compressing {fileName}->{compressedFileName}");
 
 					compressHandler(fileName, compressedFileName);
 
