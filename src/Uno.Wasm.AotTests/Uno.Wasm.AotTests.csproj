@@ -18,7 +18,6 @@
   <ItemGroup>
 	  <None Remove="Uno.Wasm.AotTests.xml" />
 	  <None Remove="WasmScripts\image.js" />
-	  <None Remove="web.config" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -29,6 +28,12 @@
 			<LogicalName>Uno.Wasm.AotTests.xml</LogicalName>
 		</EmbeddedResource>
 	  <EmbeddedResource Include="WasmScripts\image.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="..\Uno.Wasm.Sample\wwwroot\web.config">
+	    <Link>wwwroot\web.config</Link>
+	  </Content>
 	</ItemGroup>
 	
 	<ItemGroup>

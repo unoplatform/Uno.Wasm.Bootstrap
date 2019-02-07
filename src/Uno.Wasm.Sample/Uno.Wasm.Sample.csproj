@@ -6,12 +6,8 @@
     <IsPackable>false</IsPackable>
     <StartupObject>Uno.Wasm.Sample.Program</StartupObject>
     <WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+		<!--<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>-->
 	</PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />

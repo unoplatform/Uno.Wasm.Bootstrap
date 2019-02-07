@@ -12,6 +12,8 @@
     <MonoWasmRuntimeConfiguration Condition="'$(WasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
+    <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'==''">true</WasmShellGenerateCompressedFiles>
+    <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
@@ -56,6 +58,15 @@
     <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
     <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Default compressed extensions when WasmShellGenerateCompressedFiles is enabled -->
+    <WasmShellCompressedExtension Include=".wasm"/>
+    <WasmShellCompressedExtension Include=".clr"/>
+    <WasmShellCompressedExtension Include=".js"/>
+    <WasmShellCompressedExtension Include=".css"/>
+    <WasmShellCompressedExtension Include=".html"/>
+  </ItemGroup>
 
   <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
   <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
@@ -123,6 +134,9 @@
         MixedModeExcludedAssembly="@(MonoRuntimeMixedModeExcludedAssembly)"
         MonoILLinker="$(WasmShellILLinkerEnabled)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
+        GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
+        CompressedExtensions="@(WasmShellCompressedExtension)"
+        BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         Assets="@(Content)"
         ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
   </Target>

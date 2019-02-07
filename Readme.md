@@ -173,6 +173,26 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
+### Support for IIS / Azure Webapp GZip/Brotli pre-compression
+The IIS compression support has too many knobs for the size of generated WebAssembly files, which
+makes the serving of static files inefficient.
+
+The Bootstrapper tooling will generate two folders `_compressed_gz` and `_compressed_br` which contain compressed versions of the main files. A set IIS rewriting rules are used to redirect the queries to the requested pre-compressed files, with a preference for Brotli.
+
+When building an application, place [the following file](src/Uno.Wasm.Sample/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
+
+The parameters for the compression are as follows:
+- `WasmShellGenerateCompressedFiles` which can be `true` of `false`. This property is ignored when building `MonoRuntimeDebuggerEnabled` is set to `true`.
+- `WasmShellCompressedExtension` is an item group which specifies which files to compress. By default `wasm`, `clr`, `js`, `css` and `html files are pre-compressed. More files can be added as follows:
+```xml
+  <ItemGroup>
+    <WasmShellCompressedExtension Include=".db"/>
+  </ItemGroup>
+```
+- `WasmShellBrotliCompressionQuality` which controls the compression quality used to pre-compress the files. The default value is 7.
+
+Note that the pre-compressed files are optional, and if the rewriting rules are removed or not used (because the site is served without IIS), the original files are available at their normal locations.
+
 ### Support for additional JS files
 Providing additional JS files is done through the inclusion of `EmbeddedResource`  msbuild item  files, in a project folder named `WasmScripts`.
 Files are processed as embedded resources to allow for libraries to provide javascript files.

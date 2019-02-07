@@ -87,11 +87,17 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] MixedModeExcludedAssembly { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] CompressedExtensions { get; set; }
+
+		public bool GenerateCompressedFiles { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string RuntimeConfiguration { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
+
+		public int BrotliCompressionQuality { get; set; } = 7;
 
 		public string CustomDebuggerPath { get; set; }
 
@@ -122,12 +128,108 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				GenerateHtml();
 				GenerateConfig();
+				TryCompressDist();
+
 				return true;
 			}
 			catch (Exception ex)
 			{
 				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private void TryCompressDist()
+		{
+			var hasCompressedExtensions = (CompressedExtensions?.Any() ?? false);
+
+			if (
+				!RuntimeDebuggerEnabled
+				&& GenerateCompressedFiles
+				&& hasCompressedExtensions
+			)
+			{
+				var compressibleExtensions = CompressedExtensions
+					.Select(e => e.ItemSpec);
+
+				Log.LogMessage(MessageImportance.Low, $"Compressing {string.Join(", ", compressibleExtensions)}");
+
+				var filesToCompress = compressibleExtensions
+					.SelectMany(e => Directory.GetFiles(_distPath, "*" + e, SearchOption.AllDirectories))
+					.Where(f => !Path.GetDirectoryName(f).Contains("_compressed_"))
+					.Distinct()
+					.ToArray();
+
+				CompressFiles(filesToCompress, "gz", GzipCompress);
+				CompressFiles(filesToCompress, "br", BrotliCompress);
+			}
+			else
+			{
+				Log.LogMessage(MessageImportance.Low,
+					$"Compression is disabled (RuntimeDebuggerEnabled:{RuntimeDebuggerEnabled}, " +
+					$"GenerateCompressedFiles:{GenerateCompressedFiles}, " +
+					$"hasCompressedExtensions:{hasCompressedExtensions})");
+			}
+		}
+
+		private void CompressFiles(string[] filesToCompress, string method, Action<string, string> compressHandler)
+		{
+			filesToCompress
+				.AsParallel()
+				.Select(fileName =>
+				{
+					var compressedPathBase = Path.Combine(_distPath, "_compressed_" + method);
+
+					var compressedFileName = fileName;
+					compressedFileName = compressedFileName.Replace(_distPath, compressedPathBase);
+
+					Directory.CreateDirectory(Path.GetDirectoryName(compressedFileName));
+
+					if (File.Exists(compressedFileName))
+					{
+						if (File.GetCreationTime(compressedFileName) < File.GetCreationTime(fileName))
+						{
+							Log.LogMessage(MessageImportance.Low, $"Deleting {compressedFileName} as the source has changed");
+							File.Delete(compressedFileName);
+						}
+					}
+
+					Log.LogMessage($"Compressing {fileName}->{compressedFileName}");
+
+					compressHandler(fileName, compressedFileName);
+
+					return true;
+				})
+				.ToArray();
+		}
+
+		private void GzipCompress(string source, string destination)
+		{
+			using (var inStream = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var compressedFileStream = File.Create(destination))
+			using (var compressionStream = new GZipStream(compressedFileStream, CompressionLevel.Optimal))
+			{
+				inStream.CopyTo(compressionStream);
+			}
+		}
+
+		private void BrotliCompress(string source, string destination)
+		{
+			using (var input = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var output = File.Create(destination))
+			using (var bs = new BrotliSharpLib.BrotliStream(output, CompressionMode.Compress))
+			{
+				// By default, BrotliSharpLib uses a quality value of 1 and window size of 22 if the methods are not called.
+				bs.SetQuality(BrotliCompressionQuality);
+				/** bs.SetWindow(windowSize); **/
+				/** bs.SetCustomDictionary(customDict); **/
+				input.CopyTo(bs);
+
+				/* IMPORTANT: Only use the destination stream after closing/disposing the BrotliStream
+				   as the BrotliStream must be closed in order to signal that no more blocks are being written
+				   for the final block to be flushed out 
+				*/
+				bs.Dispose();
 			}
 		}
 
