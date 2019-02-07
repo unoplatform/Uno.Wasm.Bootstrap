@@ -21,6 +21,8 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
+		<PackageReference Include="BrotliSharpLib" Version="0.3.3" IncludeAssets="all" PrivateAssets="All" />
+		<PackageReference Include="system.runtime.compilerservices.unsafe" Version="4.5.2" IncludeAssets="all" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build.Framework" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.3.409" PrivateAssets="All" />
@@ -53,6 +55,16 @@
 		<Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
+		</Content>
+		<Content Include="$(NuGetPackageRoot)/BrotliSharpLib/0.3.3/lib/netstandard2.0/*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="$(NuGetPackageRoot)/system.runtime.compilerservices.unsafe/4.5.2/lib/netstandard2.0/*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
 			<Pack>true</Pack>
