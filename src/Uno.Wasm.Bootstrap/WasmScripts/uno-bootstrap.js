@@ -243,7 +243,7 @@ var App = {
                     // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
                     return new Response(stream, response);
                 }
-                catch {
+                catch (ex) {
                     // ReadableStream may not be supported (Edge as of 42.17134.1.0)
                     return response;
                 }
