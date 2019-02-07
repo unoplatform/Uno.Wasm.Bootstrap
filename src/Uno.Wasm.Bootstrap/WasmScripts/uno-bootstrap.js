@@ -206,41 +206,47 @@ var App = {
                     throw Error(`${response.status} ${response.statusText}`);
                 }
 
-                let loaded = 0;
+                try {
+                    let loaded = 0;
 
-                // Wrap original stream with another one, while reporting progress.
-                const stream = new ReadableStream({
-                    start(ctl) {
-                        const reader = response.body.getReader();
+                    // Wrap original stream with another one, while reporting progress.
+                    const stream = new ReadableStream({
+                        start(ctl) {
+                            const reader = response.body.getReader();
 
-                        read();
+                            read();
 
-                        function read() {
-                            reader.read()
-                                .then(
-                                    ({ done, value }) => {
-                                        if (done) {
-                                            ctl.close();
-                                            return;
-                                        }
-                                        loaded += value.byteLength;
-                                        progressCallback(loaded, value.byteLength);
-                                        ctl.enqueue(value);
-                                        read();
-                                    })
-                                .catch(error => {
-                                    console.error(error);
-                                    ctl.error(error);
-                                });
+                            function read() {
+                                reader.read()
+                                    .then(
+                                        ({ done, value }) => {
+                                            if (done) {
+                                                ctl.close();
+                                                return;
+                                            }
+                                            loaded += value.byteLength;
+                                            progressCallback(loaded, value.byteLength);
+                                            ctl.enqueue(value);
+                                            read();
+                                        })
+                                    .catch(error => {
+                                        console.error(error);
+                                        ctl.error(error);
+                                    });
+                            }
                         }
-                    }
-                });
+                    });
 
-                // We copy the previous response to keep original headers.
-                // Not only the WebAssembly will require the right content-type,
-                // but we also need it for streaming optimizations:
-                // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
-                return new Response(stream, response);
+                    // We copy the previous response to keep original headers.
+                    // Not only the WebAssembly will require the right content-type,
+                    // but we also need it for streaming optimizations:
+                    // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
+                    return new Response(stream, response);
+                }
+                catch {
+                    // ReadableStream may not be supported (Edge as of 42.17134.1.0)
+                    return response;
+                }
             })
             .catch(err => this.raiseLoadingError(err));
     },
