@@ -10,10 +10,6 @@
   </PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
-  
-  <ItemGroup>
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
 
   <ItemGroup>
 	  <None Remove="Uno.Wasm.AotTests.xml" />
@@ -28,12 +24,6 @@
 			<LogicalName>Uno.Wasm.AotTests.xml</LogicalName>
 		</EmbeddedResource>
 	  <EmbeddedResource Include="WasmScripts\image.js" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Content Include="..\Uno.Wasm.Sample\wwwroot\web.config">
-	    <Link>wwwroot\web.config</Link>
-	  </Content>
 	</ItemGroup>
 	
 	<ItemGroup>
