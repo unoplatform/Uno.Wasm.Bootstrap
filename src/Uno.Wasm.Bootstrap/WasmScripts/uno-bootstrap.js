@@ -31,15 +31,27 @@ var Module = {
         // There's no way to get the filename from mono.js right now.
         // so we just hardcode it.
         const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
-
-        App.fetchWithProgress(
-            wasmUrl,
-            loaded => App.reportProgressWasmLoading(loaded))
-            .then(response => WebAssembly
-                .instantiateStreaming(response, imports)
-                .then(results => {
-                    successCallback(results.instance);
-                }));
+        if (typeof WebAssembly.instantiateStreaming === 'function') {
+            App.fetchWithProgress(
+                wasmUrl,
+                loaded => App.reportProgressWasmLoading(loaded))
+                .then(response => WebAssembly
+                    .instantiateStreaming(response, imports)
+                    .then(results => {
+                        successCallback(results.instance);
+                    }));
+        }
+        else {
+            fetch(wasmUrl)
+                .then(response => {
+                    response.arrayBuffer().then(function (buffer) {
+                        return WebAssembly.instantiate(buffer, imports)
+                            .then(results => {
+                                successCallback(results.instance);
+                            });
+                    });
+                });
+        }
 
         return {}; // Compiling asynchronously, no exports.
     }
@@ -243,7 +255,7 @@ var App = {
                     // https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
                     return new Response(stream, response);
                 }
-                catch {
+                catch (ex) {
                     // ReadableStream may not be supported (Edge as of 42.17134.1.0)
                     return response;
                 }
