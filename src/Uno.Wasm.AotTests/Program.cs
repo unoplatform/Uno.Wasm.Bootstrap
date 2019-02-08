@@ -12,6 +12,8 @@ namespace Uno.Wasm.Test.Empty
 	{
 		static int Main(string[] args)
 		{
+			System.Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
+
 			var w = Stopwatch.StartNew();
 			System.Console.WriteLine($"Start benchmark");
 

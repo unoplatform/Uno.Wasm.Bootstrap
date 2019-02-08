@@ -726,13 +726,20 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
+				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{name}\"] = \"{value}\";");
+
 				if (MonoEnvironment != null)
 				{
 					foreach (var env in MonoEnvironment)
 					{
-						config.AppendLine($"config.environmentVariables[\"{env.ItemSpec}\"] = \"{env.GetMetadata("Value")}\";");
+						AddEnvironmentVariable(env.ItemSpec, env.GetMetadata("Value"));
 					}
 				}
+
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", ParseRuntimeExecutionMode().ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
 
 				w.Write(config.ToString());
 			}

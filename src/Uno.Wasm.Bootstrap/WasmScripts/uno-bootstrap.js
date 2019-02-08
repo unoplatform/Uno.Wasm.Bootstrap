@@ -5,10 +5,10 @@ config.environmentVariables = config.environmentVariables || {};
 var Module = {
     onRuntimeInitialized: function () {
 
-        if (config.environment) {
-            for (let key in config.environment) {
-                if (config.environment.hasOwnProperty(key)) {
-                    if (config.enable_debugging) console.log(`Setting ${key}=${config.environment[key]}`);
+        if (config.environmentVariables) {
+            for (let key in config.environmentVariables) {
+                if (config.environmentVariables.hasOwnProperty(key)) {
+                    if (config.enable_debugging) console.log(`Setting ${key}=${config.environmentVariables[key]}`);
                     ENV[key] = config.environmentVariables[key];
                 }
             }

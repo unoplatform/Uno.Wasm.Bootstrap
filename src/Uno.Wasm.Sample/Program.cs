@@ -22,10 +22,11 @@ namespace Uno.Wasm.Sample
     { 
 		static void Main(string[] args)  
 		{
+			Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
+
 			var i = 42; 
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}"); 
 		}
 	}
 }
-  
