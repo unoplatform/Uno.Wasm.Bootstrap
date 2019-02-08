@@ -1,6 +1,7 @@
 #addin "nuget:?package=Cake.FileHelpers"
 #addin "nuget:?package=Cake.Powershell"
 #tool "nuget:?package=GitVersion.CommandLine&version=3.6.5"
+#tool nuget:?package=vswhere
 
 using System;
 using System.Linq;
@@ -88,11 +89,18 @@ Task("Build")
     .Description("Build all projects and get the assemblies")
     .Does(() =>
 {
+	DirectoryPath vsLatest  = VSWhereLatest();
+	FilePath msBuildPathX86 = (vsLatest==null)
+                            ? null
+                            : vsLatest.CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
+
     Information("\nBuilding Solution");
 
     var buildSettings = new MSBuildSettings
     {
-        MaxCpuCount = 1
+        MaxCpuCount = 1,
+		ToolPath = msBuildPathX86
+
     }
     .SetConfiguration("Release")
     .WithProperty("PackageVersion", versionInfo.FullSemVer)
