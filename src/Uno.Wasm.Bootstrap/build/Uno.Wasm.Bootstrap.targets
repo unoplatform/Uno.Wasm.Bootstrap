@@ -116,6 +116,7 @@
     <MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
 
     <ShellTask_v0
+        CurrentProjectPath="$(MSBuildProjectDirectory)"
         Assembly="$(IntermediateOutputPath)$(TargetFileName)"
         OutputPath="$(OutputPath)"
         IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"

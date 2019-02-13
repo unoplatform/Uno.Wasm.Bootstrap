@@ -34,6 +34,8 @@ namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
+		private const string WasmScriptsFolder = "WasmScripts";
+
 		private string _distPath;
 		private string _managedPath;
 		private string _bclPath;
@@ -41,6 +43,9 @@ namespace Uno.Wasm.Bootstrap
 		private Dictionary<string, string> _bclAssemblies;
 		private readonly List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
+
+		[Microsoft.Build.Framework.Required]
+		public string CurrentProjectPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string Assembly { get; set; }
@@ -581,6 +586,9 @@ namespace Uno.Wasm.Bootstrap
 				{
 					(string fullPath, string relativePath) GetFilePaths()
 					{
+						// This is for project-local defined content
+						var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
+
 						if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
 						{
 							// This case is mainly for shared projects
@@ -588,14 +596,20 @@ namespace Uno.Wasm.Bootstrap
 						}
 						else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
 						{
-							// This is fore files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-							return (fullPath, sourceFile.ToString());
+							var sourceFilePath = sourceFile.ToString();
+
+							if (sourceFilePath.StartsWith(CurrentProjectPath))
+							{
+								// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+								return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
+							}
+							else
+							{
+								return (fullPath, sourceFilePath);
+							}
 						}
 						else
 						{
-							// This is for project-local defined content
-							var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
-
 							return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
 						}
 					}
@@ -604,11 +618,17 @@ namespace Uno.Wasm.Bootstrap
 
 					relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
-					Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
+					if (!relativePath.StartsWith(WasmScriptsFolder))
+					{
+						// Skip WasmScript folder files that may have been added as content files.
+						// This can happen when running the TypeScript compiler.
 
-					var dest = Path.Combine(_distPath, relativePath);
-					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
-					File.Copy(fullSourcePath, dest, true);
+						Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
+
+						var dest = Path.Combine(_distPath, relativePath);
+						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
+						File.Copy(fullSourcePath, dest, true);
+					}
 				}
 			}
 		}
@@ -616,7 +636,7 @@ namespace Uno.Wasm.Bootstrap
 		private void ExtractAdditionalJS()
 		{
 			var q = EnumerateResources("js", "WasmDist")
-				.Concat(EnumerateResources("js", "WasmScripts"));
+				.Concat(EnumerateResources("js", WasmScriptsFolder));
 
 			foreach (var (name, source, resource) in q)
 			{
