@@ -1,0 +1,14 @@
+﻿{
+  "compilerOptions": {
+    "module": "none",
+    "declaration": false,
+    "diagnostics": true,
+    "noImplicitAny": true,
+    "outFile": "WasmScripts/test.js",
+    "locale": "en-US",
+    "target": "es2015"
+  },
+	"include": [
+		"ts/**/*.ts"
+	]
+}
