@@ -35,11 +35,29 @@ var Module = {
             App.fetchWithProgress(
                 wasmUrl,
                 loaded => App.reportProgressWasmLoading(loaded))
-                .then(response => WebAssembly
-                    .instantiateStreaming(response, imports)
-                    .then(results => {
-                        successCallback(results.instance);
-                    }));
+                .then(response => {
+                    if (Module.isElectron()) {
+                        /*
+                         * Chromium does not yet suppport instantiateStreaming
+                         * with custom headers.
+                         */
+                        return response.arrayBuffer()
+                            .then(buffer => {
+                                WebAssembly
+                                    .instantiate(buffer, imports)
+                                    .then(results => {
+                                        successCallback(results.instance);
+                                    });
+                            });
+                    }
+                    else {
+                        return WebAssembly
+                            .instantiateStreaming(response, imports)
+                            .then(results => {
+                                successCallback(results.instance);
+                            });
+                    }
+                });
         }
         else {
             fetch(wasmUrl)
@@ -54,6 +72,9 @@ var Module = {
         }
 
         return {}; // Compiling asynchronously, no exports.
+    },
+    isElectron: function () {
+        return navigator.userAgent.indexOf('Electron') !== -1;
     }
 };
 

@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.TypeScript",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{35E84E5F-1C9B-4168-8333-216B456C12DF}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.Electron", "Uno.Wasm.Tests.Electron\Uno.Wasm.Tests.Electron.csproj", "{C707589F-7E9F-48F3-9725-D012CEA8D4AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{D913522D-851D-413D-8904-D15D1BCF469E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D913522D-851D-413D-8904-D15D1BCF469E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D913522D-851D-413D-8904-D15D1BCF469E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -83,6 +89,7 @@ Global
 		{15C3F459-5FE5-48F2-A33C-A7864969FEA4} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{BF4C5E36-4343-4778-AE0C-868E71548FBB} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{D913522D-851D-413D-8904-D15D1BCF469E} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{C707589F-7E9F-48F3-9725-D012CEA8D4AF} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
