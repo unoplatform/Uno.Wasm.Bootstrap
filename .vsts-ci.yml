@@ -4,7 +4,7 @@ jobs:
   pool:
     name: Default
     demands:
-    - VisualStudio_Version -equals 15.9.6
+    - VisualStudio_Version -equals 15.9.7
     
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
@@ -72,10 +72,8 @@ jobs:
       cd $(build.sourcesdirectory)
       git clone https://github.com/juj/emsdk.git
       cd emsdk
-      ./emsdk install sdk-1.38.13-64bit
-      ./emsdk activate sdk-1.38.13-64bit
-      cd emscripten/1.38.13
-      patch -N -p1 < $(build.sourcesdirectory)/build/fix-emscripten-7399.diff
+      ./emsdk install sdk-1.38.28-64bit
+      ./emsdk activate sdk-1.38.28-64bit
 
     displayName: 'Install Emscripten'
 
