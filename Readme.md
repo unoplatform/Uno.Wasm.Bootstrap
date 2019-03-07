@@ -210,6 +210,9 @@ A **Progressive Web App** manifest link definition can be added to the index.htm
 - Set the `Content` build action to this new file so it gets copied to the output folder
 - Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
 
+iOS's support for home screen icon is optionally set by searching for a 1024x1024 icon in the 
+PWA manifest. Not providing this image will make iOS generate a scaled down screenshot of the application.
+
 You can validate you PWA in the [chrome audits tab](https://developers.google.com/web/updates/2017/05/devtools-release-notes#lighthouse). If your 
 PWA has all the appropriate metadata, the PWA installer will prompt to install you app.
 

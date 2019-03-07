@@ -1,11 +1,11 @@
 {
   "dir": "ltr",
   "lang": "en-us",
-  "name": "Wasm AOT Raytracer",
+  "name": "Wasm Raytracer",
   "scope": "/",
   "display": "standalone",
   "start_url": "/",
-  "short_name": "Wasm Raytracer",
+  "short_name": "Wasm Ray",
   "theme_color": "#fff",
   "description": "A C# AOT Raytracer",
   "orientation": "any",
