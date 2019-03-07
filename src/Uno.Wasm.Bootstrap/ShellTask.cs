@@ -133,6 +133,7 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GenerateHtml();
+				CleanupDist();
 				GenerateConfig();
 				TryCompressDist();
 
@@ -142,6 +143,22 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private void CleanupDist()
+		{
+			var unusedFiles = new[] {
+				"*.wast"
+			};
+
+			foreach(var unusedFile in unusedFiles)
+			{
+				foreach(var file in Directory.EnumerateDirectories(_distPath, unusedFile))
+				{
+					Log.LogMessage(MessageImportance.Low, $"Removing unused file {file}");
+					File.Delete(file);
+				}
 			}
 		}
 
@@ -844,10 +861,22 @@ namespace Uno.Wasm.Bootstrap
 					var extraBuilder = new StringBuilder();
 					if (!string.IsNullOrWhiteSpace(PWAManifestFile))
 					{
+						var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
+
 						extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
 						extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
 
-						if(JObject.Parse(File.ReadAllText(PWAManifestFile))["theme_color"]?.Value<string>() is string color)
+						// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
+						extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
+						extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">");
+
+						if (manifestDocument["icons"] is JArray array
+							&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
+						{
+							extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{img["src"].ToString()}\" />");
+						}
+
+						if (manifestDocument["theme_color"]?.Value<string>() is string color)
 						{
 							extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
 						}
