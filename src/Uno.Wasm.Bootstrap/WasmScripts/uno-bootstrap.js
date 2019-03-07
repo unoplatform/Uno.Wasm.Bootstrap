@@ -416,3 +416,11 @@ var App = {
 };
 
 document.addEventListener("DOMContentLoaded", () => App.preInit());
+
+if ('serviceWorker' in navigator) {
+    console.log('Registering service worker now');
+    navigator.serviceWorker.register('/service-worker.js')
+        .then(function () {
+            console.log('Service Worker Registered');
+        });
+}
