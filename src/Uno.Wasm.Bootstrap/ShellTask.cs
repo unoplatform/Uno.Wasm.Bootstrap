@@ -165,7 +165,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach(var unusedFile in unusedFiles)
 			{
-				foreach(var file in Directory.EnumerateDirectories(_distPath, unusedFile))
+				foreach(var file in Directory.EnumerateFiles(_distPath, unusedFile))
 				{
 					Log.LogMessage(MessageImportance.Low, $"Removing unused file {file}");
 					File.Delete(file);
