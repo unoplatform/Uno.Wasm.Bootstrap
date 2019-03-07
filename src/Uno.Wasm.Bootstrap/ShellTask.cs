@@ -135,6 +135,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateHtml();
 				CleanupDist();
 				GenerateConfig();
+				TouchServiceWorker();
 				TryCompressDist();
 
 				return true;
@@ -143,6 +144,16 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private void TouchServiceWorker()
+		{
+			// The service worker file must change to be reloaded properly, add the dist digest
+			// as cache trasher.
+			using (var stream = new StreamWriter(File.Open(Path.Combine(_distPath, "service-worker.js"), FileMode.Append)))
+			{
+				stream.WriteLine($"// {Path.GetFileName(_managedPath)}");
 			}
 		}
 
