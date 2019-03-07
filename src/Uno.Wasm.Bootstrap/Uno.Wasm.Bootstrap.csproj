@@ -22,6 +22,7 @@
 	
 	<ItemGroup>
 		<PackageReference Include="BrotliSharpLib" Version="0.3.3" IncludeAssets="all" PrivateAssets="All" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" IncludeAssets="all" PrivateAssets="All" />
 		<PackageReference Include="system.runtime.compilerservices.unsafe" Version="4.5.2" IncludeAssets="all" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Build.Framework" Version="15.3.409" PrivateAssets="All" />
@@ -82,6 +83,12 @@
 			<Visible>false</Visible>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Include="$(NuGetPackageRoot)/newtonsoft.json/12.0.1/lib/netstandard2.0/*.dll">
+			<Pack>true</Pack>
+			<PackagePath>tools</PackagePath>
+			<Visible>false</Visible>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -92,6 +99,10 @@
 	<ItemGroup>
 		<EmbeddedResource Include="WasmCSS\*.css" />
 		<EmbeddedResource Include="WasmScripts/*.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="WasmScripts\service-worker.js" />
 	</ItemGroup>
 
 	<ItemGroup>

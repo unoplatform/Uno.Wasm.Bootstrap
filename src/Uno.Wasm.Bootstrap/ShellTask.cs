@@ -29,6 +29,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
+using Newtonsoft.Json.Linq;
 
 namespace Uno.Wasm.Bootstrap
 {
@@ -178,8 +179,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private void CompressFiles(string[] filesToCompress, string method, Action<string, string> compressHandler)
-		{
-			filesToCompress
+			=> filesToCompress
 				.AsParallel()
 				.Select(fileName =>
 				{
@@ -206,7 +206,6 @@ namespace Uno.Wasm.Bootstrap
 					return true;
 				})
 				.ToArray();
-		}
 
 		private void GzipCompress(string source, string destination)
 		{
@@ -734,6 +733,9 @@ namespace Uno.Wasm.Bootstrap
 					",",
 					filesIntegrity.Select(f => $"\"{f.fileName}\":\"{f.integrity}\""));
 
+				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
+				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\"{f}\"")) : "";
+
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
@@ -743,6 +745,8 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
+				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.offline_files = [{offlineFiles}];");
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
@@ -764,6 +768,11 @@ namespace Uno.Wasm.Bootstrap
 				w.Write(config.ToString());
 			}
 		}
+
+		private IEnumerable<string> GetPWACacheableFiles()
+			=> from file in Directory.EnumerateFiles(_distPath, "*.*", SearchOption.AllDirectories)
+			   where !file.EndsWith("web.config", StringComparison.OrdinalIgnoreCase)
+			   select file.Replace(_distPath, "").Replace("\\", "/");
 
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
 
@@ -836,6 +845,16 @@ namespace Uno.Wasm.Bootstrap
 					if (!string.IsNullOrWhiteSpace(PWAManifestFile))
 					{
 						extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
+						extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
+
+						if(JObject.Parse(File.ReadAllText(PWAManifestFile))["theme_color"]?.Value<string>() is string color)
+						{
+							extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
+						}
+						else
+						{
+							extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
+						}
 					}
 
 					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());

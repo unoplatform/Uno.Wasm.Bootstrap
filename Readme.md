@@ -208,6 +208,10 @@ A **Progressive Web App** manifest link definition can be added to the index.htm
 - Use the `WasmPWAManifestFile` property to set the file name
 - Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest) 
 - Set the `Content` build action to this new file so it gets copied to the output folder
+- Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
+
+You can validate you PWA in the [chrome audits tab](https://developers.google.com/web/updates/2017/05/devtools-release-notes#lighthouse). If your 
+PWA has all the appropriate metadata, the PWA installer will prompt to install you app.
 
 ### Linker configuration
 The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
