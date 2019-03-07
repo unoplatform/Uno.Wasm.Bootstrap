@@ -85,7 +85,7 @@ jobs:
   - bash: |
       export PATH=$PATH:$(Agent.WorkFolder)/ninja-linux
       source $(build.sourcesdirectory)/emsdk/emsdk_env.sh
-      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-linux.binlog
+      msbuild /r /m /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: Build 
 
@@ -139,7 +139,7 @@ jobs:
   - bash: |
       export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
       source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
-      msbuild /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln /bl:$(build.artifactstagingdirectory)/uno-wasm-boostrap-macos.binlog
+      msbuild /m /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: Build 
 
