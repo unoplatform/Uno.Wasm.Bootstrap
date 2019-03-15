@@ -879,7 +879,6 @@ namespace Uno.Wasm.Bootstrap
 
 						// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 						extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
-						extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">");
 
 						if (manifestDocument["icons"] is JArray array
 							&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
