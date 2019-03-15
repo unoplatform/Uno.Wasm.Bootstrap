@@ -125,6 +125,7 @@
         MonoWasmSDKPath="$(_UnoMonoSdkPath)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"
         UseFileIntegrity="$(WashShellUseFileIntegrity)"
+        GeneratePrefetchHeaders="$(WashShellGeneratePrefetchHeaders)"
         PWAManifestFile="$(WasmPWAManifestFile)"
         IndexHtmlPath="$(WasmShellIndexHtmlPath)"
         RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
