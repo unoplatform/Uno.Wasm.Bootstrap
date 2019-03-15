@@ -234,6 +234,15 @@ You can deactivate this feature by setting this property in your `.csproj` file:
 <WashShellUseFileIntegrity>False</WashShellUseFileIntegrity>
 ```
 
+### Support for Content prefetching
+The `WashShellGeneratePrefetchHeaders` controls the generation of `<link rel="prefetch" />` nodes in the index.html header.
+
+It is enabled by default and allows for the browser to efficiently fetch the applications
+webassembly and .NET assemblies files, while the JavaScript and WebAssembly runtimes are 
+being initialized.
+
+This prefetching feature is particularly useful if the http server supports HTTP/2.0.
+
 ## Environment variables
 Mono provides the ability to configure some features at initialization, such as logging or GC.
 

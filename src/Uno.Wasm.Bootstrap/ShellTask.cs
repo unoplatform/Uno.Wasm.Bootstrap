@@ -64,6 +64,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool UseFileIntegrity { get; set; } = true;
 
+		public bool GeneratePrefetchHeaders { get; set; } = true;
+
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] MonoEnvironment { get; set; }
@@ -870,31 +872,8 @@ namespace Uno.Wasm.Bootstrap
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
 
 					var extraBuilder = new StringBuilder();
-					if (!string.IsNullOrWhiteSpace(PWAManifestFile))
-					{
-						var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
-
-						extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
-						extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
-
-						// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
-						extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
-
-						if (manifestDocument["icons"] is JArray array
-							&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
-						{
-							extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{img["src"].ToString()}\" />");
-						}
-
-						if (manifestDocument["theme_color"]?.Value<string>() is string color)
-						{
-							extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
-						}
-						else
-						{
-							extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
-						}
-					}
+					GeneratePWAContent(extraBuilder);
+					GeneratePrefetchHeaderContent(extraBuilder);
 
 					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
 
@@ -904,6 +883,49 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"HTML {htmlPath}");
 				}
 
+			}
+		}
+
+		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
+		{
+			if (GeneratePrefetchHeaders)
+			{
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"mono.wasm\" />");
+
+				var distName = Path.GetFileName(_managedPath);
+				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
+				{
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{distName}/{Path.GetFileName(file)}\" />");
+				}
+			}
+		}
+
+		private void GeneratePWAContent(StringBuilder extraBuilder)
+		{
+			if (!string.IsNullOrWhiteSpace(PWAManifestFile))
+			{
+				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
+
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
+				extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
+
+				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
+				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
+
+				if (manifestDocument["icons"] is JArray array
+					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
+				{
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{img["src"].ToString()}\" />");
+				}
+
+				if (manifestDocument["theme_color"]?.Value<string>() is string color)
+				{
+					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
+				}
+				else
+				{
+					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
+				}
 			}
 		}
 	}
