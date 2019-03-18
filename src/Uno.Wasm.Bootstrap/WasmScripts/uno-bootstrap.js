@@ -316,9 +316,9 @@ var App = {
                     .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
             }
         }
-
-        return fetch(asset, this.getFetchInit(asset))
-            .catch(err => this.raiseLoadingError(err));
+        else {
+            return fetch(asset);
+        }
     },
 
     initializeRequire: function () {
