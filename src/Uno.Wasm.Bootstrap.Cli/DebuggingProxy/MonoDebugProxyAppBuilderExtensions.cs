@@ -145,7 +145,9 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return $@"<p>Close all Chrome instances, then press Win+R and enter the following:</p>
-                          <p><strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl}</code></strong></p>";
+                          <p><strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl}</code></strong></p>
+                          <p>You can also force to start an isolated instance of Chrome if you are already using it for another purpose:</p>
+                          <p><strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl} --user-data-dir=""%TEMP%\ChromeDebug""</code></strong></p>";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
