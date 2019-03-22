@@ -22,7 +22,7 @@ jobs:
 
   - task: NuGetToolInstaller@0
     inputs:
-      versionSpec: 4.7.0
+      versionSpec: 4.9.1
       checkLatest: false
     
   - task: GitVersion@4
@@ -72,22 +72,22 @@ jobs:
       cd /emsdk
       sudo ./emsdk activate sdk-1.38.28-64bit
 
-    displayName: 'Setup Enscripten'
+    displayName: 'Setup Emscripten'
 
   - task: NuGetToolInstaller@0
     inputs:
-      versionSpec: 4.7.0
+      versionSpec: 4.9.1
       checkLatest: false
 
   - bash: |
       source /emsdk/emsdk_env.sh
-      msbuild /r /m /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: Build 
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/publish
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)
       CleanTargetFolder: false
@@ -135,7 +135,7 @@ jobs:
   - bash: |
       export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
       source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
-      msbuild /m /r /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+      msbuild /m /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: Build 
 
