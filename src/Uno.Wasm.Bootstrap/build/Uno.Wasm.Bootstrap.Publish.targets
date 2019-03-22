@@ -9,13 +9,13 @@
       <ResolvedAssembliesToPublish Remove="@(ResolvedAssembliesToPublish)" />
 
       <!-- Move wwwroot files to output root -->
-      <ContentWithTargetPath Update="@(ContentWithTargetPath)" Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot\')) OR $([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot/'))">
-        <TargetPath>$([System.String]::new(%(TargetPath)).Substring(8))</TargetPath>
+      <ContentWithTargetPath Update="@(ContentWithTargetPath)" Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot$([System.IO.Path]::DirectorySeparatorChar)'))">
+        <TargetPath>$([System.String]::Copy(%(TargetPath)).Substring(8))</TargetPath>
       </ContentWithTargetPath>
 
       <_UnoWasmDistFiles Include="$(OutputPath)dist\**"/>
       <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
-        <TargetPath>$([System.String]::Copy('%(Identity)').Replace('$(OutputPath)dist\', ''))</TargetPath>
+        <TargetPath>$([System.String]::Copy('%(Identity)').Replace('$(OutputPath)dist$([System.IO.Path]::DirectorySeparatorChar)', ''))</TargetPath>
       </_UnoWasmDist>
 
       <ContentWithTargetPath Include="@(_UnoWasmDist)">
