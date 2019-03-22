@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Project>
 
-  <PropertyGroup>
-    <UnoWasmPublishDistDir>$(AssemblyName)\dist\</UnoWasmPublishDistDir>
-  </PropertyGroup>
-
   <Target Name="_UnoWasmGetCopyToPublishDirectory"
       BeforeTargets="GetCopyToPublishDirectoryItems"
       Condition="'$(OutputType.ToLowerInvariant())'=='exe'">
@@ -14,12 +10,12 @@
 
       <!-- Move wwwroot files to output root -->
       <ContentWithTargetPath Update="@(ContentWithTargetPath)" Condition="$([System.String]::new(%(TargetPath)).StartsWith('wwwroot\')) OR $([System.String]::new(%(TargetPath)).StartsWith('wwwroot/'))">
-        <TargetPath>$(UnoWasmPublishDistDir)$([System.String]::new(%(TargetPath)).Substring(8))</TargetPath>
+        <TargetPath>$([System.String]::new(%(TargetPath)).Substring(8))</TargetPath>
       </ContentWithTargetPath>
 
       <_UnoWasmDistFiles Include="$(OutputPath)dist\**"/>
       <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
-        <TargetPath>$(UnoWasmPublishDistDir)$([MSBuild]::MakeRelative('$(TargetDir)dist\', %(Identity)))</TargetPath>
+        <TargetPath>$([System.String]::new(%(Identity)).Replace('$(OutputPath)dist\', ''))</TargetPath>
       </_UnoWasmDist>
 
       <ContentWithTargetPath Include="@(_UnoWasmDist)">

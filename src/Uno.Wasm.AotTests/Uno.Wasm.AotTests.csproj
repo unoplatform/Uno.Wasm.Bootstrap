@@ -1,32 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<OutputType>Exe</OutputType>
-    <IsPackable>false</IsPackable>
+		<IsPackable>false</IsPackable>
 		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>
-    <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-    <DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
+		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
 	</PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 
-  <ItemGroup>
-	  <None Remove="Uno.Wasm.AotTests.xml" />
-	  <None Remove="WasmScripts\image.js" />
+	<ItemGroup>
+		<None Remove="Uno.Wasm.AotTests.xml" />
+		<None Remove="WasmScripts\image.js" />
 	</ItemGroup>
-
-  <ItemGroup>
-  </ItemGroup>
 
 	<ItemGroup>
 		<EmbeddedResource Include="Uno.Wasm.AotTests.xml">
 			<LogicalName>Uno.Wasm.AotTests.xml</LogicalName>
 		</EmbeddedResource>
-	  <EmbeddedResource Include="WasmScripts\image.js" />
+		<EmbeddedResource Include="WasmScripts\image.js" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -34,6 +31,10 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 	</ItemGroup>
-	
-	<ProjectExtensions><VisualStudio><UserProperties manifest_1json__JsonSchema="http://json.schemastore.org/grunt-task" /></VisualStudio></ProjectExtensions>
+
+	<ProjectExtensions>
+		<VisualStudio>
+			<UserProperties manifest_1json__JsonSchema="http://json.schemastore.org/grunt-task" />
+		</VisualStudio>
+	</ProjectExtensions>
 </Project>
