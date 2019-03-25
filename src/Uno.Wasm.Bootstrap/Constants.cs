@@ -6,7 +6,7 @@ namespace Uno.Wasm.Bootstrap
 {
 	internal class Constants
 	{
-		public const string DefaultSdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/2255/label=ubuntu-1804-amd64/Azure/processDownloadRequest/2255/ubuntu-1804-amd64/sdks/wasm/mono-wasm-835c8590ca8.zip";
-		public const string DefaultAotSDKUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/2255/label=ubuntu-1804-amd64/Azure/processDownloadRequest/2255/ubuntu-1804-amd64/wasm-release-Linux-835c8590ca89b59b09abc58f6ccb6fa17a1d3243.zip";
+		public const string DefaultSdkUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/2418/Azure/processDownloadRequest/2418/ubuntu-1804-amd64/sdks/wasm/mono-wasm-0b58483fa81.zip";
+		public const string DefaultAotSDKUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/2418/Azure/processDownloadRequest/2418/ubuntu-1804-amd64/wasm-release-Linux-0b58483fa814707b8a98833a48153ac389d9d933.zip";
 	}
 }
