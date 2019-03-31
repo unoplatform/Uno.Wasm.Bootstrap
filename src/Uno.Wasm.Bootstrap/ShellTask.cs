@@ -19,6 +19,7 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -44,6 +45,7 @@ namespace Uno.Wasm.Bootstrap
 		private Dictionary<string, string> _bclAssemblies;
 		private readonly List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
+		private List<AssemblyDefinition> _referencedAssemblyDefinitions;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; }
@@ -523,6 +525,11 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 			}
+
+			_referencedAssemblyDefinitions = new List<AssemblyDefinition>(
+				from asmPath in _referencedAssemblies.Concat(new[] { Assembly, GetType().Assembly.Location })
+				select AssemblyDefinition.ReadAssembly(asmPath)
+			);
 		}
 
 		private void HashManagedPath()
@@ -717,8 +724,7 @@ namespace Uno.Wasm.Bootstrap
 			var fullExtension = "." + extension;
 			var fullFolder = "." + folder + ".";
 
-			return from asmPath in _referencedAssemblies.Concat(new[] { Assembly, GetType().Assembly.Location })
-				   let asm = AssemblyDefinition.ReadAssembly(asmPath)
+			return from asm in _referencedAssemblyDefinitions
 				   from res in asm.MainModule.Resources.OfType<EmbeddedResource>()
 				   where res.Name.EndsWith(fullExtension)
 				   where res.Name.Contains(fullFolder)
@@ -728,9 +734,6 @@ namespace Uno.Wasm.Bootstrap
 					resource: res
 					);
 		}
-
-		private string GetMonoTempPath()
-			=> string.IsNullOrEmpty(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder;
 
 		private MethodDefinition DiscoverEntryPoint()
 		{
