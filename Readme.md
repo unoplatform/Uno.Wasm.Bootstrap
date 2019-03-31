@@ -126,6 +126,14 @@ In Visual Studio:
 - Follow the instructions on the web page
 - You may need to refresh the original tab if you want to debug the entry point (Main) of your application.
 
+### Debugger troubleshooting
+The debugger is still under development, and here are a few things to look for:
+- Breakpoints set sometimes disapear when the debugged page is reloaded
+- If none of your assemblies appear in the debugger window, it's generally caused 
+by the debugger caching previously loaded files. Make sure to hit Ctrl+Shit+R to force 
+reload the debugged page.
+
+
 ## Runtime Execution Modes
 The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT and Mixed Mode Interpreter/AOT.
 
@@ -324,3 +332,13 @@ To select a different sdk build:
 - Copy the `wasm-release-Linux-xxx.zip` uri or local zip file to the `MonoWasmAOTSDKUri` property
 
 > Note that both properties require a zip file as the source, not an uncompressed folder.
+
+## Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
+The bootstrapper comes with a default mono-wasm SDK (which can be overriden per project with the msbuild properties
+`MonoWasmSDKUri` and `MonoWasmAOTSDKUri`), specified in the `Constants.cs` file.
+
+To update to a later mono-wasm SDK:
+- Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
+- Copy the `mono-wasm-xxxx.zip` uri to the `DefaultSdkUrl` constant field
+- Copy the `wasm-release-Linux-xxx.zip` uri to the `DefaultAotSDKUrl` constant field
+- Open the `mono-wasm-xxxx.zip` and copy the `Mono.WebAssembly.DebuggerProxy.dll` and `.pdb` to the [CustomDebuggerProxy folder](src/Uno.Wasm.Bootstrap/build/CustomDebuggerProxy) folder.
