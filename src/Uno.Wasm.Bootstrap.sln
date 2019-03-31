@@ -31,6 +31,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{35E8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.Electron", "Uno.Wasm.Tests.Electron\Uno.Wasm.Tests.Electron.csproj", "{C707589F-7E9F-48F3-9725-D012CEA8D4AF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{BA079449-9703-42D1-9B7B-B534C2D1DB88}"
+EndProject
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "WasmAot.UITests", "WasmAot.UITests\WasmAot.UITests.njsproj", "{B4C15C47-85E2-444E-B9F3-D970E35601A9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +81,10 @@ Global
 		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C707589F-7E9F-48F3-9725-D012CEA8D4AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4C15C47-85E2-444E-B9F3-D970E35601A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4C15C47-85E2-444E-B9F3-D970E35601A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4C15C47-85E2-444E-B9F3-D970E35601A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4C15C47-85E2-444E-B9F3-D970E35601A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,6 +98,7 @@ Global
 		{BF4C5E36-4343-4778-AE0C-868E71548FBB} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{D913522D-851D-413D-8904-D15D1BCF469E} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{C707589F-7E9F-48F3-9725-D012CEA8D4AF} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{B4C15C47-85E2-444E-B9F3-D970E35601A9} = {BA079449-9703-42D1-9B7B-B534C2D1DB88}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}

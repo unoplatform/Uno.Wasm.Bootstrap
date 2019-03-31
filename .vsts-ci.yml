@@ -94,6 +94,12 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      python3 server.py &
+      cd $(build.sourcesdirectory)/src/WasmAot.UITests
+      node app
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
