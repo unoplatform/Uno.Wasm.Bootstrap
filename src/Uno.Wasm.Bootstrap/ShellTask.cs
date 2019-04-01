@@ -440,13 +440,20 @@ namespace Uno.Wasm.Bootstrap
 					Directory.CreateDirectory(_managedPath);
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
-					var bindingsPath = Path.Combine(linkerInput, "WebAssembly.Bindings.dll");
+
+					var frameworkBindings = new[] {
+						"WebAssembly.Bindings.dll",
+						"WebAssembly.Net.Http.dll",
+						"WebAssembly.Net.WebSockets.dll",
+					};
+
+					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 
 					var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
 
 					int linkerResults = RunProcess(
 						linkerPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" -a \"{bindingsPath}\" -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
+						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
