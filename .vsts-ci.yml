@@ -96,7 +96,7 @@ jobs:
 
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-      python3 server.py &
+      python server.py &
       cd $(build.sourcesdirectory)/src/WasmAot.UITests
       node app
 
