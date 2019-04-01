@@ -1,4 +1,4 @@
-// This file is a copy of https://github.com/mono/mono/blob/1169ee504a4b74361b1cdde8b1b2c3781104d1f7/sdks/wasm/packager.cs
+// This file is a copy of https://github.com/mono/mono/blob/d448cd36c95333c9db38869d6a138ba2cc50286b/sdks/wasm/packager.cs
 using System;
 using System.Linq;
 using System.IO;
@@ -240,7 +240,7 @@ class Driver {
 		var data = new AssemblyData () { name = image.Assembly.Name.Name, src_path = ra };
 		assemblies.Add (data);
 
-		if (add_pdb && kind == AssemblyKind.User) {
+		if (add_pdb && (kind == AssemblyKind.User || kind == AssemblyKind.Framework)) {
 			file_list.Add (Path.ChangeExtension (ra, "pdb"));
 			assemblies_with_dbg_info.Add (Path.ChangeExtension (ra, "pdb"));
 		}
@@ -583,7 +583,7 @@ class Driver {
 				if (File.Exists(runtimeTemplate))
 					CopyFile (runtimeTemplate, runtime_js, CopyType.IfNewer, $"runtime template <{runtimeTemplate}> ");
 				else {
-					var runtime_gen = "\nvar Module = {\n\tonRuntimeInitialized: function () {\n\t\tMONO.mono_load_runtime_and_bcl (\n\t\tconfig.vfs_prefix,\n\t\tconfig.deploy_prefix,\n\t\tconfig.enable_debugging,\n\t\tconfig.file_list,\n\t\tfunction () {\n\t\t\tconfig.add_bindings ();\n\t\t\tApp.init ();\n\t\t}\n\t)\n\t},\n};";
+					var runtime_gen = "\nvar Module = {\n\tonRuntimeInitialized: function () {\n\t\tMONO.mono_load_runtime_and_bcl (\n\t\tconfig.vfs_prefix,\n\t\tconfig.deploy_prefix,\n\t\tconfig.enable_debugging,\n\t\tconfig.file_list,\n\t\tfunction () {\n\t\t\tApp.init ();\n\t\t}\n\t)\n\t},\n};";
 					File.Delete (runtime_js);
 					File.WriteAllText (runtime_js, runtime_gen);
 				}
