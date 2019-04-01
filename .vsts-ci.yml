@@ -74,6 +74,12 @@ jobs:
 
     displayName: 'Setup Emscripten'
 
+  - bash: |
+      curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+
+    displayName: 'Install node'
+
   - task: NuGetToolInstaller@0
     inputs:
       versionSpec: 4.9.1
@@ -98,6 +104,7 @@ jobs:
       cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
       python server.py &
       cd $(build.sourcesdirectory)/src/WasmAot.UITests
+      npm install
       node app
 
   - task: PublishBuildArtifacts@1
