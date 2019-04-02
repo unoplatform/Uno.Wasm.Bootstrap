@@ -9,15 +9,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const puppeteer = require('puppeteer');
 const path = require("path");
 (() => __awaiter(this, void 0, void 0, function* () {
-    console.log(`Init puppeteer`);
-    const browser = yield puppeteer.launch({ "headless": true, "defaultViewport": { "width": 1280, "height": 1024 } });
+    const browser = yield puppeteer.launch({
+        "headless": true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        "defaultViewport": { "width": 1280, "height": 1024 }
+    });
     const page = yield browser.newPage();
     yield page.goto("http://localhost:8000/");
     var value = null;
+    console.log(`Init puppeteer`);
     var counter = 3;
-    console.log(`Reading results...`);
     while (value == null && counter-- > 0) {
-        yield delay(5000);
+        yield delay(2000);
         try {
             value = yield page.$eval('#results', a => a.textContent);
             console.log(`got value= ${value}`);
