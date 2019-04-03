@@ -30,6 +30,12 @@ jobs:
     inputs:
       updateAssemblyInfo: false
 
+  - powershell: |
+        cd $(build.sourcesdirectory)/src/WasmAot.UITests
+        npm install
+
+    displayName: UI Tests npm dependencies
+
   - powershell: .\build\build.ps1 -script build\build.cake
     displayName: Build 
 
