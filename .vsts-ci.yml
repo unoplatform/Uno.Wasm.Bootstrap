@@ -9,9 +9,7 @@ jobs:
 - job: Windows
 
   pool:
-    name: Default
-    demands:
-    - VisualStudio_Version -equals 15.9.7
+    vmImage: 'vs2017-win2016'
     
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
