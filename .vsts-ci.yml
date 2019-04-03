@@ -2,16 +2,14 @@
 resources:
   containers:
   - container: nv-bionic-wasm
-    image: nventive/wasm-build:1.0-bionic
+    image: nventive/wasm-build:1.1-bionic
 
 
 jobs:
 - job: Windows
 
   pool:
-    name: Default
-    demands:
-    - VisualStudio_Version -equals 15.9.7
+    vmImage: 'vs2017-win2016'
     
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
@@ -31,6 +29,12 @@ jobs:
     condition: eq(variables['System.PullRequest.IsFork'], 'False')
     inputs:
       updateAssemblyInfo: false
+
+  - powershell: |
+        cd $(build.sourcesdirectory)/src/WasmAot.UITests
+        npm install
+
+    displayName: UI Tests npm dependencies
 
   - powershell: .\build\build.ps1 -script build\build.cake
     displayName: Build 
@@ -93,6 +97,13 @@ jobs:
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/WasmAot.UITests
+      npm install
+      node app
 
   - task: PublishBuildArtifacts@1
     condition: always()
