@@ -29,9 +29,14 @@ const path = require("path");
 
 	await page.screenshot({ path: 'aotTests.png' });
 
-	console.log(`Results: ${value}`);
-
 	await browser.close();
+
+	if (!value) {
+		console.log(`Failed to read the results`);
+		process.exit(1);
+	} else {
+		console.log(`Results: ${value}`);
+	}
 })();
 
 

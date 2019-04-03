@@ -30,8 +30,14 @@ const path = require("path");
         }
     }
     yield page.screenshot({ path: 'aotTests.png' });
-    console.log(`Results: ${value}`);
     yield browser.close();
+    if (!value) {
+        console.log(`Failed to read the results`);
+        process.exit(1);
+    }
+    else {
+        console.log(`Results: ${value}`);
+    }
 }))();
 function delay(time) {
     return new Promise(function (resolve) {
