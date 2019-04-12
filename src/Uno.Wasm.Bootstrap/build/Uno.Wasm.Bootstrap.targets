@@ -114,7 +114,7 @@
       <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
     </UnoInstallSDKTask_v0>
 
-    <MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" />
+    <MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" Properties="TargetFramework=net462" />
 
     <ShellTask_v0
         CurrentProjectPath="$(MSBuildProjectDirectory)"
