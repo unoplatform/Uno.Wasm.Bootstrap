@@ -49,6 +49,9 @@
 		<MonoRuntimeMixedModeExcludedAssembly Include="Microsoft.CodeAnalysis.Workspaces" />
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Data" />
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml" />
+
+		<!-- Added to work around https://github.com/mono/mono/issues/14243 -->
+		<MonoRuntimeMixedModeExcludedAssembly Include="System" />
 	</ItemGroup>
 
 	<ItemGroup>

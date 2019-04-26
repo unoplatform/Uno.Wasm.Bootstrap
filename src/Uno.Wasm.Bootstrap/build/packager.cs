@@ -1,4 +1,4 @@
-// This file is a copy of https://github.com/mono/mono/blob/d448cd36c95333c9db38869d6a138ba2cc50286b/sdks/wasm/packager.cs
+// This file is a copy of https://github.com/mono/mono/blob/28701f3d574af060a5d9806bb251505ab452d1c7/sdks/wasm/packager.cs
 using System;
 using System.Linq;
 using System.IO;
@@ -652,6 +652,7 @@ class Driver {
 				runtime_libs += " $mono_sdkdir/wasm-runtime-release/lib/libmono-icall-table.a";
 		}
 
+		string aot_args = "";
 		string profiler_libs = "";
 		string profiler_aot_args = "";
 		foreach (var profiler in profilers) {
@@ -660,6 +661,8 @@ class Driver {
 				profiler_aot_args += " ";
 			profiler_aot_args += $"--profile={profiler}";
 		}
+		if (ee_mode == ExecMode.AotInterp)
+			aot_args = "interp,";
 
 		runtime_dir = Path.GetFullPath (runtime_dir);
 		sdkdir = Path.GetFullPath (sdkdir);
@@ -701,10 +704,10 @@ class Driver {
 
 		// Rules
 		ninja.WriteLine ("rule aot");
-		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} --aot=$aot_args,llvmonly,interp,asmonly,no-opt,static,direct-icalls,llvm-outfile=$outfile $src_file");
+		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} --aot=$aot_args,{aot_args}llvmonly,asmonly,no-opt,static,direct-icalls,llvm-outfile=$outfile $src_file");
 		ninja.WriteLine ("  description = [AOT] $src_file -> $outfile");
 		ninja.WriteLine ("rule aot-instances");
-		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} --aot=llvmonly,asmonly,interp,no-opt,static,direct-icalls,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
+		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} --aot={aot_args}llvmonly,asmonly,no-opt,static,direct-icalls,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
 		ninja.WriteLine ("  description = [AOT-INSTANCES] $outfile");
 		ninja.WriteLine ("rule mkdir");
 		ninja.WriteLine ("  command = mkdir -p $out");
@@ -720,7 +723,7 @@ class Driver {
 		ninja.WriteLine ($"  command = bash -c '$emcc $emcc_flags -o $out --js-library $tool_prefix/library_mono.js --js-library $tool_prefix/dotnet_support.js {wasm_core_support_library} $in'");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out");
 		ninja.WriteLine ("rule linker");
-		ninja.WriteLine ("  command = mono $tools_dir/monolinker.exe -out $builddir/linker-out -l none --exclude-feature com --exclude-feature remoting --exclude-feature etw $linker_args || exit 1; for f in $out; do if test ! -f $$f; then echo > empty.cs; csc /nologo /out:$$f /target:library empty.cs; fi; done");
+		ninja.WriteLine ("  command = mono $tools_dir/monolinker.exe -out $builddir/linker-out -l none --explicit-reflection --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw $linker_args || exit 1; for f in $out; do if test ! -f $$f; then echo > empty.cs; csc /nologo /out:$$f /target:library empty.cs; fi; done");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-dummy");
 		ninja.WriteLine ("  command = echo > aot-dummy.cs; csc /out:$out /target:library aot-dummy.cs");
@@ -729,7 +732,7 @@ class Driver {
 		ninja.WriteLine ("rule gen-icall-table");
 		ninja.WriteLine ("  command = mono $tools_dir/wasm-tuner.exe --gen-icall-table $runtime_table $in > $out");
 		ninja.WriteLine ("rule ilstrip");
-		ninja.WriteLine ("  command = cp $in $out; mono-cil-strip $out");
+		ninja.WriteLine ("  command = cp $in $out; mono $tools_dir/mono-cil-strip.exe $out");
 		ninja.WriteLine ("  description = [IL-STRIP]");
 
 		// Targets
@@ -741,6 +744,10 @@ class Driver {
 			var source_file = Path.GetFullPath (Path.Combine (tool_prefix, "driver.c"));
 			ninja.WriteLine ($"build $builddir/driver.c: cpifdiff {source_file}");
 			ninja.WriteLine ($"build $builddir/driver-gen.c: cpifdiff $builddir/driver-gen.c.in");
+
+			var pinvoke_file = Path.GetFullPath (Path.Combine (tool_prefix, "pinvoke-tables-default.h"));
+			ninja.WriteLine ($"build $builddir/pinvoke-tables-default.h: cpifdiff {pinvoke_file}");
+			driver_deps += $" $builddir/pinvoke-tables-default.h";
 
 			var driver_cflags = enable_aot ? "-DENABLE_AOT=1" : "";
 
