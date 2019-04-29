@@ -435,6 +435,12 @@ var App = {
     }
 };
 
+if (config.dynamicLibraries) {
+    // This requires that the mono runtime is built using
+    // emscripten dynamic linking enabled.
+    Module.dynamicLibraries = config.dynamicLibraries;
+}
+
 document.addEventListener("DOMContentLoaded", () => App.preInit());
 
 if ('serviceWorker' in navigator) {

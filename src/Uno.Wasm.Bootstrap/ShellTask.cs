@@ -776,11 +776,21 @@ namespace Uno.Wasm.Bootstrap
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\"{f}\"")) : "";
 
+				var dynamicLibraries = Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly)
+					.Select(Path.GetFileName)
+					.Where(f => !f.Equals("mono.wasm"));
+
+				// Note that the "./" is required because mono is requesting files this
+				// way, and emscripten is having an issue on second loads for the same
+				// logical path: https://github.com/emscripten-core/emscripten/issues/8511
+				var sdynamicLibrariesOption = string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\""));
+
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
 				config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
+				config.AppendLine($"config.dynamicLibraries = [{sdynamicLibrariesOption}];");
 				config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
 				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
