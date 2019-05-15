@@ -126,6 +126,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (!File.Exists(packagerFilePath))
 				{
+					Log.LogMessage($"Overriding packager for {sdkName} with {PackagerOverrideFile}");
 					File.Copy(PackagerOverrideFile, packagerFilePath, true);
 				}
 

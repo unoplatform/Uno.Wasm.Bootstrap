@@ -185,11 +185,13 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 
 ## Features
 ### WebAssembly Dynamic Linking support
-Preliminary support for [Emscripten's dynamic linking](https://github.com/emscripten-core/emscripten/wiki/Linking) is included in the bootstrapper.
+Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/emscripten/wiki/Linking) is included in the bootstrapper.
 
 For now, any `.wasm` file placed as content in the built project will be dynamically linked to 
 the currently running application, allowing for p/invoke to be functional when resolving methods
 from the loaded module.
+
+For more information, please refer to the `Uno.Wasm.DynamicLinking` sample in the `Uno.Wasm.Bootstrap` solution.
 
 ### Support for IIS / Azure Webapp GZip/Brotli pre-compression
 The IIS compression support has too many knobs for the size of generated WebAssembly files, which
