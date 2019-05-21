@@ -73,7 +73,8 @@ jobs:
   - bash: |
       sudo chmod -R 777 /emsdk
       cd /emsdk
-      sudo ./emsdk activate sdk-1.38.28-64bit
+      sudo ./emsdk install sdk-1.38.30-64bit
+      sudo ./emsdk activate sdk-1.38.30-64bit
 
     displayName: 'Setup Emscripten'
 
