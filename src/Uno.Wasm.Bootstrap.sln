@@ -37,6 +37,8 @@ Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "WasmAot.UITests", "WasmAot.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.DynamicLinking", "Uno.Wasm.DynamicLinking\Uno.Wasm.DynamicLinking.csproj", "{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}"
 EndProject
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.DynamicLinking.UITests", "Uno.Wasm.DynamicLinking.UITests\Uno.Wasm.DynamicLinking.UITests.njsproj", "{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,10 @@ Global
 		{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -106,6 +112,7 @@ Global
 		{C707589F-7E9F-48F3-9725-D012CEA8D4AF} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{B4C15C47-85E2-444E-B9F3-D970E35601A9} = {BA079449-9703-42D1-9B7B-B534C2D1DB88}
 		{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE} = {BA079449-9703-42D1-9B7B-B534C2D1DB88}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}

@@ -391,11 +391,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (runtimeExecutionMode == RuntimeExecutionMode.FullAOT || runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT)
 			{
-				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-				if (string.IsNullOrEmpty(emsdkPath))
-				{
-					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-				}
+				var emsdkPath = ValidateEmscripten();
 
 				var mixedModeExcluded = MixedModeExcludedAssembly
 					?.Select(a => a.ItemSpec)
@@ -403,8 +399,11 @@ namespace Uno.Wasm.Bootstrap
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 
+				var dynamicLibraries = GetDynamicLibrariesParams();
+				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
+
 				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
-				var aotOptions = $"{aotMode} --link-mode=all --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
+				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
 				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
@@ -486,6 +485,37 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					File.WriteAllText(monoConfigFilePath, monoConfig);
+				}
+			}
+		}
+
+		private static string ValidateEmscripten()
+		{
+			var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+			if (string.IsNullOrEmpty(emsdkPath))
+			{
+				throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+			}
+
+			var emscriptenVar = Environment.GetEnvironmentVariable("EMSCRIPTEN");
+			var version = Path.GetFileName(emscriptenVar);
+
+			if (new Version(version) < Constants.EmscriptenMinVersion)
+			{
+				throw new InvalidOperationException($"The EMSDK version {version} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
+			}
+
+			return emsdkPath;
+		}
+
+		private IEnumerable<string> GetDynamicLibrariesParams()
+		{
+			foreach (var item in Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly))
+			{
+				var fileName = Path.GetFileNameWithoutExtension(item);
+				if (!fileName.Equals("mono.wasm", StringComparison.OrdinalIgnoreCase))
+				{
+					yield return fileName;
 				}
 			}
 		}

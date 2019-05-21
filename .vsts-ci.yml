@@ -2,7 +2,7 @@
 resources:
   containers:
   - container: nv-bionic-wasm
-    image: nventive/wasm-build:1.1-bionic
+    image: nventive/wasm-build:1.3
 
 
 jobs:
@@ -29,6 +29,8 @@ jobs:
 
   - powershell: |
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
+        npm install
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
         npm install
 
     displayName: UI Tests npm dependencies
@@ -69,9 +71,10 @@ jobs:
     clean: true
 
   - bash: |
-      sudo chmod -R 777 /emsdk
       cd /emsdk
-      sudo ./emsdk activate sdk-1.38.28-64bit
+      sudo ./emsdk install sdk-1.38.31-64bit
+      sudo ./emsdk activate sdk-1.38.31-64bit
+      sudo chmod -R 777 /emsdk
 
     displayName: 'Setup Emscripten'
 
@@ -101,6 +104,18 @@ jobs:
       cd $(build.sourcesdirectory)/src/WasmAot.UITests
       npm install
       node app
+
+    displayName: Raytracer UI Tests 
+
+  - bash: |
+      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist/server.py"
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+      npm install
+      node app
+
+    displayName: DynamicLinking Tests 
 
   - task: PublishBuildArtifacts@1
     condition: always()

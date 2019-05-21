@@ -15,7 +15,9 @@
 //
 // ******************************************************************
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
+using WebAssembly;
 
 namespace Uno.Wasm.Sample
 { 
@@ -35,6 +37,10 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"test_add:{test_add(21, 21)}");
 			Console.WriteLine($"test_float:{test_add_float1(21, 21)}");
 			Console.WriteLine($"test_add_double:{test_add_double(21, 21)}");
+
+			var res = $"{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)}";
+
+			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
 		}
 	}
 }
