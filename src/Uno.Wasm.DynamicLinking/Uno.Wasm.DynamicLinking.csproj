@@ -27,6 +27,7 @@
 
 	<ItemGroup>
 	  <None Remove="side.wasm" />
+	  <None Remove="WasmScripts\test.js" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -53,6 +54,5 @@
 
 	<ItemGroup>
 	  <Folder Include="Content\" />
-	  <Folder Include="WasmScripts\" />
 	</ItemGroup>
 </Project>

@@ -403,8 +403,11 @@ namespace Uno.Wasm.Bootstrap
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 
+				var dynamicLibraries = GetDynamicLibrariesParams();
+				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
+
 				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
-				var aotOptions = $"{aotMode} --link-mode=all --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
+				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
 				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
@@ -486,6 +489,18 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					File.WriteAllText(monoConfigFilePath, monoConfig);
+				}
+			}
+		}
+
+		private IEnumerable<string> GetDynamicLibrariesParams()
+		{
+			foreach (var item in Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly))
+			{
+				var fileName = Path.GetFileNameWithoutExtension(item);
+				if (!fileName.Equals("mono.wasm", StringComparison.OrdinalIgnoreCase))
+				{
+					yield return fileName;
 				}
 			}
 		}

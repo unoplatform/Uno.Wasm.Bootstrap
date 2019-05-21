@@ -30,6 +30,8 @@ jobs:
   - powershell: |
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
         npm install
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+        npm install
 
     displayName: UI Tests npm dependencies
 
@@ -101,6 +103,19 @@ jobs:
       cd $(build.sourcesdirectory)/src/WasmAot.UITests
       npm install
       node app
+      kill %%
+
+    displayName: Raytracer UI Tests 
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+      npm install
+      node app
+      kill %%
+
+    displayName: Ratytracer UI Tests 
 
   - task: PublishBuildArtifacts@1
     condition: always()
