@@ -15,7 +15,7 @@ const path = require("path");
         "defaultViewport": { "width": 1280, "height": 1024 }
     });
     const page = yield browser.newPage();
-    yield page.goto("http://localhost:8000/");
+    yield page.goto("http://localhost:8001/");
     var value = null;
     console.log(`Init puppeteer`);
     var counter = 3;

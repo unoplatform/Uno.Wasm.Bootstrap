@@ -391,11 +391,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (runtimeExecutionMode == RuntimeExecutionMode.FullAOT || runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT)
 			{
-				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-				if (string.IsNullOrEmpty(emsdkPath))
-				{
-					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-				}
+				var emsdkPath = ValidateEmscripten();
 
 				var mixedModeExcluded = MixedModeExcludedAssembly
 					?.Select(a => a.ItemSpec)
@@ -491,6 +487,25 @@ namespace Uno.Wasm.Bootstrap
 					File.WriteAllText(monoConfigFilePath, monoConfig);
 				}
 			}
+		}
+
+		private static string ValidateEmscripten()
+		{
+			var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+			if (string.IsNullOrEmpty(emsdkPath))
+			{
+				throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+			}
+
+			var emscriptenVar = Environment.GetEnvironmentVariable("EMSCRIPTEN");
+			var version = Path.GetFileName(emscriptenVar);
+
+			if (new Version(version) < Constants.EmscriptenMinVersion)
+			{
+				throw new InvalidOperationException($"The EMSDK version {version} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
+			}
+
+			return emsdkPath;
 		}
 
 		private IEnumerable<string> GetDynamicLibrariesParams()

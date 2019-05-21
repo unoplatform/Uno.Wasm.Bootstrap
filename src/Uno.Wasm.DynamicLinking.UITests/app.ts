@@ -8,7 +8,7 @@ const path = require("path");
 		"defaultViewport": { "width": 1280, "height": 1024 }
 	});
 	const page = await browser.newPage();
-	await page.goto("http://localhost:8000/");
+	await page.goto("http://localhost:8001/");
 
 	var value = null;
 
