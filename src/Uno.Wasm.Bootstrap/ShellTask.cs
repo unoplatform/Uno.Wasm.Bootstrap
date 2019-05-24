@@ -66,7 +66,11 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool UseFileIntegrity { get; set; } = true;
 
-		public bool GeneratePrefetchHeaders { get; set; } = true;
+		/// <remarks>
+		/// Disabled until browsers get smarted about fetch vs. prefetch invocations.
+		/// e.g. Chrome downloads files twice.
+		/// </remarks>
+		public bool GeneratePrefetchHeaders { get; set; } = false;
 
 		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
 
