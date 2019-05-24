@@ -443,7 +443,7 @@ if (config.dynamicLibraries) {
 
 document.addEventListener("DOMContentLoaded", () => App.preInit());
 
-if ('serviceWorker' in navigator) {
+if (config.enable_pwa && 'serviceWorker' in navigator) {
     console.log('Registering service worker now');
     navigator.serviceWorker.register('/service-worker.js')
         .then(function () {
