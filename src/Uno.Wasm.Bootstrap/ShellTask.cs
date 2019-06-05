@@ -828,7 +828,7 @@ namespace Uno.Wasm.Bootstrap
 				// Note that the "./" is required because mono is requesting files this
 				// way, and emscripten is having an issue on second loads for the same
 				// logical path: https://github.com/emscripten-core/emscripten/issues/8511
-				var sdynamicLibrariesOption = IsRuntimeAOT() ? string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\"")) : "";
+				var sdynamicLibrariesOption = IsRuntimeAOT() ? "" : string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\""));
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
