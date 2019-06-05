@@ -26,12 +26,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="side.wasm" />
-	  <None Remove="WasmScripts\test.js" />
+		<None Remove="side.wasm" />
+		<None Remove="side.bc" />
+		<None Remove="WasmScripts\test.js" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Include="side.wasm" />
+		<Content Include="side.wasm" />
+		<Content Include="side.bc" />
 	</ItemGroup>
 
 	<ItemGroup>

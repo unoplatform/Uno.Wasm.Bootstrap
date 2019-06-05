@@ -59,6 +59,7 @@ class Driver {
 	static List<string>  file_list = new List<string> ();
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
+	static List<string> bitcode_files = new List<string>();
 
 	const string BINDINGS_ASM_NAME = "WebAssembly.Bindings";
 	const string BINDINGS_RUNTIME_CLASS_NAME = "WebAssembly.Runtime";
@@ -131,6 +132,7 @@ class Driver {
 		Console.WriteLine ("\t--skip-aot-assemblies=x List of assemblies to skip AOT in AOT+INTERP mode.");
 		Console.WriteLine ("\t--link-mode=sdkonly|all        Set the link type used for AOT. (EXPERIMENTAL)");
         Console.WriteLine ("\t--pinvoke-libs=x DllImport libraries used.");
+        Console.WriteLine ("\t--bc=x          Additional bitcode files to link statically.");
         Console.WriteLine ("\t\t              'sdkonly' only link the Core libraries.");
 		Console.WriteLine ("\t\t              'all' link Core and User assemblies. (default)");
 
@@ -398,6 +400,7 @@ class Driver {
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
 				{ "link-mode=", s => linkModeParm = s },
                 { "pinvoke-libs=", s => pinvoke_libs = s },
+                { "bc=", s => bitcode_files.Add(s) },
                 { "help", s => print_usage = true },
 					};
 
@@ -725,7 +728,7 @@ class Driver {
         {
 			ninja.WriteLine ("emcc = source $emscripten_sdkdir/emsdk_env.sh && EMCC_FORCE_STDLIBS=1 emcc");
             // -s ASSERTIONS=2 is very slow
-            ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s MAIN_MODULE=1 -s EXPORT_ALL=1 -s RESERVED_FUNCTION_POINTERS=64 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
+            ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s RESERVED_FUNCTION_POINTERS=64 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
         }
         else
         {
@@ -906,7 +909,7 @@ class Driver {
 			ninja.WriteLine ($"  pinvoke_libs=System.Native,{pinvoke_libs}");
 		}
 		if (build_wasm) {
-			ninja.WriteLine ($"build $appdir/mono.js: emcc-link $builddir/driver.o {wasm_core_bindings} {ofiles} {profiler_libs} {runtime_libs} $mono_sdkdir/wasm-runtime-release/lib/libmono-native.a | $tool_prefix/library_mono.js $tool_prefix/dotnet_support.js {wasm_core_support}");
+			ninja.WriteLine ($"build $appdir/mono.js: emcc-link $builddir/driver.o {wasm_core_bindings} {ofiles} {profiler_libs} {runtime_libs} {string.Join(" ", bitcode_files)} $mono_sdkdir/wasm-runtime-release/lib/libmono-native.a | $tool_prefix/library_mono.js $tool_prefix/dotnet_support.js {wasm_core_support}");
 		}
 		if (enable_linker) {
 			switch (linkMode) {
