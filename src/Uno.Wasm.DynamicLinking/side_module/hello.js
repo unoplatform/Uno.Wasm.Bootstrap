@@ -466,21 +466,21 @@ function loadDynamicLibrary(lib, flags) {
       // available for symbol resolution of subsequently loaded shared objects.
       //
       // We should copy the symbols (which include methods and variables) from SIDE_MODULE to MAIN_MODULE.
-      //
+
+      var module_sym = sym;
       // Module of SIDE_MODULE has not only the symbols (which should be copied)
       // but also others (print*, asmGlobal*, FUNCTION_TABLE_**, NAMED_GLOBALS, and so on).
       //
-      // When the symbol (which should be copied) is method, Module._* 's type becomes function.
-      // When the symbol (which should be copied) is variable, Module._* 's type becomes number.
-      //
+      // When the symbol (which should be copied) is method, Module.* 's type becomes function.
+      // When the symbol (which should be copied) is variable, Module.* 's type becomes number.
       // Except for the symbol prefix (_), there is no difference in the symbols (which should be copied) and others.
       // So this just copies over compiled symbols (which start with _).
       if (sym[0] !== '_') {
         continue;
       }
 
-      if (!Module.hasOwnProperty(sym)) {
-        Module[sym] = libModule[sym];
+      if (!Module.hasOwnProperty(module_sym)) {
+        Module[module_sym] = libModule[sym];
       }
     }
   }
@@ -493,31 +493,14 @@ function loadDynamicLibrary(lib, flags) {
     dso.module = libModule;
   }
 
-  function cleanupOnError() {
-    var lib_record = LDSO.loadedLibs[handle];
-    delete LDSO.loadedLibNames[lib_record.name];
-    delete LDSO.loadedLibs[handle];
-  }
-
   if (flags.loadAsync) {
-    return getLibModule()
-      .catch(function (e) {
-        cleanupOnError();
-        throw e;
-      })
-      .then(function (libModule) {
-        moduleLoaded(libModule);
-        return handle;
-      })
+    return getLibModule().then(function(libModule) {
+      moduleLoaded(libModule);
+      return handle;
+    })
   }
 
-  try {
-    moduleLoaded(getLibModule());
-  }
-  catch (e) {
-    cleanupOnError();
-    throw e;
-  }
+  moduleLoaded(getLibModule());
   return handle;
 }
 
@@ -598,12 +581,28 @@ function loadWebAssemblyModule(binary, flags) {
     for (var i = tableBase; i < tableBase + tableSize; i++) {
       table.set(i, null);
     }
+
+    // We resolve symbols against the global Module but failing that also
+    // against the local symbols exported a side module.  This is because
+    // a) Module sometime need to import their own symbols
+    // b) Symbols from loaded modules are not always added to the global Module.
+    var moduleLocal = {};
+
+    var resolveSymbol = function(sym, type) {
+      var resolved = Module[sym];
+      if (!resolved)
+        resolved = moduleLocal[sym];
+      assert(resolved, 'missing linked ' + type + ' `' + sym + '`. perhaps a side module was not linked in? if this global was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment');
+      return resolved;
+    }
+
     // copy currently exported symbols so the new module can import them
     for (var x in Module) {
       if (!(x in env)) {
         env[x] = Module[x];
       }
     }
+
     // TODO kill ↓↓↓ (except "symbols local to this module", it will likely be
     // not needed if we require that if A wants symbols from B it has to link
     // to B explicitly: similarly to -Wl,--no-undefined)
@@ -633,9 +632,24 @@ function loadWebAssemblyModule(binary, flags) {
         if (prop.startsWith('g$')) {
           // a global. the g$ function returns the global address.
           var name = prop.substr(2); // without g$ prefix
-          return env[prop] = function() {
-            assert(Module[name], 'missing linked global ' + name + '. perhaps a side module was not linked in? if this global was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment');
-            return Module[name];
+          return obj[prop] = function() {
+            return resolveSymbol(name, 'global');
+          };
+        }
+        if (prop.startsWith('fp$')) {
+          // the fp$ function returns the address (table index) of the function
+          var parts = prop.split('$');
+          assert(parts.length == 3)
+          var name = parts[1];
+          var sig = parts[2];
+          var fp = 0;
+          return obj[prop] = function() {
+            if (!fp) {
+              console.log("geting function address: " + name);
+              var f = resolveSymbol(name, 'function');
+              fp = addFunctionWasm(f, sig);
+            }
+            return fp;
           };
         }
         if (prop.startsWith('invoke_')) {
@@ -643,12 +657,11 @@ function loadWebAssemblyModule(binary, flags) {
           // present in the dynamic library but not in the main JS,
           // and the dynamic library cannot provide JS for it. Use
           // the generic "X" invoke for it.
-          return env[prop] = invoke_X;
+          return obj[prop] = invoke_X;
         }
-        // if not a global, then a function - call it indirectly
-        return env[prop] = function() {
-          assert(Module[prop], 'missing linked function ' + prop + '. perhaps a side module was not linked in? if this function was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment');
-          return Module[prop].apply(null, arguments);
+        // otherwise this is regular function import - call it indirectly
+        return obj[prop] = function() {
+          return resolveSymbol(prop, 'function').apply(null, arguments);
         };
       }
     };
@@ -666,7 +679,7 @@ function loadWebAssemblyModule(binary, flags) {
       oldTable.push(table.get(i));
     }
 
-    function postInstantiation(instance) {
+    function postInstantiation(instance, moduleLocal) {
       var exports = {};
       // the table should be unchanged
       assert(table === originalTable);
@@ -694,6 +707,7 @@ function loadWebAssemblyModule(binary, flags) {
             value = value + memoryBase;
         }
         exports[e] = value;
+        moduleLocal[e] = value;
       }
       // initialize the module
       var init = exports['__post_instantiate'];
@@ -710,11 +724,11 @@ function loadWebAssemblyModule(binary, flags) {
 
     if (flags.loadAsync) {
       return WebAssembly.instantiate(binary, info).then(function(result) {
-        return postInstantiation(result.instance);
+        return postInstantiation(result.instance, moduleLocal);
       });
     } else {
       var instance = new WebAssembly.Instance(new WebAssembly.Module(binary), info);
-      return postInstantiation(instance);
+      return postInstantiation(instance, moduleLocal);
     }
   }
 
@@ -762,35 +776,120 @@ function registerFunctions(sigs, newModule) {
 Module['registerFunctions'] = registerFunctions;
 
 
+// Wraps a JS function as a wasm function with a given signature.
+// In the future, we may get a WebAssembly.Function constructor. Until then,
+// we create a wasm module that takes the JS function as an import with a given
+// signature, and re-exports that as a wasm function.
+function convertJsFunctionToWasm(func, sig) {
+  // The module is static, with the exception of the type section, which is
+  // generated based on the signature passed in.
+  var typeSection = [
+    0x01, // id: section,
+    0x00, // length: 0 (placeholder)
+    0x01, // count: 1
+    0x60, // form: func
+  ];
+  var sigRet = sig.slice(0, 1);
+  var sigParam = sig.slice(1);
+  var typeCodes = {
+    'i': 0x7f, // i32
+    'j': 0x7e, // i64
+    'f': 0x7d, // f32
+    'd': 0x7c, // f64
+  };
+
+  // Parameters, length + signatures
+  typeSection.push(sigParam.length);
+  for (var i = 0; i < sigParam.length; ++i) {
+    typeSection.push(typeCodes[sigParam[i]]);
+  }
+
+  // Return values, length + signatures
+  // With no multi-return in MVP, either 0 (void) or 1 (anything else)
+  if (sigRet == 'v') {
+    typeSection.push(0x00);
+  } else {
+    typeSection = typeSection.concat([0x01, typeCodes[sigRet]]);
+  }
+
+  // Write the overall length of the type section back into the section header
+  // (excepting the 2 bytes for the section id and length)
+  typeSection[1] = typeSection.length - 2;
+
+  // Rest of the module is static
+  var bytes = new Uint8Array([
+    0x00, 0x61, 0x73, 0x6d, // magic ("\0asm")
+    0x01, 0x00, 0x00, 0x00, // version: 1
+  ].concat(typeSection, [
+    0x02, 0x07, // import section
+      // (import "e" "f" (func 0 (type 0)))
+      0x01, 0x01, 0x65, 0x01, 0x66, 0x00, 0x00,
+    0x07, 0x05, // export section
+      // (export "f" (func 0 (type 0)))
+      0x01, 0x01, 0x66, 0x00, 0x00,
+  ]));
+
+   // We can compile this wasm module synchronously because it is very small.
+  // This accepts an import (at "e.f"), that it reroutes to an export (at "f")
+  var module = new WebAssembly.Module(bytes);
+  var instance = new WebAssembly.Instance(module, {
+    e: {
+      f: func
+    }
+  });
+  var wrappedFunc = instance.exports.f;
+  return wrappedFunc;
+}
+
 // Add a wasm function to the table.
-// Attempting to call this with JS function will cause of table.set() to fail
-function addWasmFunction(func) {
+function addFunctionWasm(func, sig) {
   var table = wasmTable;
   var ret = table.length;
-  table.grow(1);
-  table.set(ret, func);
+
+  // Grow the table
+  try {
+    table.grow(1);
+  } catch (err) {
+    if (!err instanceof RangeError) {
+      throw err;
+    }
+    throw 'Unable to grow wasm table. Use a higher value for RESERVED_FUNCTION_POINTERS or set ALLOW_TABLE_GROWTH.';
+  }
+
+  // Insert new element
+  try {
+    // Attempting to call this with JS function will cause of table.set() to fail
+    table.set(ret, func);
+  } catch (err) {
+    if (!err instanceof TypeError) {
+      throw err;
+    }
+    assert(typeof sig !== 'undefined', 'Missing signature argument to addFunction');
+    var wrapped = convertJsFunctionToWasm(func, sig);
+    table.set(ret, wrapped);
+  }
+
   return ret;
 }
 
-// 'sig' parameter is currently only used for LLVM backend under certain
-// circumstance: RESERVED_FUNCTION_POINTERS=1, EMULATED_FUNCTION_POINTERS=0.
+function removeFunctionWasm(index) {
+  // TODO(sbc): Look into implementing this to allow re-using of table slots
+}
+
+// 'sig' parameter is required for the llvm backend but only when func is not
+// already a WebAssembly function.
 function addFunction(func, sig) {
 
 
-  // assume we have been passed a wasm function and can add it to the table
-  // directly.
-  // TODO(sbc): This assumtion is most likely not valid.  Look into ways of
-  // creating wasm functions based on JS functions as input.
-  return addWasmFunction(func);
+
+  return addFunctionWasm(func, sig);
 
 }
 
 function removeFunction(index) {
-  alignFunctionTables(); // XXX we should rely on this being an invariant
-  var tables = getFunctionTables();
-  for (var sig in tables) {
-    tables[sig][index] = null;
-  }
+
+  removeFunctionWasm(index);
+
 }
 
 var funcWrappers = {};
@@ -1121,7 +1220,7 @@ function Pointer_stringify(ptr, length) {
 function AsciiToString(ptr) {
   var str = '';
   while (1) {
-    var ch = HEAP8[((ptr++)>>0)];
+    var ch = HEAPU8[((ptr++)>>0)];
     if (!ch) return str;
     str += String.fromCharCode(ch);
   }
@@ -1556,10 +1655,6 @@ var HEAP,
 /** @type {Float64Array} */
   HEAPF64;
 
-function updateGlobalBuffer(buf) {
-  Module['buffer'] = buffer = buf;
-}
-
 function updateGlobalBufferViews() {
   Module['HEAP8'] = HEAP8 = new Int8Array(buffer);
   Module['HEAP16'] = HEAP16 = new Int16Array(buffer);
@@ -1573,11 +1668,11 @@ function updateGlobalBufferViews() {
 
 
 var STATIC_BASE = 1024,
-    STACK_BASE = 173616,
+    STACK_BASE = 173648,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 5416496,
-    DYNAMIC_BASE = 5416496,
-    DYNAMICTOP_PTR = 173360;
+    STACK_MAX = 5416528,
+    DYNAMIC_BASE = 5416528,
+    DYNAMICTOP_PTR = 173616;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 assert(DYNAMIC_BASE % 16 === 0, 'heap must start aligned');
@@ -1587,8 +1682,8 @@ assert(DYNAMIC_BASE % 16 === 0, 'heap must start aligned');
 var TOTAL_STACK = 5242880;
 if (Module['TOTAL_STACK']) assert(TOTAL_STACK === Module['TOTAL_STACK'], 'the stack size can no longer be determined at runtime')
 
-var TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 16777216;
-if (TOTAL_MEMORY < TOTAL_STACK) err('TOTAL_MEMORY should be larger than TOTAL_STACK, was ' + TOTAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
+var INITIAL_TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 16777216;
+if (INITIAL_TOTAL_MEMORY < TOTAL_STACK) err('TOTAL_MEMORY should be larger than TOTAL_STACK, was ' + INITIAL_TOTAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
 
 // Initialize the runtime's memory
 // check for full engine support (use string 'subarray' to avoid closure compiler confusion)
@@ -1604,19 +1699,18 @@ assert(typeof Int32Array !== 'undefined' && typeof Float64Array !== 'undefined' 
 // Use a provided buffer, if there is one, or else allocate a new one
 if (Module['buffer']) {
   buffer = Module['buffer'];
-  assert(buffer.byteLength === TOTAL_MEMORY, 'provided buffer should be ' + TOTAL_MEMORY + ' bytes, but it is ' + buffer.byteLength);
+  assert(buffer.byteLength === INITIAL_TOTAL_MEMORY, 'provided buffer should be ' + INITIAL_TOTAL_MEMORY + ' bytes, but it is ' + buffer.byteLength);
 } else {
   // Use a WebAssembly memory where available
   if (typeof WebAssembly === 'object' && typeof WebAssembly.Memory === 'function') {
-    assert(TOTAL_MEMORY % WASM_PAGE_SIZE === 0);
-    wasmMemory = new WebAssembly.Memory({ 'initial': TOTAL_MEMORY / WASM_PAGE_SIZE, 'maximum': TOTAL_MEMORY / WASM_PAGE_SIZE });
+    assert(INITIAL_TOTAL_MEMORY % WASM_PAGE_SIZE === 0);
+    wasmMemory = new WebAssembly.Memory({ 'initial': INITIAL_TOTAL_MEMORY / WASM_PAGE_SIZE, 'maximum': INITIAL_TOTAL_MEMORY / WASM_PAGE_SIZE });
     buffer = wasmMemory.buffer;
   } else
   {
-    buffer = new ArrayBuffer(TOTAL_MEMORY);
+    buffer = new ArrayBuffer(INITIAL_TOTAL_MEMORY);
   }
-  assert(buffer.byteLength === TOTAL_MEMORY);
-  Module['buffer'] = buffer;
+  assert(buffer.byteLength === INITIAL_TOTAL_MEMORY);
 }
 updateGlobalBufferViews();
 
@@ -2068,8 +2162,11 @@ Module['asm'] = function(global, env, providedBuffer) {
     'initial': 64,
     'element': 'anyfunc'
   });
+  // With the wasm backend __memory_base and __table_base and only needed for
+  // relocatable output.
   env['__memory_base'] = 1024; // tell the memory segments where to place themselves
-  env['__table_base'] = 0; // table starts at 0 by default (even in dynamic linking, for the main module)
+  // table starts at 0 by default (even in dynamic linking, for the main module)
+  env['__table_base'] = 0;
 
   var exports = createWasm(env);
   assert(exports, 'binaryen setup failed (no wasm support?)');
@@ -2084,7 +2181,7 @@ var ASM_CONSTS = [];
 
 
 
-// STATICTOP = STATIC_BASE + 172592;
+// STATICTOP = STATIC_BASE + 172624;
 /* global initializers */  __ATINIT__.push({ func: function() { __apply_relocations() } });
 
 
@@ -2095,7 +2192,7 @@ var ASM_CONSTS = [];
 
 
 /* no memory initializer */
-var tempDoublePtr = 173600
+var tempDoublePtr = 173632
 assert(tempDoublePtr % 8 == 0);
 
 function copyTempFloat(ptr) { // functions, because inlining this code increases code size too much
@@ -2130,7 +2227,7 @@ function copyTempDouble(ptr) {
       return (0
         || ENVIRONMENT_IS_NODE
         || (typeof dateNow !== 'undefined')
-        || ((ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) && self['performance'] && self['performance']['now'])
+        || (typeof performance === 'object' && performance && typeof performance['now'] === 'function')
         );
     }
   Module["_emscripten_get_now_is_monotonic"] = _emscripten_get_now_is_monotonic;
@@ -2167,9 +2264,7 @@ function copyTempDouble(ptr) {
   
    
   
-  
-  var _Math_clz32=undefined;
-  Module["_Math_clz32"] = _Math_clz32;function _llvm_cttz_i32(x) { // Note: Currently doesn't take isZeroUndef()
+  function _llvm_cttz_i32(x) { // Note: Currently doesn't take isZeroUndef()
       x = x | 0;
       return (x ? (31 - (Math_clz32((x ^ (x - 1))) | 0) | 0) : 32) | 0;
     }
@@ -2185,9 +2280,7 @@ function copyTempDouble(ptr) {
   Module["___map_file"] = ___map_file;
 
   
-  
-  var _Math_imul=undefined;
-  Module["_Math_imul"] = _Math_imul;  
+    
 
   
   
@@ -2336,7 +2429,7 @@ function copyTempDouble(ptr) {
       },stream_ops:{open:function (stream) {
           var tty = TTY.ttys[stream.node.rdev];
           if (!tty) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENODEV);
+            throw new FS.ErrnoError(19);
           }
           stream.tty = tty;
           stream.seekable = false;
@@ -2347,7 +2440,7 @@ function copyTempDouble(ptr) {
           stream.tty.ops.flush(stream.tty);
         },read:function (stream, buffer, offset, length, pos /* ignored */) {
           if (!stream.tty || !stream.tty.ops.get_char) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENXIO);
+            throw new FS.ErrnoError(6);
           }
           var bytesRead = 0;
           for (var i = 0; i < length; i++) {
@@ -2355,10 +2448,10 @@ function copyTempDouble(ptr) {
             try {
               result = stream.tty.ops.get_char(stream.tty);
             } catch (e) {
-              throw new FS.ErrnoError(ERRNO_CODES.EIO);
+              throw new FS.ErrnoError(5);
             }
             if (result === undefined && bytesRead === 0) {
-              throw new FS.ErrnoError(ERRNO_CODES.EAGAIN);
+              throw new FS.ErrnoError(11);
             }
             if (result === null || result === undefined) break;
             bytesRead++;
@@ -2370,14 +2463,14 @@ function copyTempDouble(ptr) {
           return bytesRead;
         },write:function (stream, buffer, offset, length, pos) {
           if (!stream.tty || !stream.tty.ops.put_char) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENXIO);
+            throw new FS.ErrnoError(6);
           }
           try {
             for (var i = 0; i < length; i++) {
               stream.tty.ops.put_char(stream.tty, buffer[offset+i]);
             }
           } catch (e) {
-            throw new FS.ErrnoError(ERRNO_CODES.EIO);
+            throw new FS.ErrnoError(5);
           }
           if (length) {
             stream.node.timestamp = Date.now();
@@ -2472,7 +2565,7 @@ function copyTempDouble(ptr) {
       },createNode:function (parent, name, mode, dev) {
         if (FS.isBlkdev(mode) || FS.isFIFO(mode)) {
           // no supported
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         }
         if (!MEMFS.ops_table) {
           MEMFS.ops_table = {
@@ -2632,7 +2725,7 @@ function copyTempDouble(ptr) {
             MEMFS.resizeFileStorage(node, attr.size);
           }
         },lookup:function (parent, name) {
-          throw FS.genericErrors[ERRNO_CODES.ENOENT];
+          throw FS.genericErrors[2];
         },mknod:function (parent, name, mode, dev) {
           return MEMFS.createNode(parent, name, mode, dev);
         },rename:function (old_node, new_dir, new_name) {
@@ -2645,7 +2738,7 @@ function copyTempDouble(ptr) {
             }
             if (new_node) {
               for (var i in new_node.contents) {
-                throw new FS.ErrnoError(ERRNO_CODES.ENOTEMPTY);
+                throw new FS.ErrnoError(39);
               }
             }
           }
@@ -2659,7 +2752,7 @@ function copyTempDouble(ptr) {
         },rmdir:function (parent, name) {
           var node = FS.lookupNode(parent, name);
           for (var i in node.contents) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENOTEMPTY);
+            throw new FS.ErrnoError(39);
           }
           delete parent.contents[name];
         },readdir:function (node) {
@@ -2677,7 +2770,7 @@ function copyTempDouble(ptr) {
           return node;
         },readlink:function (node) {
           if (!FS.isLink(node.mode)) {
-            throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+            throw new FS.ErrnoError(22);
           }
           return node.link;
         }},stream_ops:{read:function (stream, buffer, offset, length, position) {
@@ -2733,7 +2826,7 @@ function copyTempDouble(ptr) {
             }
           }
           if (position < 0) {
-            throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+            throw new FS.ErrnoError(22);
           }
           return position;
         },allocate:function (stream, offset, length) {
@@ -2741,7 +2834,7 @@ function copyTempDouble(ptr) {
           stream.node.usedBytes = Math.max(stream.node.usedBytes, offset + length);
         },mmap:function (stream, buffer, offset, length, position, prot, flags) {
           if (!FS.isFile(stream.node.mode)) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENODEV);
+            throw new FS.ErrnoError(19);
           }
           var ptr;
           var allocated;
@@ -2765,14 +2858,14 @@ function copyTempDouble(ptr) {
             allocated = true;
             ptr = _malloc(length);
             if (!ptr) {
-              throw new FS.ErrnoError(ERRNO_CODES.ENOMEM);
+              throw new FS.ErrnoError(12);
             }
             buffer.set(contents, ptr);
           }
           return { ptr: ptr, allocated: allocated };
         },msync:function (stream, buffer, offset, length, mmapFlags) {
           if (!FS.isFile(stream.node.mode)) {
-            throw new FS.ErrnoError(ERRNO_CODES.ENODEV);
+            throw new FS.ErrnoError(19);
           }
           if (mmapFlags & 2) {
             // MAP_PRIVATE calls need not to be synced back to underlying fs
@@ -3093,7 +3186,7 @@ function copyTempDouble(ptr) {
         return NODEFS.createNode(null, '/', NODEFS.getMode(mount.opts.root), 0);
       },createNode:function (parent, name, mode, dev) {
         if (!FS.isDir(mode) && !FS.isFile(mode) && !FS.isLink(mode)) {
-          throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+          throw new FS.ErrnoError(22);
         }
         var node = FS.createNode(parent, name, mode);
         node.node_ops = NODEFS.node_ops;
@@ -3110,7 +3203,7 @@ function copyTempDouble(ptr) {
           }
         } catch (e) {
           if (!e.code) throw e;
-          throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+          throw new FS.ErrnoError(-e.errno); // syscall errnos are negated, node's are not
         }
         return stat.mode;
       },realPath:function (node) {
@@ -3138,7 +3231,7 @@ function copyTempDouble(ptr) {
         if (!flags) {
           return newFlags;
         } else {
-          throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+          throw new FS.ErrnoError(22);
         }
       },node_ops:{getattr:function (node) {
           var path = NODEFS.realPath(node);
@@ -3147,7 +3240,7 @@ function copyTempDouble(ptr) {
             stat = fs.lstatSync(path);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
           // node.js v0.10.20 doesn't report blksize and blocks on Windows. Fake them with default blksize of 4096.
           // See http://support.microsoft.com/kb/140365
@@ -3189,7 +3282,7 @@ function copyTempDouble(ptr) {
             }
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },lookup:function (parent, name) {
           var path = PATH.join2(NODEFS.realPath(parent), name);
@@ -3207,7 +3300,7 @@ function copyTempDouble(ptr) {
             }
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
           return node;
         },rename:function (oldNode, newDir, newName) {
@@ -3217,7 +3310,7 @@ function copyTempDouble(ptr) {
             fs.renameSync(oldPath, newPath);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },unlink:function (parent, name) {
           var path = PATH.join2(NODEFS.realPath(parent), name);
@@ -3225,7 +3318,7 @@ function copyTempDouble(ptr) {
             fs.unlinkSync(path);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },rmdir:function (parent, name) {
           var path = PATH.join2(NODEFS.realPath(parent), name);
@@ -3233,7 +3326,7 @@ function copyTempDouble(ptr) {
             fs.rmdirSync(path);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },readdir:function (node) {
           var path = NODEFS.realPath(node);
@@ -3241,7 +3334,7 @@ function copyTempDouble(ptr) {
             return fs.readdirSync(path);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },symlink:function (parent, newName, oldPath) {
           var newPath = PATH.join2(NODEFS.realPath(parent), newName);
@@ -3249,7 +3342,7 @@ function copyTempDouble(ptr) {
             fs.symlinkSync(oldPath, newPath);
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },readlink:function (node) {
           var path = NODEFS.realPath(node);
@@ -3259,7 +3352,7 @@ function copyTempDouble(ptr) {
             return path;
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         }},stream_ops:{open:function (stream) {
           var path = NODEFS.realPath(stream.node);
@@ -3269,7 +3362,7 @@ function copyTempDouble(ptr) {
             }
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },close:function (stream) {
           try {
@@ -3278,7 +3371,7 @@ function copyTempDouble(ptr) {
             }
           } catch (e) {
             if (!e.code) throw e;
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },read:function (stream, buffer, offset, length, position) {
           // Node.js < 6 compatibility: node errors on 0 length reads
@@ -3286,13 +3379,13 @@ function copyTempDouble(ptr) {
           try {
             return fs.readSync(stream.nfd, NODEFS.bufferFrom(buffer.buffer), offset, length, position);
           } catch (e) {
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },write:function (stream, buffer, offset, length, position) {
           try {
             return fs.writeSync(stream.nfd, NODEFS.bufferFrom(buffer.buffer), offset, length, position);
           } catch (e) {
-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+            throw new FS.ErrnoError(-e.errno);
           }
         },llseek:function (stream, offset, whence) {
           var position = offset;
@@ -3304,13 +3397,13 @@ function copyTempDouble(ptr) {
                 var stat = fs.fstatSync(stream.nfd);
                 position += stat.size;
               } catch (e) {
-                throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+                throw new FS.ErrnoError(-e.errno);
               }
             }
           }
   
           if (position < 0) {
-            throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+            throw new FS.ErrnoError(22);
           }
   
           return position;
@@ -3402,15 +3495,15 @@ function copyTempDouble(ptr) {
             node.timestamp = attr.timestamp;
           }
         },lookup:function (parent, name) {
-          throw new FS.ErrnoError(ERRNO_CODES.ENOENT);
+          throw new FS.ErrnoError(2);
         },mknod:function (parent, name, mode, dev) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         },rename:function (oldNode, newDir, newName) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         },unlink:function (parent, name) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         },rmdir:function (parent, name) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         },readdir:function (node) {
           var entries = ['.', '..'];
           for (var key in node.contents) {
@@ -3421,9 +3514,9 @@ function copyTempDouble(ptr) {
           }
           return entries;
         },symlink:function (parent, newName, oldPath) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         },readlink:function (node) {
-          throw new FS.ErrnoError(ERRNO_CODES.EPERM);
+          throw new FS.ErrnoError(1);
         }},stream_ops:{read:function (stream, buffer, offset, length, position) {
           if (position >= stream.node.size) return 0;
           var chunk = stream.node.contents.slice(position, position + length);
@@ -3431,7 +3524,7 @@ function copyTempDouble(ptr) {
           buffer.set(new Uint8Array(ab), offset);
           return chunk.size;
         },write:function (stream, buffer, offset, length, position) {
-          throw new FS.ErrnoError(ERRNO_CODES.EIO);
+          throw new FS.ErrnoError(5);
         },llseek:function (stream, offset, whence) {
           var position = offset;
           if (whence === 1) {  // SEEK_CUR.
@@ -3442,7 +3535,7 @@ function copyTempDouble(ptr) {
             }
           }
           if (position < 0) {
-            throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+            throw new FS.ErrnoError(22);
           }
           return position;
         }}};
@@ -3452,16 +3545,7 @@ function copyTempDouble(ptr) {
   Module["ERRNO_MESSAGES"] = ERRNO_MESSAGES;
   
   var ERRNO_CODES={EPERM:1,ENOENT:2,ESRCH:3,EINTR:4,EIO:5,ENXIO:6,E2BIG:7,ENOEXEC:8,EBADF:9,ECHILD:10,EAGAIN:11,EWOULDBLOCK:11,ENOMEM:12,EACCES:13,EFAULT:14,ENOTBLK:15,EBUSY:16,EEXIST:17,EXDEV:18,ENODEV:19,ENOTDIR:20,EISDIR:21,EINVAL:22,ENFILE:23,EMFILE:24,ENOTTY:25,ETXTBSY:26,EFBIG:27,ENOSPC:28,ESPIPE:29,EROFS:30,EMLINK:31,EPIPE:32,EDOM:33,ERANGE:34,ENOMSG:42,EIDRM:43,ECHRNG:44,EL2NSYNC:45,EL3HLT:46,EL3RST:47,ELNRNG:48,EUNATCH:49,ENOCSI:50,EL2HLT:51,EDEADLK:35,ENOLCK:37,EBADE:52,EBADR:53,EXFULL:54,ENOANO:55,EBADRQC:56,EBADSLT:57,EDEADLOCK:35,EBFONT:59,ENOSTR:60,ENODATA:61,ETIME:62,ENOSR:63,ENONET:64,ENOPKG:65,EREMOTE:66,ENOLINK:67,EADV:68,ESRMNT:69,ECOMM:70,EPROTO:71,EMULTIHOP:72,EDOTDOT:73,EBADMSG:74,ENOTUNIQ:76,EBADFD:77,EREMCHG:78,ELIBACC:79,ELIBBAD:80,ELIBSCN:81,ELIBMAX:82,ELIBEXEC:83,ENOSYS:38,ENOTEMPTY:39,ENAMETOOLONG:36,ELOOP:40,EOPNOTSUPP:95,EPFNOSUPPORT:96,ECONNRESET:104,ENOBUFS:105,EAFNOSUPPORT:97,EPROTOTYPE:91,ENOTSOCK:88,ENOPROTOOPT:92,ESHUTDOWN:108,ECONNREFUSED:111,EADDRINUSE:98,ECONNABORTED:103,ENETUNREACH:101,ENETDOWN:100,ETIMEDOUT:110,EHOSTDOWN:112,EHOSTUNREACH:113,EINPROGRESS:115,EALREADY:114,EDESTADDRREQ:89,EMSGSIZE:90,EPROTONOSUPPORT:93,ESOCKTNOSUPPORT:94,EADDRNOTAVAIL:99,ENETRESET:102,EISCONN:106,ENOTCONN:107,ETOOMANYREFS:109,EUSERS:87,EDQUOT:122,ESTALE:116,ENOTSUP:95,ENOMEDIUM:123,EILSEQ:84,EOVERFLOW:75,ECANCELED:125,ENOTRECOVERABLE:131,EOWNERDEAD:130,ESTRPIPE:86};
-  Module["ERRNO_CODES"] = ERRNO_CODES;
-  
-  var _stdin=173376;
-  Module["_stdin"] = _stdin;
-  
-  var _stdout=173392;
-  Module["_stdout"] = _stdout;
-  
-  var _stderr=173408;
-  Module["_stderr"] = _stderr;var FS={root:null,mounts:[],devices:{},streams:[],nextInode:1,nameTable:null,currentPath:"/",initialized:false,ignorePermissions:true,trackingDelegate:{},tracking:{openFlags:{READ:1,WRITE:2}},ErrnoError:null,genericErrors:{},filesystems:null,syncFSRequests:0,handleFSError:function (e) {
+  Module["ERRNO_CODES"] = ERRNO_CODES;var FS={root:null,mounts:[],devices:{},streams:[],nextInode:1,nameTable:null,currentPath:"/",initialized:false,ignorePermissions:true,trackingDelegate:{},tracking:{openFlags:{READ:1,WRITE:2}},ErrnoError:null,genericErrors:{},filesystems:null,syncFSRequests:0,handleFSError:function (e) {
         if (!(e instanceof FS.ErrnoError)) throw e + ' : ' + stackTrace();
         return ___setErrNo(e.errno);
       },lookupPath:function (path, opts) {
@@ -4567,17 +4651,17 @@ function copyTempDouble(ptr) {
         if (ENVIRONMENT_IS_NODE) {
           // for nodejs with or without crypto support included
           try {
-              var crypto_module = require('crypto');
-              // nodejs has crypto support
-              random_device = function() { return crypto_module['randomBytes'](1)[0]; };
+            var crypto_module = require('crypto');
+            // nodejs has crypto support
+            random_device = function() { return crypto_module['randomBytes'](1)[0]; };
           } catch (e) {
-              // nodejs doesn't have crypto support so fallback to Math.random
-              random_device = function() { return (Math.random()*256)|0; };
+            // nodejs doesn't have crypto support
           }
         } else
-        {
-          // default for ES5 platforms
-          random_device = function() { abort("random_device"); /*Math.random() is not safe for random number generation, so this fallback random_device implementation aborts... see emscripten-core/emscripten/pull/7096 */ };
+        {}
+        if (!random_device) {
+          // we couldn't find a proper implementation, as Math.random() is not suitable for /dev/random, see emscripten-core/emscripten/pull/7096
+          random_device = function() { abort("no cryptographic support found for random_device. consider polyfilling it if you want to use something insecure like Math.random(), e.g. put this in a --pre-js: var crypto = { getRandomValues: function(array) { for (var i = 0; i < array.length; i++) array[i] = (Math.random()*256)|0 } };"); };
         }
         FS.createDevice('/dev', 'random', random_device);
         FS.createDevice('/dev', 'urandom', random_device);
@@ -5175,16 +5259,16 @@ function copyTempDouble(ptr) {
         HEAP32[(((buf)+(24))>>2)]=stat.gid;
         HEAP32[(((buf)+(28))>>2)]=stat.rdev;
         HEAP32[(((buf)+(32))>>2)]=0;
-        HEAP32[(((buf)+(36))>>2)]=stat.size;
-        HEAP32[(((buf)+(40))>>2)]=4096;
-        HEAP32[(((buf)+(44))>>2)]=stat.blocks;
-        HEAP32[(((buf)+(48))>>2)]=(stat.atime.getTime() / 1000)|0;
-        HEAP32[(((buf)+(52))>>2)]=0;
-        HEAP32[(((buf)+(56))>>2)]=(stat.mtime.getTime() / 1000)|0;
+        (tempI64 = [stat.size>>>0,(tempDouble=stat.size,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((buf)+(40))>>2)]=tempI64[0],HEAP32[(((buf)+(44))>>2)]=tempI64[1]);
+        HEAP32[(((buf)+(48))>>2)]=4096;
+        HEAP32[(((buf)+(52))>>2)]=stat.blocks;
+        HEAP32[(((buf)+(56))>>2)]=(stat.atime.getTime() / 1000)|0;
         HEAP32[(((buf)+(60))>>2)]=0;
-        HEAP32[(((buf)+(64))>>2)]=(stat.ctime.getTime() / 1000)|0;
+        HEAP32[(((buf)+(64))>>2)]=(stat.mtime.getTime() / 1000)|0;
         HEAP32[(((buf)+(68))>>2)]=0;
-        HEAP32[(((buf)+(72))>>2)]=stat.ino;
+        HEAP32[(((buf)+(72))>>2)]=(stat.ctime.getTime() / 1000)|0;
+        HEAP32[(((buf)+(76))>>2)]=0;
+        (tempI64 = [stat.ino>>>0,(tempDouble=stat.ino,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((buf)+(80))>>2)]=tempI64[0],HEAP32[(((buf)+(84))>>2)]=tempI64[1]);
         return 0;
       },doMsync:function (addr, stream, len, flags) {
         var buffer = new Uint8Array(HEAPU8.subarray(addr, addr + len));
@@ -6413,10 +6497,10 @@ function copyTempDouble(ptr) {
       var buf = SYSCALLS.get();
       if (!buf) return -ERRNO_CODES.EFAULT
       var layout = {"sysname":0,"nodename":65,"domainname":325,"machine":260,"version":195,"release":130,"__size__":390};
-      function copyString(element, value) {
+      var copyString = function(element, value) {
         var offset = layout[element];
         writeAsciiToMemory(value, buf + offset);
-      }
+      };
       copyString('sysname', 'Emscripten');
       copyString('nodename', 'emscripten');
       copyString('release', '1.0');
@@ -6485,10 +6569,14 @@ function copyTempDouble(ptr) {
   try {
    // llseek
       var stream = SYSCALLS.getStreamFromFD(), offset_high = SYSCALLS.get(), offset_low = SYSCALLS.get(), result = SYSCALLS.get(), whence = SYSCALLS.get();
-      // NOTE: offset_high is unused - Emscripten's off_t is 32-bit
+      // Can't handle 64-bit integers
+      if (!(offset_high == -1 && offset_low < 0) &&
+          !(offset_high == 0 && offset_low >= 0)) {
+        return -ERRNO_CODES.EOVERFLOW;
+      }
       var offset = offset_low;
       FS.llseek(stream, offset, whence);
-      HEAP32[((result)>>2)]=stream.position;
+      (tempI64 = [stream.position>>>0,(tempDouble=stream.position,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[((result)>>2)]=tempI64[0],HEAP32[(((result)+(4))>>2)]=tempI64[1]);
       if (stream.getdents && offset === 0 && whence === 0) stream.getdents = null; // reset readdir state
       return 0;
     } catch (e) {
@@ -6533,9 +6621,9 @@ function copyTempDouble(ptr) {
                     (writefds ? HEAP32[(((writefds)+(4))>>2)] : 0) |
                     (exceptfds ? HEAP32[(((exceptfds)+(4))>>2)] : 0);
   
-      function check(fd, low, high, val) {
+      var check = function(fd, low, high, val) {
         return (fd < 32 ? (low & val) : (high & val));
-      }
+      };
   
       for (var fd = 0; fd < nfds; fd++) {
         var mask = 1 << (fd % 32);
@@ -7024,7 +7112,7 @@ function copyTempDouble(ptr) {
         stream.getdents = FS.readdir(stream.path);
       }
       var pos = 0;
-      while (stream.getdents.length > 0 && pos + 268 <= count) {
+      while (stream.getdents.length > 0 && pos + 280 <= count) {
         var id;
         var type;
         var name = stream.getdents.pop();
@@ -7039,12 +7127,12 @@ function copyTempDouble(ptr) {
                  FS.isLink(child.mode) ? 10 :   // DT_LNK, symbolic link.
                  8;                             // DT_REG, regular file.
         }
-        HEAP32[((dirp + pos)>>2)]=id;
-        HEAP32[(((dirp + pos)+(4))>>2)]=stream.position;
-        HEAP16[(((dirp + pos)+(8))>>1)]=268;
-        HEAP8[(((dirp + pos)+(10))>>0)]=type;
-        stringToUTF8(name, dirp + pos + 11, 256);
-        pos += 268;
+        (tempI64 = [id>>>0,(tempDouble=id,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[((dirp + pos)>>2)]=tempI64[0],HEAP32[(((dirp + pos)+(4))>>2)]=tempI64[1]);
+        (tempI64 = [stream.position>>>0,(tempDouble=stream.position,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((dirp + pos)+(8))>>2)]=tempI64[0],HEAP32[(((dirp + pos)+(12))>>2)]=tempI64[1]);
+        HEAP16[(((dirp + pos)+(16))>>1)]=280;
+        HEAP8[(((dirp + pos)+(18))>>0)]=type;
+        stringToUTF8(name, dirp + pos + 19, 256);
+        pos += 280;
       }
       return pos;
     } catch (e) {
@@ -8160,6 +8248,7 @@ function copyTempDouble(ptr) {
         DLFCN.errorMsg = 'Tried to dlsym() from an unopened handle: ' + handle;
         return 0;
       }
+  
       var lib = LDSO.loadedLibs[handle];
       symbol = '_' + symbol;
       if (!lib.module.hasOwnProperty(symbol)) {
@@ -8176,18 +8265,18 @@ function copyTempDouble(ptr) {
       // Insert the function into the wasm table.  Since we know the function
       // comes directly from the loaded wasm module we can insert it directly
       // into the table, avoiding any JS interaction.
-      return addWasmFunction(result);
+      return addFunctionWasm(result);
     }
   Module["_dlsym"] = _dlsym;
 
   function _emscripten_get_heap_size() {
-      return TOTAL_MEMORY;
+      return HEAP8.length;
     }
   Module["_emscripten_get_heap_size"] = _emscripten_get_heap_size;
 
   
   function abortOnCannotGrowMemory(requestedSize) {
-      abort('Cannot enlarge memory arrays to size ' + requestedSize + ' bytes (OOM). Either (1) compile with  -s TOTAL_MEMORY=X  with X higher than the current value ' + TOTAL_MEMORY + ', (2) compile with  -s ALLOW_MEMORY_GROWTH=1  which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with  -s ABORTING_MALLOC=0 ');
+      abort('Cannot enlarge memory arrays to size ' + requestedSize + ' bytes (OOM). Either (1) compile with  -s TOTAL_MEMORY=X  with X higher than the current value ' + HEAP8.length + ', (2) compile with  -s ALLOW_MEMORY_GROWTH=1  which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with  -s ABORTING_MALLOC=0 ');
     }
   Module["abortOnCannotGrowMemory"] = abortOnCannotGrowMemory;function _emscripten_resize_heap(requestedSize) {
       abortOnCannotGrowMemory(requestedSize);
@@ -8261,7 +8350,7 @@ function copyTempDouble(ptr) {
   Module["_getnameinfo"] = _getnameinfo;
 
   
-  var ___tm_timezone=(stringToUTF8("GMT", 173504, 4), 173504);
+  var ___tm_timezone=(stringToUTF8("GMT", 173520, 4), 173520);
   Module["___tm_timezone"] = ___tm_timezone;function _gmtime_r(time, tmPtr) {
       var date = new Date(HEAP32[((time)>>2)]*1000);
       HEAP32[((tmPtr)>>2)]=date.getUTCSeconds();
@@ -8307,9 +8396,7 @@ function copyTempDouble(ptr) {
     }
   Module["_llvm_copysign_f64"] = _llvm_copysign_f64;
 
-  
-  var _Math_max=undefined;
-  Module["_Math_max"] = _Math_max; 
+   
 
    
 
@@ -8337,11 +8424,7 @@ function copyTempDouble(ptr) {
     }
   Module["_emscripten_memcpy_big"] = _emscripten_memcpy_big;
   
-  var _Int8Array=undefined;
-  Module["_Int8Array"] = _Int8Array;
-  
-  var _Int32Array=undefined;
-  Module["_Int32Array"] = _Int32Array; 
+   
 
    
 
@@ -8399,11 +8482,7 @@ function copyTempDouble(ptr) {
 
   
   
-  var _Math_floor=undefined;
-  Module["_Math_floor"] = _Math_floor;
-  
-  var _Math_ceil=undefined;
-  Module["_Math_ceil"] = _Math_ceil;  
+    
 
 
    
@@ -8788,13 +8867,10 @@ function copyTempDouble(ptr) {
   }
   Module["_waitpid"] = _waitpid;
 
-
-
-
-  var __impure_ptr=173424;
+  var __impure_ptr=173440;
   Module["__impure_ptr"] = __impure_ptr;
 
-  var ___dso_handle=173440;
+  var ___dso_handle=173456;
   Module["___dso_handle"] = ___dso_handle;
 
 
@@ -9223,20 +9299,25 @@ function copyTempDouble(ptr) {
   function emscripten_realloc_buffer(size) {
       var PAGE_MULTIPLE = 65536;
       size = alignUp(size, PAGE_MULTIPLE); // round up to wasm page size
-      var old = Module['buffer'];
-      var oldSize = old.byteLength;
+      var oldSize = buffer.byteLength;
       // native wasm support
+      // note that this is *not* threadsafe. multiple threads can call .grow(), and each
+      // presents a delta, so in theory we may over-allocate here (e.g. if two threads
+      // ask to grow from 256MB to 512MB, we get 2 requests to add +256MB, and may end
+      // up growing to 768MB (even though we may have been able to make do with 512MB).
+      // TODO: consider decreasing the step sizes in emscripten_resize_heap
       try {
         var result = wasmMemory.grow((size - oldSize) / 65536); // .grow() takes a delta compared to the previous size
         if (result !== (-1 | 0)) {
           // success in native wasm memory growth, get the buffer from the memory
-          return Module['buffer'] = wasmMemory.buffer;
+          buffer = wasmMemory.buffer;
+          return true;
         } else {
-          return null;
+          return false;
         }
       } catch(e) {
         console.error('emscripten_realloc_buffer: Attempted to grow from ' + oldSize  + ' bytes to ' + size + ' bytes, but got error: ' + e);
-        return null;
+        return false;
       }
     }
   Module["emscripten_realloc_buffer"] = emscripten_realloc_buffer;
@@ -10013,9 +10094,7 @@ function copyTempDouble(ptr) {
 
    
 
-  
-  var _Math_min=undefined;
-  Module["_Math_min"] = _Math_min; 
+   
 
    
 
@@ -10096,11 +10175,11 @@ function copyTempDouble(ptr) {
     }
   Module["_difftime"] = _difftime;
 
-  var ___tm_current=173456;
+  var ___tm_current=173472;
   Module["___tm_current"] = ___tm_current;
 
 
-  var ___tm_formatted=173520;
+  var ___tm_formatted=173536;
   Module["___tm_formatted"] = ___tm_formatted;
 
   
@@ -10403,7 +10482,7 @@ function copyTempDouble(ptr) {
         var date = initDate();
         var value;
   
-        function getMatch(symbol) {
+        var getMatch = function(symbol) {
           var pos = capture.indexOf(symbol);
           // check if symbol appears in regexp
           if (pos >= 0) {
@@ -10411,7 +10490,7 @@ function copyTempDouble(ptr) {
             return matches[pos+1];
           }
           return;
-        }
+        };
   
         // seconds
         if ((value=getMatch('S'))) {
@@ -10595,11 +10674,12 @@ function copyTempDouble(ptr) {
       if (ENVIRONMENT_IS_NODE) {
         return 1; // nanoseconds
       } else
-      if (typeof dateNow !== 'undefined' ||
-                 ((ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) && self['performance'] && self['performance']['now'])) {
+      if (typeof dateNow !== 'undefined') {
         return 1000; // microseconds (1/1000 of a millisecond)
       } else
-      {
+      if (typeof performance === 'object' && performance && typeof performance['now'] === 'function') {
+        return 1000; // microseconds (1/1000 of a millisecond)
+      } else {
         return 1000*1000; // milliseconds
       }
     }
@@ -10728,10 +10808,10 @@ function copyTempDouble(ptr) {
   Module["_sched_yield"] = _sched_yield;
 
 
-  var _in6addr_any=173568;
+  var _in6addr_any=173584;
   Module["_in6addr_any"] = _in6addr_any;
 
-  var _in6addr_loopback=173584;
+  var _in6addr_loopback=173600;
   Module["_in6addr_loopback"] = _in6addr_loopback;
 
 
@@ -15146,13 +15226,7 @@ function copyTempDouble(ptr) {
           if ((document['fullscreenElement'] || document['mozFullScreenElement'] ||
                document['msFullscreenElement'] || document['webkitFullscreenElement'] ||
                document['webkitCurrentFullScreenElement']) === canvasContainer) {
-            canvas.exitFullscreen = document['exitFullscreen'] ||
-                                    document['cancelFullScreen'] ||
-                                    document['mozCancelFullScreen'] ||
-                                    document['msExitFullscreen'] ||
-                                    document['webkitCancelFullScreen'] ||
-                                    function() {};
-            canvas.exitFullscreen = canvas.exitFullscreen.bind(document);
+            canvas.exitFullscreen = Browser.exitFullscreen;
             if (Browser.lockPointer) canvas.requestPointerLock();
             Browser.isFullscreen = true;
             if (Browser.resizeCanvas) {
@@ -15206,6 +15280,22 @@ function copyTempDouble(ptr) {
             return Browser.requestFullscreen(lockPointer, resizeCanvas, vrDevice);
           }
           return Browser.requestFullscreen(lockPointer, resizeCanvas, vrDevice);
+      },exitFullscreen:function () {
+        // This is workaround for chrome. Trying to exit from fullscreen
+        // not in fullscreen state will cause "TypeError: Document not active"
+        // in chrome. See https://github.com/emscripten-core/emscripten/pull/8236
+        if (!Browser.isFullscreen) {
+          return false;
+        }
+  
+        var CFS = document['exitFullscreen'] ||
+                  document['cancelFullScreen'] ||
+                  document['mozCancelFullScreen'] ||
+                  document['msExitFullscreen'] ||
+                  document['webkitCancelFullScreen'] ||
+            (function() {});
+        CFS.apply(document, []);
+        return true;
       },nextRAF:0,fakeRequestAnimationFrame:function (func) {
         // try to keep 60fps between calls to here
         var now = Date.now();
@@ -17690,7 +17780,10 @@ function copyTempDouble(ptr) {
   Module["_gluUnProject"] = _gluUnProject;
 
   
-  var _glOrtho=undefined;function _gluOrtho2D(left, right, bottom, top) {
+  function _glOrtho() {
+  if (!Module['_glOrtho']) abort("external function 'glOrtho' is missing. perhaps a side module was not linked in? if this function was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment");
+  return Module['_glOrtho'].apply(null, arguments);
+  }function _gluOrtho2D(left, right, bottom, top) {
       _glOrtho(left, right, bottom, top, -1, 1);
     }
   Module["_gluOrtho2D"] = _gluOrtho2D;
@@ -20088,7 +20181,7 @@ function copyTempDouble(ptr) {
           var lUpY = listener.up[1];
           var lUpZ = listener.up[2];
   
-          function inverseMagnitude(x, y, z) {
+          var inverseMagnitude = function(x, y, z) {
             var length = Math.sqrt(x * x + y * y + z * z);
   
             if (length < Number.EPSILON) {
@@ -20096,7 +20189,7 @@ function copyTempDouble(ptr) {
             }
   
             return 1.0 / length;
-          }
+          };
   
           // Normalize the Back vector
           var invMag = inverseMagnitude(lBackX, lBackY, lBackZ);
@@ -21265,9 +21358,9 @@ function copyTempDouble(ptr) {
         // https://github.com/jpernst/emscripten/issues/2#issuecomment-312729735
         // if you're curious about why.
   
-        function lerp(from, to, progress) {
+        var lerp = function(from, to, progress) {
           return (1 - progress) * from + progress * to;
-        }
+        };
   
         for (var i = 0, frame_i = 0; frame_i < requestedFrameCount; ++frame_i) {
   
@@ -21534,7 +21627,10 @@ function copyTempDouble(ptr) {
 
 
   
-  var _emscripten_GetAlcProcAddress=undefined;function _alcGetProcAddress(deviceId, pProcName) {
+  function _emscripten_GetAlcProcAddress() {
+  if (!Module['_emscripten_GetAlcProcAddress']) abort("external function 'emscripten_GetAlcProcAddress' is missing. perhaps a side module was not linked in? if this function was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment");
+  return Module['_emscripten_GetAlcProcAddress'].apply(null, arguments);
+  }function _alcGetProcAddress(deviceId, pProcName) {
       if (!pProcName) {
         AL.alcErr = 0xA004 /* ALC_INVALID_VALUE */;
         return 0; /* ALC_NONE */
@@ -22112,7 +22208,10 @@ function copyTempDouble(ptr) {
 
 
   
-  var _emscripten_GetAlProcAddress=undefined;function _alGetProcAddress(pProcName) {
+  function _emscripten_GetAlProcAddress() {
+  if (!Module['_emscripten_GetAlProcAddress']) abort("external function 'emscripten_GetAlProcAddress' is missing. perhaps a side module was not linked in? if this function was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment");
+  return Module['_emscripten_GetAlProcAddress'].apply(null, arguments);
+  }function _alGetProcAddress(pProcName) {
       if (!AL.currentCtx) {
         return;
       }
@@ -23848,7 +23947,7 @@ function copyTempDouble(ptr) {
       HEAP32[(((capsPtr)+(4))>>2)]=caps.hasExternalDisplay ? 1 : 0;
       HEAP32[(((capsPtr)+(8))>>2)]=caps.canPresent ? 1 : 0;
   
-      (tempI64 = [caps.maxLayers>>>0,(tempDouble=caps.maxLayers,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((capsPtr)+(12))>>2)]=tempI64[0],HEAP32[(((capsPtr)+(16))>>2)]=tempI64[1]);
+      HEAP32[(((capsPtr)+(12))>>2)]=caps.maxLayers;
   
       return 1;
     }
@@ -23866,8 +23965,8 @@ function copyTempDouble(ptr) {
       HEAPF32[(((eyeParamsPtr)+(4))>>2)]=params.offset[1];
       HEAPF32[(((eyeParamsPtr)+(8))>>2)]=params.offset[2];
   
-      (tempI64 = [params.renderWidth>>>0,(tempDouble=params.renderWidth,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((eyeParamsPtr)+(12))>>2)]=tempI64[0],HEAP32[(((eyeParamsPtr)+(16))>>2)]=tempI64[1]);
-      (tempI64 = [params.renderHeight>>>0,(tempDouble=params.renderHeight,(+(Math_abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((eyeParamsPtr)+(16))>>2)]=tempI64[0],HEAP32[(((eyeParamsPtr)+(20))>>2)]=tempI64[1]);
+      HEAP32[(((eyeParamsPtr)+(12))>>2)]=params.renderWidth;
+      HEAP32[(((eyeParamsPtr)+(16))>>2)]=params.renderHeight;
   
       return 1;
     }
@@ -25956,8 +26055,7 @@ function copyTempDouble(ptr) {
 
 
   function _SDL_WM_ToggleFullScreen(surf) {
-      if (Browser.isFullscreen) {
-        Module['canvas'].exitFullscreen();
+      if (Browser.exitFullscreen()) {
         return 1;
       } else {
         if (!SDL.canRequestFullscreen) {
@@ -26555,13 +26653,12 @@ function copyTempDouble(ptr) {
         // after loading. Therefore prepare an array of callback handlers to run when this audio decoding is complete, which
         // will then start the playback (with some delay).
         webAudio.onDecodeComplete = []; // While this member array exists, decoding hasn't finished yet.
-        function onDecodeComplete(data) {
+        var onDecodeComplete = function(data) {
           webAudio.decodedBuffer = data;
           // Call all handlers that were waiting for this decode to finish, and clear the handler list.
           webAudio.onDecodeComplete.forEach(function(e) { e(); });
           webAudio.onDecodeComplete = undefined; // Don't allow more callback handlers since audio has finished decoding.
-        }
-  
+        };
         SDL.audioContext['decodeAudioData'](arrayBuffer, onDecodeComplete);
       } else if (audio === undefined && bytes) {
         // Here, we didn't find a preloaded audio but we either were passed a filepath for
@@ -27173,7 +27270,10 @@ function copyTempDouble(ptr) {
   Module["_SDL_GL_GetAttribute"] = _SDL_GL_GetAttribute;
 
   
-  var _emscripten_GetProcAddress=undefined;function _SDL_GL_GetProcAddress(name_) {
+  function _emscripten_GetProcAddress() {
+  if (!Module['_emscripten_GetProcAddress']) abort("external function 'emscripten_GetProcAddress' is missing. perhaps a side module was not linked in? if this function was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment");
+  return Module['_emscripten_GetProcAddress'].apply(null, arguments);
+  }function _SDL_GL_GetProcAddress(name_) {
       return _emscripten_GetProcAddress(name_);
     }
   Module["_SDL_GL_GetProcAddress"] = _SDL_GL_GetProcAddress;
@@ -27529,7 +27629,19 @@ function copyTempDouble(ptr) {
   function _SDL_HasAltiVec() { return 0; }
   Module["_SDL_HasAltiVec"] = _SDL_HasAltiVec;
 
-  var GLUT={initTime:null,idleFunc:null,displayFunc:null,keyboardFunc:null,keyboardUpFunc:null,specialFunc:null,specialUpFunc:null,reshapeFunc:null,motionFunc:null,passiveMotionFunc:null,mouseFunc:null,buttons:0,modifiers:0,initWindowWidth:256,initWindowHeight:256,initDisplayMode:18,windowX:0,windowY:0,windowWidth:0,windowHeight:0,requestedAnimationFrame:false,saveModifiers:function (event) {
+  
+  function _glutPostRedisplay() {
+      if (GLUT.displayFunc && !GLUT.requestedAnimationFrame) {
+        GLUT.requestedAnimationFrame = true;
+        Browser.requestAnimationFrame(function() {
+          GLUT.requestedAnimationFrame = false;
+          Browser.mainLoop.runIter(function() {
+            dynCall_v(GLUT.displayFunc);
+          });
+        });
+      }
+    }
+  Module["_glutPostRedisplay"] = _glutPostRedisplay;var GLUT={initTime:null,idleFunc:null,displayFunc:null,keyboardFunc:null,keyboardUpFunc:null,specialFunc:null,specialUpFunc:null,reshapeFunc:null,motionFunc:null,passiveMotionFunc:null,mouseFunc:null,buttons:0,modifiers:0,initWindowWidth:256,initWindowHeight:256,initDisplayMode:18,windowX:0,windowY:0,windowWidth:0,windowHeight:0,requestedAnimationFrame:false,saveModifiers:function (event) {
         GLUT.modifiers = 0;
         if (event['shiftKey'])
           GLUT.modifiers += 1; /* GLUT_ACTIVE_SHIFT */
@@ -27788,12 +27900,7 @@ function copyTempDouble(ptr) {
         }
         return GLUT.requestFullscreen();
       },exitFullscreen:function () {
-        var CFS = document['exitFullscreen'] ||
-                  document['cancelFullScreen'] ||
-                  document['mozCancelFullScreen'] ||
-                  document['webkitCancelFullScreen'] ||
-            (function() {});
-        CFS.apply(document, []);
+        Browser.exitFullscreen();
       },cancelFullScreen:function () {
         err('GLUT.cancelFullScreen() is deprecated. Please call GLUT.exitFullscreen instead.');
         GLUT.cancelFullScreen = function() {
@@ -28092,19 +28199,7 @@ function copyTempDouble(ptr) {
   Module["_glutDestroyWindow"] = _glutDestroyWindow;
 
 
-  
-  function _glutPostRedisplay() {
-      if (GLUT.displayFunc && !GLUT.requestedAnimationFrame) {
-        GLUT.requestedAnimationFrame = true;
-        Browser.requestAnimationFrame(function() {
-          GLUT.requestedAnimationFrame = false;
-          Browser.mainLoop.runIter(function() {
-            dynCall_v(GLUT.displayFunc);
-          });
-        });
-      }
-    }
-  Module["_glutPostRedisplay"] = _glutPostRedisplay;function _glutReshapeWindow(width, height) {
+  function _glutReshapeWindow(width, height) {
       GLUT.exitFullscreen();
       Browser.setCanvasSize(width, height, true); // N.B. GLUT.reshapeFunc is also registered as a canvas resize callback.
                                                   // Just call it once here.
@@ -28191,7 +28286,7 @@ function copyTempDouble(ptr) {
 
   var EGL={errorCode:12288,defaultDisplayInitialized:false,currentContext:0,currentReadSurface:0,currentDrawSurface:0,contextAttributes:{alpha:false,depth:false,stencil:false,antialias:false},stringCache:{},setErrorCode:function (code) {
         EGL.errorCode = code;
-      },chooseConfig:function (display, attribList, config, config_size, numConfigs) { 
+      },chooseConfig:function (display, attribList, config, config_size, numConfigs) {
         if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
           EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
           return 0;
@@ -28216,6 +28311,9 @@ function copyTempDouble(ptr) {
             } else if (param == 0x3032 /*EGL_SAMPLE_BUFFERS*/) {
               var samples = HEAP32[(((attribList)+(4))>>2)];
               EGL.contextAttributes.antialias = (samples == 1);
+            } else if (param == 0x3100 /*EGL_CONTEXT_PRIORITY_LEVEL_IMG*/) {
+              var requestedPriority = HEAP32[(((attribList)+(4))>>2)];
+              EGL.contextAttributes.lowLatency = (requestedPriority != 0x3103 /*EGL_CONTEXT_PRIORITY_LOW_IMG*/);
             } else if (param == 0x3038 /*EGL_NONE*/) {
                 break;
             }
@@ -28231,13 +28329,14 @@ function copyTempDouble(ptr) {
           HEAP32[((numConfigs)>>2)]=1; // Total number of supported configs: 1.
         }
         if (config && config_size > 0) {
-          HEAP32[((config)>>2)]=62002; 
+          HEAP32[((config)>>2)]=62002;
         }
-        
+  
         EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
         return 1;
       }};
   Module["EGL"] = EGL;
+
 
   function _eglGetDisplay(nativeDisplayType) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -28256,6 +28355,7 @@ function copyTempDouble(ptr) {
     }
   Module["_eglGetDisplay"] = _eglGetDisplay;
 
+
   function _eglInitialize(display, majorVersion, minorVersion) {
       if (display == 62000 /* Magic ID for Emscripten 'default display' */) {
         if (majorVersion) {
@@ -28267,13 +28367,14 @@ function copyTempDouble(ptr) {
         EGL.defaultDisplayInitialized = true;
         EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
         return 1;
-      } 
+      }
       else {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0;
       }
     }
   Module["_eglInitialize"] = _eglInitialize;
+
 
   function _eglTerminate(display) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
@@ -28289,15 +28390,18 @@ function copyTempDouble(ptr) {
     }
   Module["_eglTerminate"] = _eglTerminate;
 
-  function _eglGetConfigs(display, configs, config_size, numConfigs) { 
+
+  function _eglGetConfigs(display, configs, config_size, numConfigs) {
       return EGL.chooseConfig(display, 0, configs, config_size, numConfigs);
     }
   Module["_eglGetConfigs"] = _eglGetConfigs;
 
-  function _eglChooseConfig(display, attrib_list, configs, config_size, numConfigs) { 
+
+  function _eglChooseConfig(display, attrib_list, configs, config_size, numConfigs) {
       return EGL.chooseConfig(display, attrib_list, configs, config_size, numConfigs);
     }
   Module["_eglChooseConfig"] = _eglChooseConfig;
+
 
   function _eglGetConfigAttrib(display, config, attribute, value) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
@@ -28415,7 +28519,8 @@ function copyTempDouble(ptr) {
     }
   Module["_eglGetConfigAttrib"] = _eglGetConfigAttrib;
 
-  function _eglCreateWindowSurface(display, config, win, attrib_list) { 
+
+  function _eglCreateWindowSurface(display, config, win, attrib_list) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0;
@@ -28433,10 +28538,11 @@ function copyTempDouble(ptr) {
     }
   Module["_eglCreateWindowSurface"] = _eglCreateWindowSurface;
 
-  function _eglDestroySurface(display, surface) { 
+
+  function _eglDestroySurface(display, surface) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
-        return 0; 
+        return 0;
       }
       if (surface != 62006 /* Magic ID for the only EGLSurface supported by Emscripten */) {
         EGL.setErrorCode(0x300D /* EGL_BAD_SURFACE */);
@@ -28452,6 +28558,7 @@ function copyTempDouble(ptr) {
       return 1; /* Magic ID for Emscripten 'default surface' */
     }
   Module["_eglDestroySurface"] = _eglDestroySurface;
+
 
   function _eglCreateContext(display, config, hmm, contextAttribs) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
@@ -28503,6 +28610,7 @@ function copyTempDouble(ptr) {
     }
   Module["_eglCreateContext"] = _eglCreateContext;
 
+
   function _eglDestroyContext(display, context) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -28519,7 +28627,8 @@ function copyTempDouble(ptr) {
     }
   Module["_eglDestroyContext"] = _eglDestroyContext;
 
-  function _eglQuerySurface(display, surface, attribute, value) { 
+
+  function _eglQuerySurface(display, surface, attribute, value) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0;
@@ -28557,12 +28666,12 @@ function copyTempDouble(ptr) {
         HEAP32[((value)>>2)]=-1;
         return 1;
       case 0x3086: // EGL_RENDER_BUFFER
-        // The main surface is bound to the visible canvas window - it's always backbuffered. 
+        // The main surface is bound to the visible canvas window - it's always backbuffered.
         // Alternative to EGL_BACK_BUFFER would be EGL_SINGLE_BUFFER.
-        HEAP32[((value)>>2)]=0x3084; 
+        HEAP32[((value)>>2)]=0x3084;
         return 1;
       case 0x3099: // EGL_MULTISAMPLE_RESOLVE
-        HEAP32[((value)>>2)]=0x309A; 
+        HEAP32[((value)>>2)]=0x309A;
         return 1;
       case 0x3093: // EGL_SWAP_BEHAVIOR
         // The two possibilities are EGL_BUFFER_PRESERVED and EGL_BUFFER_DESTROYED. Slightly unsure which is the
@@ -28584,12 +28693,13 @@ function copyTempDouble(ptr) {
     }
   Module["_eglQuerySurface"] = _eglQuerySurface;
 
+
   function _eglQueryContext(display, context, attribute, value) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0;
       }
-      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy. 
+      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy.
       if (context != 62004 /* Magic ID for Emscripten EGLContext */) {
         EGL.setErrorCode(0x3006 /* EGL_BAD_CONTEXT */);
         return 0;
@@ -28598,7 +28708,7 @@ function copyTempDouble(ptr) {
         EGL.setErrorCode(0x300C /* EGL_BAD_PARAMETER */);
         return 0;
       }
-    
+  
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       switch(attribute) {
         case 0x3028: // EGL_CONFIG_ID
@@ -28611,9 +28721,9 @@ function copyTempDouble(ptr) {
           HEAP32[((value)>>2)]=EGL.contextAttributes.majorVersion + 1;
           return 1;
         case 0x3086: // EGL_RENDER_BUFFER
-          // The context is bound to the visible canvas window - it's always backbuffered. 
+          // The context is bound to the visible canvas window - it's always backbuffered.
           // Alternative to EGL_BACK_BUFFER would be EGL_SINGLE_BUFFER.
-          HEAP32[((value)>>2)]=0x3084; 
+          HEAP32[((value)>>2)]=0x3084;
           return 1;
         default:
           EGL.setErrorCode(0x3004 /* EGL_BAD_ATTRIBUTE */);
@@ -28622,17 +28732,19 @@ function copyTempDouble(ptr) {
     }
   Module["_eglQueryContext"] = _eglQueryContext;
 
-  function _eglGetError() { 
+
+  function _eglGetError() {
       return EGL.errorCode;
     }
   Module["_eglGetError"] = _eglGetError;
+
 
   function _eglQueryString(display, name) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0;
       }
-      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy. 
+      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy.
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       if (EGL.stringCache[name]) return EGL.stringCache[name];
       var ret;
@@ -28650,6 +28762,7 @@ function copyTempDouble(ptr) {
     }
   Module["_eglQueryString"] = _eglQueryString;
 
+
   function _eglBindAPI(api) {
       if (api == 0x30A0 /* EGL_OPENGL_ES_API */) {
         EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -28661,17 +28774,20 @@ function copyTempDouble(ptr) {
     }
   Module["_eglBindAPI"] = _eglBindAPI;
 
+
   function _eglQueryAPI() {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       return 0x30A0; // EGL_OPENGL_ES_API
     }
   Module["_eglQueryAPI"] = _eglQueryAPI;
 
+
   function _eglWaitClient() {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       return 1;
     }
   Module["_eglWaitClient"] = _eglWaitClient;
+
 
   function _eglWaitNative(nativeEngineId) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -28683,6 +28799,7 @@ function copyTempDouble(ptr) {
   return _eglWaitClient.apply(null, arguments)
   }
   Module["_eglWaitGL"] = _eglWaitGL;
+
 
   function _eglSwapInterval(display, interval) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
@@ -28697,12 +28814,13 @@ function copyTempDouble(ptr) {
     }
   Module["_eglSwapInterval"] = _eglSwapInterval;
 
-  function _eglMakeCurrent(display, draw, read, context) { 
+
+  function _eglMakeCurrent(display, draw, read, context) {
       if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
         EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
         return 0 /* EGL_FALSE */;
       }
-      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy. 
+      //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy.
       if (context != 0 && context != 62004 /* Magic ID for Emscripten EGLContext */) {
         EGL.setErrorCode(0x3006 /* EGL_BAD_CONTEXT */);
         return 0;
@@ -28722,10 +28840,12 @@ function copyTempDouble(ptr) {
     }
   Module["_eglMakeCurrent"] = _eglMakeCurrent;
 
+
   function _eglGetCurrentContext() {
       return EGL.currentContext;
     }
   Module["_eglGetCurrentContext"] = _eglGetCurrentContext;
+
 
   function _eglGetCurrentSurface(readdraw) {
       if (readdraw == 0x305A /* EGL_READ */) {
@@ -28739,10 +28859,12 @@ function copyTempDouble(ptr) {
     }
   Module["_eglGetCurrentSurface"] = _eglGetCurrentSurface;
 
+
   function _eglGetCurrentDisplay() {
       return EGL.currentContext ? 62000 /* Magic ID for Emscripten 'default display' */ : 0;
     }
   Module["_eglGetCurrentDisplay"] = _eglGetCurrentDisplay;
+
 
   function _eglSwapBuffers() {
   
@@ -28764,10 +28886,12 @@ function copyTempDouble(ptr) {
     }
   Module["_eglSwapBuffers"] = _eglSwapBuffers;
 
+
   function _eglGetProcAddress(name_) {
       return _emscripten_GetProcAddress(name_);
     }
   Module["_eglGetProcAddress"] = _eglGetProcAddress;
+
 
   function _eglReleaseThread() {
       // Equivalent to eglMakeCurrent with EGL_NO_CONTEXT and EGL_NO_SURFACE.
@@ -28776,7 +28900,7 @@ function copyTempDouble(ptr) {
       EGL.currentDrawSurface = 0;
       // EGL spec v1.4 p.55:
       // "calling eglGetError immediately following a successful call to eglReleaseThread should not be done.
-      //  Such a call will return EGL_SUCCESS - but will also result in reallocating per-thread state."                     
+      //  Such a call will return EGL_SUCCESS - but will also result in reallocating per-thread state."
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       return 1 /* EGL_TRUE */;
     }
@@ -29141,12 +29265,7 @@ function copyTempDouble(ptr) {
         }
         return GLFW.requestFullscreen();
       },exitFullscreen:function () {
-        var CFS = document['exitFullscreen'] ||
-                  document['cancelFullScreen'] ||
-                  document['mozCancelFullScreen'] ||
-                  document['webkitCancelFullScreen'] ||
-            (function() {});
-        CFS.apply(document, []);
+        Browser.exitFullscreen();
       },cancelFullScreen:function () {
         err('GLFW.cancelFullScreen() is deprecated. Please call GLFW.exitFullscreen instead.');
         GLFW.cancelFullScreen = function() {
@@ -29247,46 +29366,6 @@ function copyTempDouble(ptr) {
   
         event.preventDefault();
   
-        var filenames = allocate(new Array(event.dataTransfer.files.length*4), 'i8*', ALLOC_NORMAL);
-        var filenamesArray = [];
-        var count = event.dataTransfer.files.length;
-  
-        // Read and save the files to emscripten's FS
-        var written = 0;
-        var drop_dir = '.glfw_dropped_files';
-        FS.createPath('/', drop_dir);
-  
-        function save(file) {
-          var path = '/' + drop_dir + '/' + file.name.replace(/\//g, '_');
-          var reader = new FileReader();
-          reader.onloadend = function(e) {
-            if (reader.readyState != 2) { // not DONE
-              ++written;
-              console.log('failed to read dropped file: '+file.name+': '+reader.error);
-              return;
-            }
-  
-            var data = e.target.result;
-            FS.writeFile(path, new Uint8Array(data));
-            if (++written === count) {
-              dynCall_viii(GLFW.active.dropFunc, GLFW.active.id, count, filenames);
-  
-              for (var i = 0; i < filenamesArray.length; ++i) {
-                _free(filenamesArray[i]);
-              }
-              _free(filenames);
-            }
-          };
-          reader.readAsArrayBuffer(file);
-  
-          var filename = allocate(intArrayFromString(path), 'i8', ALLOC_NORMAL);
-          filenamesArray.push(filename);
-          setValue(filenames + i*4, filename, 'i8*');
-        }
-  
-        for (var i = 0; i < count; ++i) {
-          save(event.dataTransfer.files[i]);
-        }
   
         return false;
       },onDragover:function (event) {
@@ -30605,9 +30684,7 @@ if (ENVIRONMENT_IS_NODE) {
     };
   } else if (typeof dateNow !== 'undefined') {
     _emscripten_get_now = dateNow;
-  } else if (typeof self === 'object' && self['performance'] && typeof self['performance']['now'] === 'function') {
-    _emscripten_get_now = function() { return self['performance']['now'](); };
-  } else if (typeof performance === 'object' && typeof performance['now'] === 'function') {
+  } else if (typeof performance === 'object' && performance && typeof performance['now'] === 'function') {
     _emscripten_get_now = function() { return performance['now'](); };
   } else {
     _emscripten_get_now = Date.now;
@@ -30686,6 +30763,8 @@ function nullFunc_fff(x) { err("Invalid function pointer called with signature '
 
 function nullFunc_ii(x) { err("Invalid function pointer called with signature 'ii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
 
+function nullFunc_iidiiii(x) { err("Invalid function pointer called with signature 'iidiiii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
+
 function nullFunc_iii(x) { err("Invalid function pointer called with signature 'iii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
 
 function nullFunc_iiii(x) { err("Invalid function pointer called with signature 'iiii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
@@ -30697,6 +30776,8 @@ function nullFunc_iiiiii(x) { err("Invalid function pointer called with signatur
 function nullFunc_v(x) { err("Invalid function pointer called with signature 'v'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
 
 function nullFunc_vi(x) { err("Invalid function pointer called with signature 'vi'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
+
+function nullFunc_vii(x) { err("Invalid function pointer called with signature 'vii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  err("Build with ASSERTIONS=2 for more info.");abort(x) }
 var gb = GLOBAL_BASE, fb = 0;
 
 function invoke_X() {
@@ -30728,6 +30809,17 @@ function invoke_ii(index,a1) {
   var sp = stackSave();
   try {
     return Module["dynCall_ii"](index,a1);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0 && e !== 'longjmp') throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_iidiiii(index,a1,a2,a3,a4,a5,a6) {
+  var sp = stackSave();
+  try {
+    return Module["dynCall_iidiiii"](index,a1,a2,a3,a4,a5,a6);
   } catch(e) {
     stackRestore(sp);
     if (e !== e+0 && e !== 'longjmp') throw e;
@@ -30801,6 +30893,17 @@ function invoke_vi(index,a1) {
   }
 }
 
+function invoke_vii(index,a1,a2) {
+  var sp = stackSave();
+  try {
+    Module["dynCall_vii"](index,a1,a2);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0 && e !== 'longjmp') throw e;
+    _setThrew(1, 0);
+  }
+}
+
 
 function dynCall_X(index) {
   index = index|0;
@@ -30820,6 +30923,13 @@ function dynCall_ii(index,a1) {
   index = index|0;
   a1=a1|0;
   return mftCall_ii(index,a1|0)|0;
+}
+
+
+function dynCall_iidiiii(index,a1,a2,a3,a4,a5,a6) {
+  index = index|0;
+  a1=a1|0; a2=+a2; a3=a3|0; a4=a4|0; a5=a5|0; a6=a6|0;
+  return mftCall_iidiiii(index,a1|0,+a2,a3|0,a4|0,a5|0,a6|0)|0;
 }
 
 
@@ -30865,9 +30975,1571 @@ function dynCall_vi(index,a1) {
 }
 
 
+function dynCall_vii(index,a1,a2) {
+  index = index|0;
+  a1=a1|0; a2=a2|0;
+  mftCall_vii(index,a1|0,a2|0);
+}
+
+
 var asmGlobalArg = {}
 
-var asmLibraryArg = { "abort": abort, "setTempRet0": setTempRet0, "getTempRet0": getTempRet0, "abortStackOverflow": abortStackOverflow, "nullFunc_X": nullFunc_X, "nullFunc_fff": nullFunc_fff, "nullFunc_ii": nullFunc_ii, "nullFunc_iii": nullFunc_iii, "nullFunc_iiii": nullFunc_iiii, "nullFunc_iiiii": nullFunc_iiiii, "nullFunc_iiiiii": nullFunc_iiiiii, "nullFunc_v": nullFunc_v, "nullFunc_vi": nullFunc_vi, "invoke_X": invoke_X, "invoke_fff": invoke_fff, "invoke_ii": invoke_ii, "invoke_iii": invoke_iii, "invoke_iiii": invoke_iiii, "invoke_iiiii": invoke_iiiii, "invoke_iiiiii": invoke_iiiiii, "invoke_v": invoke_v, "invoke_vi": invoke_vi, "_IMG_Init": _IMG_Init, "_IMG_Load": _IMG_Load, "_IMG_Load_RW": _IMG_Load_RW, "_IMG_Quit": _IMG_Quit, "_JSEvents_requestFullscreen": _JSEvents_requestFullscreen, "_JSEvents_resizeCanvasForFullscreen": _JSEvents_resizeCanvasForFullscreen, "_Mix_AllocateChannels": _Mix_AllocateChannels, "_Mix_ChannelFinished": _Mix_ChannelFinished, "_Mix_CloseAudio": _Mix_CloseAudio, "_Mix_FadeInChannelTimed": _Mix_FadeInChannelTimed, "_Mix_FadeInMusicPos": _Mix_FadeInMusicPos, "_Mix_FadeOutChannel": _Mix_FadeOutChannel, "_Mix_FadeOutMusic": _Mix_FadeOutMusic, "_Mix_FadingChannel": _Mix_FadingChannel, "_Mix_FreeChunk": _Mix_FreeChunk, "_Mix_FreeMusic": _Mix_FreeMusic, "_Mix_HaltChannel": _Mix_HaltChannel, "_Mix_HaltMusic": _Mix_HaltMusic, "_Mix_HookMusicFinished": _Mix_HookMusicFinished, "_Mix_Init": _Mix_Init, "_Mix_Linked_Version": _Mix_Linked_Version, "_Mix_LoadMUS": _Mix_LoadMUS, "_Mix_LoadMUS_RW": _Mix_LoadMUS_RW, "_Mix_LoadWAV": _Mix_LoadWAV, "_Mix_LoadWAV_RW": _Mix_LoadWAV_RW, "_Mix_OpenAudio": _Mix_OpenAudio, "_Mix_Pause": _Mix_Pause, "_Mix_PauseMusic": _Mix_PauseMusic, "_Mix_Paused": _Mix_Paused, "_Mix_PausedMusic": _Mix_PausedMusic, "_Mix_PlayChannel": _Mix_PlayChannel, "_Mix_PlayChannelTimed": _Mix_PlayChannelTimed, "_Mix_PlayMusic": _Mix_PlayMusic, "_Mix_Playing": _Mix_Playing, "_Mix_PlayingMusic": _Mix_PlayingMusic, "_Mix_QuerySpec": _Mix_QuerySpec, "_Mix_QuickLoad_RAW": _Mix_QuickLoad_RAW, "_Mix_Quit": _Mix_Quit, "_Mix_ReserveChannels": _Mix_ReserveChannels, "_Mix_Resume": _Mix_Resume, "_Mix_ResumeMusic": _Mix_ResumeMusic, "_Mix_SetPanning": _Mix_SetPanning, "_Mix_SetPosition": _Mix_SetPosition, "_Mix_SetPostMix": _Mix_SetPostMix, "_Mix_Volume": _Mix_Volume, "_Mix_VolumeChunk": _Mix_VolumeChunk, "_Mix_VolumeMusic": _Mix_VolumeMusic, "_SDL_AddTimer": _SDL_AddTimer, "_SDL_AllocRW": _SDL_AllocRW, "_SDL_AudioDriverName": _SDL_AudioDriverName, "_SDL_AudioQuit": _SDL_AudioQuit, "_SDL_BlitScaled": _SDL_BlitScaled, "_SDL_BlitSurface": _SDL_BlitSurface, "_SDL_ClearError": _SDL_ClearError, "_SDL_CloseAudio": _SDL_CloseAudio, "_SDL_CondBroadcast": _SDL_CondBroadcast, "_SDL_CondSignal": _SDL_CondSignal, "_SDL_CondWait": _SDL_CondWait, "_SDL_CondWaitTimeout": _SDL_CondWaitTimeout, "_SDL_ConvertSurface": _SDL_ConvertSurface, "_SDL_CreateCond": _SDL_CreateCond, "_SDL_CreateMutex": _SDL_CreateMutex, "_SDL_CreateRGBSurface": _SDL_CreateRGBSurface, "_SDL_CreateRGBSurfaceFrom": _SDL_CreateRGBSurfaceFrom, "_SDL_CreateThread": _SDL_CreateThread, "_SDL_Delay": _SDL_Delay, "_SDL_DestroyCond": _SDL_DestroyCond, "_SDL_DestroyMutex": _SDL_DestroyMutex, "_SDL_DestroyRenderer": _SDL_DestroyRenderer, "_SDL_DestroyWindow": _SDL_DestroyWindow, "_SDL_DisplayFormatAlpha": _SDL_DisplayFormatAlpha, "_SDL_EnableKeyRepeat": _SDL_EnableKeyRepeat, "_SDL_EnableUNICODE": _SDL_EnableUNICODE, "_SDL_FillRect": _SDL_FillRect, "_SDL_Flip": _SDL_Flip, "_SDL_FreeRW": _SDL_FreeRW, "_SDL_FreeSurface": _SDL_FreeSurface, "_SDL_GL_DeleteContext": _SDL_GL_DeleteContext, "_SDL_GL_ExtensionSupported": _SDL_GL_ExtensionSupported, "_SDL_GL_GetAttribute": _SDL_GL_GetAttribute, "_SDL_GL_GetProcAddress": _SDL_GL_GetProcAddress, "_SDL_GL_GetSwapInterval": _SDL_GL_GetSwapInterval, "_SDL_GL_MakeCurrent": _SDL_GL_MakeCurrent, "_SDL_GL_SetAttribute": _SDL_GL_SetAttribute, "_SDL_GL_SetSwapInterval": _SDL_GL_SetSwapInterval, "_SDL_GL_SwapBuffers": _SDL_GL_SwapBuffers, "_SDL_GL_SwapWindow": _SDL_GL_SwapWindow, "_SDL_GetAppState": _SDL_GetAppState, "_SDL_GetAudioDriver": _SDL_GetAudioDriver, "_SDL_GetClipRect": _SDL_GetClipRect, "_SDL_GetCurrentAudioDriver": _SDL_GetCurrentAudioDriver, "_SDL_GetError": _SDL_GetError, "_SDL_GetKeyName": _SDL_GetKeyName, "_SDL_GetKeyState": _SDL_GetKeyState, "_SDL_GetKeyboardState": _SDL_GetKeyboardState, "_SDL_GetModState": _SDL_GetModState, "_SDL_GetMouseState": _SDL_GetMouseState, "_SDL_GetNumAudioDrivers": _SDL_GetNumAudioDrivers, "_SDL_GetRGB": _SDL_GetRGB, "_SDL_GetRGBA": _SDL_GetRGBA, "_SDL_GetThreadID": _SDL_GetThreadID, "_SDL_GetTicks": _SDL_GetTicks, "_SDL_GetVideoInfo": _SDL_GetVideoInfo, "_SDL_GetVideoSurface": _SDL_GetVideoSurface, "_SDL_GetWindowFlags": _SDL_GetWindowFlags, "_SDL_GetWindowSize": _SDL_GetWindowSize, "_SDL_Has3DNow": _SDL_Has3DNow, "_SDL_Has3DNowExt": _SDL_Has3DNowExt, "_SDL_HasAltiVec": _SDL_HasAltiVec, "_SDL_HasMMX": _SDL_HasMMX, "_SDL_HasMMXExt": _SDL_HasMMXExt, "_SDL_HasRDTSC": _SDL_HasRDTSC, "_SDL_HasSSE": _SDL_HasSSE, "_SDL_HasSSE2": _SDL_HasSSE2, "_SDL_Init": _SDL_Init, "_SDL_InitSubSystem": _SDL_InitSubSystem, "_SDL_JoystickClose": _SDL_JoystickClose, "_SDL_JoystickEventState": _SDL_JoystickEventState, "_SDL_JoystickGetAxis": _SDL_JoystickGetAxis, "_SDL_JoystickGetBall": _SDL_JoystickGetBall, "_SDL_JoystickGetButton": _SDL_JoystickGetButton, "_SDL_JoystickGetHat": _SDL_JoystickGetHat, "_SDL_JoystickIndex": _SDL_JoystickIndex, "_SDL_JoystickName": _SDL_JoystickName, "_SDL_JoystickNumAxes": _SDL_JoystickNumAxes, "_SDL_JoystickNumBalls": _SDL_JoystickNumBalls, "_SDL_JoystickNumButtons": _SDL_JoystickNumButtons, "_SDL_JoystickNumHats": _SDL_JoystickNumHats, "_SDL_JoystickOpen": _SDL_JoystickOpen, "_SDL_JoystickOpened": _SDL_JoystickOpened, "_SDL_JoystickUpdate": _SDL_JoystickUpdate, "_SDL_Linked_Version": _SDL_Linked_Version, "_SDL_ListModes": _SDL_ListModes, "_SDL_LoadBMP": _SDL_LoadBMP, "_SDL_LoadBMP_RW": _SDL_LoadBMP_RW, "_SDL_LockAudio": _SDL_LockAudio, "_SDL_LockMutex": _SDL_LockMutex, "_SDL_LockSurface": _SDL_LockSurface, "_SDL_LogSetOutputFunction": _SDL_LogSetOutputFunction, "_SDL_LowerBlit": _SDL_LowerBlit, "_SDL_LowerBlitScaled": _SDL_LowerBlitScaled, "_SDL_MapRGB": _SDL_MapRGB, "_SDL_MapRGBA": _SDL_MapRGBA, "_SDL_NumJoysticks": _SDL_NumJoysticks, "_SDL_OpenAudio": _SDL_OpenAudio, "_SDL_PauseAudio": _SDL_PauseAudio, "_SDL_PeepEvents": _SDL_PeepEvents, "_SDL_PollEvent": _SDL_PollEvent, "_SDL_PumpEvents": _SDL_PumpEvents, "_SDL_PushEvent": _SDL_PushEvent, "_SDL_Quit": _SDL_Quit, "_SDL_QuitSubSystem": _SDL_QuitSubSystem, "_SDL_RWFromConstMem": _SDL_RWFromConstMem, "_SDL_RWFromFile": _SDL_RWFromFile, "_SDL_RWFromMem": _SDL_RWFromMem, "_SDL_RemoveTimer": _SDL_RemoveTimer, "_SDL_SaveBMP_RW": _SDL_SaveBMP_RW, "_SDL_SetAlpha": _SDL_SetAlpha, "_SDL_SetClipRect": _SDL_SetClipRect, "_SDL_SetColorKey": _SDL_SetColorKey, "_SDL_SetColors": _SDL_SetColors, "_SDL_SetError": _SDL_SetError, "_SDL_SetGamma": _SDL_SetGamma, "_SDL_SetGammaRamp": _SDL_SetGammaRamp, "_SDL_SetPalette": _SDL_SetPalette, "_SDL_SetVideoMode": _SDL_SetVideoMode, "_SDL_SetWindowFullscreen": _SDL_SetWindowFullscreen, "_SDL_SetWindowTitle": _SDL_SetWindowTitle, "_SDL_ShowCursor": _SDL_ShowCursor, "_SDL_StartTextInput": _SDL_StartTextInput, "_SDL_StopTextInput": _SDL_StopTextInput, "_SDL_ThreadID": _SDL_ThreadID, "_SDL_UnlockAudio": _SDL_UnlockAudio, "_SDL_UnlockMutex": _SDL_UnlockMutex, "_SDL_UnlockSurface": _SDL_UnlockSurface, "_SDL_UpdateRect": _SDL_UpdateRect, "_SDL_UpdateRects": _SDL_UpdateRects, "_SDL_UpperBlit": _SDL_UpperBlit, "_SDL_UpperBlitScaled": _SDL_UpperBlitScaled, "_SDL_VideoDriverName": _SDL_VideoDriverName, "_SDL_VideoModeOK": _SDL_VideoModeOK, "_SDL_VideoQuit": _SDL_VideoQuit, "_SDL_WM_GrabInput": _SDL_WM_GrabInput, "_SDL_WM_IconifyWindow": _SDL_WM_IconifyWindow, "_SDL_WM_SetCaption": _SDL_WM_SetCaption, "_SDL_WM_SetIcon": _SDL_WM_SetIcon, "_SDL_WM_ToggleFullScreen": _SDL_WM_ToggleFullScreen, "_SDL_WaitThread": _SDL_WaitThread, "_SDL_WarpMouse": _SDL_WarpMouse, "_SDL_WasInit": _SDL_WasInit, "_SDL_free": _SDL_free, "_SDL_getenv": _SDL_getenv, "_SDL_malloc": _SDL_malloc, "_SDL_mutexP": _SDL_mutexP, "_SDL_mutexV": _SDL_mutexV, "_SDL_putenv": _SDL_putenv, "_TTF_CloseFont": _TTF_CloseFont, "_TTF_FontAscent": _TTF_FontAscent, "_TTF_FontDescent": _TTF_FontDescent, "_TTF_FontHeight": _TTF_FontHeight, "_TTF_FontLineSkip": _TTF_FontLineSkip, "_TTF_GlyphMetrics": _TTF_GlyphMetrics, "_TTF_Init": _TTF_Init, "_TTF_OpenFont": _TTF_OpenFont, "_TTF_Quit": _TTF_Quit, "_TTF_RenderText_Blended": _TTF_RenderText_Blended, "_TTF_RenderText_Shaded": _TTF_RenderText_Shaded, "_TTF_RenderText_Solid": _TTF_RenderText_Solid, "_TTF_RenderUTF8_Solid": _TTF_RenderUTF8_Solid, "_TTF_SizeText": _TTF_SizeText, "_TTF_SizeUTF8": _TTF_SizeUTF8, "_XChangeWindowAttributes": _XChangeWindowAttributes, "_XCreateWindow": _XCreateWindow, "_XInternAtom": _XInternAtom, "_XMapWindow": _XMapWindow, "_XOpenDisplay": _XOpenDisplay, "_XPending": _XPending, "_XSendEvent": _XSendEvent, "_XSetWMHints": _XSetWMHints, "_XStoreName": _XStoreName, "__Exit": __Exit, "__Unwind_Backtrace": __Unwind_Backtrace, "__Unwind_DeleteException": __Unwind_DeleteException, "__Unwind_FindEnclosingFunction": __Unwind_FindEnclosingFunction, "__Unwind_GetIPInfo": __Unwind_GetIPInfo, "__Unwind_RaiseException": __Unwind_RaiseException, "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv, "__ZSt9terminatev": __ZSt9terminatev, "___assert_fail": ___assert_fail, "___assert_func": ___assert_func, "___atomic_compare_exchange_8": ___atomic_compare_exchange_8, "___atomic_exchange_8": ___atomic_exchange_8, "___atomic_fetch_add_8": ___atomic_fetch_add_8, "___atomic_fetch_and_8": ___atomic_fetch_and_8, "___atomic_fetch_or_8": ___atomic_fetch_or_8, "___atomic_fetch_sub_8": ___atomic_fetch_sub_8, "___atomic_fetch_xor_8": ___atomic_fetch_xor_8, "___atomic_is_lock_free": ___atomic_is_lock_free, "___atomic_load_8": ___atomic_load_8, "___atomic_store_8": ___atomic_store_8, "___buildEnvironment": ___buildEnvironment, "___builtin_prefetch": ___builtin_prefetch, "___clock_gettime": ___clock_gettime, "___cxa_allocate_exception": ___cxa_allocate_exception, "___cxa_atexit": ___cxa_atexit, "___cxa_begin_catch": ___cxa_begin_catch, "___cxa_call_unexpected": ___cxa_call_unexpected, "___cxa_current_primary_exception": ___cxa_current_primary_exception, "___cxa_decrement_exception_refcount": ___cxa_decrement_exception_refcount, "___cxa_end_catch": ___cxa_end_catch, "___cxa_find_matching_catch": ___cxa_find_matching_catch, "___cxa_free_exception": ___cxa_free_exception, "___cxa_get_exception_ptr": ___cxa_get_exception_ptr, "___cxa_increment_exception_refcount": ___cxa_increment_exception_refcount, "___cxa_pure_virtual": ___cxa_pure_virtual, "___cxa_rethrow": ___cxa_rethrow, "___cxa_rethrow_primary_exception": ___cxa_rethrow_primary_exception, "___cxa_thread_atexit": ___cxa_thread_atexit, "___cxa_thread_atexit_impl": ___cxa_thread_atexit_impl, "___cxa_throw": ___cxa_throw, "___cxa_uncaught_exception": ___cxa_uncaught_exception, "___execvpe": ___execvpe, "___gcc_personality_v0": ___gcc_personality_v0, "___gxx_personality_v0": ___gxx_personality_v0, "___libc_current_sigrtmax": ___libc_current_sigrtmax, "___libc_current_sigrtmin": ___libc_current_sigrtmin, "___lock": ___lock, "___map_file": ___map_file, "___resumeException": ___resumeException, "___setErrNo": ___setErrNo, "___set_network_callback": ___set_network_callback, "___syscall1": ___syscall1, "___syscall10": ___syscall10, "___syscall102": ___syscall102, "___syscall104": ___syscall104, "___syscall114": ___syscall114, "___syscall118": ___syscall118, "___syscall12": ___syscall12, "___syscall121": ___syscall121, "___syscall122": ___syscall122, "___syscall125": ___syscall125, "___syscall132": ___syscall132, "___syscall133": ___syscall133, "___syscall14": ___syscall14, "___syscall140": ___syscall140, "___syscall142": ___syscall142, "___syscall144": ___syscall144, "___syscall145": ___syscall145, "___syscall146": ___syscall146, "___syscall147": ___syscall147, "___syscall148": ___syscall148, "___syscall15": ___syscall15, "___syscall150": ___syscall150, "___syscall151": ___syscall151, "___syscall152": ___syscall152, "___syscall153": ___syscall153, "___syscall163": ___syscall163, "___syscall168": ___syscall168, "___syscall178": ___syscall178, "___syscall180": ___syscall180, "___syscall181": ___syscall181, "___syscall183": ___syscall183, "___syscall191": ___syscall191, "___syscall192": ___syscall192, "___syscall193": ___syscall193, "___syscall194": ___syscall194, "___syscall195": ___syscall195, "___syscall196": ___syscall196, "___syscall197": ___syscall197, "___syscall198": ___syscall198, "___syscall199": ___syscall199, "___syscall20": ___syscall20, "___syscall200": ___syscall200, "___syscall201": ___syscall201, "___syscall202": ___syscall202, "___syscall203": ___syscall203, "___syscall204": ___syscall204, "___syscall205": ___syscall205, "___syscall207": ___syscall207, "___syscall208": ___syscall208, "___syscall209": ___syscall209, "___syscall210": ___syscall210, "___syscall211": ___syscall211, "___syscall212": ___syscall212, "___syscall213": ___syscall213, "___syscall214": ___syscall214, "___syscall218": ___syscall218, "___syscall219": ___syscall219, "___syscall220": ___syscall220, "___syscall221": ___syscall221, "___syscall265": ___syscall265, "___syscall268": ___syscall268, "___syscall269": ___syscall269, "___syscall272": ___syscall272, "___syscall29": ___syscall29, "___syscall295": ___syscall295, "___syscall296": ___syscall296, "___syscall297": ___syscall297, "___syscall298": ___syscall298, "___syscall299": ___syscall299, "___syscall3": ___syscall3, "___syscall300": ___syscall300, "___syscall301": ___syscall301, "___syscall302": ___syscall302, "___syscall303": ___syscall303, "___syscall304": ___syscall304, "___syscall305": ___syscall305, "___syscall306": ___syscall306, "___syscall307": ___syscall307, "___syscall308": ___syscall308, "___syscall320": ___syscall320, "___syscall324": ___syscall324, "___syscall33": ___syscall33, "___syscall330": ___syscall330, "___syscall331": ___syscall331, "___syscall333": ___syscall333, "___syscall334": ___syscall334, "___syscall337": ___syscall337, "___syscall34": ___syscall34, "___syscall340": ___syscall340, "___syscall345": ___syscall345, "___syscall36": ___syscall36, "___syscall38": ___syscall38, "___syscall39": ___syscall39, "___syscall4": ___syscall4, "___syscall40": ___syscall40, "___syscall41": ___syscall41, "___syscall42": ___syscall42, "___syscall5": ___syscall5, "___syscall51": ___syscall51, "___syscall54": ___syscall54, "___syscall57": ___syscall57, "___syscall6": ___syscall6, "___syscall60": ___syscall60, "___syscall63": ___syscall63, "___syscall64": ___syscall64, "___syscall65": ___syscall65, "___syscall66": ___syscall66, "___syscall75": ___syscall75, "___syscall77": ___syscall77, "___syscall83": ___syscall83, "___syscall85": ___syscall85, "___syscall9": ___syscall9, "___syscall91": ___syscall91, "___syscall94": ___syscall94, "___syscall96": ___syscall96, "___syscall97": ___syscall97, "___ubsan_handle_add_overflow": ___ubsan_handle_add_overflow, "___ubsan_handle_float_cast_overflow": ___ubsan_handle_float_cast_overflow, "___ubsan_handle_pointer_overflow": ___ubsan_handle_pointer_overflow, "___ubsan_handle_type_mismatch_v1": ___ubsan_handle_type_mismatch_v1, "___unlock": ___unlock, "___wait": ___wait, "__addDays": __addDays, "__arraySum": __arraySum, "__battery": __battery, "__computeUnpackAlignedImageSize": __computeUnpackAlignedImageSize, "__emscripten_do_request_fullscreen": __emscripten_do_request_fullscreen, "__emscripten_push_main_loop_blocker": __emscripten_push_main_loop_blocker, "__emscripten_push_uncounted_main_loop_blocker": __emscripten_push_uncounted_main_loop_blocker, "__emscripten_traverse_stack": __emscripten_traverse_stack, "__exit": __exit, "__fillBatteryEventData": __fillBatteryEventData, "__fillDeviceMotionEventData": __fillDeviceMotionEventData, "__fillDeviceOrientationEventData": __fillDeviceOrientationEventData, "__fillFullscreenChangeEventData": __fillFullscreenChangeEventData, "__fillGamepadEventData": __fillGamepadEventData, "__fillMouseEventData": __fillMouseEventData, "__fillOrientationChangeEventData": __fillOrientationChangeEventData, "__fillPointerlockChangeEventData": __fillPointerlockChangeEventData, "__fillVisibilityChangeEventData": __fillVisibilityChangeEventData, "__findCanvasEventTarget": __findCanvasEventTarget, "__findEventTarget": __findEventTarget, "__formatString": __formatString, "__get_canvas_element_size": __get_canvas_element_size, "__glGenObject": __glGenObject, "__hideEverythingExceptGivenElement": __hideEverythingExceptGivenElement, "__inet_ntop4_raw": __inet_ntop4_raw, "__inet_ntop6_raw": __inet_ntop6_raw, "__inet_pton4_raw": __inet_pton4_raw, "__inet_pton6": __inet_pton6, "__inet_pton6_raw": __inet_pton6_raw, "__isLeapYear": __isLeapYear, "__polyfill_set_immediate": __polyfill_set_immediate, "__pthread_cleanup_pop": __pthread_cleanup_pop, "__pthread_cleanup_push": __pthread_cleanup_push, "__read_sockaddr": __read_sockaddr, "__reallyNegative": __reallyNegative, "__registerBatteryEventCallback": __registerBatteryEventCallback, "__registerBeforeUnloadEventCallback": __registerBeforeUnloadEventCallback, "__registerDeviceMotionEventCallback": __registerDeviceMotionEventCallback, "__registerDeviceOrientationEventCallback": __registerDeviceOrientationEventCallback, "__registerFocusEventCallback": __registerFocusEventCallback, "__registerFullscreenChangeEventCallback": __registerFullscreenChangeEventCallback, "__registerGamepadEventCallback": __registerGamepadEventCallback, "__registerKeyEventCallback": __registerKeyEventCallback, "__registerMouseEventCallback": __registerMouseEventCallback, "__registerOrientationChangeEventCallback": __registerOrientationChangeEventCallback, "__registerPointerlockChangeEventCallback": __registerPointerlockChangeEventCallback, "__registerPointerlockErrorEventCallback": __registerPointerlockErrorEventCallback, "__registerRestoreOldStyle": __registerRestoreOldStyle, "__registerTouchEventCallback": __registerTouchEventCallback, "__registerUiEventCallback": __registerUiEventCallback, "__registerVisibilityChangeEventCallback": __registerVisibilityChangeEventCallback, "__registerWebGlEventCallback": __registerWebGlEventCallback, "__registerWheelEventCallback": __registerWheelEventCallback, "__requestPointerLock": __requestPointerLock, "__restoreHiddenElements": __restoreHiddenElements, "__screenOrientation": __screenOrientation, "__setLetterbox": __setLetterbox, "__set_canvas_element_size": __set_canvas_element_size, "__softFullscreenResizeWebGLRenderTarget": __softFullscreenResizeWebGLRenderTarget, "__write_sockaddr": __write_sockaddr, "_abort": _abort, "_abs": _abs, "_alBuffer3f": _alBuffer3f, "_alBuffer3i": _alBuffer3i, "_alBufferData": _alBufferData, "_alBufferf": _alBufferf, "_alBufferfv": _alBufferfv, "_alBufferi": _alBufferi, "_alBufferiv": _alBufferiv, "_alDeleteBuffers": _alDeleteBuffers, "_alDeleteSources": _alDeleteSources, "_alDisable": _alDisable, "_alDistanceModel": _alDistanceModel, "_alDopplerFactor": _alDopplerFactor, "_alDopplerVelocity": _alDopplerVelocity, "_alEnable": _alEnable, "_alGenBuffers": _alGenBuffers, "_alGenSources": _alGenSources, "_alGetBoolean": _alGetBoolean, "_alGetBooleanv": _alGetBooleanv, "_alGetBuffer3f": _alGetBuffer3f, "_alGetBuffer3i": _alGetBuffer3i, "_alGetBufferf": _alGetBufferf, "_alGetBufferfv": _alGetBufferfv, "_alGetBufferi": _alGetBufferi, "_alGetBufferiv": _alGetBufferiv, "_alGetDouble": _alGetDouble, "_alGetDoublev": _alGetDoublev, "_alGetEnumValue": _alGetEnumValue, "_alGetError": _alGetError, "_alGetFloat": _alGetFloat, "_alGetFloatv": _alGetFloatv, "_alGetInteger": _alGetInteger, "_alGetIntegerv": _alGetIntegerv, "_alGetListener3f": _alGetListener3f, "_alGetListener3i": _alGetListener3i, "_alGetListenerf": _alGetListenerf, "_alGetListenerfv": _alGetListenerfv, "_alGetListeneri": _alGetListeneri, "_alGetListeneriv": _alGetListeneriv, "_alGetProcAddress": _alGetProcAddress, "_alGetSource3f": _alGetSource3f, "_alGetSource3i": _alGetSource3i, "_alGetSourcef": _alGetSourcef, "_alGetSourcefv": _alGetSourcefv, "_alGetSourcei": _alGetSourcei, "_alGetSourceiv": _alGetSourceiv, "_alGetString": _alGetString, "_alIsBuffer": _alIsBuffer, "_alIsEnabled": _alIsEnabled, "_alIsExtensionPresent": _alIsExtensionPresent, "_alIsSource": _alIsSource, "_alListener3f": _alListener3f, "_alListener3i": _alListener3i, "_alListenerf": _alListenerf, "_alListenerfv": _alListenerfv, "_alListeneri": _alListeneri, "_alListeneriv": _alListeneriv, "_alSource3f": _alSource3f, "_alSource3i": _alSource3i, "_alSourcePause": _alSourcePause, "_alSourcePausev": _alSourcePausev, "_alSourcePlay": _alSourcePlay, "_alSourcePlayv": _alSourcePlayv, "_alSourceQueueBuffers": _alSourceQueueBuffers, "_alSourceRewind": _alSourceRewind, "_alSourceRewindv": _alSourceRewindv, "_alSourceStop": _alSourceStop, "_alSourceStopv": _alSourceStopv, "_alSourceUnqueueBuffers": _alSourceUnqueueBuffers, "_alSourcef": _alSourcef, "_alSourcefv": _alSourcefv, "_alSourcei": _alSourcei, "_alSourceiv": _alSourceiv, "_alSpeedOfSound": _alSpeedOfSound, "_alarm": _alarm, "_alcCaptureCloseDevice": _alcCaptureCloseDevice, "_alcCaptureOpenDevice": _alcCaptureOpenDevice, "_alcCaptureSamples": _alcCaptureSamples, "_alcCaptureStart": _alcCaptureStart, "_alcCaptureStop": _alcCaptureStop, "_alcCloseDevice": _alcCloseDevice, "_alcCreateContext": _alcCreateContext, "_alcDestroyContext": _alcDestroyContext, "_alcGetContextsDevice": _alcGetContextsDevice, "_alcGetCurrentContext": _alcGetCurrentContext, "_alcGetEnumValue": _alcGetEnumValue, "_alcGetError": _alcGetError, "_alcGetIntegerv": _alcGetIntegerv, "_alcGetProcAddress": _alcGetProcAddress, "_alcGetString": _alcGetString, "_alcIsExtensionPresent": _alcIsExtensionPresent, "_alcMakeContextCurrent": _alcMakeContextCurrent, "_alcOpenDevice": _alcOpenDevice, "_alcProcessContext": _alcProcessContext, "_alcSuspendContext": _alcSuspendContext, "_arc4random": _arc4random, "_asctime": _asctime, "_asctime_r": _asctime_r, "_atexit": _atexit, "_boxColor": _boxColor, "_boxRGBA": _boxRGBA, "_ceil": _ceil, "_ceilf": _ceilf, "_ceill": _ceill, "_chroot": _chroot, "_clearenv": _clearenv, "_clock": _clock, "_clock_getcpuclockid": _clock_getcpuclockid, "_clock_getres": _clock_getres, "_clock_gettime": _clock_gettime, "_clock_settime": _clock_settime, "_confstr": _confstr, "_ctime": _ctime, "_ctime_r": _ctime_r, "_difftime": _difftime, "_dladdr": _dladdr, "_dlclose": _dlclose, "_dlerror": _dlerror, "_dlopen": _dlopen, "_dlsym": _dlsym, "_dysize": _dysize, "_eglBindAPI": _eglBindAPI, "_eglChooseConfig": _eglChooseConfig, "_eglCreateContext": _eglCreateContext, "_eglCreateWindowSurface": _eglCreateWindowSurface, "_eglDestroyContext": _eglDestroyContext, "_eglDestroySurface": _eglDestroySurface, "_eglGetConfigAttrib": _eglGetConfigAttrib, "_eglGetConfigs": _eglGetConfigs, "_eglGetCurrentContext": _eglGetCurrentContext, "_eglGetCurrentDisplay": _eglGetCurrentDisplay, "_eglGetCurrentSurface": _eglGetCurrentSurface, "_eglGetDisplay": _eglGetDisplay, "_eglGetError": _eglGetError, "_eglGetProcAddress": _eglGetProcAddress, "_eglInitialize": _eglInitialize, "_eglMakeCurrent": _eglMakeCurrent, "_eglQueryAPI": _eglQueryAPI, "_eglQueryContext": _eglQueryContext, "_eglQueryString": _eglQueryString, "_eglQuerySurface": _eglQuerySurface, "_eglReleaseThread": _eglReleaseThread, "_eglSwapBuffers": _eglSwapBuffers, "_eglSwapInterval": _eglSwapInterval, "_eglTerminate": _eglTerminate, "_eglWaitClient": _eglWaitClient, "_eglWaitGL": _eglWaitGL, "_eglWaitNative": _eglWaitNative, "_ellipseColor": _ellipseColor, "_ellipseRGBA": _ellipseRGBA, "_emscripten_SDL_SetEventHandler": _emscripten_SDL_SetEventHandler, "_emscripten_alcDevicePauseSOFT": _emscripten_alcDevicePauseSOFT, "_emscripten_alcDeviceResumeSOFT": _emscripten_alcDeviceResumeSOFT, "_emscripten_alcGetStringiSOFT": _emscripten_alcGetStringiSOFT, "_emscripten_alcResetDeviceSOFT": _emscripten_alcResetDeviceSOFT, "_emscripten_async_call": _emscripten_async_call, "_emscripten_async_load_script": _emscripten_async_load_script, "_emscripten_async_run_script": _emscripten_async_run_script, "_emscripten_async_wget": _emscripten_async_wget, "_emscripten_async_wget2": _emscripten_async_wget2, "_emscripten_async_wget2_abort": _emscripten_async_wget2_abort, "_emscripten_async_wget2_data": _emscripten_async_wget2_data, "_emscripten_async_wget_data": _emscripten_async_wget_data, "_emscripten_autodebug_double": _emscripten_autodebug_double, "_emscripten_autodebug_float": _emscripten_autodebug_float, "_emscripten_autodebug_i16": _emscripten_autodebug_i16, "_emscripten_autodebug_i32": _emscripten_autodebug_i32, "_emscripten_autodebug_i64": _emscripten_autodebug_i64, "_emscripten_autodebug_i8": _emscripten_autodebug_i8, "_emscripten_call_worker": _emscripten_call_worker, "_emscripten_cancel_animation_frame": _emscripten_cancel_animation_frame, "_emscripten_cancel_main_loop": _emscripten_cancel_main_loop, "_emscripten_clear_immediate": _emscripten_clear_immediate, "_emscripten_clear_interval": _emscripten_clear_interval, "_emscripten_clear_timeout": _emscripten_clear_timeout, "_emscripten_console_error": _emscripten_console_error, "_emscripten_console_log": _emscripten_console_log, "_emscripten_console_warn": _emscripten_console_warn, "_emscripten_coroutine_create": _emscripten_coroutine_create, "_emscripten_coroutine_next": _emscripten_coroutine_next, "_emscripten_create_worker": _emscripten_create_worker, "_emscripten_date_now": _emscripten_date_now, "_emscripten_debugger": _emscripten_debugger, "_emscripten_destroy_worker": _emscripten_destroy_worker, "_emscripten_enter_soft_fullscreen": _emscripten_enter_soft_fullscreen, "_emscripten_exit_fullscreen": _emscripten_exit_fullscreen, "_emscripten_exit_pointerlock": _emscripten_exit_pointerlock, "_emscripten_exit_soft_fullscreen": _emscripten_exit_soft_fullscreen, "_emscripten_exit_with_live_runtime": _emscripten_exit_with_live_runtime, "_emscripten_force_exit": _emscripten_force_exit, "_emscripten_get_battery_status": _emscripten_get_battery_status, "_emscripten_get_callstack": _emscripten_get_callstack, "_emscripten_get_callstack_js": _emscripten_get_callstack_js, "_emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size, "_emscripten_get_canvas_size": _emscripten_get_canvas_size, "_emscripten_get_compiler_setting": _emscripten_get_compiler_setting, "_emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio, "_emscripten_get_devicemotion_status": _emscripten_get_devicemotion_status, "_emscripten_get_deviceorientation_status": _emscripten_get_deviceorientation_status, "_emscripten_get_element_css_size": _emscripten_get_element_css_size, "_emscripten_get_fullscreen_status": _emscripten_get_fullscreen_status, "_emscripten_get_gamepad_status": _emscripten_get_gamepad_status, "_emscripten_get_heap_size": _emscripten_get_heap_size, "_emscripten_get_main_loop_timing": _emscripten_get_main_loop_timing, "_emscripten_get_mouse_status": _emscripten_get_mouse_status, "_emscripten_get_now": _emscripten_get_now, "_emscripten_get_now_is_monotonic": _emscripten_get_now_is_monotonic, "_emscripten_get_now_res": _emscripten_get_now_res, "_emscripten_get_num_gamepads": _emscripten_get_num_gamepads, "_emscripten_get_orientation_status": _emscripten_get_orientation_status, "_emscripten_get_pointerlock_status": _emscripten_get_pointerlock_status, "_emscripten_get_preloaded_image_data": _emscripten_get_preloaded_image_data, "_emscripten_get_preloaded_image_data_from_FILE": _emscripten_get_preloaded_image_data_from_FILE, "_emscripten_get_visibility_status": _emscripten_get_visibility_status, "_emscripten_get_worker_queue_size": _emscripten_get_worker_queue_size, "_emscripten_glActiveTexture": _emscripten_glActiveTexture, "_emscripten_glAttachShader": _emscripten_glAttachShader, "_emscripten_glBegin": _emscripten_glBegin, "_emscripten_glBeginQueryEXT": _emscripten_glBeginQueryEXT, "_emscripten_glBindAttribLocation": _emscripten_glBindAttribLocation, "_emscripten_glBindBuffer": _emscripten_glBindBuffer, "_emscripten_glBindFramebuffer": _emscripten_glBindFramebuffer, "_emscripten_glBindRenderbuffer": _emscripten_glBindRenderbuffer, "_emscripten_glBindTexture": _emscripten_glBindTexture, "_emscripten_glBindVertexArray": _emscripten_glBindVertexArray, "_emscripten_glBindVertexArrayOES": _emscripten_glBindVertexArrayOES, "_emscripten_glBlendColor": _emscripten_glBlendColor, "_emscripten_glBlendEquation": _emscripten_glBlendEquation, "_emscripten_glBlendEquationSeparate": _emscripten_glBlendEquationSeparate, "_emscripten_glBlendFunc": _emscripten_glBlendFunc, "_emscripten_glBlendFuncSeparate": _emscripten_glBlendFuncSeparate, "_emscripten_glBufferData": _emscripten_glBufferData, "_emscripten_glBufferSubData": _emscripten_glBufferSubData, "_emscripten_glCheckFramebufferStatus": _emscripten_glCheckFramebufferStatus, "_emscripten_glClear": _emscripten_glClear, "_emscripten_glClearColor": _emscripten_glClearColor, "_emscripten_glClearDepth": _emscripten_glClearDepth, "_emscripten_glClearDepthf": _emscripten_glClearDepthf, "_emscripten_glClearStencil": _emscripten_glClearStencil, "_emscripten_glColorMask": _emscripten_glColorMask, "_emscripten_glCompileShader": _emscripten_glCompileShader, "_emscripten_glCompressedTexImage2D": _emscripten_glCompressedTexImage2D, "_emscripten_glCompressedTexSubImage2D": _emscripten_glCompressedTexSubImage2D, "_emscripten_glCopyTexImage2D": _emscripten_glCopyTexImage2D, "_emscripten_glCopyTexSubImage2D": _emscripten_glCopyTexSubImage2D, "_emscripten_glCreateProgram": _emscripten_glCreateProgram, "_emscripten_glCreateShader": _emscripten_glCreateShader, "_emscripten_glCullFace": _emscripten_glCullFace, "_emscripten_glDeleteBuffers": _emscripten_glDeleteBuffers, "_emscripten_glDeleteFramebuffers": _emscripten_glDeleteFramebuffers, "_emscripten_glDeleteProgram": _emscripten_glDeleteProgram, "_emscripten_glDeleteQueriesEXT": _emscripten_glDeleteQueriesEXT, "_emscripten_glDeleteRenderbuffers": _emscripten_glDeleteRenderbuffers, "_emscripten_glDeleteShader": _emscripten_glDeleteShader, "_emscripten_glDeleteTextures": _emscripten_glDeleteTextures, "_emscripten_glDeleteVertexArrays": _emscripten_glDeleteVertexArrays, "_emscripten_glDeleteVertexArraysOES": _emscripten_glDeleteVertexArraysOES, "_emscripten_glDepthFunc": _emscripten_glDepthFunc, "_emscripten_glDepthMask": _emscripten_glDepthMask, "_emscripten_glDepthRange": _emscripten_glDepthRange, "_emscripten_glDepthRangef": _emscripten_glDepthRangef, "_emscripten_glDetachShader": _emscripten_glDetachShader, "_emscripten_glDisable": _emscripten_glDisable, "_emscripten_glDisableVertexAttribArray": _emscripten_glDisableVertexAttribArray, "_emscripten_glDrawArrays": _emscripten_glDrawArrays, "_emscripten_glDrawArraysInstanced": _emscripten_glDrawArraysInstanced, "_emscripten_glDrawArraysInstancedANGLE": _emscripten_glDrawArraysInstancedANGLE, "_emscripten_glDrawArraysInstancedARB": _emscripten_glDrawArraysInstancedARB, "_emscripten_glDrawArraysInstancedEXT": _emscripten_glDrawArraysInstancedEXT, "_emscripten_glDrawArraysInstancedNV": _emscripten_glDrawArraysInstancedNV, "_emscripten_glDrawBuffers": _emscripten_glDrawBuffers, "_emscripten_glDrawBuffersEXT": _emscripten_glDrawBuffersEXT, "_emscripten_glDrawBuffersWEBGL": _emscripten_glDrawBuffersWEBGL, "_emscripten_glDrawElements": _emscripten_glDrawElements, "_emscripten_glDrawElementsInstanced": _emscripten_glDrawElementsInstanced, "_emscripten_glDrawElementsInstancedANGLE": _emscripten_glDrawElementsInstancedANGLE, "_emscripten_glDrawElementsInstancedARB": _emscripten_glDrawElementsInstancedARB, "_emscripten_glDrawElementsInstancedEXT": _emscripten_glDrawElementsInstancedEXT, "_emscripten_glDrawElementsInstancedNV": _emscripten_glDrawElementsInstancedNV, "_emscripten_glEnable": _emscripten_glEnable, "_emscripten_glEnableVertexAttribArray": _emscripten_glEnableVertexAttribArray, "_emscripten_glEndQueryEXT": _emscripten_glEndQueryEXT, "_emscripten_glFinish": _emscripten_glFinish, "_emscripten_glFlush": _emscripten_glFlush, "_emscripten_glFramebufferRenderbuffer": _emscripten_glFramebufferRenderbuffer, "_emscripten_glFramebufferTexture2D": _emscripten_glFramebufferTexture2D, "_emscripten_glFrontFace": _emscripten_glFrontFace, "_emscripten_glGenBuffers": _emscripten_glGenBuffers, "_emscripten_glGenFramebuffers": _emscripten_glGenFramebuffers, "_emscripten_glGenQueriesEXT": _emscripten_glGenQueriesEXT, "_emscripten_glGenRenderbuffers": _emscripten_glGenRenderbuffers, "_emscripten_glGenTextures": _emscripten_glGenTextures, "_emscripten_glGenVertexArrays": _emscripten_glGenVertexArrays, "_emscripten_glGenVertexArraysOES": _emscripten_glGenVertexArraysOES, "_emscripten_glGenerateMipmap": _emscripten_glGenerateMipmap, "_emscripten_glGetActiveAttrib": _emscripten_glGetActiveAttrib, "_emscripten_glGetActiveUniform": _emscripten_glGetActiveUniform, "_emscripten_glGetAttachedShaders": _emscripten_glGetAttachedShaders, "_emscripten_glGetAttribLocation": _emscripten_glGetAttribLocation, "_emscripten_glGetBooleanv": _emscripten_glGetBooleanv, "_emscripten_glGetBufferParameteriv": _emscripten_glGetBufferParameteriv, "_emscripten_glGetError": _emscripten_glGetError, "_emscripten_glGetFloatv": _emscripten_glGetFloatv, "_emscripten_glGetFramebufferAttachmentParameteriv": _emscripten_glGetFramebufferAttachmentParameteriv, "_emscripten_glGetIntegerv": _emscripten_glGetIntegerv, "_emscripten_glGetProgramInfoLog": _emscripten_glGetProgramInfoLog, "_emscripten_glGetProgramiv": _emscripten_glGetProgramiv, "_emscripten_glGetQueryObjecti64vEXT": _emscripten_glGetQueryObjecti64vEXT, "_emscripten_glGetQueryObjectivEXT": _emscripten_glGetQueryObjectivEXT, "_emscripten_glGetQueryObjectui64vEXT": _emscripten_glGetQueryObjectui64vEXT, "_emscripten_glGetQueryObjectuivEXT": _emscripten_glGetQueryObjectuivEXT, "_emscripten_glGetQueryivEXT": _emscripten_glGetQueryivEXT, "_emscripten_glGetRenderbufferParameteriv": _emscripten_glGetRenderbufferParameteriv, "_emscripten_glGetShaderInfoLog": _emscripten_glGetShaderInfoLog, "_emscripten_glGetShaderPrecisionFormat": _emscripten_glGetShaderPrecisionFormat, "_emscripten_glGetShaderSource": _emscripten_glGetShaderSource, "_emscripten_glGetShaderiv": _emscripten_glGetShaderiv, "_emscripten_glGetString": _emscripten_glGetString, "_emscripten_glGetTexParameterfv": _emscripten_glGetTexParameterfv, "_emscripten_glGetTexParameteriv": _emscripten_glGetTexParameteriv, "_emscripten_glGetUniformLocation": _emscripten_glGetUniformLocation, "_emscripten_glGetUniformfv": _emscripten_glGetUniformfv, "_emscripten_glGetUniformiv": _emscripten_glGetUniformiv, "_emscripten_glGetVertexAttribPointerv": _emscripten_glGetVertexAttribPointerv, "_emscripten_glGetVertexAttribfv": _emscripten_glGetVertexAttribfv, "_emscripten_glGetVertexAttribiv": _emscripten_glGetVertexAttribiv, "_emscripten_glHint": _emscripten_glHint, "_emscripten_glIsBuffer": _emscripten_glIsBuffer, "_emscripten_glIsEnabled": _emscripten_glIsEnabled, "_emscripten_glIsFramebuffer": _emscripten_glIsFramebuffer, "_emscripten_glIsProgram": _emscripten_glIsProgram, "_emscripten_glIsQueryEXT": _emscripten_glIsQueryEXT, "_emscripten_glIsRenderbuffer": _emscripten_glIsRenderbuffer, "_emscripten_glIsShader": _emscripten_glIsShader, "_emscripten_glIsTexture": _emscripten_glIsTexture, "_emscripten_glIsVertexArray": _emscripten_glIsVertexArray, "_emscripten_glIsVertexArrayOES": _emscripten_glIsVertexArrayOES, "_emscripten_glLineWidth": _emscripten_glLineWidth, "_emscripten_glLinkProgram": _emscripten_glLinkProgram, "_emscripten_glLoadIdentity": _emscripten_glLoadIdentity, "_emscripten_glMatrixMode": _emscripten_glMatrixMode, "_emscripten_glPixelStorei": _emscripten_glPixelStorei, "_emscripten_glPolygonOffset": _emscripten_glPolygonOffset, "_emscripten_glQueryCounterEXT": _emscripten_glQueryCounterEXT, "_emscripten_glReadPixels": _emscripten_glReadPixels, "_emscripten_glReleaseShaderCompiler": _emscripten_glReleaseShaderCompiler, "_emscripten_glRenderbufferStorage": _emscripten_glRenderbufferStorage, "_emscripten_glSampleCoverage": _emscripten_glSampleCoverage, "_emscripten_glScissor": _emscripten_glScissor, "_emscripten_glShaderBinary": _emscripten_glShaderBinary, "_emscripten_glShaderSource": _emscripten_glShaderSource, "_emscripten_glStencilFunc": _emscripten_glStencilFunc, "_emscripten_glStencilFuncSeparate": _emscripten_glStencilFuncSeparate, "_emscripten_glStencilMask": _emscripten_glStencilMask, "_emscripten_glStencilMaskSeparate": _emscripten_glStencilMaskSeparate, "_emscripten_glStencilOp": _emscripten_glStencilOp, "_emscripten_glStencilOpSeparate": _emscripten_glStencilOpSeparate, "_emscripten_glTexImage2D": _emscripten_glTexImage2D, "_emscripten_glTexParameterf": _emscripten_glTexParameterf, "_emscripten_glTexParameterfv": _emscripten_glTexParameterfv, "_emscripten_glTexParameteri": _emscripten_glTexParameteri, "_emscripten_glTexParameteriv": _emscripten_glTexParameteriv, "_emscripten_glTexSubImage2D": _emscripten_glTexSubImage2D, "_emscripten_glUniform1f": _emscripten_glUniform1f, "_emscripten_glUniform1fv": _emscripten_glUniform1fv, "_emscripten_glUniform1i": _emscripten_glUniform1i, "_emscripten_glUniform1iv": _emscripten_glUniform1iv, "_emscripten_glUniform2f": _emscripten_glUniform2f, "_emscripten_glUniform2fv": _emscripten_glUniform2fv, "_emscripten_glUniform2i": _emscripten_glUniform2i, "_emscripten_glUniform2iv": _emscripten_glUniform2iv, "_emscripten_glUniform3f": _emscripten_glUniform3f, "_emscripten_glUniform3fv": _emscripten_glUniform3fv, "_emscripten_glUniform3i": _emscripten_glUniform3i, "_emscripten_glUniform3iv": _emscripten_glUniform3iv, "_emscripten_glUniform4f": _emscripten_glUniform4f, "_emscripten_glUniform4fv": _emscripten_glUniform4fv, "_emscripten_glUniform4i": _emscripten_glUniform4i, "_emscripten_glUniform4iv": _emscripten_glUniform4iv, "_emscripten_glUniformMatrix2fv": _emscripten_glUniformMatrix2fv, "_emscripten_glUniformMatrix3fv": _emscripten_glUniformMatrix3fv, "_emscripten_glUniformMatrix4fv": _emscripten_glUniformMatrix4fv, "_emscripten_glUseProgram": _emscripten_glUseProgram, "_emscripten_glValidateProgram": _emscripten_glValidateProgram, "_emscripten_glVertexAttrib1f": _emscripten_glVertexAttrib1f, "_emscripten_glVertexAttrib1fv": _emscripten_glVertexAttrib1fv, "_emscripten_glVertexAttrib2f": _emscripten_glVertexAttrib2f, "_emscripten_glVertexAttrib2fv": _emscripten_glVertexAttrib2fv, "_emscripten_glVertexAttrib3f": _emscripten_glVertexAttrib3f, "_emscripten_glVertexAttrib3fv": _emscripten_glVertexAttrib3fv, "_emscripten_glVertexAttrib4f": _emscripten_glVertexAttrib4f, "_emscripten_glVertexAttrib4fv": _emscripten_glVertexAttrib4fv, "_emscripten_glVertexAttribDivisor": _emscripten_glVertexAttribDivisor, "_emscripten_glVertexAttribDivisorANGLE": _emscripten_glVertexAttribDivisorANGLE, "_emscripten_glVertexAttribDivisorARB": _emscripten_glVertexAttribDivisorARB, "_emscripten_glVertexAttribDivisorEXT": _emscripten_glVertexAttribDivisorEXT, "_emscripten_glVertexAttribDivisorNV": _emscripten_glVertexAttribDivisorNV, "_emscripten_glVertexAttribPointer": _emscripten_glVertexAttribPointer, "_emscripten_glVertexPointer": _emscripten_glVertexPointer, "_emscripten_glViewport": _emscripten_glViewport, "_emscripten_gluLookAt": _emscripten_gluLookAt, "_emscripten_gluOrtho2D": _emscripten_gluOrtho2D, "_emscripten_gluPerspective": _emscripten_gluPerspective, "_emscripten_gluProject": _emscripten_gluProject, "_emscripten_gluUnProject": _emscripten_gluUnProject, "_emscripten_hide_mouse": _emscripten_hide_mouse, "_emscripten_html5_remove_all_event_listeners": _emscripten_html5_remove_all_event_listeners, "_emscripten_idb_async_delete": _emscripten_idb_async_delete, "_emscripten_idb_async_exists": _emscripten_idb_async_exists, "_emscripten_idb_async_load": _emscripten_idb_async_load, "_emscripten_idb_async_store": _emscripten_idb_async_store, "_emscripten_idb_delete": _emscripten_idb_delete, "_emscripten_idb_exists": _emscripten_idb_exists, "_emscripten_idb_load": _emscripten_idb_load, "_emscripten_idb_store": _emscripten_idb_store, "_emscripten_is_main_browser_thread": _emscripten_is_main_browser_thread, "_emscripten_is_webgl_context_lost": _emscripten_is_webgl_context_lost, "_emscripten_lock_orientation": _emscripten_lock_orientation, "_emscripten_log": _emscripten_log, "_emscripten_log_js": _emscripten_log_js, "_emscripten_longjmp": _emscripten_longjmp, "_emscripten_main_browser_thread_id": _emscripten_main_browser_thread_id, "_emscripten_memcpy_big": _emscripten_memcpy_big, "_emscripten_pause_main_loop": _emscripten_pause_main_loop, "_emscripten_performance_now": _emscripten_performance_now, "_emscripten_print_double": _emscripten_print_double, "_emscripten_random": _emscripten_random, "_emscripten_request_animation_frame": _emscripten_request_animation_frame, "_emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop, "_emscripten_request_fullscreen": _emscripten_request_fullscreen, "_emscripten_request_fullscreen_strategy": _emscripten_request_fullscreen_strategy, "_emscripten_request_pointerlock": _emscripten_request_pointerlock, "_emscripten_resize_heap": _emscripten_resize_heap, "_emscripten_resume_main_loop": _emscripten_resume_main_loop, "_emscripten_run_preload_plugins": _emscripten_run_preload_plugins, "_emscripten_run_preload_plugins_data": _emscripten_run_preload_plugins_data, "_emscripten_run_script": _emscripten_run_script, "_emscripten_run_script_int": _emscripten_run_script_int, "_emscripten_run_script_string": _emscripten_run_script_string, "_emscripten_sample_gamepad_data": _emscripten_sample_gamepad_data, "_emscripten_set_batterychargingchange_callback_on_thread": _emscripten_set_batterychargingchange_callback_on_thread, "_emscripten_set_batterylevelchange_callback_on_thread": _emscripten_set_batterylevelchange_callback_on_thread, "_emscripten_set_beforeunload_callback_on_thread": _emscripten_set_beforeunload_callback_on_thread, "_emscripten_set_blur_callback_on_thread": _emscripten_set_blur_callback_on_thread, "_emscripten_set_canvas_element_size": _emscripten_set_canvas_element_size, "_emscripten_set_canvas_size": _emscripten_set_canvas_size, "_emscripten_set_click_callback_on_thread": _emscripten_set_click_callback_on_thread, "_emscripten_set_dblclick_callback_on_thread": _emscripten_set_dblclick_callback_on_thread, "_emscripten_set_devicemotion_callback_on_thread": _emscripten_set_devicemotion_callback_on_thread, "_emscripten_set_deviceorientation_callback_on_thread": _emscripten_set_deviceorientation_callback_on_thread, "_emscripten_set_element_css_size": _emscripten_set_element_css_size, "_emscripten_set_focus_callback_on_thread": _emscripten_set_focus_callback_on_thread, "_emscripten_set_focusin_callback_on_thread": _emscripten_set_focusin_callback_on_thread, "_emscripten_set_focusout_callback_on_thread": _emscripten_set_focusout_callback_on_thread, "_emscripten_set_fullscreenchange_callback_on_thread": _emscripten_set_fullscreenchange_callback_on_thread, "_emscripten_set_gamepadconnected_callback_on_thread": _emscripten_set_gamepadconnected_callback_on_thread, "_emscripten_set_gamepaddisconnected_callback_on_thread": _emscripten_set_gamepaddisconnected_callback_on_thread, "_emscripten_set_immediate": _emscripten_set_immediate, "_emscripten_set_immediate_loop": _emscripten_set_immediate_loop, "_emscripten_set_interval": _emscripten_set_interval, "_emscripten_set_keydown_callback_on_thread": _emscripten_set_keydown_callback_on_thread, "_emscripten_set_keypress_callback_on_thread": _emscripten_set_keypress_callback_on_thread, "_emscripten_set_keyup_callback_on_thread": _emscripten_set_keyup_callback_on_thread, "_emscripten_set_main_loop": _emscripten_set_main_loop, "_emscripten_set_main_loop_arg": _emscripten_set_main_loop_arg, "_emscripten_set_main_loop_expected_blockers": _emscripten_set_main_loop_expected_blockers, "_emscripten_set_main_loop_timing": _emscripten_set_main_loop_timing, "_emscripten_set_mousedown_callback_on_thread": _emscripten_set_mousedown_callback_on_thread, "_emscripten_set_mouseenter_callback_on_thread": _emscripten_set_mouseenter_callback_on_thread, "_emscripten_set_mouseleave_callback_on_thread": _emscripten_set_mouseleave_callback_on_thread, "_emscripten_set_mousemove_callback_on_thread": _emscripten_set_mousemove_callback_on_thread, "_emscripten_set_mouseout_callback_on_thread": _emscripten_set_mouseout_callback_on_thread, "_emscripten_set_mouseover_callback_on_thread": _emscripten_set_mouseover_callback_on_thread, "_emscripten_set_mouseup_callback_on_thread": _emscripten_set_mouseup_callback_on_thread, "_emscripten_set_orientationchange_callback_on_thread": _emscripten_set_orientationchange_callback_on_thread, "_emscripten_set_pointerlockchange_callback_on_thread": _emscripten_set_pointerlockchange_callback_on_thread, "_emscripten_set_pointerlockerror_callback_on_thread": _emscripten_set_pointerlockerror_callback_on_thread, "_emscripten_set_resize_callback_on_thread": _emscripten_set_resize_callback_on_thread, "_emscripten_set_scroll_callback_on_thread": _emscripten_set_scroll_callback_on_thread, "_emscripten_set_socket_close_callback": _emscripten_set_socket_close_callback, "_emscripten_set_socket_connection_callback": _emscripten_set_socket_connection_callback, "_emscripten_set_socket_error_callback": _emscripten_set_socket_error_callback, "_emscripten_set_socket_listen_callback": _emscripten_set_socket_listen_callback, "_emscripten_set_socket_message_callback": _emscripten_set_socket_message_callback, "_emscripten_set_socket_open_callback": _emscripten_set_socket_open_callback, "_emscripten_set_timeout": _emscripten_set_timeout, "_emscripten_set_timeout_loop": _emscripten_set_timeout_loop, "_emscripten_set_touchcancel_callback_on_thread": _emscripten_set_touchcancel_callback_on_thread, "_emscripten_set_touchend_callback_on_thread": _emscripten_set_touchend_callback_on_thread, "_emscripten_set_touchmove_callback_on_thread": _emscripten_set_touchmove_callback_on_thread, "_emscripten_set_touchstart_callback_on_thread": _emscripten_set_touchstart_callback_on_thread, "_emscripten_set_visibilitychange_callback_on_thread": _emscripten_set_visibilitychange_callback_on_thread, "_emscripten_set_webglcontextlost_callback_on_thread": _emscripten_set_webglcontextlost_callback_on_thread, "_emscripten_set_webglcontextrestored_callback_on_thread": _emscripten_set_webglcontextrestored_callback_on_thread, "_emscripten_set_wheel_callback_on_thread": _emscripten_set_wheel_callback_on_thread, "_emscripten_sleep": _emscripten_sleep, "_emscripten_supports_offscreencanvas": _emscripten_supports_offscreencanvas, "_emscripten_throw_number": _emscripten_throw_number, "_emscripten_throw_string": _emscripten_throw_string, "_emscripten_unlock_orientation": _emscripten_unlock_orientation, "_emscripten_vibrate": _emscripten_vibrate, "_emscripten_vibrate_pattern": _emscripten_vibrate_pattern, "_emscripten_vr_cancel_display_render_loop": _emscripten_vr_cancel_display_render_loop, "_emscripten_vr_count_displays": _emscripten_vr_count_displays, "_emscripten_vr_deinit": _emscripten_vr_deinit, "_emscripten_vr_display_connected": _emscripten_vr_display_connected, "_emscripten_vr_display_presenting": _emscripten_vr_display_presenting, "_emscripten_vr_exit_present": _emscripten_vr_exit_present, "_emscripten_vr_get_display_capabilities": _emscripten_vr_get_display_capabilities, "_emscripten_vr_get_display_handle": _emscripten_vr_get_display_handle, "_emscripten_vr_get_display_name": _emscripten_vr_get_display_name, "_emscripten_vr_get_eye_parameters": _emscripten_vr_get_eye_parameters, "_emscripten_vr_get_frame_data": _emscripten_vr_get_frame_data, "_emscripten_vr_init": _emscripten_vr_init, "_emscripten_vr_ready": _emscripten_vr_ready, "_emscripten_vr_request_present": _emscripten_vr_request_present, "_emscripten_vr_set_display_render_loop": _emscripten_vr_set_display_render_loop, "_emscripten_vr_set_display_render_loop_arg": _emscripten_vr_set_display_render_loop_arg, "_emscripten_vr_submit_frame": _emscripten_vr_submit_frame, "_emscripten_vr_version_major": _emscripten_vr_version_major, "_emscripten_vr_version_minor": _emscripten_vr_version_minor, "_emscripten_webgl_commit_frame": _emscripten_webgl_commit_frame, "_emscripten_webgl_create_context": _emscripten_webgl_create_context, "_emscripten_webgl_destroy_context": _emscripten_webgl_destroy_context, "_emscripten_webgl_destroy_context_calling_thread": _emscripten_webgl_destroy_context_calling_thread, "_emscripten_webgl_do_commit_frame": _emscripten_webgl_do_commit_frame, "_emscripten_webgl_do_create_context": _emscripten_webgl_do_create_context, "_emscripten_webgl_do_get_current_context": _emscripten_webgl_do_get_current_context, "_emscripten_webgl_enable_extension": _emscripten_webgl_enable_extension, "_emscripten_webgl_enable_extension_calling_thread": _emscripten_webgl_enable_extension_calling_thread, "_emscripten_webgl_get_context_attributes": _emscripten_webgl_get_context_attributes, "_emscripten_webgl_get_current_context": _emscripten_webgl_get_current_context, "_emscripten_webgl_get_drawing_buffer_size": _emscripten_webgl_get_drawing_buffer_size, "_emscripten_webgl_get_drawing_buffer_size_calling_thread": _emscripten_webgl_get_drawing_buffer_size_calling_thread, "_emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes, "_emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current, "_emscripten_wget": _emscripten_wget, "_emscripten_wget_data": _emscripten_wget_data, "_emscripten_worker_respond": _emscripten_worker_respond, "_emscripten_worker_respond_provisionally": _emscripten_worker_respond_provisionally, "_emscripten_yield": _emscripten_yield, "_endprotoent": _endprotoent, "_endpwent": _endpwent, "_execl": _execl, "_execle": _execle, "_execlp": _execlp, "_execv": _execv, "_execve": _execve, "_execvp": _execvp, "_exit": _exit, "_fabs": _fabs, "_fabsf": _fabsf, "_fabsl": _fabsl, "_fexecve": _fexecve, "_filledEllipseColor": _filledEllipseColor, "_filledEllipseRGBA": _filledEllipseRGBA, "_flock": _flock, "_floor": _floor, "_floorf": _floorf, "_floorl": _floorl, "_fork": _fork, "_fpathconf": _fpathconf, "_ftime": _ftime, "_gai_strerror": _gai_strerror, "_getTempRet0": _getTempRet0, "_getaddrinfo": _getaddrinfo, "_getdate": _getdate, "_getenv": _getenv, "_gethostbyaddr": _gethostbyaddr, "_gethostbyname": _gethostbyname, "_gethostbyname_r": _gethostbyname_r, "_getitimer": _getitimer, "_getloadavg": _getloadavg, "_getnameinfo": _getnameinfo, "_getpagesize": _getpagesize, "_getprotobyname": _getprotobyname, "_getprotobynumber": _getprotobynumber, "_getprotoent": _getprotoent, "_getpwent": _getpwent, "_getpwnam": _getpwnam, "_getpwuid": _getpwuid, "_gettimeofday": _gettimeofday, "_glActiveTexture": _glActiveTexture, "_glAttachShader": _glAttachShader, "_glBegin": _glBegin, "_glBeginQueryEXT": _glBeginQueryEXT, "_glBindAttribLocation": _glBindAttribLocation, "_glBindBuffer": _glBindBuffer, "_glBindFramebuffer": _glBindFramebuffer, "_glBindRenderbuffer": _glBindRenderbuffer, "_glBindTexture": _glBindTexture, "_glBindVertexArray": _glBindVertexArray, "_glBindVertexArrayOES": _glBindVertexArrayOES, "_glBlendColor": _glBlendColor, "_glBlendEquation": _glBlendEquation, "_glBlendEquationSeparate": _glBlendEquationSeparate, "_glBlendFunc": _glBlendFunc, "_glBlendFuncSeparate": _glBlendFuncSeparate, "_glBufferData": _glBufferData, "_glBufferSubData": _glBufferSubData, "_glCheckFramebufferStatus": _glCheckFramebufferStatus, "_glClear": _glClear, "_glClearColor": _glClearColor, "_glClearDepth": _glClearDepth, "_glClearDepthf": _glClearDepthf, "_glClearStencil": _glClearStencil, "_glColorMask": _glColorMask, "_glCompileShader": _glCompileShader, "_glCompressedTexImage2D": _glCompressedTexImage2D, "_glCompressedTexSubImage2D": _glCompressedTexSubImage2D, "_glCopyTexImage2D": _glCopyTexImage2D, "_glCopyTexSubImage2D": _glCopyTexSubImage2D, "_glCreateProgram": _glCreateProgram, "_glCreateShader": _glCreateShader, "_glCullFace": _glCullFace, "_glDeleteBuffers": _glDeleteBuffers, "_glDeleteFramebuffers": _glDeleteFramebuffers, "_glDeleteProgram": _glDeleteProgram, "_glDeleteQueriesEXT": _glDeleteQueriesEXT, "_glDeleteRenderbuffers": _glDeleteRenderbuffers, "_glDeleteShader": _glDeleteShader, "_glDeleteTextures": _glDeleteTextures, "_glDeleteVertexArrays": _glDeleteVertexArrays, "_glDeleteVertexArraysOES": _glDeleteVertexArraysOES, "_glDepthFunc": _glDepthFunc, "_glDepthMask": _glDepthMask, "_glDepthRange": _glDepthRange, "_glDepthRangef": _glDepthRangef, "_glDetachShader": _glDetachShader, "_glDisable": _glDisable, "_glDisableVertexAttribArray": _glDisableVertexAttribArray, "_glDrawArrays": _glDrawArrays, "_glDrawArraysInstanced": _glDrawArraysInstanced, "_glDrawArraysInstancedANGLE": _glDrawArraysInstancedANGLE, "_glDrawArraysInstancedARB": _glDrawArraysInstancedARB, "_glDrawArraysInstancedEXT": _glDrawArraysInstancedEXT, "_glDrawArraysInstancedNV": _glDrawArraysInstancedNV, "_glDrawBuffers": _glDrawBuffers, "_glDrawBuffersEXT": _glDrawBuffersEXT, "_glDrawBuffersWEBGL": _glDrawBuffersWEBGL, "_glDrawElements": _glDrawElements, "_glDrawElementsInstanced": _glDrawElementsInstanced, "_glDrawElementsInstancedANGLE": _glDrawElementsInstancedANGLE, "_glDrawElementsInstancedARB": _glDrawElementsInstancedARB, "_glDrawElementsInstancedEXT": _glDrawElementsInstancedEXT, "_glDrawElementsInstancedNV": _glDrawElementsInstancedNV, "_glEnable": _glEnable, "_glEnableVertexAttribArray": _glEnableVertexAttribArray, "_glEndQueryEXT": _glEndQueryEXT, "_glFinish": _glFinish, "_glFlush": _glFlush, "_glFramebufferRenderbuffer": _glFramebufferRenderbuffer, "_glFramebufferTexture2D": _glFramebufferTexture2D, "_glFrontFace": _glFrontFace, "_glGenBuffers": _glGenBuffers, "_glGenFramebuffers": _glGenFramebuffers, "_glGenQueriesEXT": _glGenQueriesEXT, "_glGenRenderbuffers": _glGenRenderbuffers, "_glGenTextures": _glGenTextures, "_glGenVertexArrays": _glGenVertexArrays, "_glGenVertexArraysOES": _glGenVertexArraysOES, "_glGenerateMipmap": _glGenerateMipmap, "_glGetActiveAttrib": _glGetActiveAttrib, "_glGetActiveUniform": _glGetActiveUniform, "_glGetAttachedShaders": _glGetAttachedShaders, "_glGetAttribLocation": _glGetAttribLocation, "_glGetBooleanv": _glGetBooleanv, "_glGetBufferParameteriv": _glGetBufferParameteriv, "_glGetError": _glGetError, "_glGetFloatv": _glGetFloatv, "_glGetFramebufferAttachmentParameteriv": _glGetFramebufferAttachmentParameteriv, "_glGetIntegerv": _glGetIntegerv, "_glGetProgramInfoLog": _glGetProgramInfoLog, "_glGetProgramiv": _glGetProgramiv, "_glGetQueryObjecti64vEXT": _glGetQueryObjecti64vEXT, "_glGetQueryObjectivEXT": _glGetQueryObjectivEXT, "_glGetQueryObjectui64vEXT": _glGetQueryObjectui64vEXT, "_glGetQueryObjectuivEXT": _glGetQueryObjectuivEXT, "_glGetQueryivEXT": _glGetQueryivEXT, "_glGetRenderbufferParameteriv": _glGetRenderbufferParameteriv, "_glGetShaderInfoLog": _glGetShaderInfoLog, "_glGetShaderPrecisionFormat": _glGetShaderPrecisionFormat, "_glGetShaderSource": _glGetShaderSource, "_glGetShaderiv": _glGetShaderiv, "_glGetString": _glGetString, "_glGetTexParameterfv": _glGetTexParameterfv, "_glGetTexParameteriv": _glGetTexParameteriv, "_glGetUniformLocation": _glGetUniformLocation, "_glGetUniformfv": _glGetUniformfv, "_glGetUniformiv": _glGetUniformiv, "_glGetVertexAttribPointerv": _glGetVertexAttribPointerv, "_glGetVertexAttribfv": _glGetVertexAttribfv, "_glGetVertexAttribiv": _glGetVertexAttribiv, "_glHint": _glHint, "_glIsBuffer": _glIsBuffer, "_glIsEnabled": _glIsEnabled, "_glIsFramebuffer": _glIsFramebuffer, "_glIsProgram": _glIsProgram, "_glIsQueryEXT": _glIsQueryEXT, "_glIsRenderbuffer": _glIsRenderbuffer, "_glIsShader": _glIsShader, "_glIsTexture": _glIsTexture, "_glIsVertexArray": _glIsVertexArray, "_glIsVertexArrayOES": _glIsVertexArrayOES, "_glLineWidth": _glLineWidth, "_glLinkProgram": _glLinkProgram, "_glLoadIdentity": _glLoadIdentity, "_glMatrixMode": _glMatrixMode, "_glPixelStorei": _glPixelStorei, "_glPolygonOffset": _glPolygonOffset, "_glQueryCounterEXT": _glQueryCounterEXT, "_glReadPixels": _glReadPixels, "_glReleaseShaderCompiler": _glReleaseShaderCompiler, "_glRenderbufferStorage": _glRenderbufferStorage, "_glSampleCoverage": _glSampleCoverage, "_glScissor": _glScissor, "_glShaderBinary": _glShaderBinary, "_glShaderSource": _glShaderSource, "_glStencilFunc": _glStencilFunc, "_glStencilFuncSeparate": _glStencilFuncSeparate, "_glStencilMask": _glStencilMask, "_glStencilMaskSeparate": _glStencilMaskSeparate, "_glStencilOp": _glStencilOp, "_glStencilOpSeparate": _glStencilOpSeparate, "_glTexImage2D": _glTexImage2D, "_glTexParameterf": _glTexParameterf, "_glTexParameterfv": _glTexParameterfv, "_glTexParameteri": _glTexParameteri, "_glTexParameteriv": _glTexParameteriv, "_glTexSubImage2D": _glTexSubImage2D, "_glUniform1f": _glUniform1f, "_glUniform1fv": _glUniform1fv, "_glUniform1i": _glUniform1i, "_glUniform1iv": _glUniform1iv, "_glUniform2f": _glUniform2f, "_glUniform2fv": _glUniform2fv, "_glUniform2i": _glUniform2i, "_glUniform2iv": _glUniform2iv, "_glUniform3f": _glUniform3f, "_glUniform3fv": _glUniform3fv, "_glUniform3i": _glUniform3i, "_glUniform3iv": _glUniform3iv, "_glUniform4f": _glUniform4f, "_glUniform4fv": _glUniform4fv, "_glUniform4i": _glUniform4i, "_glUniform4iv": _glUniform4iv, "_glUniformMatrix2fv": _glUniformMatrix2fv, "_glUniformMatrix3fv": _glUniformMatrix3fv, "_glUniformMatrix4fv": _glUniformMatrix4fv, "_glUseProgram": _glUseProgram, "_glValidateProgram": _glValidateProgram, "_glVertexAttrib1f": _glVertexAttrib1f, "_glVertexAttrib1fv": _glVertexAttrib1fv, "_glVertexAttrib2f": _glVertexAttrib2f, "_glVertexAttrib2fv": _glVertexAttrib2fv, "_glVertexAttrib3f": _glVertexAttrib3f, "_glVertexAttrib3fv": _glVertexAttrib3fv, "_glVertexAttrib4f": _glVertexAttrib4f, "_glVertexAttrib4fv": _glVertexAttrib4fv, "_glVertexAttribDivisor": _glVertexAttribDivisor, "_glVertexAttribDivisorANGLE": _glVertexAttribDivisorANGLE, "_glVertexAttribDivisorARB": _glVertexAttribDivisorARB, "_glVertexAttribDivisorEXT": _glVertexAttribDivisorEXT, "_glVertexAttribDivisorNV": _glVertexAttribDivisorNV, "_glVertexAttribPointer": _glVertexAttribPointer, "_glVertexPointer": _glVertexPointer, "_glViewport": _glViewport, "_glewGetErrorString": _glewGetErrorString, "_glewGetExtension": _glewGetExtension, "_glewGetString": _glewGetString, "_glewInit": _glewInit, "_glewIsSupported": _glewIsSupported, "_glfwBroadcastCond": _glfwBroadcastCond, "_glfwCloseWindow": _glfwCloseWindow, "_glfwCreateCond": _glfwCreateCond, "_glfwCreateMutex": _glfwCreateMutex, "_glfwCreateThread": _glfwCreateThread, "_glfwDestroyCond": _glfwDestroyCond, "_glfwDestroyMutex": _glfwDestroyMutex, "_glfwDestroyThread": _glfwDestroyThread, "_glfwDisable": _glfwDisable, "_glfwEnable": _glfwEnable, "_glfwExtensionSupported": _glfwExtensionSupported, "_glfwFreeImage": _glfwFreeImage, "_glfwGetDesktopMode": _glfwGetDesktopMode, "_glfwGetGLVersion": _glfwGetGLVersion, "_glfwGetKey": _glfwGetKey, "_glfwGetMouseButton": _glfwGetMouseButton, "_glfwGetMousePos": _glfwGetMousePos, "_glfwGetMouseWheel": _glfwGetMouseWheel, "_glfwGetNumberOfProcessors": _glfwGetNumberOfProcessors, "_glfwGetProcAddress": _glfwGetProcAddress, "_glfwGetThreadID": _glfwGetThreadID, "_glfwGetTime": _glfwGetTime, "_glfwGetVersion": _glfwGetVersion, "_glfwGetWindowParam": _glfwGetWindowParam, "_glfwGetWindowPos": _glfwGetWindowPos, "_glfwGetWindowSize": _glfwGetWindowSize, "_glfwIconifyWindow": _glfwIconifyWindow, "_glfwInit": _glfwInit, "_glfwLoadMemoryTexture2D": _glfwLoadMemoryTexture2D, "_glfwLoadTexture2D": _glfwLoadTexture2D, "_glfwLoadTextureImage2D": _glfwLoadTextureImage2D, "_glfwLockMutex": _glfwLockMutex, "_glfwOpenWindow": _glfwOpenWindow, "_glfwOpenWindowHint": _glfwOpenWindowHint, "_glfwPollEvents": _glfwPollEvents, "_glfwReadImage": _glfwReadImage, "_glfwReadMemoryImage": _glfwReadMemoryImage, "_glfwRestoreWindow": _glfwRestoreWindow, "_glfwSetCharCallback": _glfwSetCharCallback, "_glfwSetKeyCallback": _glfwSetKeyCallback, "_glfwSetMouseButtonCallback": _glfwSetMouseButtonCallback, "_glfwSetMousePos": _glfwSetMousePos, "_glfwSetMousePosCallback": _glfwSetMousePosCallback, "_glfwSetMouseWheel": _glfwSetMouseWheel, "_glfwSetMouseWheelCallback": _glfwSetMouseWheelCallback, "_glfwSetTime": _glfwSetTime, "_glfwSetWindowCloseCallback": _glfwSetWindowCloseCallback, "_glfwSetWindowPos": _glfwSetWindowPos, "_glfwSetWindowRefreshCallback": _glfwSetWindowRefreshCallback, "_glfwSetWindowSize": _glfwSetWindowSize, "_glfwSetWindowSizeCallback": _glfwSetWindowSizeCallback, "_glfwSetWindowTitle": _glfwSetWindowTitle, "_glfwSignalCond": _glfwSignalCond, "_glfwSleep": _glfwSleep, "_glfwSwapBuffers": _glfwSwapBuffers, "_glfwSwapInterval": _glfwSwapInterval, "_glfwTerminate": _glfwTerminate, "_glfwUnlockMutex": _glfwUnlockMutex, "_glfwWaitCond": _glfwWaitCond, "_glfwWaitEvents": _glfwWaitEvents, "_glfwWaitThread": _glfwWaitThread, "_gluLookAt": _gluLookAt, "_gluOrtho2D": _gluOrtho2D, "_gluPerspective": _gluPerspective, "_gluProject": _gluProject, "_gluUnProject": _gluUnProject, "_glutCreateWindow": _glutCreateWindow, "_glutDestroyWindow": _glutDestroyWindow, "_glutDisplayFunc": _glutDisplayFunc, "_glutFullScreen": _glutFullScreen, "_glutGet": _glutGet, "_glutGetModifiers": _glutGetModifiers, "_glutIdleFunc": _glutIdleFunc, "_glutInit": _glutInit, "_glutInitDisplayMode": _glutInitDisplayMode, "_glutInitWindowPosition": _glutInitWindowPosition, "_glutInitWindowSize": _glutInitWindowSize, "_glutKeyboardFunc": _glutKeyboardFunc, "_glutKeyboardUpFunc": _glutKeyboardUpFunc, "_glutMainLoop": _glutMainLoop, "_glutMotionFunc": _glutMotionFunc, "_glutMouseFunc": _glutMouseFunc, "_glutPassiveMotionFunc": _glutPassiveMotionFunc, "_glutPositionWindow": _glutPositionWindow, "_glutPostRedisplay": _glutPostRedisplay, "_glutReshapeFunc": _glutReshapeFunc, "_glutReshapeWindow": _glutReshapeWindow, "_glutSetCursor": _glutSetCursor, "_glutSpecialFunc": _glutSpecialFunc, "_glutSpecialUpFunc": _glutSpecialUpFunc, "_glutSwapBuffers": _glutSwapBuffers, "_glutTimerFunc": _glutTimerFunc, "_gmtime": _gmtime, "_gmtime_r": _gmtime_r, "_gnu_dev_major": _gnu_dev_major, "_gnu_dev_makedev": _gnu_dev_makedev, "_gnu_dev_minor": _gnu_dev_minor, "_inet_addr": _inet_addr, "_kill": _kill, "_killpg": _killpg, "_lineColor": _lineColor, "_lineRGBA": _lineRGBA, "_llvm_atomic_load_add_i32_p0i32": _llvm_atomic_load_add_i32_p0i32, "_llvm_bswap_i64": _llvm_bswap_i64, "_llvm_ceil_f32": _llvm_ceil_f32, "_llvm_ceil_f64": _llvm_ceil_f64, "_llvm_copysign_f32": _llvm_copysign_f32, "_llvm_copysign_f64": _llvm_copysign_f64, "_llvm_cos_f32": _llvm_cos_f32, "_llvm_cos_f64": _llvm_cos_f64, "_llvm_cttz_i32": _llvm_cttz_i32, "_llvm_cttz_i64": _llvm_cttz_i64, "_llvm_eh_exception": _llvm_eh_exception, "_llvm_eh_selector": _llvm_eh_selector, "_llvm_eh_typeid_for": _llvm_eh_typeid_for, "_llvm_exp2_f32": _llvm_exp2_f32, "_llvm_exp2_f64": _llvm_exp2_f64, "_llvm_exp_f32": _llvm_exp_f32, "_llvm_exp_f64": _llvm_exp_f64, "_llvm_fabs_f32": _llvm_fabs_f32, "_llvm_fabs_f64": _llvm_fabs_f64, "_llvm_floor_f32": _llvm_floor_f32, "_llvm_floor_f64": _llvm_floor_f64, "_llvm_flt_rounds": _llvm_flt_rounds, "_llvm_log10_f32": _llvm_log10_f32, "_llvm_log10_f64": _llvm_log10_f64, "_llvm_log2_f32": _llvm_log2_f32, "_llvm_log2_f64": _llvm_log2_f64, "_llvm_log_f32": _llvm_log_f32, "_llvm_log_f64": _llvm_log_f64, "_llvm_memory_barrier": _llvm_memory_barrier, "_llvm_mono_load_i16_p0i16": _llvm_mono_load_i16_p0i16, "_llvm_mono_load_i32_p0i32": _llvm_mono_load_i32_p0i32, "_llvm_mono_load_i8_p0i8": _llvm_mono_load_i8_p0i8, "_llvm_mono_store_i16_p0i16": _llvm_mono_store_i16_p0i16, "_llvm_mono_store_i32_p0i32": _llvm_mono_store_i32_p0i32, "_llvm_mono_store_i8_p0i8": _llvm_mono_store_i8_p0i8, "_llvm_objectsize_i32": _llvm_objectsize_i32, "_llvm_pow_f32": _llvm_pow_f32, "_llvm_pow_f64": _llvm_pow_f64, "_llvm_powi_f32": _llvm_powi_f32, "_llvm_powi_f64": _llvm_powi_f64, "_llvm_prefetch": _llvm_prefetch, "_llvm_sin_f32": _llvm_sin_f32, "_llvm_sin_f64": _llvm_sin_f64, "_llvm_sqrt_f32": _llvm_sqrt_f32, "_llvm_sqrt_f64": _llvm_sqrt_f64, "_llvm_stackrestore": _llvm_stackrestore, "_llvm_stacksave": _llvm_stacksave, "_llvm_trap": _llvm_trap, "_llvm_trunc_f32": _llvm_trunc_f32, "_llvm_trunc_f64": _llvm_trunc_f64, "_llvm_va_copy": _llvm_va_copy, "_llvm_va_end": _llvm_va_end, "_localtime": _localtime, "_localtime_r": _localtime_r, "_longjmp": _longjmp, "_major": _major, "_makedev": _makedev, "_minor": _minor, "_mktime": _mktime, "_nanosleep": _nanosleep, "_pathconf": _pathconf, "_pixelRGBA": _pixelRGBA, "_posix_spawn": _posix_spawn, "_posix_spawnp": _posix_spawnp, "_pthread_attr_destroy": _pthread_attr_destroy, "_pthread_attr_getstack": _pthread_attr_getstack, "_pthread_attr_init": _pthread_attr_init, "_pthread_attr_setdetachstate": _pthread_attr_setdetachstate, "_pthread_attr_setschedparam": _pthread_attr_setschedparam, "_pthread_attr_setstacksize": _pthread_attr_setstacksize, "_pthread_cancel": _pthread_cancel, "_pthread_cleanup_pop": _pthread_cleanup_pop, "_pthread_cleanup_push": _pthread_cleanup_push, "_pthread_cond_destroy": _pthread_cond_destroy, "_pthread_cond_init": _pthread_cond_init, "_pthread_cond_signal": _pthread_cond_signal, "_pthread_cond_timedwait": _pthread_cond_timedwait, "_pthread_cond_wait": _pthread_cond_wait, "_pthread_condattr_destroy": _pthread_condattr_destroy, "_pthread_condattr_getclock": _pthread_condattr_getclock, "_pthread_condattr_getpshared": _pthread_condattr_getpshared, "_pthread_condattr_init": _pthread_condattr_init, "_pthread_condattr_setclock": _pthread_condattr_setclock, "_pthread_condattr_setpshared": _pthread_condattr_setpshared, "_pthread_create": _pthread_create, "_pthread_detach": _pthread_detach, "_pthread_equal": _pthread_equal, "_pthread_exit": _pthread_exit, "_pthread_getattr_np": _pthread_getattr_np, "_pthread_join": _pthread_join, "_pthread_mutexattr_destroy": _pthread_mutexattr_destroy, "_pthread_mutexattr_init": _pthread_mutexattr_init, "_pthread_mutexattr_setprotocol": _pthread_mutexattr_setprotocol, "_pthread_mutexattr_setpshared": _pthread_mutexattr_setpshared, "_pthread_mutexattr_setschedparam": _pthread_mutexattr_setschedparam, "_pthread_mutexattr_settype": _pthread_mutexattr_settype, "_pthread_rwlock_destroy": _pthread_rwlock_destroy, "_pthread_rwlock_init": _pthread_rwlock_init, "_pthread_rwlock_rdlock": _pthread_rwlock_rdlock, "_pthread_rwlock_timedrdlock": _pthread_rwlock_timedrdlock, "_pthread_rwlock_timedwrlock": _pthread_rwlock_timedwrlock, "_pthread_rwlock_tryrdlock": _pthread_rwlock_tryrdlock, "_pthread_rwlock_trywrlock": _pthread_rwlock_trywrlock, "_pthread_rwlock_unlock": _pthread_rwlock_unlock, "_pthread_rwlock_wrlock": _pthread_rwlock_wrlock, "_pthread_rwlockattr_destroy": _pthread_rwlockattr_destroy, "_pthread_rwlockattr_getpshared": _pthread_rwlockattr_getpshared, "_pthread_rwlockattr_init": _pthread_rwlockattr_init, "_pthread_rwlockattr_setpshared": _pthread_rwlockattr_setpshared, "_pthread_setcancelstate": _pthread_setcancelstate, "_pthread_sigmask": _pthread_sigmask, "_pthread_spin_destroy": _pthread_spin_destroy, "_pthread_spin_init": _pthread_spin_init, "_pthread_spin_lock": _pthread_spin_lock, "_pthread_spin_trylock": _pthread_spin_trylock, "_pthread_spin_unlock": _pthread_spin_unlock, "_putenv": _putenv, "_raise": _raise, "_rectangleColor": _rectangleColor, "_rectangleRGBA": _rectangleRGBA, "_rotozoomSurface": _rotozoomSurface, "_sched_yield": _sched_yield, "_sem_destroy": _sem_destroy, "_sem_init": _sem_init, "_sem_post": _sem_post, "_sem_trywait": _sem_trywait, "_sem_wait": _sem_wait, "_setTempRet0": _setTempRet0, "_setenv": _setenv, "_setgroups": _setgroups, "_setitimer": _setitimer, "_setprotoent": _setprotoent, "_setpwent": _setpwent, "_sigaction": _sigaction, "_sigaddset": _sigaddset, "_sigdelset": _sigdelset, "_sigemptyset": _sigemptyset, "_sigfillset": _sigfillset, "_siginterrupt": _siginterrupt, "_sigismember": _sigismember, "_siglongjmp": _siglongjmp, "_signal": _signal, "_sigpending": _sigpending, "_sigprocmask": _sigprocmask, "_sqrt": _sqrt, "_sqrtf": _sqrtf, "_sqrtl": _sqrtl, "_stime": _stime, "_strftime": _strftime, "_strftime_l": _strftime_l, "_strptime": _strptime, "_strptime_l": _strptime_l, "_sysconf": _sysconf, "_system": _system, "_terminate": _terminate, "_time": _time, "_timegm": _timegm, "_timelocal": _timelocal, "_times": _times, "_timespec_get": _timespec_get, "_tzset": _tzset, "_unsetenv": _unsetenv, "_usleep": _usleep, "_utime": _utime, "_utimes": _utimes, "_uuid_clear": _uuid_clear, "_uuid_compare": _uuid_compare, "_uuid_copy": _uuid_copy, "_uuid_generate": _uuid_generate, "_uuid_is_null": _uuid_is_null, "_uuid_parse": _uuid_parse, "_uuid_type": _uuid_type, "_uuid_unparse": _uuid_unparse, "_uuid_unparse_lower": _uuid_unparse_lower, "_uuid_unparse_upper": _uuid_unparse_upper, "_uuid_variant": _uuid_variant, "_vfork": _vfork, "_wait": _wait, "_wait3": _wait3, "_wait4": _wait4, "_waitid": _waitid, "_waitpid": _waitpid, "_zoomSurface": _zoomSurface, "abortOnCannotGrowMemory": abortOnCannotGrowMemory, "emscriptenWebGLGet": emscriptenWebGLGet, "emscriptenWebGLGetTexPixelData": emscriptenWebGLGetTexPixelData, "emscriptenWebGLGetUniform": emscriptenWebGLGetUniform, "emscriptenWebGLGetVertexAttrib": emscriptenWebGLGetVertexAttrib, "emscripten_realloc_buffer": emscripten_realloc_buffer, "stringToNewUTF8": stringToNewUTF8, "tempDoublePtr": tempDoublePtr, "DYNAMICTOP_PTR": DYNAMICTOP_PTR, "gb": gb, "fb": fb }
+var asmLibraryArg = {
+  "abort": abort,
+  "setTempRet0": setTempRet0,
+  "getTempRet0": getTempRet0,
+  "abortStackOverflow": abortStackOverflow,
+  "nullFunc_X": nullFunc_X,
+  "nullFunc_fff": nullFunc_fff,
+  "nullFunc_ii": nullFunc_ii,
+  "nullFunc_iidiiii": nullFunc_iidiiii,
+  "nullFunc_iii": nullFunc_iii,
+  "nullFunc_iiii": nullFunc_iiii,
+  "nullFunc_iiiii": nullFunc_iiiii,
+  "nullFunc_iiiiii": nullFunc_iiiiii,
+  "nullFunc_v": nullFunc_v,
+  "nullFunc_vi": nullFunc_vi,
+  "nullFunc_vii": nullFunc_vii,
+  "invoke_X": invoke_X,
+  "invoke_fff": invoke_fff,
+  "invoke_ii": invoke_ii,
+  "invoke_iidiiii": invoke_iidiiii,
+  "invoke_iii": invoke_iii,
+  "invoke_iiii": invoke_iiii,
+  "invoke_iiiii": invoke_iiiii,
+  "invoke_iiiiii": invoke_iiiiii,
+  "invoke_v": invoke_v,
+  "invoke_vi": invoke_vi,
+  "invoke_vii": invoke_vii,
+  "_IMG_Init": _IMG_Init,
+  "_IMG_Load": _IMG_Load,
+  "_IMG_Load_RW": _IMG_Load_RW,
+  "_IMG_Quit": _IMG_Quit,
+  "_JSEvents_requestFullscreen": _JSEvents_requestFullscreen,
+  "_JSEvents_resizeCanvasForFullscreen": _JSEvents_resizeCanvasForFullscreen,
+  "_Mix_AllocateChannels": _Mix_AllocateChannels,
+  "_Mix_ChannelFinished": _Mix_ChannelFinished,
+  "_Mix_CloseAudio": _Mix_CloseAudio,
+  "_Mix_FadeInChannelTimed": _Mix_FadeInChannelTimed,
+  "_Mix_FadeInMusicPos": _Mix_FadeInMusicPos,
+  "_Mix_FadeOutChannel": _Mix_FadeOutChannel,
+  "_Mix_FadeOutMusic": _Mix_FadeOutMusic,
+  "_Mix_FadingChannel": _Mix_FadingChannel,
+  "_Mix_FreeChunk": _Mix_FreeChunk,
+  "_Mix_FreeMusic": _Mix_FreeMusic,
+  "_Mix_HaltChannel": _Mix_HaltChannel,
+  "_Mix_HaltMusic": _Mix_HaltMusic,
+  "_Mix_HookMusicFinished": _Mix_HookMusicFinished,
+  "_Mix_Init": _Mix_Init,
+  "_Mix_Linked_Version": _Mix_Linked_Version,
+  "_Mix_LoadMUS": _Mix_LoadMUS,
+  "_Mix_LoadMUS_RW": _Mix_LoadMUS_RW,
+  "_Mix_LoadWAV": _Mix_LoadWAV,
+  "_Mix_LoadWAV_RW": _Mix_LoadWAV_RW,
+  "_Mix_OpenAudio": _Mix_OpenAudio,
+  "_Mix_Pause": _Mix_Pause,
+  "_Mix_PauseMusic": _Mix_PauseMusic,
+  "_Mix_Paused": _Mix_Paused,
+  "_Mix_PausedMusic": _Mix_PausedMusic,
+  "_Mix_PlayChannel": _Mix_PlayChannel,
+  "_Mix_PlayChannelTimed": _Mix_PlayChannelTimed,
+  "_Mix_PlayMusic": _Mix_PlayMusic,
+  "_Mix_Playing": _Mix_Playing,
+  "_Mix_PlayingMusic": _Mix_PlayingMusic,
+  "_Mix_QuerySpec": _Mix_QuerySpec,
+  "_Mix_QuickLoad_RAW": _Mix_QuickLoad_RAW,
+  "_Mix_Quit": _Mix_Quit,
+  "_Mix_ReserveChannels": _Mix_ReserveChannels,
+  "_Mix_Resume": _Mix_Resume,
+  "_Mix_ResumeMusic": _Mix_ResumeMusic,
+  "_Mix_SetPanning": _Mix_SetPanning,
+  "_Mix_SetPosition": _Mix_SetPosition,
+  "_Mix_SetPostMix": _Mix_SetPostMix,
+  "_Mix_Volume": _Mix_Volume,
+  "_Mix_VolumeChunk": _Mix_VolumeChunk,
+  "_Mix_VolumeMusic": _Mix_VolumeMusic,
+  "_SDL_AddTimer": _SDL_AddTimer,
+  "_SDL_AllocRW": _SDL_AllocRW,
+  "_SDL_AudioDriverName": _SDL_AudioDriverName,
+  "_SDL_AudioQuit": _SDL_AudioQuit,
+  "_SDL_BlitScaled": _SDL_BlitScaled,
+  "_SDL_BlitSurface": _SDL_BlitSurface,
+  "_SDL_ClearError": _SDL_ClearError,
+  "_SDL_CloseAudio": _SDL_CloseAudio,
+  "_SDL_CondBroadcast": _SDL_CondBroadcast,
+  "_SDL_CondSignal": _SDL_CondSignal,
+  "_SDL_CondWait": _SDL_CondWait,
+  "_SDL_CondWaitTimeout": _SDL_CondWaitTimeout,
+  "_SDL_ConvertSurface": _SDL_ConvertSurface,
+  "_SDL_CreateCond": _SDL_CreateCond,
+  "_SDL_CreateMutex": _SDL_CreateMutex,
+  "_SDL_CreateRGBSurface": _SDL_CreateRGBSurface,
+  "_SDL_CreateRGBSurfaceFrom": _SDL_CreateRGBSurfaceFrom,
+  "_SDL_CreateThread": _SDL_CreateThread,
+  "_SDL_Delay": _SDL_Delay,
+  "_SDL_DestroyCond": _SDL_DestroyCond,
+  "_SDL_DestroyMutex": _SDL_DestroyMutex,
+  "_SDL_DestroyRenderer": _SDL_DestroyRenderer,
+  "_SDL_DestroyWindow": _SDL_DestroyWindow,
+  "_SDL_DisplayFormatAlpha": _SDL_DisplayFormatAlpha,
+  "_SDL_EnableKeyRepeat": _SDL_EnableKeyRepeat,
+  "_SDL_EnableUNICODE": _SDL_EnableUNICODE,
+  "_SDL_FillRect": _SDL_FillRect,
+  "_SDL_Flip": _SDL_Flip,
+  "_SDL_FreeRW": _SDL_FreeRW,
+  "_SDL_FreeSurface": _SDL_FreeSurface,
+  "_SDL_GL_DeleteContext": _SDL_GL_DeleteContext,
+  "_SDL_GL_ExtensionSupported": _SDL_GL_ExtensionSupported,
+  "_SDL_GL_GetAttribute": _SDL_GL_GetAttribute,
+  "_SDL_GL_GetProcAddress": _SDL_GL_GetProcAddress,
+  "_SDL_GL_GetSwapInterval": _SDL_GL_GetSwapInterval,
+  "_SDL_GL_MakeCurrent": _SDL_GL_MakeCurrent,
+  "_SDL_GL_SetAttribute": _SDL_GL_SetAttribute,
+  "_SDL_GL_SetSwapInterval": _SDL_GL_SetSwapInterval,
+  "_SDL_GL_SwapBuffers": _SDL_GL_SwapBuffers,
+  "_SDL_GL_SwapWindow": _SDL_GL_SwapWindow,
+  "_SDL_GetAppState": _SDL_GetAppState,
+  "_SDL_GetAudioDriver": _SDL_GetAudioDriver,
+  "_SDL_GetClipRect": _SDL_GetClipRect,
+  "_SDL_GetCurrentAudioDriver": _SDL_GetCurrentAudioDriver,
+  "_SDL_GetError": _SDL_GetError,
+  "_SDL_GetKeyName": _SDL_GetKeyName,
+  "_SDL_GetKeyState": _SDL_GetKeyState,
+  "_SDL_GetKeyboardState": _SDL_GetKeyboardState,
+  "_SDL_GetModState": _SDL_GetModState,
+  "_SDL_GetMouseState": _SDL_GetMouseState,
+  "_SDL_GetNumAudioDrivers": _SDL_GetNumAudioDrivers,
+  "_SDL_GetRGB": _SDL_GetRGB,
+  "_SDL_GetRGBA": _SDL_GetRGBA,
+  "_SDL_GetThreadID": _SDL_GetThreadID,
+  "_SDL_GetTicks": _SDL_GetTicks,
+  "_SDL_GetVideoInfo": _SDL_GetVideoInfo,
+  "_SDL_GetVideoSurface": _SDL_GetVideoSurface,
+  "_SDL_GetWindowFlags": _SDL_GetWindowFlags,
+  "_SDL_GetWindowSize": _SDL_GetWindowSize,
+  "_SDL_Has3DNow": _SDL_Has3DNow,
+  "_SDL_Has3DNowExt": _SDL_Has3DNowExt,
+  "_SDL_HasAltiVec": _SDL_HasAltiVec,
+  "_SDL_HasMMX": _SDL_HasMMX,
+  "_SDL_HasMMXExt": _SDL_HasMMXExt,
+  "_SDL_HasRDTSC": _SDL_HasRDTSC,
+  "_SDL_HasSSE": _SDL_HasSSE,
+  "_SDL_HasSSE2": _SDL_HasSSE2,
+  "_SDL_Init": _SDL_Init,
+  "_SDL_InitSubSystem": _SDL_InitSubSystem,
+  "_SDL_JoystickClose": _SDL_JoystickClose,
+  "_SDL_JoystickEventState": _SDL_JoystickEventState,
+  "_SDL_JoystickGetAxis": _SDL_JoystickGetAxis,
+  "_SDL_JoystickGetBall": _SDL_JoystickGetBall,
+  "_SDL_JoystickGetButton": _SDL_JoystickGetButton,
+  "_SDL_JoystickGetHat": _SDL_JoystickGetHat,
+  "_SDL_JoystickIndex": _SDL_JoystickIndex,
+  "_SDL_JoystickName": _SDL_JoystickName,
+  "_SDL_JoystickNumAxes": _SDL_JoystickNumAxes,
+  "_SDL_JoystickNumBalls": _SDL_JoystickNumBalls,
+  "_SDL_JoystickNumButtons": _SDL_JoystickNumButtons,
+  "_SDL_JoystickNumHats": _SDL_JoystickNumHats,
+  "_SDL_JoystickOpen": _SDL_JoystickOpen,
+  "_SDL_JoystickOpened": _SDL_JoystickOpened,
+  "_SDL_JoystickUpdate": _SDL_JoystickUpdate,
+  "_SDL_Linked_Version": _SDL_Linked_Version,
+  "_SDL_ListModes": _SDL_ListModes,
+  "_SDL_LoadBMP": _SDL_LoadBMP,
+  "_SDL_LoadBMP_RW": _SDL_LoadBMP_RW,
+  "_SDL_LockAudio": _SDL_LockAudio,
+  "_SDL_LockMutex": _SDL_LockMutex,
+  "_SDL_LockSurface": _SDL_LockSurface,
+  "_SDL_LogSetOutputFunction": _SDL_LogSetOutputFunction,
+  "_SDL_LowerBlit": _SDL_LowerBlit,
+  "_SDL_LowerBlitScaled": _SDL_LowerBlitScaled,
+  "_SDL_MapRGB": _SDL_MapRGB,
+  "_SDL_MapRGBA": _SDL_MapRGBA,
+  "_SDL_NumJoysticks": _SDL_NumJoysticks,
+  "_SDL_OpenAudio": _SDL_OpenAudio,
+  "_SDL_PauseAudio": _SDL_PauseAudio,
+  "_SDL_PeepEvents": _SDL_PeepEvents,
+  "_SDL_PollEvent": _SDL_PollEvent,
+  "_SDL_PumpEvents": _SDL_PumpEvents,
+  "_SDL_PushEvent": _SDL_PushEvent,
+  "_SDL_Quit": _SDL_Quit,
+  "_SDL_QuitSubSystem": _SDL_QuitSubSystem,
+  "_SDL_RWFromConstMem": _SDL_RWFromConstMem,
+  "_SDL_RWFromFile": _SDL_RWFromFile,
+  "_SDL_RWFromMem": _SDL_RWFromMem,
+  "_SDL_RemoveTimer": _SDL_RemoveTimer,
+  "_SDL_SaveBMP_RW": _SDL_SaveBMP_RW,
+  "_SDL_SetAlpha": _SDL_SetAlpha,
+  "_SDL_SetClipRect": _SDL_SetClipRect,
+  "_SDL_SetColorKey": _SDL_SetColorKey,
+  "_SDL_SetColors": _SDL_SetColors,
+  "_SDL_SetError": _SDL_SetError,
+  "_SDL_SetGamma": _SDL_SetGamma,
+  "_SDL_SetGammaRamp": _SDL_SetGammaRamp,
+  "_SDL_SetPalette": _SDL_SetPalette,
+  "_SDL_SetVideoMode": _SDL_SetVideoMode,
+  "_SDL_SetWindowFullscreen": _SDL_SetWindowFullscreen,
+  "_SDL_SetWindowTitle": _SDL_SetWindowTitle,
+  "_SDL_ShowCursor": _SDL_ShowCursor,
+  "_SDL_StartTextInput": _SDL_StartTextInput,
+  "_SDL_StopTextInput": _SDL_StopTextInput,
+  "_SDL_ThreadID": _SDL_ThreadID,
+  "_SDL_UnlockAudio": _SDL_UnlockAudio,
+  "_SDL_UnlockMutex": _SDL_UnlockMutex,
+  "_SDL_UnlockSurface": _SDL_UnlockSurface,
+  "_SDL_UpdateRect": _SDL_UpdateRect,
+  "_SDL_UpdateRects": _SDL_UpdateRects,
+  "_SDL_UpperBlit": _SDL_UpperBlit,
+  "_SDL_UpperBlitScaled": _SDL_UpperBlitScaled,
+  "_SDL_VideoDriverName": _SDL_VideoDriverName,
+  "_SDL_VideoModeOK": _SDL_VideoModeOK,
+  "_SDL_VideoQuit": _SDL_VideoQuit,
+  "_SDL_WM_GrabInput": _SDL_WM_GrabInput,
+  "_SDL_WM_IconifyWindow": _SDL_WM_IconifyWindow,
+  "_SDL_WM_SetCaption": _SDL_WM_SetCaption,
+  "_SDL_WM_SetIcon": _SDL_WM_SetIcon,
+  "_SDL_WM_ToggleFullScreen": _SDL_WM_ToggleFullScreen,
+  "_SDL_WaitThread": _SDL_WaitThread,
+  "_SDL_WarpMouse": _SDL_WarpMouse,
+  "_SDL_WasInit": _SDL_WasInit,
+  "_SDL_free": _SDL_free,
+  "_SDL_getenv": _SDL_getenv,
+  "_SDL_malloc": _SDL_malloc,
+  "_SDL_mutexP": _SDL_mutexP,
+  "_SDL_mutexV": _SDL_mutexV,
+  "_SDL_putenv": _SDL_putenv,
+  "_TTF_CloseFont": _TTF_CloseFont,
+  "_TTF_FontAscent": _TTF_FontAscent,
+  "_TTF_FontDescent": _TTF_FontDescent,
+  "_TTF_FontHeight": _TTF_FontHeight,
+  "_TTF_FontLineSkip": _TTF_FontLineSkip,
+  "_TTF_GlyphMetrics": _TTF_GlyphMetrics,
+  "_TTF_Init": _TTF_Init,
+  "_TTF_OpenFont": _TTF_OpenFont,
+  "_TTF_Quit": _TTF_Quit,
+  "_TTF_RenderText_Blended": _TTF_RenderText_Blended,
+  "_TTF_RenderText_Shaded": _TTF_RenderText_Shaded,
+  "_TTF_RenderText_Solid": _TTF_RenderText_Solid,
+  "_TTF_RenderUTF8_Solid": _TTF_RenderUTF8_Solid,
+  "_TTF_SizeText": _TTF_SizeText,
+  "_TTF_SizeUTF8": _TTF_SizeUTF8,
+  "_XChangeWindowAttributes": _XChangeWindowAttributes,
+  "_XCreateWindow": _XCreateWindow,
+  "_XInternAtom": _XInternAtom,
+  "_XMapWindow": _XMapWindow,
+  "_XOpenDisplay": _XOpenDisplay,
+  "_XPending": _XPending,
+  "_XSendEvent": _XSendEvent,
+  "_XSetWMHints": _XSetWMHints,
+  "_XStoreName": _XStoreName,
+  "__Exit": __Exit,
+  "__Unwind_Backtrace": __Unwind_Backtrace,
+  "__Unwind_DeleteException": __Unwind_DeleteException,
+  "__Unwind_FindEnclosingFunction": __Unwind_FindEnclosingFunction,
+  "__Unwind_GetIPInfo": __Unwind_GetIPInfo,
+  "__Unwind_RaiseException": __Unwind_RaiseException,
+  "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv,
+  "__ZSt9terminatev": __ZSt9terminatev,
+  "___assert_fail": ___assert_fail,
+  "___assert_func": ___assert_func,
+  "___atomic_compare_exchange_8": ___atomic_compare_exchange_8,
+  "___atomic_exchange_8": ___atomic_exchange_8,
+  "___atomic_fetch_add_8": ___atomic_fetch_add_8,
+  "___atomic_fetch_and_8": ___atomic_fetch_and_8,
+  "___atomic_fetch_or_8": ___atomic_fetch_or_8,
+  "___atomic_fetch_sub_8": ___atomic_fetch_sub_8,
+  "___atomic_fetch_xor_8": ___atomic_fetch_xor_8,
+  "___atomic_is_lock_free": ___atomic_is_lock_free,
+  "___atomic_load_8": ___atomic_load_8,
+  "___atomic_store_8": ___atomic_store_8,
+  "___buildEnvironment": ___buildEnvironment,
+  "___builtin_prefetch": ___builtin_prefetch,
+  "___clock_gettime": ___clock_gettime,
+  "___cxa_allocate_exception": ___cxa_allocate_exception,
+  "___cxa_atexit": ___cxa_atexit,
+  "___cxa_begin_catch": ___cxa_begin_catch,
+  "___cxa_call_unexpected": ___cxa_call_unexpected,
+  "___cxa_current_primary_exception": ___cxa_current_primary_exception,
+  "___cxa_decrement_exception_refcount": ___cxa_decrement_exception_refcount,
+  "___cxa_end_catch": ___cxa_end_catch,
+  "___cxa_find_matching_catch": ___cxa_find_matching_catch,
+  "___cxa_free_exception": ___cxa_free_exception,
+  "___cxa_get_exception_ptr": ___cxa_get_exception_ptr,
+  "___cxa_increment_exception_refcount": ___cxa_increment_exception_refcount,
+  "___cxa_pure_virtual": ___cxa_pure_virtual,
+  "___cxa_rethrow": ___cxa_rethrow,
+  "___cxa_rethrow_primary_exception": ___cxa_rethrow_primary_exception,
+  "___cxa_thread_atexit": ___cxa_thread_atexit,
+  "___cxa_thread_atexit_impl": ___cxa_thread_atexit_impl,
+  "___cxa_throw": ___cxa_throw,
+  "___cxa_uncaught_exception": ___cxa_uncaught_exception,
+  "___execvpe": ___execvpe,
+  "___gcc_personality_v0": ___gcc_personality_v0,
+  "___gxx_personality_v0": ___gxx_personality_v0,
+  "___libc_current_sigrtmax": ___libc_current_sigrtmax,
+  "___libc_current_sigrtmin": ___libc_current_sigrtmin,
+  "___lock": ___lock,
+  "___map_file": ___map_file,
+  "___resumeException": ___resumeException,
+  "___setErrNo": ___setErrNo,
+  "___set_network_callback": ___set_network_callback,
+  "___syscall1": ___syscall1,
+  "___syscall10": ___syscall10,
+  "___syscall102": ___syscall102,
+  "___syscall104": ___syscall104,
+  "___syscall114": ___syscall114,
+  "___syscall118": ___syscall118,
+  "___syscall12": ___syscall12,
+  "___syscall121": ___syscall121,
+  "___syscall122": ___syscall122,
+  "___syscall125": ___syscall125,
+  "___syscall132": ___syscall132,
+  "___syscall133": ___syscall133,
+  "___syscall14": ___syscall14,
+  "___syscall140": ___syscall140,
+  "___syscall142": ___syscall142,
+  "___syscall144": ___syscall144,
+  "___syscall145": ___syscall145,
+  "___syscall146": ___syscall146,
+  "___syscall147": ___syscall147,
+  "___syscall148": ___syscall148,
+  "___syscall15": ___syscall15,
+  "___syscall150": ___syscall150,
+  "___syscall151": ___syscall151,
+  "___syscall152": ___syscall152,
+  "___syscall153": ___syscall153,
+  "___syscall163": ___syscall163,
+  "___syscall168": ___syscall168,
+  "___syscall178": ___syscall178,
+  "___syscall180": ___syscall180,
+  "___syscall181": ___syscall181,
+  "___syscall183": ___syscall183,
+  "___syscall191": ___syscall191,
+  "___syscall192": ___syscall192,
+  "___syscall193": ___syscall193,
+  "___syscall194": ___syscall194,
+  "___syscall195": ___syscall195,
+  "___syscall196": ___syscall196,
+  "___syscall197": ___syscall197,
+  "___syscall198": ___syscall198,
+  "___syscall199": ___syscall199,
+  "___syscall20": ___syscall20,
+  "___syscall200": ___syscall200,
+  "___syscall201": ___syscall201,
+  "___syscall202": ___syscall202,
+  "___syscall203": ___syscall203,
+  "___syscall204": ___syscall204,
+  "___syscall205": ___syscall205,
+  "___syscall207": ___syscall207,
+  "___syscall208": ___syscall208,
+  "___syscall209": ___syscall209,
+  "___syscall210": ___syscall210,
+  "___syscall211": ___syscall211,
+  "___syscall212": ___syscall212,
+  "___syscall213": ___syscall213,
+  "___syscall214": ___syscall214,
+  "___syscall218": ___syscall218,
+  "___syscall219": ___syscall219,
+  "___syscall220": ___syscall220,
+  "___syscall221": ___syscall221,
+  "___syscall265": ___syscall265,
+  "___syscall268": ___syscall268,
+  "___syscall269": ___syscall269,
+  "___syscall272": ___syscall272,
+  "___syscall29": ___syscall29,
+  "___syscall295": ___syscall295,
+  "___syscall296": ___syscall296,
+  "___syscall297": ___syscall297,
+  "___syscall298": ___syscall298,
+  "___syscall299": ___syscall299,
+  "___syscall3": ___syscall3,
+  "___syscall300": ___syscall300,
+  "___syscall301": ___syscall301,
+  "___syscall302": ___syscall302,
+  "___syscall303": ___syscall303,
+  "___syscall304": ___syscall304,
+  "___syscall305": ___syscall305,
+  "___syscall306": ___syscall306,
+  "___syscall307": ___syscall307,
+  "___syscall308": ___syscall308,
+  "___syscall320": ___syscall320,
+  "___syscall324": ___syscall324,
+  "___syscall33": ___syscall33,
+  "___syscall330": ___syscall330,
+  "___syscall331": ___syscall331,
+  "___syscall333": ___syscall333,
+  "___syscall334": ___syscall334,
+  "___syscall337": ___syscall337,
+  "___syscall34": ___syscall34,
+  "___syscall340": ___syscall340,
+  "___syscall345": ___syscall345,
+  "___syscall36": ___syscall36,
+  "___syscall38": ___syscall38,
+  "___syscall39": ___syscall39,
+  "___syscall4": ___syscall4,
+  "___syscall40": ___syscall40,
+  "___syscall41": ___syscall41,
+  "___syscall42": ___syscall42,
+  "___syscall5": ___syscall5,
+  "___syscall51": ___syscall51,
+  "___syscall54": ___syscall54,
+  "___syscall57": ___syscall57,
+  "___syscall6": ___syscall6,
+  "___syscall60": ___syscall60,
+  "___syscall63": ___syscall63,
+  "___syscall64": ___syscall64,
+  "___syscall65": ___syscall65,
+  "___syscall66": ___syscall66,
+  "___syscall75": ___syscall75,
+  "___syscall77": ___syscall77,
+  "___syscall83": ___syscall83,
+  "___syscall85": ___syscall85,
+  "___syscall9": ___syscall9,
+  "___syscall91": ___syscall91,
+  "___syscall94": ___syscall94,
+  "___syscall96": ___syscall96,
+  "___syscall97": ___syscall97,
+  "___ubsan_handle_add_overflow": ___ubsan_handle_add_overflow,
+  "___ubsan_handle_float_cast_overflow": ___ubsan_handle_float_cast_overflow,
+  "___ubsan_handle_pointer_overflow": ___ubsan_handle_pointer_overflow,
+  "___ubsan_handle_type_mismatch_v1": ___ubsan_handle_type_mismatch_v1,
+  "___unlock": ___unlock,
+  "___wait": ___wait,
+  "__addDays": __addDays,
+  "__arraySum": __arraySum,
+  "__battery": __battery,
+  "__computeUnpackAlignedImageSize": __computeUnpackAlignedImageSize,
+  "__emscripten_do_request_fullscreen": __emscripten_do_request_fullscreen,
+  "__emscripten_push_main_loop_blocker": __emscripten_push_main_loop_blocker,
+  "__emscripten_push_uncounted_main_loop_blocker": __emscripten_push_uncounted_main_loop_blocker,
+  "__emscripten_traverse_stack": __emscripten_traverse_stack,
+  "__exit": __exit,
+  "__fillBatteryEventData": __fillBatteryEventData,
+  "__fillDeviceMotionEventData": __fillDeviceMotionEventData,
+  "__fillDeviceOrientationEventData": __fillDeviceOrientationEventData,
+  "__fillFullscreenChangeEventData": __fillFullscreenChangeEventData,
+  "__fillGamepadEventData": __fillGamepadEventData,
+  "__fillMouseEventData": __fillMouseEventData,
+  "__fillOrientationChangeEventData": __fillOrientationChangeEventData,
+  "__fillPointerlockChangeEventData": __fillPointerlockChangeEventData,
+  "__fillVisibilityChangeEventData": __fillVisibilityChangeEventData,
+  "__findCanvasEventTarget": __findCanvasEventTarget,
+  "__findEventTarget": __findEventTarget,
+  "__formatString": __formatString,
+  "__get_canvas_element_size": __get_canvas_element_size,
+  "__glGenObject": __glGenObject,
+  "__hideEverythingExceptGivenElement": __hideEverythingExceptGivenElement,
+  "__inet_ntop4_raw": __inet_ntop4_raw,
+  "__inet_ntop6_raw": __inet_ntop6_raw,
+  "__inet_pton4_raw": __inet_pton4_raw,
+  "__inet_pton6": __inet_pton6,
+  "__inet_pton6_raw": __inet_pton6_raw,
+  "__isLeapYear": __isLeapYear,
+  "__polyfill_set_immediate": __polyfill_set_immediate,
+  "__pthread_cleanup_pop": __pthread_cleanup_pop,
+  "__pthread_cleanup_push": __pthread_cleanup_push,
+  "__read_sockaddr": __read_sockaddr,
+  "__reallyNegative": __reallyNegative,
+  "__registerBatteryEventCallback": __registerBatteryEventCallback,
+  "__registerBeforeUnloadEventCallback": __registerBeforeUnloadEventCallback,
+  "__registerDeviceMotionEventCallback": __registerDeviceMotionEventCallback,
+  "__registerDeviceOrientationEventCallback": __registerDeviceOrientationEventCallback,
+  "__registerFocusEventCallback": __registerFocusEventCallback,
+  "__registerFullscreenChangeEventCallback": __registerFullscreenChangeEventCallback,
+  "__registerGamepadEventCallback": __registerGamepadEventCallback,
+  "__registerKeyEventCallback": __registerKeyEventCallback,
+  "__registerMouseEventCallback": __registerMouseEventCallback,
+  "__registerOrientationChangeEventCallback": __registerOrientationChangeEventCallback,
+  "__registerPointerlockChangeEventCallback": __registerPointerlockChangeEventCallback,
+  "__registerPointerlockErrorEventCallback": __registerPointerlockErrorEventCallback,
+  "__registerRestoreOldStyle": __registerRestoreOldStyle,
+  "__registerTouchEventCallback": __registerTouchEventCallback,
+  "__registerUiEventCallback": __registerUiEventCallback,
+  "__registerVisibilityChangeEventCallback": __registerVisibilityChangeEventCallback,
+  "__registerWebGlEventCallback": __registerWebGlEventCallback,
+  "__registerWheelEventCallback": __registerWheelEventCallback,
+  "__requestPointerLock": __requestPointerLock,
+  "__restoreHiddenElements": __restoreHiddenElements,
+  "__screenOrientation": __screenOrientation,
+  "__setLetterbox": __setLetterbox,
+  "__set_canvas_element_size": __set_canvas_element_size,
+  "__softFullscreenResizeWebGLRenderTarget": __softFullscreenResizeWebGLRenderTarget,
+  "__write_sockaddr": __write_sockaddr,
+  "_abort": _abort,
+  "_abs": _abs,
+  "_alBuffer3f": _alBuffer3f,
+  "_alBuffer3i": _alBuffer3i,
+  "_alBufferData": _alBufferData,
+  "_alBufferf": _alBufferf,
+  "_alBufferfv": _alBufferfv,
+  "_alBufferi": _alBufferi,
+  "_alBufferiv": _alBufferiv,
+  "_alDeleteBuffers": _alDeleteBuffers,
+  "_alDeleteSources": _alDeleteSources,
+  "_alDisable": _alDisable,
+  "_alDistanceModel": _alDistanceModel,
+  "_alDopplerFactor": _alDopplerFactor,
+  "_alDopplerVelocity": _alDopplerVelocity,
+  "_alEnable": _alEnable,
+  "_alGenBuffers": _alGenBuffers,
+  "_alGenSources": _alGenSources,
+  "_alGetBoolean": _alGetBoolean,
+  "_alGetBooleanv": _alGetBooleanv,
+  "_alGetBuffer3f": _alGetBuffer3f,
+  "_alGetBuffer3i": _alGetBuffer3i,
+  "_alGetBufferf": _alGetBufferf,
+  "_alGetBufferfv": _alGetBufferfv,
+  "_alGetBufferi": _alGetBufferi,
+  "_alGetBufferiv": _alGetBufferiv,
+  "_alGetDouble": _alGetDouble,
+  "_alGetDoublev": _alGetDoublev,
+  "_alGetEnumValue": _alGetEnumValue,
+  "_alGetError": _alGetError,
+  "_alGetFloat": _alGetFloat,
+  "_alGetFloatv": _alGetFloatv,
+  "_alGetInteger": _alGetInteger,
+  "_alGetIntegerv": _alGetIntegerv,
+  "_alGetListener3f": _alGetListener3f,
+  "_alGetListener3i": _alGetListener3i,
+  "_alGetListenerf": _alGetListenerf,
+  "_alGetListenerfv": _alGetListenerfv,
+  "_alGetListeneri": _alGetListeneri,
+  "_alGetListeneriv": _alGetListeneriv,
+  "_alGetProcAddress": _alGetProcAddress,
+  "_alGetSource3f": _alGetSource3f,
+  "_alGetSource3i": _alGetSource3i,
+  "_alGetSourcef": _alGetSourcef,
+  "_alGetSourcefv": _alGetSourcefv,
+  "_alGetSourcei": _alGetSourcei,
+  "_alGetSourceiv": _alGetSourceiv,
+  "_alGetString": _alGetString,
+  "_alIsBuffer": _alIsBuffer,
+  "_alIsEnabled": _alIsEnabled,
+  "_alIsExtensionPresent": _alIsExtensionPresent,
+  "_alIsSource": _alIsSource,
+  "_alListener3f": _alListener3f,
+  "_alListener3i": _alListener3i,
+  "_alListenerf": _alListenerf,
+  "_alListenerfv": _alListenerfv,
+  "_alListeneri": _alListeneri,
+  "_alListeneriv": _alListeneriv,
+  "_alSource3f": _alSource3f,
+  "_alSource3i": _alSource3i,
+  "_alSourcePause": _alSourcePause,
+  "_alSourcePausev": _alSourcePausev,
+  "_alSourcePlay": _alSourcePlay,
+  "_alSourcePlayv": _alSourcePlayv,
+  "_alSourceQueueBuffers": _alSourceQueueBuffers,
+  "_alSourceRewind": _alSourceRewind,
+  "_alSourceRewindv": _alSourceRewindv,
+  "_alSourceStop": _alSourceStop,
+  "_alSourceStopv": _alSourceStopv,
+  "_alSourceUnqueueBuffers": _alSourceUnqueueBuffers,
+  "_alSourcef": _alSourcef,
+  "_alSourcefv": _alSourcefv,
+  "_alSourcei": _alSourcei,
+  "_alSourceiv": _alSourceiv,
+  "_alSpeedOfSound": _alSpeedOfSound,
+  "_alarm": _alarm,
+  "_alcCaptureCloseDevice": _alcCaptureCloseDevice,
+  "_alcCaptureOpenDevice": _alcCaptureOpenDevice,
+  "_alcCaptureSamples": _alcCaptureSamples,
+  "_alcCaptureStart": _alcCaptureStart,
+  "_alcCaptureStop": _alcCaptureStop,
+  "_alcCloseDevice": _alcCloseDevice,
+  "_alcCreateContext": _alcCreateContext,
+  "_alcDestroyContext": _alcDestroyContext,
+  "_alcGetContextsDevice": _alcGetContextsDevice,
+  "_alcGetCurrentContext": _alcGetCurrentContext,
+  "_alcGetEnumValue": _alcGetEnumValue,
+  "_alcGetError": _alcGetError,
+  "_alcGetIntegerv": _alcGetIntegerv,
+  "_alcGetProcAddress": _alcGetProcAddress,
+  "_alcGetString": _alcGetString,
+  "_alcIsExtensionPresent": _alcIsExtensionPresent,
+  "_alcMakeContextCurrent": _alcMakeContextCurrent,
+  "_alcOpenDevice": _alcOpenDevice,
+  "_alcProcessContext": _alcProcessContext,
+  "_alcSuspendContext": _alcSuspendContext,
+  "_arc4random": _arc4random,
+  "_asctime": _asctime,
+  "_asctime_r": _asctime_r,
+  "_atexit": _atexit,
+  "_boxColor": _boxColor,
+  "_boxRGBA": _boxRGBA,
+  "_ceil": _ceil,
+  "_ceilf": _ceilf,
+  "_ceill": _ceill,
+  "_chroot": _chroot,
+  "_clearenv": _clearenv,
+  "_clock": _clock,
+  "_clock_getcpuclockid": _clock_getcpuclockid,
+  "_clock_getres": _clock_getres,
+  "_clock_gettime": _clock_gettime,
+  "_clock_settime": _clock_settime,
+  "_confstr": _confstr,
+  "_ctime": _ctime,
+  "_ctime_r": _ctime_r,
+  "_difftime": _difftime,
+  "_dladdr": _dladdr,
+  "_dlclose": _dlclose,
+  "_dlerror": _dlerror,
+  "_dlopen": _dlopen,
+  "_dlsym": _dlsym,
+  "_dysize": _dysize,
+  "_eglBindAPI": _eglBindAPI,
+  "_eglChooseConfig": _eglChooseConfig,
+  "_eglCreateContext": _eglCreateContext,
+  "_eglCreateWindowSurface": _eglCreateWindowSurface,
+  "_eglDestroyContext": _eglDestroyContext,
+  "_eglDestroySurface": _eglDestroySurface,
+  "_eglGetConfigAttrib": _eglGetConfigAttrib,
+  "_eglGetConfigs": _eglGetConfigs,
+  "_eglGetCurrentContext": _eglGetCurrentContext,
+  "_eglGetCurrentDisplay": _eglGetCurrentDisplay,
+  "_eglGetCurrentSurface": _eglGetCurrentSurface,
+  "_eglGetDisplay": _eglGetDisplay,
+  "_eglGetError": _eglGetError,
+  "_eglGetProcAddress": _eglGetProcAddress,
+  "_eglInitialize": _eglInitialize,
+  "_eglMakeCurrent": _eglMakeCurrent,
+  "_eglQueryAPI": _eglQueryAPI,
+  "_eglQueryContext": _eglQueryContext,
+  "_eglQueryString": _eglQueryString,
+  "_eglQuerySurface": _eglQuerySurface,
+  "_eglReleaseThread": _eglReleaseThread,
+  "_eglSwapBuffers": _eglSwapBuffers,
+  "_eglSwapInterval": _eglSwapInterval,
+  "_eglTerminate": _eglTerminate,
+  "_eglWaitClient": _eglWaitClient,
+  "_eglWaitGL": _eglWaitGL,
+  "_eglWaitNative": _eglWaitNative,
+  "_ellipseColor": _ellipseColor,
+  "_ellipseRGBA": _ellipseRGBA,
+  "_emscripten_GetAlProcAddress": _emscripten_GetAlProcAddress,
+  "_emscripten_GetAlcProcAddress": _emscripten_GetAlcProcAddress,
+  "_emscripten_GetProcAddress": _emscripten_GetProcAddress,
+  "_emscripten_SDL_SetEventHandler": _emscripten_SDL_SetEventHandler,
+  "_emscripten_alcDevicePauseSOFT": _emscripten_alcDevicePauseSOFT,
+  "_emscripten_alcDeviceResumeSOFT": _emscripten_alcDeviceResumeSOFT,
+  "_emscripten_alcGetStringiSOFT": _emscripten_alcGetStringiSOFT,
+  "_emscripten_alcResetDeviceSOFT": _emscripten_alcResetDeviceSOFT,
+  "_emscripten_async_call": _emscripten_async_call,
+  "_emscripten_async_load_script": _emscripten_async_load_script,
+  "_emscripten_async_run_script": _emscripten_async_run_script,
+  "_emscripten_async_wget": _emscripten_async_wget,
+  "_emscripten_async_wget2": _emscripten_async_wget2,
+  "_emscripten_async_wget2_abort": _emscripten_async_wget2_abort,
+  "_emscripten_async_wget2_data": _emscripten_async_wget2_data,
+  "_emscripten_async_wget_data": _emscripten_async_wget_data,
+  "_emscripten_autodebug_double": _emscripten_autodebug_double,
+  "_emscripten_autodebug_float": _emscripten_autodebug_float,
+  "_emscripten_autodebug_i16": _emscripten_autodebug_i16,
+  "_emscripten_autodebug_i32": _emscripten_autodebug_i32,
+  "_emscripten_autodebug_i64": _emscripten_autodebug_i64,
+  "_emscripten_autodebug_i8": _emscripten_autodebug_i8,
+  "_emscripten_call_worker": _emscripten_call_worker,
+  "_emscripten_cancel_animation_frame": _emscripten_cancel_animation_frame,
+  "_emscripten_cancel_main_loop": _emscripten_cancel_main_loop,
+  "_emscripten_clear_immediate": _emscripten_clear_immediate,
+  "_emscripten_clear_interval": _emscripten_clear_interval,
+  "_emscripten_clear_timeout": _emscripten_clear_timeout,
+  "_emscripten_console_error": _emscripten_console_error,
+  "_emscripten_console_log": _emscripten_console_log,
+  "_emscripten_console_warn": _emscripten_console_warn,
+  "_emscripten_coroutine_create": _emscripten_coroutine_create,
+  "_emscripten_coroutine_next": _emscripten_coroutine_next,
+  "_emscripten_create_worker": _emscripten_create_worker,
+  "_emscripten_date_now": _emscripten_date_now,
+  "_emscripten_debugger": _emscripten_debugger,
+  "_emscripten_destroy_worker": _emscripten_destroy_worker,
+  "_emscripten_enter_soft_fullscreen": _emscripten_enter_soft_fullscreen,
+  "_emscripten_exit_fullscreen": _emscripten_exit_fullscreen,
+  "_emscripten_exit_pointerlock": _emscripten_exit_pointerlock,
+  "_emscripten_exit_soft_fullscreen": _emscripten_exit_soft_fullscreen,
+  "_emscripten_exit_with_live_runtime": _emscripten_exit_with_live_runtime,
+  "_emscripten_force_exit": _emscripten_force_exit,
+  "_emscripten_get_battery_status": _emscripten_get_battery_status,
+  "_emscripten_get_callstack": _emscripten_get_callstack,
+  "_emscripten_get_callstack_js": _emscripten_get_callstack_js,
+  "_emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size,
+  "_emscripten_get_canvas_size": _emscripten_get_canvas_size,
+  "_emscripten_get_compiler_setting": _emscripten_get_compiler_setting,
+  "_emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio,
+  "_emscripten_get_devicemotion_status": _emscripten_get_devicemotion_status,
+  "_emscripten_get_deviceorientation_status": _emscripten_get_deviceorientation_status,
+  "_emscripten_get_element_css_size": _emscripten_get_element_css_size,
+  "_emscripten_get_fullscreen_status": _emscripten_get_fullscreen_status,
+  "_emscripten_get_gamepad_status": _emscripten_get_gamepad_status,
+  "_emscripten_get_heap_size": _emscripten_get_heap_size,
+  "_emscripten_get_main_loop_timing": _emscripten_get_main_loop_timing,
+  "_emscripten_get_mouse_status": _emscripten_get_mouse_status,
+  "_emscripten_get_now": _emscripten_get_now,
+  "_emscripten_get_now_is_monotonic": _emscripten_get_now_is_monotonic,
+  "_emscripten_get_now_res": _emscripten_get_now_res,
+  "_emscripten_get_num_gamepads": _emscripten_get_num_gamepads,
+  "_emscripten_get_orientation_status": _emscripten_get_orientation_status,
+  "_emscripten_get_pointerlock_status": _emscripten_get_pointerlock_status,
+  "_emscripten_get_preloaded_image_data": _emscripten_get_preloaded_image_data,
+  "_emscripten_get_preloaded_image_data_from_FILE": _emscripten_get_preloaded_image_data_from_FILE,
+  "_emscripten_get_visibility_status": _emscripten_get_visibility_status,
+  "_emscripten_get_worker_queue_size": _emscripten_get_worker_queue_size,
+  "_emscripten_glActiveTexture": _emscripten_glActiveTexture,
+  "_emscripten_glAttachShader": _emscripten_glAttachShader,
+  "_emscripten_glBegin": _emscripten_glBegin,
+  "_emscripten_glBeginQueryEXT": _emscripten_glBeginQueryEXT,
+  "_emscripten_glBindAttribLocation": _emscripten_glBindAttribLocation,
+  "_emscripten_glBindBuffer": _emscripten_glBindBuffer,
+  "_emscripten_glBindFramebuffer": _emscripten_glBindFramebuffer,
+  "_emscripten_glBindRenderbuffer": _emscripten_glBindRenderbuffer,
+  "_emscripten_glBindTexture": _emscripten_glBindTexture,
+  "_emscripten_glBindVertexArray": _emscripten_glBindVertexArray,
+  "_emscripten_glBindVertexArrayOES": _emscripten_glBindVertexArrayOES,
+  "_emscripten_glBlendColor": _emscripten_glBlendColor,
+  "_emscripten_glBlendEquation": _emscripten_glBlendEquation,
+  "_emscripten_glBlendEquationSeparate": _emscripten_glBlendEquationSeparate,
+  "_emscripten_glBlendFunc": _emscripten_glBlendFunc,
+  "_emscripten_glBlendFuncSeparate": _emscripten_glBlendFuncSeparate,
+  "_emscripten_glBufferData": _emscripten_glBufferData,
+  "_emscripten_glBufferSubData": _emscripten_glBufferSubData,
+  "_emscripten_glCheckFramebufferStatus": _emscripten_glCheckFramebufferStatus,
+  "_emscripten_glClear": _emscripten_glClear,
+  "_emscripten_glClearColor": _emscripten_glClearColor,
+  "_emscripten_glClearDepth": _emscripten_glClearDepth,
+  "_emscripten_glClearDepthf": _emscripten_glClearDepthf,
+  "_emscripten_glClearStencil": _emscripten_glClearStencil,
+  "_emscripten_glColorMask": _emscripten_glColorMask,
+  "_emscripten_glCompileShader": _emscripten_glCompileShader,
+  "_emscripten_glCompressedTexImage2D": _emscripten_glCompressedTexImage2D,
+  "_emscripten_glCompressedTexSubImage2D": _emscripten_glCompressedTexSubImage2D,
+  "_emscripten_glCopyTexImage2D": _emscripten_glCopyTexImage2D,
+  "_emscripten_glCopyTexSubImage2D": _emscripten_glCopyTexSubImage2D,
+  "_emscripten_glCreateProgram": _emscripten_glCreateProgram,
+  "_emscripten_glCreateShader": _emscripten_glCreateShader,
+  "_emscripten_glCullFace": _emscripten_glCullFace,
+  "_emscripten_glDeleteBuffers": _emscripten_glDeleteBuffers,
+  "_emscripten_glDeleteFramebuffers": _emscripten_glDeleteFramebuffers,
+  "_emscripten_glDeleteProgram": _emscripten_glDeleteProgram,
+  "_emscripten_glDeleteQueriesEXT": _emscripten_glDeleteQueriesEXT,
+  "_emscripten_glDeleteRenderbuffers": _emscripten_glDeleteRenderbuffers,
+  "_emscripten_glDeleteShader": _emscripten_glDeleteShader,
+  "_emscripten_glDeleteTextures": _emscripten_glDeleteTextures,
+  "_emscripten_glDeleteVertexArrays": _emscripten_glDeleteVertexArrays,
+  "_emscripten_glDeleteVertexArraysOES": _emscripten_glDeleteVertexArraysOES,
+  "_emscripten_glDepthFunc": _emscripten_glDepthFunc,
+  "_emscripten_glDepthMask": _emscripten_glDepthMask,
+  "_emscripten_glDepthRange": _emscripten_glDepthRange,
+  "_emscripten_glDepthRangef": _emscripten_glDepthRangef,
+  "_emscripten_glDetachShader": _emscripten_glDetachShader,
+  "_emscripten_glDisable": _emscripten_glDisable,
+  "_emscripten_glDisableVertexAttribArray": _emscripten_glDisableVertexAttribArray,
+  "_emscripten_glDrawArrays": _emscripten_glDrawArrays,
+  "_emscripten_glDrawArraysInstanced": _emscripten_glDrawArraysInstanced,
+  "_emscripten_glDrawArraysInstancedANGLE": _emscripten_glDrawArraysInstancedANGLE,
+  "_emscripten_glDrawArraysInstancedARB": _emscripten_glDrawArraysInstancedARB,
+  "_emscripten_glDrawArraysInstancedEXT": _emscripten_glDrawArraysInstancedEXT,
+  "_emscripten_glDrawArraysInstancedNV": _emscripten_glDrawArraysInstancedNV,
+  "_emscripten_glDrawBuffers": _emscripten_glDrawBuffers,
+  "_emscripten_glDrawBuffersEXT": _emscripten_glDrawBuffersEXT,
+  "_emscripten_glDrawBuffersWEBGL": _emscripten_glDrawBuffersWEBGL,
+  "_emscripten_glDrawElements": _emscripten_glDrawElements,
+  "_emscripten_glDrawElementsInstanced": _emscripten_glDrawElementsInstanced,
+  "_emscripten_glDrawElementsInstancedANGLE": _emscripten_glDrawElementsInstancedANGLE,
+  "_emscripten_glDrawElementsInstancedARB": _emscripten_glDrawElementsInstancedARB,
+  "_emscripten_glDrawElementsInstancedEXT": _emscripten_glDrawElementsInstancedEXT,
+  "_emscripten_glDrawElementsInstancedNV": _emscripten_glDrawElementsInstancedNV,
+  "_emscripten_glEnable": _emscripten_glEnable,
+  "_emscripten_glEnableVertexAttribArray": _emscripten_glEnableVertexAttribArray,
+  "_emscripten_glEndQueryEXT": _emscripten_glEndQueryEXT,
+  "_emscripten_glFinish": _emscripten_glFinish,
+  "_emscripten_glFlush": _emscripten_glFlush,
+  "_emscripten_glFramebufferRenderbuffer": _emscripten_glFramebufferRenderbuffer,
+  "_emscripten_glFramebufferTexture2D": _emscripten_glFramebufferTexture2D,
+  "_emscripten_glFrontFace": _emscripten_glFrontFace,
+  "_emscripten_glGenBuffers": _emscripten_glGenBuffers,
+  "_emscripten_glGenFramebuffers": _emscripten_glGenFramebuffers,
+  "_emscripten_glGenQueriesEXT": _emscripten_glGenQueriesEXT,
+  "_emscripten_glGenRenderbuffers": _emscripten_glGenRenderbuffers,
+  "_emscripten_glGenTextures": _emscripten_glGenTextures,
+  "_emscripten_glGenVertexArrays": _emscripten_glGenVertexArrays,
+  "_emscripten_glGenVertexArraysOES": _emscripten_glGenVertexArraysOES,
+  "_emscripten_glGenerateMipmap": _emscripten_glGenerateMipmap,
+  "_emscripten_glGetActiveAttrib": _emscripten_glGetActiveAttrib,
+  "_emscripten_glGetActiveUniform": _emscripten_glGetActiveUniform,
+  "_emscripten_glGetAttachedShaders": _emscripten_glGetAttachedShaders,
+  "_emscripten_glGetAttribLocation": _emscripten_glGetAttribLocation,
+  "_emscripten_glGetBooleanv": _emscripten_glGetBooleanv,
+  "_emscripten_glGetBufferParameteriv": _emscripten_glGetBufferParameteriv,
+  "_emscripten_glGetError": _emscripten_glGetError,
+  "_emscripten_glGetFloatv": _emscripten_glGetFloatv,
+  "_emscripten_glGetFramebufferAttachmentParameteriv": _emscripten_glGetFramebufferAttachmentParameteriv,
+  "_emscripten_glGetIntegerv": _emscripten_glGetIntegerv,
+  "_emscripten_glGetProgramInfoLog": _emscripten_glGetProgramInfoLog,
+  "_emscripten_glGetProgramiv": _emscripten_glGetProgramiv,
+  "_emscripten_glGetQueryObjecti64vEXT": _emscripten_glGetQueryObjecti64vEXT,
+  "_emscripten_glGetQueryObjectivEXT": _emscripten_glGetQueryObjectivEXT,
+  "_emscripten_glGetQueryObjectui64vEXT": _emscripten_glGetQueryObjectui64vEXT,
+  "_emscripten_glGetQueryObjectuivEXT": _emscripten_glGetQueryObjectuivEXT,
+  "_emscripten_glGetQueryivEXT": _emscripten_glGetQueryivEXT,
+  "_emscripten_glGetRenderbufferParameteriv": _emscripten_glGetRenderbufferParameteriv,
+  "_emscripten_glGetShaderInfoLog": _emscripten_glGetShaderInfoLog,
+  "_emscripten_glGetShaderPrecisionFormat": _emscripten_glGetShaderPrecisionFormat,
+  "_emscripten_glGetShaderSource": _emscripten_glGetShaderSource,
+  "_emscripten_glGetShaderiv": _emscripten_glGetShaderiv,
+  "_emscripten_glGetString": _emscripten_glGetString,
+  "_emscripten_glGetTexParameterfv": _emscripten_glGetTexParameterfv,
+  "_emscripten_glGetTexParameteriv": _emscripten_glGetTexParameteriv,
+  "_emscripten_glGetUniformLocation": _emscripten_glGetUniformLocation,
+  "_emscripten_glGetUniformfv": _emscripten_glGetUniformfv,
+  "_emscripten_glGetUniformiv": _emscripten_glGetUniformiv,
+  "_emscripten_glGetVertexAttribPointerv": _emscripten_glGetVertexAttribPointerv,
+  "_emscripten_glGetVertexAttribfv": _emscripten_glGetVertexAttribfv,
+  "_emscripten_glGetVertexAttribiv": _emscripten_glGetVertexAttribiv,
+  "_emscripten_glHint": _emscripten_glHint,
+  "_emscripten_glIsBuffer": _emscripten_glIsBuffer,
+  "_emscripten_glIsEnabled": _emscripten_glIsEnabled,
+  "_emscripten_glIsFramebuffer": _emscripten_glIsFramebuffer,
+  "_emscripten_glIsProgram": _emscripten_glIsProgram,
+  "_emscripten_glIsQueryEXT": _emscripten_glIsQueryEXT,
+  "_emscripten_glIsRenderbuffer": _emscripten_glIsRenderbuffer,
+  "_emscripten_glIsShader": _emscripten_glIsShader,
+  "_emscripten_glIsTexture": _emscripten_glIsTexture,
+  "_emscripten_glIsVertexArray": _emscripten_glIsVertexArray,
+  "_emscripten_glIsVertexArrayOES": _emscripten_glIsVertexArrayOES,
+  "_emscripten_glLineWidth": _emscripten_glLineWidth,
+  "_emscripten_glLinkProgram": _emscripten_glLinkProgram,
+  "_emscripten_glLoadIdentity": _emscripten_glLoadIdentity,
+  "_emscripten_glMatrixMode": _emscripten_glMatrixMode,
+  "_emscripten_glPixelStorei": _emscripten_glPixelStorei,
+  "_emscripten_glPolygonOffset": _emscripten_glPolygonOffset,
+  "_emscripten_glQueryCounterEXT": _emscripten_glQueryCounterEXT,
+  "_emscripten_glReadPixels": _emscripten_glReadPixels,
+  "_emscripten_glReleaseShaderCompiler": _emscripten_glReleaseShaderCompiler,
+  "_emscripten_glRenderbufferStorage": _emscripten_glRenderbufferStorage,
+  "_emscripten_glSampleCoverage": _emscripten_glSampleCoverage,
+  "_emscripten_glScissor": _emscripten_glScissor,
+  "_emscripten_glShaderBinary": _emscripten_glShaderBinary,
+  "_emscripten_glShaderSource": _emscripten_glShaderSource,
+  "_emscripten_glStencilFunc": _emscripten_glStencilFunc,
+  "_emscripten_glStencilFuncSeparate": _emscripten_glStencilFuncSeparate,
+  "_emscripten_glStencilMask": _emscripten_glStencilMask,
+  "_emscripten_glStencilMaskSeparate": _emscripten_glStencilMaskSeparate,
+  "_emscripten_glStencilOp": _emscripten_glStencilOp,
+  "_emscripten_glStencilOpSeparate": _emscripten_glStencilOpSeparate,
+  "_emscripten_glTexImage2D": _emscripten_glTexImage2D,
+  "_emscripten_glTexParameterf": _emscripten_glTexParameterf,
+  "_emscripten_glTexParameterfv": _emscripten_glTexParameterfv,
+  "_emscripten_glTexParameteri": _emscripten_glTexParameteri,
+  "_emscripten_glTexParameteriv": _emscripten_glTexParameteriv,
+  "_emscripten_glTexSubImage2D": _emscripten_glTexSubImage2D,
+  "_emscripten_glUniform1f": _emscripten_glUniform1f,
+  "_emscripten_glUniform1fv": _emscripten_glUniform1fv,
+  "_emscripten_glUniform1i": _emscripten_glUniform1i,
+  "_emscripten_glUniform1iv": _emscripten_glUniform1iv,
+  "_emscripten_glUniform2f": _emscripten_glUniform2f,
+  "_emscripten_glUniform2fv": _emscripten_glUniform2fv,
+  "_emscripten_glUniform2i": _emscripten_glUniform2i,
+  "_emscripten_glUniform2iv": _emscripten_glUniform2iv,
+  "_emscripten_glUniform3f": _emscripten_glUniform3f,
+  "_emscripten_glUniform3fv": _emscripten_glUniform3fv,
+  "_emscripten_glUniform3i": _emscripten_glUniform3i,
+  "_emscripten_glUniform3iv": _emscripten_glUniform3iv,
+  "_emscripten_glUniform4f": _emscripten_glUniform4f,
+  "_emscripten_glUniform4fv": _emscripten_glUniform4fv,
+  "_emscripten_glUniform4i": _emscripten_glUniform4i,
+  "_emscripten_glUniform4iv": _emscripten_glUniform4iv,
+  "_emscripten_glUniformMatrix2fv": _emscripten_glUniformMatrix2fv,
+  "_emscripten_glUniformMatrix3fv": _emscripten_glUniformMatrix3fv,
+  "_emscripten_glUniformMatrix4fv": _emscripten_glUniformMatrix4fv,
+  "_emscripten_glUseProgram": _emscripten_glUseProgram,
+  "_emscripten_glValidateProgram": _emscripten_glValidateProgram,
+  "_emscripten_glVertexAttrib1f": _emscripten_glVertexAttrib1f,
+  "_emscripten_glVertexAttrib1fv": _emscripten_glVertexAttrib1fv,
+  "_emscripten_glVertexAttrib2f": _emscripten_glVertexAttrib2f,
+  "_emscripten_glVertexAttrib2fv": _emscripten_glVertexAttrib2fv,
+  "_emscripten_glVertexAttrib3f": _emscripten_glVertexAttrib3f,
+  "_emscripten_glVertexAttrib3fv": _emscripten_glVertexAttrib3fv,
+  "_emscripten_glVertexAttrib4f": _emscripten_glVertexAttrib4f,
+  "_emscripten_glVertexAttrib4fv": _emscripten_glVertexAttrib4fv,
+  "_emscripten_glVertexAttribDivisor": _emscripten_glVertexAttribDivisor,
+  "_emscripten_glVertexAttribDivisorANGLE": _emscripten_glVertexAttribDivisorANGLE,
+  "_emscripten_glVertexAttribDivisorARB": _emscripten_glVertexAttribDivisorARB,
+  "_emscripten_glVertexAttribDivisorEXT": _emscripten_glVertexAttribDivisorEXT,
+  "_emscripten_glVertexAttribDivisorNV": _emscripten_glVertexAttribDivisorNV,
+  "_emscripten_glVertexAttribPointer": _emscripten_glVertexAttribPointer,
+  "_emscripten_glVertexPointer": _emscripten_glVertexPointer,
+  "_emscripten_glViewport": _emscripten_glViewport,
+  "_emscripten_gluLookAt": _emscripten_gluLookAt,
+  "_emscripten_gluOrtho2D": _emscripten_gluOrtho2D,
+  "_emscripten_gluPerspective": _emscripten_gluPerspective,
+  "_emscripten_gluProject": _emscripten_gluProject,
+  "_emscripten_gluUnProject": _emscripten_gluUnProject,
+  "_emscripten_hide_mouse": _emscripten_hide_mouse,
+  "_emscripten_html5_remove_all_event_listeners": _emscripten_html5_remove_all_event_listeners,
+  "_emscripten_idb_async_delete": _emscripten_idb_async_delete,
+  "_emscripten_idb_async_exists": _emscripten_idb_async_exists,
+  "_emscripten_idb_async_load": _emscripten_idb_async_load,
+  "_emscripten_idb_async_store": _emscripten_idb_async_store,
+  "_emscripten_idb_delete": _emscripten_idb_delete,
+  "_emscripten_idb_exists": _emscripten_idb_exists,
+  "_emscripten_idb_load": _emscripten_idb_load,
+  "_emscripten_idb_store": _emscripten_idb_store,
+  "_emscripten_is_main_browser_thread": _emscripten_is_main_browser_thread,
+  "_emscripten_is_webgl_context_lost": _emscripten_is_webgl_context_lost,
+  "_emscripten_lock_orientation": _emscripten_lock_orientation,
+  "_emscripten_log": _emscripten_log,
+  "_emscripten_log_js": _emscripten_log_js,
+  "_emscripten_longjmp": _emscripten_longjmp,
+  "_emscripten_main_browser_thread_id": _emscripten_main_browser_thread_id,
+  "_emscripten_memcpy_big": _emscripten_memcpy_big,
+  "_emscripten_pause_main_loop": _emscripten_pause_main_loop,
+  "_emscripten_performance_now": _emscripten_performance_now,
+  "_emscripten_print_double": _emscripten_print_double,
+  "_emscripten_random": _emscripten_random,
+  "_emscripten_request_animation_frame": _emscripten_request_animation_frame,
+  "_emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop,
+  "_emscripten_request_fullscreen": _emscripten_request_fullscreen,
+  "_emscripten_request_fullscreen_strategy": _emscripten_request_fullscreen_strategy,
+  "_emscripten_request_pointerlock": _emscripten_request_pointerlock,
+  "_emscripten_resize_heap": _emscripten_resize_heap,
+  "_emscripten_resume_main_loop": _emscripten_resume_main_loop,
+  "_emscripten_run_preload_plugins": _emscripten_run_preload_plugins,
+  "_emscripten_run_preload_plugins_data": _emscripten_run_preload_plugins_data,
+  "_emscripten_run_script": _emscripten_run_script,
+  "_emscripten_run_script_int": _emscripten_run_script_int,
+  "_emscripten_run_script_string": _emscripten_run_script_string,
+  "_emscripten_sample_gamepad_data": _emscripten_sample_gamepad_data,
+  "_emscripten_set_batterychargingchange_callback_on_thread": _emscripten_set_batterychargingchange_callback_on_thread,
+  "_emscripten_set_batterylevelchange_callback_on_thread": _emscripten_set_batterylevelchange_callback_on_thread,
+  "_emscripten_set_beforeunload_callback_on_thread": _emscripten_set_beforeunload_callback_on_thread,
+  "_emscripten_set_blur_callback_on_thread": _emscripten_set_blur_callback_on_thread,
+  "_emscripten_set_canvas_element_size": _emscripten_set_canvas_element_size,
+  "_emscripten_set_canvas_size": _emscripten_set_canvas_size,
+  "_emscripten_set_click_callback_on_thread": _emscripten_set_click_callback_on_thread,
+  "_emscripten_set_dblclick_callback_on_thread": _emscripten_set_dblclick_callback_on_thread,
+  "_emscripten_set_devicemotion_callback_on_thread": _emscripten_set_devicemotion_callback_on_thread,
+  "_emscripten_set_deviceorientation_callback_on_thread": _emscripten_set_deviceorientation_callback_on_thread,
+  "_emscripten_set_element_css_size": _emscripten_set_element_css_size,
+  "_emscripten_set_focus_callback_on_thread": _emscripten_set_focus_callback_on_thread,
+  "_emscripten_set_focusin_callback_on_thread": _emscripten_set_focusin_callback_on_thread,
+  "_emscripten_set_focusout_callback_on_thread": _emscripten_set_focusout_callback_on_thread,
+  "_emscripten_set_fullscreenchange_callback_on_thread": _emscripten_set_fullscreenchange_callback_on_thread,
+  "_emscripten_set_gamepadconnected_callback_on_thread": _emscripten_set_gamepadconnected_callback_on_thread,
+  "_emscripten_set_gamepaddisconnected_callback_on_thread": _emscripten_set_gamepaddisconnected_callback_on_thread,
+  "_emscripten_set_immediate": _emscripten_set_immediate,
+  "_emscripten_set_immediate_loop": _emscripten_set_immediate_loop,
+  "_emscripten_set_interval": _emscripten_set_interval,
+  "_emscripten_set_keydown_callback_on_thread": _emscripten_set_keydown_callback_on_thread,
+  "_emscripten_set_keypress_callback_on_thread": _emscripten_set_keypress_callback_on_thread,
+  "_emscripten_set_keyup_callback_on_thread": _emscripten_set_keyup_callback_on_thread,
+  "_emscripten_set_main_loop": _emscripten_set_main_loop,
+  "_emscripten_set_main_loop_arg": _emscripten_set_main_loop_arg,
+  "_emscripten_set_main_loop_expected_blockers": _emscripten_set_main_loop_expected_blockers,
+  "_emscripten_set_main_loop_timing": _emscripten_set_main_loop_timing,
+  "_emscripten_set_mousedown_callback_on_thread": _emscripten_set_mousedown_callback_on_thread,
+  "_emscripten_set_mouseenter_callback_on_thread": _emscripten_set_mouseenter_callback_on_thread,
+  "_emscripten_set_mouseleave_callback_on_thread": _emscripten_set_mouseleave_callback_on_thread,
+  "_emscripten_set_mousemove_callback_on_thread": _emscripten_set_mousemove_callback_on_thread,
+  "_emscripten_set_mouseout_callback_on_thread": _emscripten_set_mouseout_callback_on_thread,
+  "_emscripten_set_mouseover_callback_on_thread": _emscripten_set_mouseover_callback_on_thread,
+  "_emscripten_set_mouseup_callback_on_thread": _emscripten_set_mouseup_callback_on_thread,
+  "_emscripten_set_orientationchange_callback_on_thread": _emscripten_set_orientationchange_callback_on_thread,
+  "_emscripten_set_pointerlockchange_callback_on_thread": _emscripten_set_pointerlockchange_callback_on_thread,
+  "_emscripten_set_pointerlockerror_callback_on_thread": _emscripten_set_pointerlockerror_callback_on_thread,
+  "_emscripten_set_resize_callback_on_thread": _emscripten_set_resize_callback_on_thread,
+  "_emscripten_set_scroll_callback_on_thread": _emscripten_set_scroll_callback_on_thread,
+  "_emscripten_set_socket_close_callback": _emscripten_set_socket_close_callback,
+  "_emscripten_set_socket_connection_callback": _emscripten_set_socket_connection_callback,
+  "_emscripten_set_socket_error_callback": _emscripten_set_socket_error_callback,
+  "_emscripten_set_socket_listen_callback": _emscripten_set_socket_listen_callback,
+  "_emscripten_set_socket_message_callback": _emscripten_set_socket_message_callback,
+  "_emscripten_set_socket_open_callback": _emscripten_set_socket_open_callback,
+  "_emscripten_set_timeout": _emscripten_set_timeout,
+  "_emscripten_set_timeout_loop": _emscripten_set_timeout_loop,
+  "_emscripten_set_touchcancel_callback_on_thread": _emscripten_set_touchcancel_callback_on_thread,
+  "_emscripten_set_touchend_callback_on_thread": _emscripten_set_touchend_callback_on_thread,
+  "_emscripten_set_touchmove_callback_on_thread": _emscripten_set_touchmove_callback_on_thread,
+  "_emscripten_set_touchstart_callback_on_thread": _emscripten_set_touchstart_callback_on_thread,
+  "_emscripten_set_visibilitychange_callback_on_thread": _emscripten_set_visibilitychange_callback_on_thread,
+  "_emscripten_set_webglcontextlost_callback_on_thread": _emscripten_set_webglcontextlost_callback_on_thread,
+  "_emscripten_set_webglcontextrestored_callback_on_thread": _emscripten_set_webglcontextrestored_callback_on_thread,
+  "_emscripten_set_wheel_callback_on_thread": _emscripten_set_wheel_callback_on_thread,
+  "_emscripten_sleep": _emscripten_sleep,
+  "_emscripten_supports_offscreencanvas": _emscripten_supports_offscreencanvas,
+  "_emscripten_throw_number": _emscripten_throw_number,
+  "_emscripten_throw_string": _emscripten_throw_string,
+  "_emscripten_unlock_orientation": _emscripten_unlock_orientation,
+  "_emscripten_vibrate": _emscripten_vibrate,
+  "_emscripten_vibrate_pattern": _emscripten_vibrate_pattern,
+  "_emscripten_vr_cancel_display_render_loop": _emscripten_vr_cancel_display_render_loop,
+  "_emscripten_vr_count_displays": _emscripten_vr_count_displays,
+  "_emscripten_vr_deinit": _emscripten_vr_deinit,
+  "_emscripten_vr_display_connected": _emscripten_vr_display_connected,
+  "_emscripten_vr_display_presenting": _emscripten_vr_display_presenting,
+  "_emscripten_vr_exit_present": _emscripten_vr_exit_present,
+  "_emscripten_vr_get_display_capabilities": _emscripten_vr_get_display_capabilities,
+  "_emscripten_vr_get_display_handle": _emscripten_vr_get_display_handle,
+  "_emscripten_vr_get_display_name": _emscripten_vr_get_display_name,
+  "_emscripten_vr_get_eye_parameters": _emscripten_vr_get_eye_parameters,
+  "_emscripten_vr_get_frame_data": _emscripten_vr_get_frame_data,
+  "_emscripten_vr_init": _emscripten_vr_init,
+  "_emscripten_vr_ready": _emscripten_vr_ready,
+  "_emscripten_vr_request_present": _emscripten_vr_request_present,
+  "_emscripten_vr_set_display_render_loop": _emscripten_vr_set_display_render_loop,
+  "_emscripten_vr_set_display_render_loop_arg": _emscripten_vr_set_display_render_loop_arg,
+  "_emscripten_vr_submit_frame": _emscripten_vr_submit_frame,
+  "_emscripten_vr_version_major": _emscripten_vr_version_major,
+  "_emscripten_vr_version_minor": _emscripten_vr_version_minor,
+  "_emscripten_webgl_commit_frame": _emscripten_webgl_commit_frame,
+  "_emscripten_webgl_create_context": _emscripten_webgl_create_context,
+  "_emscripten_webgl_destroy_context": _emscripten_webgl_destroy_context,
+  "_emscripten_webgl_destroy_context_calling_thread": _emscripten_webgl_destroy_context_calling_thread,
+  "_emscripten_webgl_do_commit_frame": _emscripten_webgl_do_commit_frame,
+  "_emscripten_webgl_do_create_context": _emscripten_webgl_do_create_context,
+  "_emscripten_webgl_do_get_current_context": _emscripten_webgl_do_get_current_context,
+  "_emscripten_webgl_enable_extension": _emscripten_webgl_enable_extension,
+  "_emscripten_webgl_enable_extension_calling_thread": _emscripten_webgl_enable_extension_calling_thread,
+  "_emscripten_webgl_get_context_attributes": _emscripten_webgl_get_context_attributes,
+  "_emscripten_webgl_get_current_context": _emscripten_webgl_get_current_context,
+  "_emscripten_webgl_get_drawing_buffer_size": _emscripten_webgl_get_drawing_buffer_size,
+  "_emscripten_webgl_get_drawing_buffer_size_calling_thread": _emscripten_webgl_get_drawing_buffer_size_calling_thread,
+  "_emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes,
+  "_emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current,
+  "_emscripten_wget": _emscripten_wget,
+  "_emscripten_wget_data": _emscripten_wget_data,
+  "_emscripten_worker_respond": _emscripten_worker_respond,
+  "_emscripten_worker_respond_provisionally": _emscripten_worker_respond_provisionally,
+  "_emscripten_yield": _emscripten_yield,
+  "_endprotoent": _endprotoent,
+  "_endpwent": _endpwent,
+  "_execl": _execl,
+  "_execle": _execle,
+  "_execlp": _execlp,
+  "_execv": _execv,
+  "_execve": _execve,
+  "_execvp": _execvp,
+  "_exit": _exit,
+  "_fabs": _fabs,
+  "_fabsf": _fabsf,
+  "_fabsl": _fabsl,
+  "_fexecve": _fexecve,
+  "_filledEllipseColor": _filledEllipseColor,
+  "_filledEllipseRGBA": _filledEllipseRGBA,
+  "_flock": _flock,
+  "_floor": _floor,
+  "_floorf": _floorf,
+  "_floorl": _floorl,
+  "_fork": _fork,
+  "_fpathconf": _fpathconf,
+  "_ftime": _ftime,
+  "_gai_strerror": _gai_strerror,
+  "_getTempRet0": _getTempRet0,
+  "_getaddrinfo": _getaddrinfo,
+  "_getdate": _getdate,
+  "_getenv": _getenv,
+  "_gethostbyaddr": _gethostbyaddr,
+  "_gethostbyname": _gethostbyname,
+  "_gethostbyname_r": _gethostbyname_r,
+  "_getitimer": _getitimer,
+  "_getloadavg": _getloadavg,
+  "_getnameinfo": _getnameinfo,
+  "_getpagesize": _getpagesize,
+  "_getprotobyname": _getprotobyname,
+  "_getprotobynumber": _getprotobynumber,
+  "_getprotoent": _getprotoent,
+  "_getpwent": _getpwent,
+  "_getpwnam": _getpwnam,
+  "_getpwuid": _getpwuid,
+  "_gettimeofday": _gettimeofday,
+  "_glActiveTexture": _glActiveTexture,
+  "_glAttachShader": _glAttachShader,
+  "_glBegin": _glBegin,
+  "_glBeginQueryEXT": _glBeginQueryEXT,
+  "_glBindAttribLocation": _glBindAttribLocation,
+  "_glBindBuffer": _glBindBuffer,
+  "_glBindFramebuffer": _glBindFramebuffer,
+  "_glBindRenderbuffer": _glBindRenderbuffer,
+  "_glBindTexture": _glBindTexture,
+  "_glBindVertexArray": _glBindVertexArray,
+  "_glBindVertexArrayOES": _glBindVertexArrayOES,
+  "_glBlendColor": _glBlendColor,
+  "_glBlendEquation": _glBlendEquation,
+  "_glBlendEquationSeparate": _glBlendEquationSeparate,
+  "_glBlendFunc": _glBlendFunc,
+  "_glBlendFuncSeparate": _glBlendFuncSeparate,
+  "_glBufferData": _glBufferData,
+  "_glBufferSubData": _glBufferSubData,
+  "_glCheckFramebufferStatus": _glCheckFramebufferStatus,
+  "_glClear": _glClear,
+  "_glClearColor": _glClearColor,
+  "_glClearDepth": _glClearDepth,
+  "_glClearDepthf": _glClearDepthf,
+  "_glClearStencil": _glClearStencil,
+  "_glColorMask": _glColorMask,
+  "_glCompileShader": _glCompileShader,
+  "_glCompressedTexImage2D": _glCompressedTexImage2D,
+  "_glCompressedTexSubImage2D": _glCompressedTexSubImage2D,
+  "_glCopyTexImage2D": _glCopyTexImage2D,
+  "_glCopyTexSubImage2D": _glCopyTexSubImage2D,
+  "_glCreateProgram": _glCreateProgram,
+  "_glCreateShader": _glCreateShader,
+  "_glCullFace": _glCullFace,
+  "_glDeleteBuffers": _glDeleteBuffers,
+  "_glDeleteFramebuffers": _glDeleteFramebuffers,
+  "_glDeleteProgram": _glDeleteProgram,
+  "_glDeleteQueriesEXT": _glDeleteQueriesEXT,
+  "_glDeleteRenderbuffers": _glDeleteRenderbuffers,
+  "_glDeleteShader": _glDeleteShader,
+  "_glDeleteTextures": _glDeleteTextures,
+  "_glDeleteVertexArrays": _glDeleteVertexArrays,
+  "_glDeleteVertexArraysOES": _glDeleteVertexArraysOES,
+  "_glDepthFunc": _glDepthFunc,
+  "_glDepthMask": _glDepthMask,
+  "_glDepthRange": _glDepthRange,
+  "_glDepthRangef": _glDepthRangef,
+  "_glDetachShader": _glDetachShader,
+  "_glDisable": _glDisable,
+  "_glDisableVertexAttribArray": _glDisableVertexAttribArray,
+  "_glDrawArrays": _glDrawArrays,
+  "_glDrawArraysInstanced": _glDrawArraysInstanced,
+  "_glDrawArraysInstancedANGLE": _glDrawArraysInstancedANGLE,
+  "_glDrawArraysInstancedARB": _glDrawArraysInstancedARB,
+  "_glDrawArraysInstancedEXT": _glDrawArraysInstancedEXT,
+  "_glDrawArraysInstancedNV": _glDrawArraysInstancedNV,
+  "_glDrawBuffers": _glDrawBuffers,
+  "_glDrawBuffersEXT": _glDrawBuffersEXT,
+  "_glDrawBuffersWEBGL": _glDrawBuffersWEBGL,
+  "_glDrawElements": _glDrawElements,
+  "_glDrawElementsInstanced": _glDrawElementsInstanced,
+  "_glDrawElementsInstancedANGLE": _glDrawElementsInstancedANGLE,
+  "_glDrawElementsInstancedARB": _glDrawElementsInstancedARB,
+  "_glDrawElementsInstancedEXT": _glDrawElementsInstancedEXT,
+  "_glDrawElementsInstancedNV": _glDrawElementsInstancedNV,
+  "_glEnable": _glEnable,
+  "_glEnableVertexAttribArray": _glEnableVertexAttribArray,
+  "_glEndQueryEXT": _glEndQueryEXT,
+  "_glFinish": _glFinish,
+  "_glFlush": _glFlush,
+  "_glFramebufferRenderbuffer": _glFramebufferRenderbuffer,
+  "_glFramebufferTexture2D": _glFramebufferTexture2D,
+  "_glFrontFace": _glFrontFace,
+  "_glGenBuffers": _glGenBuffers,
+  "_glGenFramebuffers": _glGenFramebuffers,
+  "_glGenQueriesEXT": _glGenQueriesEXT,
+  "_glGenRenderbuffers": _glGenRenderbuffers,
+  "_glGenTextures": _glGenTextures,
+  "_glGenVertexArrays": _glGenVertexArrays,
+  "_glGenVertexArraysOES": _glGenVertexArraysOES,
+  "_glGenerateMipmap": _glGenerateMipmap,
+  "_glGetActiveAttrib": _glGetActiveAttrib,
+  "_glGetActiveUniform": _glGetActiveUniform,
+  "_glGetAttachedShaders": _glGetAttachedShaders,
+  "_glGetAttribLocation": _glGetAttribLocation,
+  "_glGetBooleanv": _glGetBooleanv,
+  "_glGetBufferParameteriv": _glGetBufferParameteriv,
+  "_glGetError": _glGetError,
+  "_glGetFloatv": _glGetFloatv,
+  "_glGetFramebufferAttachmentParameteriv": _glGetFramebufferAttachmentParameteriv,
+  "_glGetIntegerv": _glGetIntegerv,
+  "_glGetProgramInfoLog": _glGetProgramInfoLog,
+  "_glGetProgramiv": _glGetProgramiv,
+  "_glGetQueryObjecti64vEXT": _glGetQueryObjecti64vEXT,
+  "_glGetQueryObjectivEXT": _glGetQueryObjectivEXT,
+  "_glGetQueryObjectui64vEXT": _glGetQueryObjectui64vEXT,
+  "_glGetQueryObjectuivEXT": _glGetQueryObjectuivEXT,
+  "_glGetQueryivEXT": _glGetQueryivEXT,
+  "_glGetRenderbufferParameteriv": _glGetRenderbufferParameteriv,
+  "_glGetShaderInfoLog": _glGetShaderInfoLog,
+  "_glGetShaderPrecisionFormat": _glGetShaderPrecisionFormat,
+  "_glGetShaderSource": _glGetShaderSource,
+  "_glGetShaderiv": _glGetShaderiv,
+  "_glGetString": _glGetString,
+  "_glGetTexParameterfv": _glGetTexParameterfv,
+  "_glGetTexParameteriv": _glGetTexParameteriv,
+  "_glGetUniformLocation": _glGetUniformLocation,
+  "_glGetUniformfv": _glGetUniformfv,
+  "_glGetUniformiv": _glGetUniformiv,
+  "_glGetVertexAttribPointerv": _glGetVertexAttribPointerv,
+  "_glGetVertexAttribfv": _glGetVertexAttribfv,
+  "_glGetVertexAttribiv": _glGetVertexAttribiv,
+  "_glHint": _glHint,
+  "_glIsBuffer": _glIsBuffer,
+  "_glIsEnabled": _glIsEnabled,
+  "_glIsFramebuffer": _glIsFramebuffer,
+  "_glIsProgram": _glIsProgram,
+  "_glIsQueryEXT": _glIsQueryEXT,
+  "_glIsRenderbuffer": _glIsRenderbuffer,
+  "_glIsShader": _glIsShader,
+  "_glIsTexture": _glIsTexture,
+  "_glIsVertexArray": _glIsVertexArray,
+  "_glIsVertexArrayOES": _glIsVertexArrayOES,
+  "_glLineWidth": _glLineWidth,
+  "_glLinkProgram": _glLinkProgram,
+  "_glLoadIdentity": _glLoadIdentity,
+  "_glMatrixMode": _glMatrixMode,
+  "_glOrtho": _glOrtho,
+  "_glPixelStorei": _glPixelStorei,
+  "_glPolygonOffset": _glPolygonOffset,
+  "_glQueryCounterEXT": _glQueryCounterEXT,
+  "_glReadPixels": _glReadPixels,
+  "_glReleaseShaderCompiler": _glReleaseShaderCompiler,
+  "_glRenderbufferStorage": _glRenderbufferStorage,
+  "_glSampleCoverage": _glSampleCoverage,
+  "_glScissor": _glScissor,
+  "_glShaderBinary": _glShaderBinary,
+  "_glShaderSource": _glShaderSource,
+  "_glStencilFunc": _glStencilFunc,
+  "_glStencilFuncSeparate": _glStencilFuncSeparate,
+  "_glStencilMask": _glStencilMask,
+  "_glStencilMaskSeparate": _glStencilMaskSeparate,
+  "_glStencilOp": _glStencilOp,
+  "_glStencilOpSeparate": _glStencilOpSeparate,
+  "_glTexImage2D": _glTexImage2D,
+  "_glTexParameterf": _glTexParameterf,
+  "_glTexParameterfv": _glTexParameterfv,
+  "_glTexParameteri": _glTexParameteri,
+  "_glTexParameteriv": _glTexParameteriv,
+  "_glTexSubImage2D": _glTexSubImage2D,
+  "_glUniform1f": _glUniform1f,
+  "_glUniform1fv": _glUniform1fv,
+  "_glUniform1i": _glUniform1i,
+  "_glUniform1iv": _glUniform1iv,
+  "_glUniform2f": _glUniform2f,
+  "_glUniform2fv": _glUniform2fv,
+  "_glUniform2i": _glUniform2i,
+  "_glUniform2iv": _glUniform2iv,
+  "_glUniform3f": _glUniform3f,
+  "_glUniform3fv": _glUniform3fv,
+  "_glUniform3i": _glUniform3i,
+  "_glUniform3iv": _glUniform3iv,
+  "_glUniform4f": _glUniform4f,
+  "_glUniform4fv": _glUniform4fv,
+  "_glUniform4i": _glUniform4i,
+  "_glUniform4iv": _glUniform4iv,
+  "_glUniformMatrix2fv": _glUniformMatrix2fv,
+  "_glUniformMatrix3fv": _glUniformMatrix3fv,
+  "_glUniformMatrix4fv": _glUniformMatrix4fv,
+  "_glUseProgram": _glUseProgram,
+  "_glValidateProgram": _glValidateProgram,
+  "_glVertexAttrib1f": _glVertexAttrib1f,
+  "_glVertexAttrib1fv": _glVertexAttrib1fv,
+  "_glVertexAttrib2f": _glVertexAttrib2f,
+  "_glVertexAttrib2fv": _glVertexAttrib2fv,
+  "_glVertexAttrib3f": _glVertexAttrib3f,
+  "_glVertexAttrib3fv": _glVertexAttrib3fv,
+  "_glVertexAttrib4f": _glVertexAttrib4f,
+  "_glVertexAttrib4fv": _glVertexAttrib4fv,
+  "_glVertexAttribDivisor": _glVertexAttribDivisor,
+  "_glVertexAttribDivisorANGLE": _glVertexAttribDivisorANGLE,
+  "_glVertexAttribDivisorARB": _glVertexAttribDivisorARB,
+  "_glVertexAttribDivisorEXT": _glVertexAttribDivisorEXT,
+  "_glVertexAttribDivisorNV": _glVertexAttribDivisorNV,
+  "_glVertexAttribPointer": _glVertexAttribPointer,
+  "_glVertexPointer": _glVertexPointer,
+  "_glViewport": _glViewport,
+  "_glewGetErrorString": _glewGetErrorString,
+  "_glewGetExtension": _glewGetExtension,
+  "_glewGetString": _glewGetString,
+  "_glewInit": _glewInit,
+  "_glewIsSupported": _glewIsSupported,
+  "_glfwBroadcastCond": _glfwBroadcastCond,
+  "_glfwCloseWindow": _glfwCloseWindow,
+  "_glfwCreateCond": _glfwCreateCond,
+  "_glfwCreateMutex": _glfwCreateMutex,
+  "_glfwCreateThread": _glfwCreateThread,
+  "_glfwDestroyCond": _glfwDestroyCond,
+  "_glfwDestroyMutex": _glfwDestroyMutex,
+  "_glfwDestroyThread": _glfwDestroyThread,
+  "_glfwDisable": _glfwDisable,
+  "_glfwEnable": _glfwEnable,
+  "_glfwExtensionSupported": _glfwExtensionSupported,
+  "_glfwFreeImage": _glfwFreeImage,
+  "_glfwGetDesktopMode": _glfwGetDesktopMode,
+  "_glfwGetGLVersion": _glfwGetGLVersion,
+  "_glfwGetKey": _glfwGetKey,
+  "_glfwGetMouseButton": _glfwGetMouseButton,
+  "_glfwGetMousePos": _glfwGetMousePos,
+  "_glfwGetMouseWheel": _glfwGetMouseWheel,
+  "_glfwGetNumberOfProcessors": _glfwGetNumberOfProcessors,
+  "_glfwGetProcAddress": _glfwGetProcAddress,
+  "_glfwGetThreadID": _glfwGetThreadID,
+  "_glfwGetTime": _glfwGetTime,
+  "_glfwGetVersion": _glfwGetVersion,
+  "_glfwGetWindowParam": _glfwGetWindowParam,
+  "_glfwGetWindowPos": _glfwGetWindowPos,
+  "_glfwGetWindowSize": _glfwGetWindowSize,
+  "_glfwIconifyWindow": _glfwIconifyWindow,
+  "_glfwInit": _glfwInit,
+  "_glfwLoadMemoryTexture2D": _glfwLoadMemoryTexture2D,
+  "_glfwLoadTexture2D": _glfwLoadTexture2D,
+  "_glfwLoadTextureImage2D": _glfwLoadTextureImage2D,
+  "_glfwLockMutex": _glfwLockMutex,
+  "_glfwOpenWindow": _glfwOpenWindow,
+  "_glfwOpenWindowHint": _glfwOpenWindowHint,
+  "_glfwPollEvents": _glfwPollEvents,
+  "_glfwReadImage": _glfwReadImage,
+  "_glfwReadMemoryImage": _glfwReadMemoryImage,
+  "_glfwRestoreWindow": _glfwRestoreWindow,
+  "_glfwSetCharCallback": _glfwSetCharCallback,
+  "_glfwSetKeyCallback": _glfwSetKeyCallback,
+  "_glfwSetMouseButtonCallback": _glfwSetMouseButtonCallback,
+  "_glfwSetMousePos": _glfwSetMousePos,
+  "_glfwSetMousePosCallback": _glfwSetMousePosCallback,
+  "_glfwSetMouseWheel": _glfwSetMouseWheel,
+  "_glfwSetMouseWheelCallback": _glfwSetMouseWheelCallback,
+  "_glfwSetTime": _glfwSetTime,
+  "_glfwSetWindowCloseCallback": _glfwSetWindowCloseCallback,
+  "_glfwSetWindowPos": _glfwSetWindowPos,
+  "_glfwSetWindowRefreshCallback": _glfwSetWindowRefreshCallback,
+  "_glfwSetWindowSize": _glfwSetWindowSize,
+  "_glfwSetWindowSizeCallback": _glfwSetWindowSizeCallback,
+  "_glfwSetWindowTitle": _glfwSetWindowTitle,
+  "_glfwSignalCond": _glfwSignalCond,
+  "_glfwSleep": _glfwSleep,
+  "_glfwSwapBuffers": _glfwSwapBuffers,
+  "_glfwSwapInterval": _glfwSwapInterval,
+  "_glfwTerminate": _glfwTerminate,
+  "_glfwUnlockMutex": _glfwUnlockMutex,
+  "_glfwWaitCond": _glfwWaitCond,
+  "_glfwWaitEvents": _glfwWaitEvents,
+  "_glfwWaitThread": _glfwWaitThread,
+  "_gluLookAt": _gluLookAt,
+  "_gluOrtho2D": _gluOrtho2D,
+  "_gluPerspective": _gluPerspective,
+  "_gluProject": _gluProject,
+  "_gluUnProject": _gluUnProject,
+  "_glutCreateWindow": _glutCreateWindow,
+  "_glutDestroyWindow": _glutDestroyWindow,
+  "_glutDisplayFunc": _glutDisplayFunc,
+  "_glutFullScreen": _glutFullScreen,
+  "_glutGet": _glutGet,
+  "_glutGetModifiers": _glutGetModifiers,
+  "_glutIdleFunc": _glutIdleFunc,
+  "_glutInit": _glutInit,
+  "_glutInitDisplayMode": _glutInitDisplayMode,
+  "_glutInitWindowPosition": _glutInitWindowPosition,
+  "_glutInitWindowSize": _glutInitWindowSize,
+  "_glutKeyboardFunc": _glutKeyboardFunc,
+  "_glutKeyboardUpFunc": _glutKeyboardUpFunc,
+  "_glutMainLoop": _glutMainLoop,
+  "_glutMotionFunc": _glutMotionFunc,
+  "_glutMouseFunc": _glutMouseFunc,
+  "_glutPassiveMotionFunc": _glutPassiveMotionFunc,
+  "_glutPositionWindow": _glutPositionWindow,
+  "_glutPostRedisplay": _glutPostRedisplay,
+  "_glutReshapeFunc": _glutReshapeFunc,
+  "_glutReshapeWindow": _glutReshapeWindow,
+  "_glutSetCursor": _glutSetCursor,
+  "_glutSpecialFunc": _glutSpecialFunc,
+  "_glutSpecialUpFunc": _glutSpecialUpFunc,
+  "_glutSwapBuffers": _glutSwapBuffers,
+  "_glutTimerFunc": _glutTimerFunc,
+  "_gmtime": _gmtime,
+  "_gmtime_r": _gmtime_r,
+  "_gnu_dev_major": _gnu_dev_major,
+  "_gnu_dev_makedev": _gnu_dev_makedev,
+  "_gnu_dev_minor": _gnu_dev_minor,
+  "_inet_addr": _inet_addr,
+  "_kill": _kill,
+  "_killpg": _killpg,
+  "_lineColor": _lineColor,
+  "_lineRGBA": _lineRGBA,
+  "_llvm_atomic_load_add_i32_p0i32": _llvm_atomic_load_add_i32_p0i32,
+  "_llvm_bswap_i64": _llvm_bswap_i64,
+  "_llvm_ceil_f32": _llvm_ceil_f32,
+  "_llvm_ceil_f64": _llvm_ceil_f64,
+  "_llvm_copysign_f32": _llvm_copysign_f32,
+  "_llvm_copysign_f64": _llvm_copysign_f64,
+  "_llvm_cos_f32": _llvm_cos_f32,
+  "_llvm_cos_f64": _llvm_cos_f64,
+  "_llvm_cttz_i32": _llvm_cttz_i32,
+  "_llvm_cttz_i64": _llvm_cttz_i64,
+  "_llvm_eh_exception": _llvm_eh_exception,
+  "_llvm_eh_selector": _llvm_eh_selector,
+  "_llvm_eh_typeid_for": _llvm_eh_typeid_for,
+  "_llvm_exp2_f32": _llvm_exp2_f32,
+  "_llvm_exp2_f64": _llvm_exp2_f64,
+  "_llvm_exp_f32": _llvm_exp_f32,
+  "_llvm_exp_f64": _llvm_exp_f64,
+  "_llvm_fabs_f32": _llvm_fabs_f32,
+  "_llvm_fabs_f64": _llvm_fabs_f64,
+  "_llvm_floor_f32": _llvm_floor_f32,
+  "_llvm_floor_f64": _llvm_floor_f64,
+  "_llvm_flt_rounds": _llvm_flt_rounds,
+  "_llvm_log10_f32": _llvm_log10_f32,
+  "_llvm_log10_f64": _llvm_log10_f64,
+  "_llvm_log2_f32": _llvm_log2_f32,
+  "_llvm_log2_f64": _llvm_log2_f64,
+  "_llvm_log_f32": _llvm_log_f32,
+  "_llvm_log_f64": _llvm_log_f64,
+  "_llvm_memory_barrier": _llvm_memory_barrier,
+  "_llvm_mono_load_i16_p0i16": _llvm_mono_load_i16_p0i16,
+  "_llvm_mono_load_i32_p0i32": _llvm_mono_load_i32_p0i32,
+  "_llvm_mono_load_i8_p0i8": _llvm_mono_load_i8_p0i8,
+  "_llvm_mono_store_i16_p0i16": _llvm_mono_store_i16_p0i16,
+  "_llvm_mono_store_i32_p0i32": _llvm_mono_store_i32_p0i32,
+  "_llvm_mono_store_i8_p0i8": _llvm_mono_store_i8_p0i8,
+  "_llvm_objectsize_i32": _llvm_objectsize_i32,
+  "_llvm_pow_f32": _llvm_pow_f32,
+  "_llvm_pow_f64": _llvm_pow_f64,
+  "_llvm_powi_f32": _llvm_powi_f32,
+  "_llvm_powi_f64": _llvm_powi_f64,
+  "_llvm_prefetch": _llvm_prefetch,
+  "_llvm_sin_f32": _llvm_sin_f32,
+  "_llvm_sin_f64": _llvm_sin_f64,
+  "_llvm_sqrt_f32": _llvm_sqrt_f32,
+  "_llvm_sqrt_f64": _llvm_sqrt_f64,
+  "_llvm_stackrestore": _llvm_stackrestore,
+  "_llvm_stacksave": _llvm_stacksave,
+  "_llvm_trap": _llvm_trap,
+  "_llvm_trunc_f32": _llvm_trunc_f32,
+  "_llvm_trunc_f64": _llvm_trunc_f64,
+  "_llvm_va_copy": _llvm_va_copy,
+  "_llvm_va_end": _llvm_va_end,
+  "_localtime": _localtime,
+  "_localtime_r": _localtime_r,
+  "_longjmp": _longjmp,
+  "_major": _major,
+  "_makedev": _makedev,
+  "_minor": _minor,
+  "_mktime": _mktime,
+  "_nanosleep": _nanosleep,
+  "_pathconf": _pathconf,
+  "_pixelRGBA": _pixelRGBA,
+  "_posix_spawn": _posix_spawn,
+  "_posix_spawnp": _posix_spawnp,
+  "_pthread_attr_destroy": _pthread_attr_destroy,
+  "_pthread_attr_getstack": _pthread_attr_getstack,
+  "_pthread_attr_init": _pthread_attr_init,
+  "_pthread_attr_setdetachstate": _pthread_attr_setdetachstate,
+  "_pthread_attr_setschedparam": _pthread_attr_setschedparam,
+  "_pthread_attr_setstacksize": _pthread_attr_setstacksize,
+  "_pthread_cancel": _pthread_cancel,
+  "_pthread_cleanup_pop": _pthread_cleanup_pop,
+  "_pthread_cleanup_push": _pthread_cleanup_push,
+  "_pthread_cond_destroy": _pthread_cond_destroy,
+  "_pthread_cond_init": _pthread_cond_init,
+  "_pthread_cond_signal": _pthread_cond_signal,
+  "_pthread_cond_timedwait": _pthread_cond_timedwait,
+  "_pthread_cond_wait": _pthread_cond_wait,
+  "_pthread_condattr_destroy": _pthread_condattr_destroy,
+  "_pthread_condattr_getclock": _pthread_condattr_getclock,
+  "_pthread_condattr_getpshared": _pthread_condattr_getpshared,
+  "_pthread_condattr_init": _pthread_condattr_init,
+  "_pthread_condattr_setclock": _pthread_condattr_setclock,
+  "_pthread_condattr_setpshared": _pthread_condattr_setpshared,
+  "_pthread_create": _pthread_create,
+  "_pthread_detach": _pthread_detach,
+  "_pthread_equal": _pthread_equal,
+  "_pthread_exit": _pthread_exit,
+  "_pthread_getattr_np": _pthread_getattr_np,
+  "_pthread_join": _pthread_join,
+  "_pthread_mutexattr_destroy": _pthread_mutexattr_destroy,
+  "_pthread_mutexattr_init": _pthread_mutexattr_init,
+  "_pthread_mutexattr_setprotocol": _pthread_mutexattr_setprotocol,
+  "_pthread_mutexattr_setpshared": _pthread_mutexattr_setpshared,
+  "_pthread_mutexattr_setschedparam": _pthread_mutexattr_setschedparam,
+  "_pthread_mutexattr_settype": _pthread_mutexattr_settype,
+  "_pthread_rwlock_destroy": _pthread_rwlock_destroy,
+  "_pthread_rwlock_init": _pthread_rwlock_init,
+  "_pthread_rwlock_rdlock": _pthread_rwlock_rdlock,
+  "_pthread_rwlock_timedrdlock": _pthread_rwlock_timedrdlock,
+  "_pthread_rwlock_timedwrlock": _pthread_rwlock_timedwrlock,
+  "_pthread_rwlock_tryrdlock": _pthread_rwlock_tryrdlock,
+  "_pthread_rwlock_trywrlock": _pthread_rwlock_trywrlock,
+  "_pthread_rwlock_unlock": _pthread_rwlock_unlock,
+  "_pthread_rwlock_wrlock": _pthread_rwlock_wrlock,
+  "_pthread_rwlockattr_destroy": _pthread_rwlockattr_destroy,
+  "_pthread_rwlockattr_getpshared": _pthread_rwlockattr_getpshared,
+  "_pthread_rwlockattr_init": _pthread_rwlockattr_init,
+  "_pthread_rwlockattr_setpshared": _pthread_rwlockattr_setpshared,
+  "_pthread_setcancelstate": _pthread_setcancelstate,
+  "_pthread_sigmask": _pthread_sigmask,
+  "_pthread_spin_destroy": _pthread_spin_destroy,
+  "_pthread_spin_init": _pthread_spin_init,
+  "_pthread_spin_lock": _pthread_spin_lock,
+  "_pthread_spin_trylock": _pthread_spin_trylock,
+  "_pthread_spin_unlock": _pthread_spin_unlock,
+  "_putenv": _putenv,
+  "_raise": _raise,
+  "_rectangleColor": _rectangleColor,
+  "_rectangleRGBA": _rectangleRGBA,
+  "_rotozoomSurface": _rotozoomSurface,
+  "_sched_yield": _sched_yield,
+  "_sem_destroy": _sem_destroy,
+  "_sem_init": _sem_init,
+  "_sem_post": _sem_post,
+  "_sem_trywait": _sem_trywait,
+  "_sem_wait": _sem_wait,
+  "_setTempRet0": _setTempRet0,
+  "_setenv": _setenv,
+  "_setgroups": _setgroups,
+  "_setitimer": _setitimer,
+  "_setprotoent": _setprotoent,
+  "_setpwent": _setpwent,
+  "_sigaction": _sigaction,
+  "_sigaddset": _sigaddset,
+  "_sigdelset": _sigdelset,
+  "_sigemptyset": _sigemptyset,
+  "_sigfillset": _sigfillset,
+  "_siginterrupt": _siginterrupt,
+  "_sigismember": _sigismember,
+  "_siglongjmp": _siglongjmp,
+  "_signal": _signal,
+  "_sigpending": _sigpending,
+  "_sigprocmask": _sigprocmask,
+  "_sqrt": _sqrt,
+  "_sqrtf": _sqrtf,
+  "_sqrtl": _sqrtl,
+  "_stime": _stime,
+  "_strftime": _strftime,
+  "_strftime_l": _strftime_l,
+  "_strptime": _strptime,
+  "_strptime_l": _strptime_l,
+  "_sysconf": _sysconf,
+  "_system": _system,
+  "_terminate": _terminate,
+  "_time": _time,
+  "_timegm": _timegm,
+  "_timelocal": _timelocal,
+  "_times": _times,
+  "_timespec_get": _timespec_get,
+  "_tzset": _tzset,
+  "_unsetenv": _unsetenv,
+  "_usleep": _usleep,
+  "_utime": _utime,
+  "_utimes": _utimes,
+  "_uuid_clear": _uuid_clear,
+  "_uuid_compare": _uuid_compare,
+  "_uuid_copy": _uuid_copy,
+  "_uuid_generate": _uuid_generate,
+  "_uuid_is_null": _uuid_is_null,
+  "_uuid_parse": _uuid_parse,
+  "_uuid_type": _uuid_type,
+  "_uuid_unparse": _uuid_unparse,
+  "_uuid_unparse_lower": _uuid_unparse_lower,
+  "_uuid_unparse_upper": _uuid_unparse_upper,
+  "_uuid_variant": _uuid_variant,
+  "_vfork": _vfork,
+  "_wait": _wait,
+  "_wait3": _wait3,
+  "_wait4": _wait4,
+  "_waitid": _waitid,
+  "_waitpid": _waitpid,
+  "_zoomSurface": _zoomSurface,
+  "abortOnCannotGrowMemory": abortOnCannotGrowMemory,
+  "emscriptenWebGLGet": emscriptenWebGLGet,
+  "emscriptenWebGLGetTexPixelData": emscriptenWebGLGetTexPixelData,
+  "emscriptenWebGLGetUniform": emscriptenWebGLGetUniform,
+  "emscriptenWebGLGetVertexAttrib": emscriptenWebGLGetVertexAttrib,
+  "emscripten_realloc_buffer": emscripten_realloc_buffer,
+  "stringToNewUTF8": stringToNewUTF8,
+  "tempDoublePtr": tempDoublePtr,
+  "DYNAMICTOP_PTR": DYNAMICTOP_PTR,
+  "gb": gb,
+  "fb": fb,
+  "STACKTOP": STACKTOP,
+  "STACK_MAX": STACK_MAX
+}
 // EMSCRIPTEN_START_ASM
 var asm =Module["asm"]// EMSCRIPTEN_END_ASM
 (asmGlobalArg, asmLibraryArg, buffer);
@@ -32264,6 +33936,42 @@ var real____sindf = asm["___sindf"]; asm["___sindf"] = function() {
   return real____sindf.apply(null, arguments);
 };
 
+var real____small_fprintf = asm["___small_fprintf"]; asm["___small_fprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_fprintf.apply(null, arguments);
+};
+
+var real____small_printf = asm["___small_printf"]; asm["___small_printf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_printf.apply(null, arguments);
+};
+
+var real____small_sprintf = asm["___small_sprintf"]; asm["___small_sprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_sprintf.apply(null, arguments);
+};
+
+var real____small_vfprintf = asm["___small_vfprintf"]; asm["___small_vfprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_vfprintf.apply(null, arguments);
+};
+
+var real____small_vsnprintf = asm["___small_vsnprintf"]; asm["___small_vsnprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_vsnprintf.apply(null, arguments);
+};
+
+var real____small_vsprintf = asm["___small_vsprintf"]; asm["___small_vsprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____small_vsprintf.apply(null, arguments);
+};
+
 var real____srandom = asm["___srandom"]; asm["___srandom"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -32516,6 +34224,12 @@ var real____uselocale = asm["___uselocale"]; asm["___uselocale"] = function() {
   return real____uselocale.apply(null, arguments);
 };
 
+var real____vfprintf_internal = asm["___vfprintf_internal"]; asm["___vfprintf_internal"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real____vfprintf_internal.apply(null, arguments);
+};
+
 var real____vsyslog = asm["___vsyslog"]; asm["___vsyslog"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -32678,10 +34392,10 @@ var real__a_ctz_l_368 = asm["_a_ctz_l_368"]; asm["_a_ctz_l_368"] = function() {
   return real__a_ctz_l_368.apply(null, arguments);
 };
 
-var real__a_ctz_l_722 = asm["_a_ctz_l_722"]; asm["_a_ctz_l_722"] = function() {
+var real__a_ctz_l_730 = asm["_a_ctz_l_730"]; asm["_a_ctz_l_730"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__a_ctz_l_722.apply(null, arguments);
+  return real__a_ctz_l_730.apply(null, arguments);
 };
 
 var real__a_store = asm["_a_store"]; asm["_a_store"] = function() {
@@ -32810,10 +34524,10 @@ var real__arg_n = asm["_arg_n"]; asm["_arg_n"] = function() {
   return real__arg_n.apply(null, arguments);
 };
 
-var real__arg_n_697 = asm["_arg_n_697"]; asm["_arg_n_697"] = function() {
+var real__arg_n_701 = asm["_arg_n_701"]; asm["_arg_n_701"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__arg_n_697.apply(null, arguments);
+  return real__arg_n_701.apply(null, arguments);
 };
 
 var real__ascii_is_unsafe = asm["_ascii_is_unsafe"]; asm["_ascii_is_unsafe"] = function() {
@@ -33800,16 +35514,16 @@ var real__do_read = asm["_do_read"]; asm["_do_read"] = function() {
   return real__do_read.apply(null, arguments);
 };
 
-var real__do_read_734 = asm["_do_read_734"]; asm["_do_read_734"] = function() {
+var real__do_read_742 = asm["_do_read_742"]; asm["_do_read_742"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__do_read_734.apply(null, arguments);
+  return real__do_read_742.apply(null, arguments);
 };
 
-var real__do_read_737 = asm["_do_read_737"]; asm["_do_read_737"] = function() {
+var real__do_read_745 = asm["_do_read_745"]; asm["_do_read_745"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__do_read_737.apply(null, arguments);
+  return real__do_read_745.apply(null, arguments);
 };
 
 var real__do_setrlimit = asm["_do_setrlimit"]; asm["_do_setrlimit"] = function() {
@@ -34622,6 +36336,12 @@ var real__finitef = asm["_finitef"]; asm["_finitef"] = function() {
   return real__finitef.apply(null, arguments);
 };
 
+var real__fiprintf = asm["_fiprintf"]; asm["_fiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__fiprintf.apply(null, arguments);
+};
+
 var real__fixup = asm["_fixup"]; asm["_fixup"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -35102,10 +36822,10 @@ var real__getint = asm["_getint"]; asm["_getint"] = function() {
   return real__getint.apply(null, arguments);
 };
 
-var real__getint_683 = asm["_getint_683"]; asm["_getint_683"] = function() {
+var real__getint_687 = asm["_getint_687"]; asm["_getint_687"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__getint_683.apply(null, arguments);
+  return real__getint_687.apply(null, arguments);
 };
 
 var real__getlens = asm["_getlens"]; asm["_getlens"] = function() {
@@ -35610,6 +37330,12 @@ var real__ioctl = asm["_ioctl"]; asm["_ioctl"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return real__ioctl.apply(null, arguments);
+};
+
+var real__iprintf = asm["_iprintf"]; asm["_iprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__iprintf.apply(null, arguments);
 };
 
 var real__is_literal = asm["_is_literal"]; asm["_is_literal"] = function() {
@@ -37070,10 +38796,10 @@ var real__out = asm["_out"]; asm["_out"] = function() {
   return real__out.apply(null, arguments);
 };
 
-var real__out_682 = asm["_out_682"]; asm["_out_682"] = function() {
+var real__out_686 = asm["_out_686"]; asm["_out_686"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__out_682.apply(null, arguments);
+  return real__out_686.apply(null, arguments);
 };
 
 var real__pad = asm["_pad"]; asm["_pad"] = function() {
@@ -37094,10 +38820,10 @@ var real__pad_58 = asm["_pad_58"]; asm["_pad_58"] = function() {
   return real__pad_58.apply(null, arguments);
 };
 
-var real__pad_669 = asm["_pad_669"]; asm["_pad_669"] = function() {
+var real__pad_667 = asm["_pad_667"]; asm["_pad_667"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__pad_669.apply(null, arguments);
+  return real__pad_667.apply(null, arguments);
 };
 
 var real__parse_atom = asm["_parse_atom"]; asm["_parse_atom"] = function() {
@@ -37214,10 +38940,16 @@ var real__pop_arg = asm["_pop_arg"]; asm["_pop_arg"] = function() {
   return real__pop_arg.apply(null, arguments);
 };
 
-var real__pop_arg_685 = asm["_pop_arg_685"]; asm["_pop_arg_685"] = function() {
+var real__pop_arg_689 = asm["_pop_arg_689"]; asm["_pop_arg_689"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__pop_arg_685.apply(null, arguments);
+  return real__pop_arg_689.apply(null, arguments);
+};
+
+var real__pop_arg_long_double = asm["_pop_arg_long_double"]; asm["_pop_arg_long_double"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__pop_arg_long_double.apply(null, arguments);
 };
 
 var real__posix_close = asm["_posix_close"]; asm["_posix_close"] = function() {
@@ -38288,6 +40020,12 @@ var real__sinpi = asm["_sinpi"]; asm["_sinpi"] = function() {
   return real__sinpi.apply(null, arguments);
 };
 
+var real__siprintf = asm["_siprintf"]; asm["_siprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__siprintf.apply(null, arguments);
+};
+
 var real__skipspace = asm["_skipspace"]; asm["_skipspace"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -38390,10 +40128,10 @@ var real__store_int = asm["_store_int"]; asm["_store_int"] = function() {
   return real__store_int.apply(null, arguments);
 };
 
-var real__store_int_698 = asm["_store_int_698"]; asm["_store_int_698"] = function() {
+var real__store_int_702 = asm["_store_int_702"]; asm["_store_int_702"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__store_int_698.apply(null, arguments);
+  return real__store_int_702.apply(null, arguments);
 };
 
 var real__str_next = asm["_str_next"]; asm["_str_next"] = function() {
@@ -38702,10 +40440,10 @@ var real__strtox = asm["_strtox"]; asm["_strtox"] = function() {
   return real__strtox.apply(null, arguments);
 };
 
-var real__strtox_727 = asm["_strtox_727"]; asm["_strtox_727"] = function() {
+var real__strtox_735 = asm["_strtox_735"]; asm["_strtox_735"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__strtox_727.apply(null, arguments);
+  return real__strtox_735.apply(null, arguments);
 };
 
 var real__strupr = asm["_strupr"]; asm["_strupr"] = function() {
@@ -39392,6 +41130,12 @@ var real__versionsort = asm["_versionsort"]; asm["_versionsort"] = function() {
   return real__versionsort.apply(null, arguments);
 };
 
+var real__vfiprintf = asm["_vfiprintf"]; asm["_vfiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__vfiprintf.apply(null, arguments);
+};
+
 var real__vfprintf = asm["_vfprintf"]; asm["_vfprintf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -39426,6 +41170,18 @@ var real__vscanf = asm["_vscanf"]; asm["_vscanf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return real__vscanf.apply(null, arguments);
+};
+
+var real__vsiprintf = asm["_vsiprintf"]; asm["_vsiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__vsiprintf.apply(null, arguments);
+};
+
+var real__vsniprintf = asm["_vsniprintf"]; asm["_vsniprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__vsniprintf.apply(null, arguments);
 };
 
 var real__vsnprintf = asm["_vsnprintf"]; asm["_vsnprintf"] = function() {
@@ -39698,10 +41454,10 @@ var real__wcstox = asm["_wcstox"]; asm["_wcstox"] = function() {
   return real__wcstox.apply(null, arguments);
 };
 
-var real__wcstox_736 = asm["_wcstox_736"]; asm["_wcstox_736"] = function() {
+var real__wcstox_744 = asm["_wcstox_744"]; asm["_wcstox_744"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return real__wcstox_736.apply(null, arguments);
+  return real__wcstox_744.apply(null, arguments);
 };
 
 var real__wcswcs = asm["_wcswcs"]; asm["_wcswcs"] = function() {
@@ -40842,6 +42598,30 @@ var ___sindf = Module["___sindf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["___sindf"].apply(null, arguments) };
+var ___small_fprintf = Module["___small_fprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_fprintf"].apply(null, arguments) };
+var ___small_printf = Module["___small_printf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_printf"].apply(null, arguments) };
+var ___small_sprintf = Module["___small_sprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_sprintf"].apply(null, arguments) };
+var ___small_vfprintf = Module["___small_vfprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_vfprintf"].apply(null, arguments) };
+var ___small_vsnprintf = Module["___small_vsnprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_vsnprintf"].apply(null, arguments) };
+var ___small_vsprintf = Module["___small_vsprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___small_vsprintf"].apply(null, arguments) };
 var ___srandom = Module["___srandom"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -41010,6 +42790,10 @@ var ___uselocale = Module["___uselocale"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["___uselocale"].apply(null, arguments) };
+var ___vfprintf_internal = Module["___vfprintf_internal"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___vfprintf_internal"].apply(null, arguments) };
 var ___vsyslog = Module["___vsyslog"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -41118,10 +42902,10 @@ var _a_ctz_l_368 = Module["_a_ctz_l_368"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_a_ctz_l_368"].apply(null, arguments) };
-var _a_ctz_l_722 = Module["_a_ctz_l_722"] = function() {
+var _a_ctz_l_730 = Module["_a_ctz_l_730"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_a_ctz_l_722"].apply(null, arguments) };
+  return Module["asm"]["_a_ctz_l_730"].apply(null, arguments) };
 var _a_store = Module["_a_store"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -41206,10 +42990,10 @@ var _arg_n = Module["_arg_n"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_arg_n"].apply(null, arguments) };
-var _arg_n_697 = Module["_arg_n_697"] = function() {
+var _arg_n_701 = Module["_arg_n_701"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_arg_n_697"].apply(null, arguments) };
+  return Module["asm"]["_arg_n_701"].apply(null, arguments) };
 var _ascii_is_unsafe = Module["_ascii_is_unsafe"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -41866,14 +43650,14 @@ var _do_read = Module["_do_read"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_do_read"].apply(null, arguments) };
-var _do_read_734 = Module["_do_read_734"] = function() {
+var _do_read_742 = Module["_do_read_742"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_do_read_734"].apply(null, arguments) };
-var _do_read_737 = Module["_do_read_737"] = function() {
+  return Module["asm"]["_do_read_742"].apply(null, arguments) };
+var _do_read_745 = Module["_do_read_745"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_do_read_737"].apply(null, arguments) };
+  return Module["asm"]["_do_read_745"].apply(null, arguments) };
 var _do_setrlimit = Module["_do_setrlimit"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -42414,6 +44198,10 @@ var _finitef = Module["_finitef"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_finitef"].apply(null, arguments) };
+var _fiprintf = Module["_fiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_fiprintf"].apply(null, arguments) };
 var _fixup = Module["_fixup"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -42734,10 +44522,10 @@ var _getint = Module["_getint"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_getint"].apply(null, arguments) };
-var _getint_683 = Module["_getint_683"] = function() {
+var _getint_687 = Module["_getint_687"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_getint_683"].apply(null, arguments) };
+  return Module["asm"]["_getint_687"].apply(null, arguments) };
 var _getlens = Module["_getlens"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -43074,6 +44862,10 @@ var _ioctl = Module["_ioctl"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_ioctl"].apply(null, arguments) };
+var _iprintf = Module["_iprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_iprintf"].apply(null, arguments) };
 var _is_literal = Module["_is_literal"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -44054,10 +45846,10 @@ var _out = Module["_out"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_out"].apply(null, arguments) };
-var _out_682 = Module["_out_682"] = function() {
+var _out_686 = Module["_out_686"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_out_682"].apply(null, arguments) };
+  return Module["asm"]["_out_686"].apply(null, arguments) };
 var _pad = Module["_pad"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -44070,10 +45862,10 @@ var _pad_58 = Module["_pad_58"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_pad_58"].apply(null, arguments) };
-var _pad_669 = Module["_pad_669"] = function() {
+var _pad_667 = Module["_pad_667"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_pad_669"].apply(null, arguments) };
+  return Module["asm"]["_pad_667"].apply(null, arguments) };
 var _parse_atom = Module["_parse_atom"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -44150,10 +45942,14 @@ var _pop_arg = Module["_pop_arg"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_pop_arg"].apply(null, arguments) };
-var _pop_arg_685 = Module["_pop_arg_685"] = function() {
+var _pop_arg_689 = Module["_pop_arg_689"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_pop_arg_685"].apply(null, arguments) };
+  return Module["asm"]["_pop_arg_689"].apply(null, arguments) };
+var _pop_arg_long_double = Module["_pop_arg_long_double"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_pop_arg_long_double"].apply(null, arguments) };
 var _posix_close = Module["_posix_close"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -44866,6 +46662,10 @@ var _sinpi = Module["_sinpi"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_sinpi"].apply(null, arguments) };
+var _siprintf = Module["_siprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_siprintf"].apply(null, arguments) };
 var _skipspace = Module["_skipspace"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -44934,10 +46734,10 @@ var _store_int = Module["_store_int"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_store_int"].apply(null, arguments) };
-var _store_int_698 = Module["_store_int_698"] = function() {
+var _store_int_702 = Module["_store_int_702"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_store_int_698"].apply(null, arguments) };
+  return Module["asm"]["_store_int_702"].apply(null, arguments) };
 var _str_next = Module["_str_next"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45142,10 +46942,10 @@ var _strtox = Module["_strtox"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_strtox"].apply(null, arguments) };
-var _strtox_727 = Module["_strtox_727"] = function() {
+var _strtox_735 = Module["_strtox_735"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_strtox_727"].apply(null, arguments) };
+  return Module["asm"]["_strtox_735"].apply(null, arguments) };
 var _strupr = Module["_strupr"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45602,6 +47402,10 @@ var _versionsort = Module["_versionsort"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_versionsort"].apply(null, arguments) };
+var _vfiprintf = Module["_vfiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_vfiprintf"].apply(null, arguments) };
 var _vfprintf = Module["_vfprintf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45626,6 +47430,14 @@ var _vscanf = Module["_vscanf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_vscanf"].apply(null, arguments) };
+var _vsiprintf = Module["_vsiprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_vsiprintf"].apply(null, arguments) };
+var _vsniprintf = Module["_vsniprintf"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_vsniprintf"].apply(null, arguments) };
 var _vsnprintf = Module["_vsnprintf"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45806,10 +47618,10 @@ var _wcstox = Module["_wcstox"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_wcstox"].apply(null, arguments) };
-var _wcstox_736 = Module["_wcstox_736"] = function() {
+var _wcstox_744 = Module["_wcstox_744"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_wcstox_736"].apply(null, arguments) };
+  return Module["asm"]["_wcstox_744"].apply(null, arguments) };
 var _wcswcs = Module["_wcswcs"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45962,6 +47774,10 @@ var dynCall_ii = Module["dynCall_ii"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["dynCall_ii"].apply(null, arguments) };
+var dynCall_iidiiii = Module["dynCall_iidiiii"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["dynCall_iidiiii"].apply(null, arguments) };
 var dynCall_iii = Module["dynCall_iii"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -45986,18 +47802,52 @@ var dynCall_vi = Module["dynCall_vi"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["dynCall_vi"].apply(null, arguments) };
+var dynCall_vii = Module["dynCall_vii"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["dynCall_vii"].apply(null, arguments) };
 
 Module["dynCall_X"] = dynCall_X
 Module["dynCall_fff"] = dynCall_fff
 Module["dynCall_ii"] = dynCall_ii
+Module["dynCall_iidiiii"] = dynCall_iidiiii
 Module["dynCall_iii"] = dynCall_iii
 Module["dynCall_iiii"] = dynCall_iiii
 Module["dynCall_iiiii"] = dynCall_iiiii
 Module["dynCall_iiiiii"] = dynCall_iiiiii
 Module["dynCall_v"] = dynCall_v
 Module["dynCall_vi"] = dynCall_vi
+Module["dynCall_vii"] = dynCall_vii
 
-var NAMED_GLOBALS = { "__c_dot_utf8": 161392, "__c_dot_utf8_locale": 161420, "__c_locale": 171400, "__fsmu8": 32, "__hwcap": 171392, "__libc": 171328, "__optpos": 171432, "__optreset": 171428, "__progname": 171320, "__progname_full": 171324, "__seed48": 166548, "__signgam": 171424, "__stderr_used": 161596, "__stdin_used": 161728, "__stdout_used": 161860, "__sysinfo": 171396, "_ns_flagdata": 240, "h_errno": 171444, "in6addr_any": 171448, "in6addr_loopback": 161452, "optarg": 171436, "opterr": 161448, "optind": 161444, "optopt": 171440, "stderr": 161468, "stdin": 161600, "stdout": 161732 };
+var NAMED_GLOBALS = {
+  "__c_dot_utf8": 161968,
+  "__c_dot_utf8_locale": 161996,
+  "__c_locale": 171480,
+  "__fsmu8": 32,
+  "__hwcap": 171472,
+  "__libc": 171408,
+  "__optpos": 171512,
+  "__optreset": 171508,
+  "__progname": 171400,
+  "__progname_full": 171404,
+  "__seed48": 166628,
+  "__signgam": 171504,
+  "__stderr_used": 162048,
+  "__stdin_used": 162056,
+  "__stdout_used": 162064,
+  "__sysinfo": 171476,
+  "_ns_flagdata": 240,
+  "h_errno": 171524,
+  "in6addr_any": 171528,
+  "in6addr_loopback": 162028,
+  "optarg": 171516,
+  "opterr": 162024,
+  "optind": 162020,
+  "optopt": 171520,
+  "stderr": 162044,
+  "stdin": 162052,
+  "stdout": 162060
+};
 for (var named in NAMED_GLOBALS) {
   Module['_' + named] = gb + NAMED_GLOBALS[named];
 }
@@ -46005,8 +47855,8 @@ Module['NAMED_GLOBALS'] = NAMED_GLOBALS;
 
 for (var named in NAMED_GLOBALS) {
   (function(named) {
-    var func = Module['_' + named];
-    Module['g$_' + named] = function() { return func };
+    var addr = Module['_' + named];
+    Module['g$_' + named] = function() { return addr };
   })(named);
 }
 Module['__IO_feof_unlocked'] = Module['_feof']
@@ -46373,7 +48223,7 @@ function checkUnflushedContent() {
   // builds we do so just for this check, and here we see if there is any
   // content to flush, that is, we check if there would have been
   // something a non-ASSERTIONS build would have not seen.
-  // How we flush the streams depends on whether we are in FILESYSTEM=0
+  // How we flush the streams depends on whether we are in SYSCALLS_REQUIRE_FILESYSTEM=0
   // mode (which has its own special function for this; otherwise, all
   // the code is inside libc)
   var print = out;
@@ -46386,19 +48236,16 @@ function checkUnflushedContent() {
     var flush = Module['_fflush'];
     if (flush) flush(0);
     // also flush in the JS FS layer
-    var hasFS = true;
-    if (hasFS) {
-      ['stdout', 'stderr'].forEach(function(name) {
-        var info = FS.analyzePath('/dev/' + name);
-        if (!info) return;
-        var stream = info.object;
-        var rdev = stream.rdev;
-        var tty = TTY.ttys[rdev];
-        if (tty && tty.output && tty.output.length) {
-          has = true;
-        }
-      });
-    }
+    ['stdout', 'stderr'].forEach(function(name) {
+      var info = FS.analyzePath('/dev/' + name);
+      if (!info) return;
+      var stream = info.object;
+      var rdev = stream.rdev;
+      var tty = TTY.ttys[rdev];
+      if (tty && tty.output && tty.output.length) {
+        has = true;
+      }
+    });
   } catch(e) {}
   out = print;
   err = printErr;

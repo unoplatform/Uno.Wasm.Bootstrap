@@ -38,7 +38,7 @@ const path = require("path");
 		console.log(`Results: ${value}`);
 	}
 
-	var expected = "42;42.3;42.7";
+	var expected = "42;42.3;42.7;e42";
 
 	if (value != expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);

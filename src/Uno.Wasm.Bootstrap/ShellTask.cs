@@ -46,6 +46,7 @@ namespace Uno.Wasm.Bootstrap
 		private readonly List<string> _dependencies = new List<string>();
 		private string[] _additionalStyles;
 		private List<AssemblyDefinition> _referencedAssemblyDefinitions;
+		private RuntimeExecutionMode _runtimeExecutionMode;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; }
@@ -131,6 +132,8 @@ namespace Uno.Wasm.Bootstrap
 
 				// Debugger.Launch();
 
+
+				ParseRuntimeExecutionMode();
 				GetBcl();
 				CreateDist();
 				CopyContent();
@@ -168,7 +171,8 @@ namespace Uno.Wasm.Bootstrap
 		private void CleanupDist()
 		{
 			var unusedFiles = new[] {
-				"*.wast"
+				"*.wast",
+				"*.bc",
 			};
 
 			foreach(var unusedFile in unusedFiles)
@@ -391,9 +395,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			var runtimeExecutionMode = ParseRuntimeExecutionMode();
-
-			if (runtimeExecutionMode == RuntimeExecutionMode.FullAOT || runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT)
+			if (IsRuntimeAOT())
 			{
 				var emsdkPath = ValidateEmscripten();
 
@@ -406,8 +408,11 @@ namespace Uno.Wasm.Bootstrap
 				var dynamicLibraries = GetDynamicLibrariesParams();
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
 
-				var aotMode = runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
-				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
+				var bitcodeFiles = GetBitcodeFilesParams();
+				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--bc={f}\"")) : "";
+
+				var aotMode = _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
+				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
 				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
@@ -493,6 +498,8 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private bool IsRuntimeAOT() => _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+
 		private static string ValidateEmscripten()
 		{
 			var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
@@ -504,7 +511,7 @@ namespace Uno.Wasm.Bootstrap
 			var emscriptenVar = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 			var version = Path.GetFileName(emscriptenVar);
 
-			if (new Version(version) < Constants.EmscriptenMinVersion)
+			if (string.IsNullOrWhiteSpace(emsdkPath) || new Version(version) < Constants.EmscriptenMinVersion)
 			{
 				throw new InvalidOperationException($"The EMSDK version {version} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
 			}
@@ -524,9 +531,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private RuntimeExecutionMode ParseRuntimeExecutionMode()
+		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out var runtimeExecutionMode))
+			foreach (var item in Directory.GetFiles(_distPath, "*.bc", SearchOption.TopDirectoryOnly))
+			{
+				yield return item;
+			}
+		}
+
+		private void ParseRuntimeExecutionMode()
+		{
+			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out _runtimeExecutionMode))
 			{
 				Log.LogMessage(MessageImportance.Low, $"MonoRuntimeExecutionMode={MonoRuntimeExecutionMode}");
 			}
@@ -534,8 +549,6 @@ namespace Uno.Wasm.Bootstrap
 			{
 				throw new NotSupportedException($"The MonoRuntimeExecutionMode {MonoRuntimeExecutionMode} is not supported");
 			}
-
-			return runtimeExecutionMode;
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -815,7 +828,7 @@ namespace Uno.Wasm.Bootstrap
 				// Note that the "./" is required because mono is requesting files this
 				// way, and emscripten is having an issue on second loads for the same
 				// logical path: https://github.com/emscripten-core/emscripten/issues/8511
-				var sdynamicLibrariesOption = string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\""));
+				var sdynamicLibrariesOption = IsRuntimeAOT() ? string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\"")) : "";
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
@@ -842,7 +855,7 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", ParseRuntimeExecutionMode().ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);

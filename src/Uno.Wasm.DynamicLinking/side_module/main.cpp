@@ -14,7 +14,7 @@ typedef double (*test_add_double_func)(double, double);
 WASM_EXPORT int main(int argc, char** argv) {
 	void* hModule = dlopen("side.wasm", 0);
 
-	test_add_float_func test_add_float_ptr = dlsym(hModule, "test_add_float");
+	test_add_float_func test_add_float_ptr = (test_add_float_func)dlsym(hModule, "test_add_float");
 	float res2 = test_add_float_ptr(22.1f, 22.1f);
 }
 
