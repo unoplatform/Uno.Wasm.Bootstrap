@@ -29,6 +29,8 @@ namespace Uno.Wasm.Sample
 		private static extern float test_add_float1(float a, float b);
 		[DllImport("side")]
 		private static extern double test_add_double(double a, double b);
+		[DllImport("side")]
+		private static extern int test_exception();
 
 		static void Main(string[] args)
 		{
@@ -38,7 +40,7 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"test_float:{test_add_float1(21, 21)}");
 			Console.WriteLine($"test_add_double:{test_add_double(21, 21)}");
 
-			var res = $"{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)}";
+			var res = $"{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()}";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
 		}

@@ -504,7 +504,7 @@ namespace Uno.Wasm.Bootstrap
 			var emscriptenVar = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 			var version = Path.GetFileName(emscriptenVar);
 
-			if (new Version(version) < Constants.EmscriptenMinVersion)
+			if (string.IsNullOrWhiteSpace(emsdkPath) || new Version(version) < Constants.EmscriptenMinVersion)
 			{
 				throw new InvalidOperationException($"The EMSDK version {version} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
 			}
