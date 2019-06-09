@@ -1,4 +1,4 @@
-// This file based on https://github.com/mono/mono/blob/495a93305bdd7eeae00735d6e69990adfdb859fb/sdks/wasm/packager.cs
+// This file based on https://github.com/mono/mono/blob/277bbdaada789bb9b61a71aa45475d914b457494/sdks/wasm/packager.cs
 using System;
 using System.Linq;
 using System.IO;
@@ -332,7 +332,8 @@ class Driver {
 		public bool LinkIcalls;
 		public bool ILStrip;
 		public bool LinkerVerbose;
-	}
+		public bool EnableZLib;
+}
 
 	int Run (string[] args) {
 		var add_binding = true;
@@ -355,7 +356,8 @@ class Driver {
 		bool enable_lto = false;
 		bool link_icalls = false;
         bool gen_pinvoke = false;
-        var il_strip = false;
+ 		bool enable_zlib = false;
+		var il_strip = false;
 		var runtimeTemplate = "runtime.js";
 		var assets = new List<string> ();
 		var profilers = new List<string> ();
@@ -366,6 +368,7 @@ class Driver {
         var runtime_config = "release";
         var linkModeParm = "all";
         var linkMode = LinkMode.All;
+		var linkDescriptor = "";
 		string coremode, usermode;
 		var linker_verbose = false;
 
@@ -375,7 +378,8 @@ class Driver {
 				DebugRuntime = false,
 				Linker = false,
 				ILStrip = true,
-				LinkerVerbose = false
+				LinkerVerbose = false,
+				EnableZLib = false,
 			};
 
 		var p = new OptionSet () {
@@ -399,9 +403,10 @@ class Driver {
 				{ "runtime-config=", s => runtime_config = s },
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
 				{ "link-mode=", s => linkModeParm = s },
-                { "pinvoke-libs=", s => pinvoke_libs = s },
+ 				{ "link-descriptor=", s => linkDescriptor = s },
+				{ "pinvoke-libs=", s => pinvoke_libs = s },
                 { "bc=", s => bitcode_files.Add(s) },
-                { "help", s => print_usage = true },
+				{ "help", s => print_usage = true },
 					};
 
 		AddFlag (p, new BoolFlag ("debug", "enable c# debugging", opts.Debug, b => opts.Debug = b));
@@ -411,6 +416,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("link-icalls", "link away unused icalls", opts.LinkIcalls, b => opts.LinkIcalls = b));
 		AddFlag (p, new BoolFlag ("il-strip", "strip IL code from assemblies in AOT mode", opts.ILStrip, b => opts.ILStrip = b));
 		AddFlag (p, new BoolFlag ("linker-verbose", "set verbose option on linker", opts.LinkerVerbose, b => opts.LinkerVerbose = b));
+		AddFlag (p, new BoolFlag ("zlib", "enable the use of zlib for System.IO.Compression support", opts.EnableZLib, b => opts.EnableZLib = b));
 
 		var new_args = p.Parse (args).ToArray ();
 		foreach (var a in new_args) {
@@ -439,7 +445,8 @@ class Driver {
 		add_binding = opts.AddBinding;
 		il_strip = opts.ILStrip;
 		linker_verbose = opts.LinkerVerbose;
-        gen_pinvoke = pinvoke_libs != "";
+		gen_pinvoke = pinvoke_libs != "";
+		enable_zlib = opts.EnableZLib;
 
         if (opts.DebugRuntime) {
             runtime_config = "release";
@@ -699,6 +706,8 @@ class Driver {
         string emcc_flags = "";
 		if (enable_lto)
 			emcc_flags += "--llvm-lto 1 ";
+		if (enable_zlib)
+			emcc_flags += "-s USE_ZLIB=1 ";
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
 
@@ -725,17 +734,17 @@ class Driver {
 		ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
 
 		if(runtime_config == "release-dynamic")
-        {
-			ninja.WriteLine ("emcc = source $emscripten_sdkdir/emsdk_env.sh && EMCC_FORCE_STDLIBS=libc,libc++abi,libc++ emcc");
-            // -s ASSERTIONS=2 is very slow
-            ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s RESERVED_FUNCTION_POINTERS=64 -s ALLOW_TABLE_GROWTH=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
-        }
-        else
-        {
+		{
+			ninja.WriteLine ("emcc = source $emscripten_sdkdir/emsdk_env.sh && EMCC_FORCE_STDLIBS=1 emcc");
+			// -s ASSERTIONS=2 is very slow
+			ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s RESERVED_FUNCTION_POINTERS=64 -s ALLOW_TABLE_GROWTH=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
+		}
+		else
+		{
 			ninja.WriteLine ("emcc = source $emscripten_sdkdir/emsdk_env.sh && emcc");
-            // -s ASSERTIONS=2 is very slow
-            ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
-        }
+			// -s ASSERTIONS=2 is very slow
+			ninja.WriteLine ($"emcc_flags = -Oz -g {emcc_flags}-s EMULATED_FUNCTION_POINTERS=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s \"BINARYEN_TRAP_MODE=\'clamp\'\" -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\']\"");
+		}
 
         // Rules
         ninja.WriteLine ("rule aot");
@@ -786,7 +795,7 @@ class Driver {
 			ninja.WriteLine ($"build $builddir/pinvoke-tables-default.h: cpifdiff {pinvoke_file}");
 			driver_deps += $" $builddir/pinvoke-tables-default.h";
 
-            var driver_cflags = enable_aot ? "-DENABLE_AOT=1 " : "";
+            var driver_cflags = enable_aot ? "-DENABLE_AOT=1" : "";
 
             if (add_binding) {
 				var bindings_source_file = Path.GetFullPath (Path.Combine (tool_prefix, "corebindings.c"));
@@ -801,6 +810,15 @@ class Driver {
 
 			ninja.WriteLine ($"build $builddir/driver.o: emcc $builddir/driver.c | $builddir/driver-gen.c {driver_deps}");
 			ninja.WriteLine ($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I$mono_sdkdir/wasm-runtime-release/include/mono-2.0");
+
+			if (enable_zlib) {
+				var zlib_source_file = Path.GetFullPath (Path.Combine (tool_prefix, "zlib-helper.c"));
+				ninja.WriteLine ($"build $builddir/zlib-helper.c: cpifdiff {zlib_source_file}");
+
+				ninja.WriteLine ($"build $builddir/zlib-helper.o: emcc $builddir/zlib-helper.c");
+				ninja.WriteLine ($"  flags = -I$mono_sdkdir/wasm-runtime-release/include/mono-2.0 -I$mono_sdkdir/wasm-runtime-release/include/support");
+			}
+
 		} else {
 			ninja.WriteLine ("build $appdir/mono.js: cpifdiff $wasm_runtime_dir/mono.js");
 			ninja.WriteLine ("build $appdir/mono.wasm: cpifdiff $wasm_runtime_dir/mono.wasm");
@@ -909,7 +927,8 @@ class Driver {
 			ninja.WriteLine ($"  pinvoke_libs=System.Native,{pinvoke_libs}");
 		}
 		if (build_wasm) {
-			ninja.WriteLine ($"build $appdir/mono.js: emcc-link $builddir/driver.o {wasm_core_bindings} {ofiles} {profiler_libs} {runtime_libs} {string.Join(" ", bitcode_files)} $mono_sdkdir/wasm-runtime-release/lib/libmono-native.a | $tool_prefix/library_mono.js $tool_prefix/dotnet_support.js {wasm_core_support}");
+			string zlibhelper = enable_zlib ? "$builddir/zlib-helper.o" : "";
+			ninja.WriteLine ($"build $appdir/mono.js: emcc-link $builddir/driver.o {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {runtime_libs} {string.Join(" ", bitcode_files)} $mono_sdkdir/wasm-runtime-release/lib/libmono-native.a | $tool_prefix/library_mono.js $tool_prefix/dotnet_support.js {wasm_core_support}");
 		}
 		if (enable_linker) {
 			switch (linkMode) {
@@ -928,9 +947,17 @@ class Driver {
 			}
 
 			string linker_args = "";
-			foreach (var assembly in root_assemblies) {
-				string filename = Path.GetFileName (assembly);
-				linker_args += $"-a linker-in/{filename} ";
+			if (!string.IsNullOrEmpty (linkDescriptor)) {
+				linker_args += $"-x {linkDescriptor} ";
+				foreach (var assembly in root_assemblies) {
+					string filename = Path.GetFileName (assembly);
+					linker_args += $"-p {usermode} {filename} -r linker-in/{filename} ";
+				}
+			} else {
+				foreach (var assembly in root_assemblies) {
+					string filename = Path.GetFileName (assembly);
+					linker_args += $"-a linker-in/{filename} ";
+				}
 			}
 
 			// the linker does not consider these core by default

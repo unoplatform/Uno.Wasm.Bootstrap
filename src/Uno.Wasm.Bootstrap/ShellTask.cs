@@ -388,7 +388,7 @@ namespace Uno.Wasm.Bootstrap
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			int packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {debugOption} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+			int packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 			if (packagerResults != 0)
 			{
@@ -414,7 +414,7 @@ namespace Uno.Wasm.Bootstrap
 				var aotMode = _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
 				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 				if (aotPackagerResult != 0)
 				{
