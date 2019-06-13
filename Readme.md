@@ -227,6 +227,26 @@ The parameters for the compression are as follows:
 
 Note that the pre-compressed files are optional, and if the rewriting rules are removed or not used (because the site is served without IIS), the original files are available at their normal locations.
 
+### Node.js support
+
+The bootstrapper supports having a project loaded as part of a node application. To do so:
+
+- Create a Wasm bootstrapper project, named `MyApp.Wasm`
+- Create a Node.js TypeScript project in Visual Studio, named `MyApp.Runner`
+- In boostrapper project, add the following :
+  ```xml
+  <WasmShellDistPath>../MyApp.Runner/app</WasmShellDistPath>
+  <WasmShellMode>node</WasmShellMode>
+  ```
+- In the `app.ts`, add the following:
+  ```js
+  require("./app/mono");
+  ```
+
+Run the application and the main method of the `MyApp.Wasm` will be executed.
+
+An example of the node.js support is available in the `Uno.Wasm.Node.Sample` and `Uno.Wasm.Node.Sample.Runner.njsproj` projects.
+
 ### Support for additional JS files
 Providing additional JS files is done through the inclusion of `EmbeddedResource`  msbuild item  files, in a project folder named `WasmScripts`.
 Files are processed as embedded resources to allow for libraries to provide javascript files.

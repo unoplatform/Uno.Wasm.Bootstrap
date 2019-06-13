@@ -8,7 +8,10 @@
 
     <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
     <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
+    
+    <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
 
+    <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
     <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
@@ -119,9 +122,10 @@
     <ShellTask_v0
         CurrentProjectPath="$(MSBuildProjectDirectory)"
         Assembly="$(IntermediateOutputPath)$(TargetFileName)"
-        OutputPath="$(OutputPath)"
+        DistPath="$(WasmShellDistPath)"
         IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
+        WasmShellMode="$(WasmShellMode)"
         MonoWasmSDKPath="$(_UnoMonoSdkPath)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"
         UseFileIntegrity="$(WashShellUseFileIntegrity)"
