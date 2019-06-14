@@ -32,6 +32,8 @@ jobs:
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
         npm install
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+        npm install
 
     displayName: UI Tests npm dependencies
 
