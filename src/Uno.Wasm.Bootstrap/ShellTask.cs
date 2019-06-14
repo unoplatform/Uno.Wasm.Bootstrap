@@ -47,6 +47,7 @@ namespace Uno.Wasm.Bootstrap
 		private string[] _additionalStyles;
 		private List<AssemblyDefinition> _referencedAssemblyDefinitions;
 		private RuntimeExecutionMode _runtimeExecutionMode;
+		private ShellMode _shellMode;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; }
@@ -55,7 +56,7 @@ namespace Uno.Wasm.Bootstrap
 		public string Assembly { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public string OutputPath { get; set; }
+		public string DistPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string IntermediateOutputPath { get; set; }
@@ -82,6 +83,9 @@ namespace Uno.Wasm.Bootstrap
 
 		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; }
+
+		[Required]
+		public string WasmShellMode { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string MonoRuntimeExecutionMode { get; set; }
@@ -133,7 +137,7 @@ namespace Uno.Wasm.Bootstrap
 				// Debugger.Launch();
 
 
-				ParseRuntimeExecutionMode();
+				ParseProperties();
 				GetBcl();
 				CreateDist();
 				CopyContent();
@@ -146,6 +150,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateHtml();
 				CleanupDist();
 				GenerateConfig();
+				MergeConfig();
 				TouchServiceWorker();
 				TryCompressDist();
 
@@ -539,16 +544,10 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void ParseRuntimeExecutionMode()
+		private void ParseProperties()
 		{
-			if (Enum.TryParse<RuntimeExecutionMode>(MonoRuntimeExecutionMode, out _runtimeExecutionMode))
-			{
-				Log.LogMessage(MessageImportance.Low, $"MonoRuntimeExecutionMode={MonoRuntimeExecutionMode}");
-			}
-			else
-			{
-				throw new NotSupportedException($"The MonoRuntimeExecutionMode {MonoRuntimeExecutionMode} is not supported");
-			}
+			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
+			ParseEnumProperty(nameof(MonoRuntimeExecutionMode), MonoRuntimeExecutionMode, out _runtimeExecutionMode);
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -646,8 +645,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CreateDist()
 		{
-			var outputPath = Path.GetFullPath(OutputPath);
-			_distPath = Path.Combine(outputPath, "dist");
+			_distPath = Path.GetFullPath(DistPath);
 			_managedPath = Path.Combine(_distPath, "managed");
 			Directory.CreateDirectory(_managedPath);
 		}
@@ -864,6 +862,45 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private void MergeConfig()
+		{
+			if(_shellMode == ShellMode.Node)
+			{
+				var tempFile = Path.GetTempFileName();
+				try
+				{
+					var monoJsPath = Path.Combine(_distPath, "mono.js");
+
+					using (var fs = new StreamWriter(tempFile))
+					{
+						fs.Write(File.ReadAllText(Path.Combine(_distPath, "mono-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_distPath, "uno-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_distPath, "uno-bootstrap.js")));
+						fs.Write(File.ReadAllText(monoJsPath));
+					}
+
+					File.Delete(monoJsPath);
+					File.Move(tempFile, monoJsPath);
+
+					Log.LogMessage($"Merged config files with mono.js");
+				}
+				finally
+				{
+					try
+					{
+						if (File.Exists(tempFile))
+						{
+							File.Delete(tempFile);
+						}
+					}
+					catch(Exception e)
+					{
+						Console.WriteLine($"Failed to delete temporary file: {e}");
+					}
+				}
+			}
+		}
+
 		private IEnumerable<string> GetPWACacheableFiles()
 			=> from file in Directory.EnumerateFiles(_distPath, "*.*", SearchOption.AllDirectories)
 			   where !file.EndsWith("web.config", StringComparison.OrdinalIgnoreCase)
@@ -925,6 +962,11 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GenerateHtml()
 		{
+			if (_shellMode != ShellMode.Browser)
+			{
+				return;
+			}
+
 			var htmlPath = Path.Combine(_distPath, "index.html");
 
 			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
@@ -947,13 +989,12 @@ namespace Uno.Wasm.Bootstrap
 
 					Log.LogMessage($"HTML {htmlPath}");
 				}
-
 			}
 		}
 
 		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
 		{
-			if (GeneratePrefetchHeaders)
+			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"mono.wasm\" />");
 
@@ -967,6 +1008,11 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
 		{
+			if (_shellMode != ShellMode.Browser)
+			{
+				return;
+			}
+
 			if (!string.IsNullOrWhiteSpace(PWAManifestFile))
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
@@ -991,6 +1037,18 @@ namespace Uno.Wasm.Bootstrap
 				{
 					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
 				}
+			}
+		}
+
+		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
+		{
+			if (Enum.TryParse<TEnum>(stringValue, true, out value))
+			{
+				Log.LogMessage(MessageImportance.Low, $"{name}={value}");
+			}
+			else
+			{
+				throw new NotSupportedException($"The {name} {value} is not supported");
 			}
 		}
 	}

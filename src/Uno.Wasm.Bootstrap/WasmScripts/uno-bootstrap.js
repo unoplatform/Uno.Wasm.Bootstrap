@@ -30,7 +30,14 @@ var Module = {
         // There's no way to get the filename from mono.js right now.
         // so we just hardcode it.
         const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
-        if (typeof WebAssembly.instantiateStreaming === 'function') {
+
+        if (ENVIRONMENT_IS_NODE) {
+            return WebAssembly
+                .instantiate(getBinary(), imports)
+                .then(results => {
+                    successCallback(results.instance);
+                });
+        } else if (typeof WebAssembly.instantiateStreaming === 'function') {
             App.fetchWithProgress(
                 wasmUrl,
                 loaded => App.reportProgressWasmLoading(loaded))
@@ -88,6 +95,8 @@ var MonoRuntime = {
         this.invoke_method = Module.cwrap("mono_wasm_invoke_method", "number", ["number", "number", "number"]);
         this.mono_string_get_utf8 = Module.cwrap("mono_wasm_string_get_utf8", "number", ["number"]);
         this.mono_string = Module.cwrap("mono_wasm_string_from_js", "number", ["string"]);
+        this.mono_wasm_obj_array_new = Module.cwrap("mono_wasm_obj_array_new", "number", ["number"]);
+        this.mono_wasm_obj_array_set = Module.cwrap("mono_wasm_obj_array_set", null, ["number", "number", "number"]);
     },
 
     conv_string: function (mono_obj) {
@@ -140,8 +149,16 @@ var App = {
         try {
             App.attachDebuggerHotkey(config.file_list);
             MonoRuntime.init();
+            BINDING.bindings_lazy_init();
 
-            BINDING.call_static_method(config.uno_main, []);
+            if (ENVIRONMENT_IS_NODE) {
+                var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
+                var array = BINDING.js_array_to_mono_array(process.argv);
+                MonoRuntime.call_method(mainMethod, null, [array]);
+            }
+            else {
+                BINDING.call_static_method(config.uno_main, []);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -303,20 +320,41 @@ var App = {
 
         asset = asset.replace("/managed/", `/${config.uno_remote_managedpath}/`);
 
-        if (!config.enable_debugging) {
-            // Assembly fetch streaming is disabled during debug, it seems to
-            // interfere with the ability for mono or the chrome debugger to 
-            // initialize the debugging session properly. Streaming in debug is
-            // not particularly interesting, so we can skip it.
+        if (ENVIRONMENT_IS_NODE) {
+            var fs = require('fs');
 
-            const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
-            if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
-                return this
-                    .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+            console.log('Loading... ' + asset);
+            var binary = fs.readFileSync(asset);
+            var resolve_func2 = function (resolve, reject) {
+                resolve(new Uint8Array(binary));
+            };
+            var resolve_func1 = function (resolve, reject) {
+                var response = {
+                    ok: true,
+                    url: asset,
+                    arrayBuffer: function () {
+                        return new Promise(resolve_func2);
+                    }
+                };
+                resolve(response);
+            };
+            return new Promise(resolve_func1);
+        } else {
+            if (!config.enable_debugging) {
+                // Assembly fetch streaming is disabled during debug, it seems to
+                // interfere with the ability for mono or the chrome debugger to 
+                // initialize the debugging session properly. Streaming in debug is
+                // not particularly interesting, so we can skip it.
+
+                const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
+                if (config.assemblies_with_size.hasOwnProperty(assemblyName)) {
+                    return this
+                        .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
+                }
             }
-        }
-        else {
-            return fetch(asset);
+            else {
+                return fetch(asset);
+            }
         }
     },
 
@@ -338,29 +376,37 @@ var App = {
                 ++pending;
                 if (config.enable_debugging) console.log(`Loading dependency (${dependency})`);
 
-                require(
-                    [dependency],
-                    instance => {
+                let processDependency = instance => {
 
-                        // If the module is built on emscripten, intercept its loading.
-                        if (instance && instance.HEAP8 !== undefined) {
+                    // If the module is built on emscripten, intercept its loading.
+                    if (instance && instance.HEAP8 !== undefined) {
 
-                            const existingInitializer = instance.onRuntimeInitialized;
+                        const existingInitializer = instance.onRuntimeInitialized;
 
-                            if (config.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
+                        if (config.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
 
-                            instance.onRuntimeInitialized = () => {
-                                checkDone(dependency);
-
-                                if (existingInitializer)
-                                    existingInitializer();
-                            };
-                        }
-                        else {
+                        instance.onRuntimeInitialized = () => {
                             checkDone(dependency);
-                        }
+
+                            if (existingInitializer)
+                                existingInitializer();
+                        };
                     }
-                );
+                    else {
+                        checkDone(dependency);
+                    }
+                };
+
+                if (ENVIRONMENT_IS_NODE) {
+                    dependency = './' + dependency;
+                    processDependency(require(dependency));
+                }
+                else {
+                    require(
+                        [dependency],
+                        processDependency
+                    );
+                }
             });
         }
         else {
@@ -374,41 +420,43 @@ var App = {
 
     attachDebuggerHotkey: function (loadAssemblyUrls) {
 
-        //
-        // Imported from https://github.com/aspnet/Blazor/tree/release/0.7.0
-        //
-        // History:
-        //  2019-01-14: Adjustments to make the debugger helper compatible with Uno.Bootstrap.
-        //
+        if (ENVIRONMENT_IS_WEB) {
+            //
+            // Imported from https://github.com/aspnet/Blazor/tree/release/0.7.0
+            //
+            // History:
+            //  2019-01-14: Adjustments to make the debugger helper compatible with Uno.Bootstrap.
+            //
 
-        App.currentBrowserIsChrome = window.chrome
-            && navigator.userAgent.indexOf("Edge") < 0; // Edge pretends to be Chrome
+            App.currentBrowserIsChrome = window.chrome
+                && navigator.userAgent.indexOf("Edge") < 0; // Edge pretends to be Chrome
 
-        hasReferencedPdbs = loadAssemblyUrls
-            .some(function (url) { return /\.pdb$/.test(url); });
+            hasReferencedPdbs = loadAssemblyUrls
+                .some(function (url) { return /\.pdb$/.test(url); });
 
-        // Use the combination shift+alt+D because it isn't used by the major browsers
-        // for anything else by default
-        const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
+            // Use the combination shift+alt+D because it isn't used by the major browsers
+            // for anything else by default
+            const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
-        if (App.hasDebuggingEnabled()) {
-            console.info(`Debugging hotkey: Shift+${altKeyName}+D (when application has focus)`);
-        }
-
-        // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
-        document.addEventListener("keydown", function (evt) {
-            if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyD") {
-                if (!hasReferencedPdbs) {
-                    console.error("Cannot start debugging, because the application was not compiled with debugging enabled.");
-                }
-                else if (!App.currentBrowserIsChrome) {
-                    console.error("Currently, only Chrome is supported for debugging.");
-                }
-                else {
-                    App.launchDebugger();
-                }
+            if (App.hasDebuggingEnabled()) {
+                console.info(`Debugging hotkey: Shift+${altKeyName}+D (when application has focus)`);
             }
-        });
+
+            // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
+            document.addEventListener("keydown", function (evt) {
+                if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyD") {
+                    if (!hasReferencedPdbs) {
+                        console.error("Cannot start debugging, because the application was not compiled with debugging enabled.");
+                    }
+                    else if (!App.currentBrowserIsChrome) {
+                        console.error("Currently, only Chrome is supported for debugging.");
+                    }
+                    else {
+                        App.launchDebugger();
+                    }
+                }
+            });
+        }
     },
 
     launchDebugger: function () {
@@ -441,12 +489,15 @@ if (config.dynamicLibraries) {
     Module.dynamicLibraries = config.dynamicLibraries;
 }
 
-document.addEventListener("DOMContentLoaded", () => App.preInit());
+if (ENVIRONMENT_IS_WEB) {
 
-if (config.enable_pwa && 'serviceWorker' in navigator) {
-    console.log('Registering service worker now');
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(function () {
-            console.log('Service Worker Registered');
-        });
+    document.addEventListener("DOMContentLoaded", () => App.preInit());
+
+    if (config.enable_pwa && 'serviceWorker' in navigator) {
+        console.log('Registering service worker now');
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(function () {
+                console.log('Service Worker Registered');
+            });
+    }
 }

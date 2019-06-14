@@ -32,11 +32,17 @@ jobs:
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
         npm install
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+        npm install
 
     displayName: UI Tests npm dependencies
 
   - powershell: .\build\build.ps1 -script build\build.cake
     displayName: Build 
+
+  - powershell: |
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+        .\Validate.ps1
 
   - task: CopyFiles@2
     inputs:

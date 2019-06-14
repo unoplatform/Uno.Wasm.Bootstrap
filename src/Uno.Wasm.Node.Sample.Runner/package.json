@@ -1,7 +1,7 @@
 {
-  "name": "wasm-aot.uitests",
+  "name": "uno.wasm.node.sample.runner",
   "version": "0.0.0",
-  "description": "WasmAot.UITests",
+  "description": "Uno.Wasm.Node.Sample.Runner",
   "main": "app.js",
   "author": {
     "name": ""
@@ -11,9 +11,7 @@
     "clean": "tsc --build --clean"
   },
   "devDependencies": {
-    "@types/node": "^8.0.14"
-  },
-  "dependencies": {
-    "puppeteer": "^1.13.0"
+    "@types/node": "^8.0.14",
+    "typescript": "^3.2.2"
   }
 }

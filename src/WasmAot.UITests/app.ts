@@ -1,4 +1,6 @@
-﻿const puppeteer = require('puppeteer');
+﻿import { settings } from "cluster";
+
+const puppeteer = require('puppeteer');
 const path = require("path");
 
 (async () => {
@@ -44,4 +46,8 @@ function delay(time) {
 	return new Promise(function (resolve) {
 		setTimeout(resolve, time)
 	});
+}
+
+function keepAlive() {
+	setTimeout(keepAlive, 1000);
 }
