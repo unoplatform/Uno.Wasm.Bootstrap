@@ -95,6 +95,8 @@ var MonoRuntime = {
         this.invoke_method = Module.cwrap("mono_wasm_invoke_method", "number", ["number", "number", "number"]);
         this.mono_string_get_utf8 = Module.cwrap("mono_wasm_string_get_utf8", "number", ["number"]);
         this.mono_string = Module.cwrap("mono_wasm_string_from_js", "number", ["string"]);
+        this.mono_wasm_obj_array_new = Module.cwrap("mono_wasm_obj_array_new", "number", ["number"]);
+        this.mono_wasm_obj_array_set = Module.cwrap("mono_wasm_obj_array_set", null, ["number", "number", "number"]);
     },
 
     conv_string: function (mono_obj) {
@@ -147,9 +149,12 @@ var App = {
         try {
             App.attachDebuggerHotkey(config.file_list);
             MonoRuntime.init();
+            BINDING.bindings_lazy_init();
 
             if (ENVIRONMENT_IS_NODE) {
-                BINDING.call_static_method(config.uno_main, [process.argv]);
+                var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
+                var array = BINDING.js_array_to_mono_array(process.argv);
+                MonoRuntime.call_method(mainMethod, null, [array]);
             }
             else {
                 BINDING.call_static_method(config.uno_main, []);

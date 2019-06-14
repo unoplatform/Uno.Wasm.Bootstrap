@@ -40,6 +40,10 @@ jobs:
   - powershell: .\build\build.ps1 -script build\build.cake
     displayName: Build 
 
+  - powershell: |
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+        .\Validate.ps1
+
   - task: CopyFiles@2
     inputs:
       SourceFolder: $(build.sourcesdirectory)

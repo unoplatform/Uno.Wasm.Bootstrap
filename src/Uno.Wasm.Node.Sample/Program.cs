@@ -24,12 +24,13 @@ namespace Uno.Wasm.Sample
 		static void Main(string[] args)
 		{
 			Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
+			Console.WriteLine($"Arguments: " + string.Join("; ", args));
 
 			var i = 42; 
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");
 
-			var r = Runtime.InvokeJS($"console.log('Done with main')", out var result);
+			Runtime.InvokeJS($"console.log('Done with main')", out var result);
 		}
 	}
 }

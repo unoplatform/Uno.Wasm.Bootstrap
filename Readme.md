@@ -245,6 +245,12 @@ The bootstrapper supports having a project loaded as part of a node application.
 
 Run the application and the main method of the `MyApp.Wasm` will be executed.
 
+The parameters of the node command line are provided to the app's main method, when running the app as follows:
+
+```
+node app param1 param2
+```
+
 An example of the node.js support is available in the `Uno.Wasm.Node.Sample` and `Uno.Wasm.Node.Sample.Runner.njsproj` projects.
 
 ### Support for additional JS files
