@@ -8,8 +8,6 @@
 
     <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
     <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
-    
-    <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
 
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
     <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
@@ -104,6 +102,11 @@
       <_AssembliesForReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)"
                                              Condition="'%(Extension)' == '.dll'" />
     </ItemGroup>
+
+    <PropertyGroup>
+      <!-- Defined here because OutputPath is defined late -->
+      <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
+    </PropertyGroup>
 
     <UnoInstallSDKTask_v0
         MonoWasmSDKUri="$(MonoWasmSDKUri)"
