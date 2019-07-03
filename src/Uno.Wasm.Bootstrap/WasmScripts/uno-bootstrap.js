@@ -489,7 +489,7 @@ if (config.dynamicLibraries) {
     Module.dynamicLibraries = config.dynamicLibraries;
 }
 
-if (ENVIRONMENT_IS_WEB) {
+if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 
     document.addEventListener("DOMContentLoaded", () => App.preInit());
 
