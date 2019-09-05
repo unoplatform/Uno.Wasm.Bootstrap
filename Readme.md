@@ -94,12 +94,33 @@ Here's how to install it:
 Debugging is supported through the integration of a .NET Core CLI component, which acts as a static files server, as well as a debugger proxy for Chrome (other browsers are not supported).
 
 ### Enable the Debugger support
-In order to debug an **Uno.Wasm.Boostrap** enabled project, the following is needed:
+
+In order to debug an **Uno.Wasm.Boostrap** enabled project, the Mono runtime debugger must be enabled:
+
 ```xml
-<MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+   <MonoRuntimeDebuggerEnabled>true</MonoRuntimeDebuggerEnabled>
+</PropertyGroup>
 ```
 
-This will enable the deployment of `pdb` files to the browser, and allow for the mono debugger proxy to use them. 
+Debug symbols need to be emitted and be of the type `portable`:
+
+```xml
+<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+</PropertyGroup>
+```
+
+Finally the `DEBUG` constant must be defined
+
+```xml
+<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+   <DefineConstants>TRACE;DEBUG</DefineConstants>
+</PropertyGroup>
+```
+
+Doing so will enable the deployment of `pdb` files to the browser, and allow for the mono debugger proxy to use them. 
 
 For the time being, you will also need to make sure that mscorlib is disabled in the Linker configuration file: 
 
