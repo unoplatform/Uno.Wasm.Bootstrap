@@ -78,11 +78,25 @@ jobs:
 
   - bash: |
       cd /emsdk
-      sudo ./emsdk install sdk-1.38.31-64bit
-      sudo ./emsdk activate sdk-1.38.31-64bit
+      sudo git reset HEAD --hard
+      sudo git pull
+      sudo ./emsdk update-tags
+      sudo ./emsdk install 1.38.43-upstream
+      sudo ./emsdk activate 1.38.43-upstream
       sudo chmod -R 777 /emsdk
+      sudo chmod -R 777 ~/.emscripten_cache
 
     displayName: 'Setup Emscripten'
+
+  - bash: |
+      cd /emsdk
+      wget https://raw.githubusercontent.com/mono/mono/master/sdks/builds/emscripten-pr-8457.diff
+      wget https://raw.githubusercontent.com/mono/mono/master/sdks/builds/fix-emscripten-8511.diff
+      cd /emsdk/upstream/emscripten
+      patch -N -p1 < /emsdk/emscripten-pr-8457.diff
+      patch -N -p1 < /emsdk/fix-emscripten-8511.diff
+
+    displayName: 'Apply Emscripten Mono patches'
 
   - task: NuGetToolInstaller@0
     inputs:

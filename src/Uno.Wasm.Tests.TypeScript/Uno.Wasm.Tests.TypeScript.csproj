@@ -26,6 +26,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Uno.Wasm.MonoRuntime" Version="1.0.0-devmono-build0016" />
 
 	</ItemGroup>
 
