@@ -514,13 +514,16 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			// Get the version file https://github.com/emscripten-core/emsdk/blob/efc64876db1473312587a3f346be000a733bc16d/emsdk.py#L1698
-			var versionFile = Path.Combine(emsdkPath, "fastcomp", "emscripten", "emscripten-version.txt");
+			var emsdkVersionVersionFile = Path.Combine(emsdkPath, "upstream", "emscripten", "emscripten-version.txt");
 
-			var version = File.Exists(versionFile) ? File.ReadAllText(versionFile)?.Trim('\"') : "";
+			var rawEmsdkVersionVersion = File.Exists(emsdkVersionVersionFile) ? File.ReadAllText(emsdkVersionVersionFile)?.Trim('\"') : "";
+			var validVersion = Version.TryParse(rawEmsdkVersionVersion, out var emsdkVersion);
 
-			if (string.IsNullOrWhiteSpace(emsdkPath) || new Version(version) < Constants.EmscriptenMinVersion)
+			if (string.IsNullOrWhiteSpace(emsdkPath)
+				|| !validVersion
+				|| emsdkVersion < Constants.EmscriptenMinVersion)
 			{
-				throw new InvalidOperationException($"The EMSDK version {version} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
+				throw new InvalidOperationException($"The EMSDK version {emsdkVersion} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
 			}
 
 			return emsdkPath;

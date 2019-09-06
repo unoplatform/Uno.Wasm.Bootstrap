@@ -84,6 +84,7 @@ jobs:
       sudo ./emsdk install 1.38.43-upstream
       sudo ./emsdk activate 1.38.43-upstream
       sudo chmod -R 777 /emsdk
+      sudo chmod -R 777 ~/.emscripten_cache
 
     displayName: 'Setup Emscripten'
 
