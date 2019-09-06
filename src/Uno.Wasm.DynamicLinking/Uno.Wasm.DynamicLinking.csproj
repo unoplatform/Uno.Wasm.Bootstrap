@@ -7,12 +7,13 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>
-		<MonoWasmRuntimeConfiguration>release-dynamic</MonoWasmRuntimeConfiguration>
+		<MonoWasmRuntimeConfiguration Condition="!$([MSBuild]::IsOsPlatform('Linux'))">release-dynamic</MonoWasmRuntimeConfiguration>
 	</PropertyGroup>
       
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
+		<PackageReference Include="Uno.Wasm.MonoRuntime" Version="1.0.0-devmono-build0016" />
 	</ItemGroup>
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
@@ -39,7 +40,7 @@
 	<ItemGroup>
 		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
-		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -48,6 +49,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>

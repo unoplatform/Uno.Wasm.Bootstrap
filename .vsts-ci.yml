@@ -78,8 +78,11 @@ jobs:
 
   - bash: |
       cd /emsdk
-      sudo ./emsdk install sdk-1.38.31-64bit
-      sudo ./emsdk activate sdk-1.38.31-64bit
+      sudo git reset HEAD --hard
+      sudo git pull
+      sudo ./emsdk update-tags
+      sudo ./emsdk install 1.38.43-upstream
+      sudo ./emsdk activate 1.38.43-upstream
       sudo chmod -R 777 /emsdk
 
     displayName: 'Setup Emscripten'

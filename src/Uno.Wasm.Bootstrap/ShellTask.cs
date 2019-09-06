@@ -513,8 +513,10 @@ namespace Uno.Wasm.Bootstrap
 				throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
 			}
 
-			var emscriptenVar = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			var version = Path.GetFileName(emscriptenVar);
+			// Get the version file https://github.com/emscripten-core/emsdk/blob/efc64876db1473312587a3f346be000a733bc16d/emsdk.py#L1698
+			var versionFile = Path.Combine(emsdkPath, "fastcomp", "emscripten", "emscripten-version.txt");
+
+			var version = File.Exists(versionFile) ? File.ReadAllText(versionFile)?.Trim('\"') : "";
 
 			if (string.IsNullOrWhiteSpace(emsdkPath) || new Version(version) < Constants.EmscriptenMinVersion)
 			{
@@ -652,7 +654,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyRuntime()
 		{
-			var runtimePath = Path.Combine(MonoWasmSDKPath, RuntimeConfiguration.ToLower());
+			var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
 
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
