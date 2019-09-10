@@ -467,7 +467,7 @@ class Driver {
         }
         else {
 			if(runtime_config != "debug" &&
-				runtime_config != "release" &&
+                runtime_config != "release" &&
 				runtime_config != "release-dynamic") {
                 Console.WriteLine("Invalid --runtime-config value. Must be either debug, release or release-dynamic.");
                 Usage();
@@ -691,20 +691,22 @@ class Driver {
 			GenDriver (builddir, profilers, ee_mode, link_icalls);
 		}
 
+        var runtimeName = runtime_config == "release-dynamic" ? "wasm-runtime-dynamic-release" : "wasm-runtime-release";
+
 		string runtime_libs = "";
 		if (ee_mode == ExecMode.Interp || ee_mode == ExecMode.AotInterp || link_icalls) {
-			runtime_libs += "$mono_sdkdir/wasm-runtime-release/lib/libmono-ee-interp.a $mono_sdkdir/wasm-runtime-release/lib/libmono-ilgen.a ";
+			runtime_libs += $"$mono_sdkdir/{runtimeName}/lib/libmono-ee-interp.a $mono_sdkdir/{runtimeName}/lib/libmono-ilgen.a ";
 			// We need to link the icall table because the interpreter uses it to lookup icalls even if the aot-ed icall wrappers are available
 			if (!link_icalls)
-				runtime_libs += "$mono_sdkdir/wasm-runtime-release/lib/libmono-icall-table.a ";
+				runtime_libs += $"$mono_sdkdir/{runtimeName}/lib/libmono-icall-table.a ";
 		}
-		runtime_libs += "$mono_sdkdir/wasm-runtime-release/lib/libmonosgen-2.0.a";
+		runtime_libs += $"$mono_sdkdir/{runtimeName}/lib/libmonosgen-2.0.a";
 
 		string aot_args = "llvm-path=$emscripten_sdkdir/upstream/bin,";
 		string profiler_libs = "";
 		string profiler_aot_args = "";
 		foreach (var profiler in profilers) {
-			profiler_libs += $"$mono_sdkdir/wasm-runtime-release/lib/libmono-profiler-{profiler}-static.a ";
+			profiler_libs += $"$mono_sdkdir/{runtimeName}/lib/libmono-profiler-{profiler}-static.a ";
 			if (profiler_aot_args != "")
 				profiler_aot_args += " ";
 			profiler_aot_args += $"--profile={profiler}";
@@ -836,7 +838,7 @@ class Driver {
 				ninja.WriteLine ($"build $builddir/corebindings.c: cpifdiff {bindings_source_file}");
 
 				ninja.WriteLine ($"build $builddir/corebindings.o: emcc $builddir/corebindings.c | $emsdk_env");
-				ninja.WriteLine ($"  flags = -I$mono_sdkdir/wasm-runtime-release/include/mono-2.0");
+				ninja.WriteLine ($"  flags = -I$mono_sdkdir/{runtimeName}/include/mono-2.0");
 				driver_cflags += " -DCORE_BINDINGS ";
 			}
 			if (gen_pinvoke)
@@ -844,14 +846,14 @@ class Driver {
 
 			ninja.WriteLine ("build $emsdk_env: create-emsdk-env");
 			ninja.WriteLine ($"build $builddir/driver.o: emcc $builddir/driver.c | $emsdk_env $builddir/driver-gen.c {driver_deps}");
-			ninja.WriteLine ($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I$mono_sdkdir/wasm-runtime-release/include/mono-2.0");
+			ninja.WriteLine ($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I$mono_sdkdir/{runtimeName}/include/mono-2.0");
 
 			if (enable_zlib) {
 				var zlib_source_file = Path.GetFullPath (Path.Combine (tool_prefix, "src", "zlib-helper.c"));
 				ninja.WriteLine ($"build $builddir/zlib-helper.c: cpifdiff {zlib_source_file}");
 
 				ninja.WriteLine ($"build $builddir/zlib-helper.o: emcc $builddir/zlib-helper.c | $emsdk_env");
-				ninja.WriteLine ($"  flags = -I$mono_sdkdir/wasm-runtime-release/include/mono-2.0 -I$mono_sdkdir/wasm-runtime-release/include/support");
+				ninja.WriteLine ($"  flags = -I$mono_sdkdir/{runtimeName}/include/mono-2.0 -I$mono_sdkdir/{runtimeName}/include/support");
 			}
 		} else {
 			ninja.WriteLine ("build $appdir/mono.js: cpifdiff $wasm_runtime_dir/mono.js");
