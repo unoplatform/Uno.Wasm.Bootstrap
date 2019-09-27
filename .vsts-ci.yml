@@ -81,8 +81,8 @@ jobs:
       sudo git reset HEAD --hard
       sudo git pull
       sudo ./emsdk update-tags
-      sudo ./emsdk install 1.38.43-upstream
-      sudo ./emsdk activate 1.38.43-upstream
+      sudo ./emsdk install 1.38.45-upstream
+      sudo ./emsdk activate 1.38.45-upstream
       sudo chmod -R 777 /emsdk
       sudo chmod -R 777 ~/.emscripten_cache
 
