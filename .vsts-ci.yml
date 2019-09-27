@@ -71,6 +71,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+    EMSCRIPTEN_VERSION: 1.38.45-upstream
 
   steps:
   - checkout: self
@@ -78,11 +79,12 @@ jobs:
 
   - bash: |
       cd /emsdk
+      echo Installing emscripten $(EMSCRIPTEN_VERSION)
       sudo git reset HEAD --hard
       sudo git pull
       sudo ./emsdk update-tags
-      sudo ./emsdk install 1.38.45-upstream
-      sudo ./emsdk activate 1.38.45-upstream
+      sudo ./emsdk install $(EMSCRIPTEN_VERSION)
+      sudo ./emsdk activate $(EMSCRIPTEN_VERSION)
       sudo chmod -R 777 /emsdk
       sudo chmod -R 777 ~/.emscripten_cache
 
