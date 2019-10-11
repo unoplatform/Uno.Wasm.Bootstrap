@@ -116,7 +116,7 @@ Finally the `DEBUG` constant must be defined
 
 ```xml
 <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-   <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;DEBUG</DefineConstants>
 </PropertyGroup>
 ```
 
