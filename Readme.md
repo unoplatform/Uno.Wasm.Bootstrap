@@ -72,7 +72,7 @@ The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescri
 </linker>
 ```
 
-The documentation for this file [can be found here](https://github.com/mono/linker/tree/master/src/linker#syntax-of-xml-descriptor).
+The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/src/linker/README.md#syntax-of-xml-descriptor).
 
 ## Publishing the build results
 The easiest way to publish the build results is to use the Visual Studio publish menu on your  project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).
@@ -126,10 +126,8 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 
 ```xml
 <!-- Required for debugging -->
-<assembly fullname="mscorlib">
-</assembly>
-<assembly fullname="System.Core">
-</assembly>
+<assembly fullname="mscorlib" />
+<assembly fullname="System.Core" />
 ```
 
 Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
