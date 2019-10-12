@@ -58,7 +58,7 @@ To upgrade a project:
 - Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
 
 ## Linker configuration
-The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/linker), and can be configured using a linker directives file.
+The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/src/linker), and can be configured using a linker directives file.
 
 The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`, with the following sample content:
 
@@ -201,7 +201,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
 - An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
-- A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
+- A [patch to the emscripten installation](https://github.com/mono/mono/blob/0af7408340d872a2db4d48472fca6c40124f1c31/sdks/builds/fix-emscripten-7399.diff)
 	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
@@ -300,7 +300,7 @@ PWA has all the appropriate metadata, the PWA installer will prompt to install y
 ### Linker configuration
 The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
 
-The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
+The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/src/linker#syntax-of-xml-descriptor).
 
 The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to 
 false. This property has no effect when building with AOT enabled.
@@ -384,7 +384,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_CSS)`
 - `$(ADDITIONAL_HEAD)`
 
-Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
+Use the [Templates/Index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/master/src/Uno.Wasm.Bootstrap/Templates/index.html) file as an example.
 
 ### Configuration of the runtime
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
