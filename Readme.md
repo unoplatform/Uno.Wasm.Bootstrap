@@ -201,7 +201,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
 - An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
-- A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
+- A [patch to the emscripten installation](https://github.com/mono/mono/tree/master/sdks/builds/fix-emscripten-8511.diff)
 	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
