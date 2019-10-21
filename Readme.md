@@ -58,7 +58,7 @@ To upgrade a project:
 - Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
 
 ## Linker configuration
-The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/linker), and can be configured using a linker directives file.
+The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.
 
 The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`, with the following sample content:
 
