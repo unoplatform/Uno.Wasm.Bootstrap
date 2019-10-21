@@ -51,7 +51,7 @@ See below the instructions on how to install the **Windows Subsystem for Linux**
 * The output of the `Console.WriteLine` will appear in the javascript debugging console
 
 ### Upgrading from previous versions of the Uno.Wasm.Bootstrap package
-Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To emable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
+Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To enable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
 
 To upgrade a project:
 - Change `Microsoft.NET.Sdk` to `Microsoft.NET.Sdk.Web` in the Sdk attribute of your project
@@ -64,18 +64,18 @@ The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescri
 
 ```xml
 <linker>
-	<assembly fullname="Uno.Wasm.Sample">
-		<namespace fullname="Uno.Wasm.Sample" />
-	</assembly>
+    <assembly fullname="Uno.Wasm.Sample">
+        <namespace fullname="Uno.Wasm.Sample" />
+    </assembly>
 
-	<assembly fullname="WebAssembly.Bindings" />
+    <assembly fullname="WebAssembly.Bindings" />
 </linker>
 ```
 
 The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/src/linker#syntax-of-xml-descriptor).
 
 ## Publishing the build results
-The easiest way to publish the build results is to use the Visual Studio publish menu on your  project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).
+The easiest way to publish the build results is to use the Visual Studio publish menu on your project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).
 
 ## Serve the Wasm app through Windows Linux Subsystem
 Using Windows 10, serving the app through a small Web Server is done through WSL.
@@ -86,7 +86,7 @@ Here's how to install it:
 - Once you've built your project, you should see a path to the project dll
 - In the Ubuntu shell, type ``cd `wslpath "[the_path_to_your_bin_folder]\dist"` ``
 - Type `python3 server.py`
-	- If this command does not exist, run the following `sudo apt-get install python3`
+    - If this command does not exist, run the following `sudo apt-get install python3`
 - Using your favorite browser, navigate to `http://localhost:8000`
 
 ## Mono-wasm Debugger Support
@@ -112,7 +112,7 @@ Debug symbols need to be emitted and be of the type `portable`:
 </PropertyGroup>
 ```
 
-Finally the `DEBUG` constant must be defined
+Finally, the `DEBUG` constant must be defined
 
 ```xml
 <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -131,7 +131,7 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 ```
 
 Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
-[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to setup the debugging.
+[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to set up the debugging.
 
 ### How to use the debugger
 In Visual Studio:
@@ -147,7 +147,7 @@ In Visual Studio:
 
 ### Debugger troubleshooting
 The debugger is still under development, and here are a few things to look for:
-- Breakpoints set sometimes disapear when the debugged page is reloaded
+- Breakpoints set sometimes disappear when the debugged page is reloaded
 - If none of your assemblies appear in the debugger window, it's generally caused 
 by the debugger caching previously loaded files. Make sure to hit Ctrl+Shit+R to force 
 reload the debugged page.
@@ -200,7 +200,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
 - An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
 - A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
-	- `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
+    - `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
 ## Features
 ### WebAssembly Module Linking support
@@ -264,7 +264,7 @@ The bootstrapper supports having a project loaded as part of a node application.
 
 Run the application and the main method of the `MyApp.Wasm` will be executed.
 
-The parameters of the node command line are provided to the app's main method, when running the app as follows:
+The parameters of the node command line are provided to the app's main method when running the app as follows:
 
 ```
 node app param1 param2
@@ -290,18 +290,17 @@ A **Progressive Web App** manifest link definition can be added to the index.htm
 - Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
 
 iOS's support for home screen icon is optionally set by searching for a 1024x1024 icon in the 
-PWA manifest. Not providing this image will make iOS generate a scaled down screenshot of the application.
+PWA manifest. Not providing this image will make iOS generate a scaled-down screenshot of the application.
 
-You can validate you PWA in the [chrome audits tab](https://developers.google.com/web/updates/2017/05/devtools-release-notes#lighthouse). If your 
-PWA has all the appropriate metadata, the PWA installer will prompt to install you app.
+You can validate your PWA in the [chrome audits tab](https://developers.google.com/web/updates/2017/05/devtools-release-notes#lighthouse). If your 
+PWA has all the appropriate metadata, the PWA installer will prompt to install your app.
 
 ### Linker configuration
 The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
 
 The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
 
-The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to 
-false. This property has no effect when building with AOT enabled.
+The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to false. This property has no effect when building with AOT enabled.
 
 ### Support for Subresource Integrity
 By default, the _msbuild task_ will calculate a hash for binary files in your project and will use the [Subresource Integrity](https://www.w3.org/TR/SRI/)
@@ -349,7 +348,7 @@ The bootstrapper provides a set of environment variables that reflect the config
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
 
 ### Dependency management
-The Uno Bootstrapper uses RequireJS for the dependency management, allowing for dependencies to be resolved in a stable manner. 
+The Uno Bootstrapper uses RequireJS for dependency management, allowing for dependencies to be resolved in a stable manner. 
 
 For instance, a script defined this way, placed in the `WasmScripts` folder:
 
@@ -371,7 +370,7 @@ define([], function() { return MyModule; });
 
 ### Dependency management for Emscripten
 
-Emscripten modules initialization is performed in an asynchronous way, and the Bootstrapper 
+Emscripten modules initialization is performed in an asynchronous way and the Bootstrapper 
 will ensure that a dependency that exposes a module will have finished its initialization 
 for starting the `Main` method of the C# code.
 
@@ -386,7 +385,7 @@ Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file
 
 ### Configuration of the runtime
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
-- The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime, but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
+- The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 
 ### Updating the mono-sdk build
 The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` allow the override of the default SDK paths. Paths can be local files.
@@ -402,7 +401,7 @@ To select a different sdk build:
 > Note that both properties require a zip file as the source, not an uncompressed folder.
 
 ## Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
-The bootstrapper comes with a default mono-wasm SDK (which can be overriden per project with the msbuild properties
+The bootstrapper comes with a default mono-wasm SDK (which can be overridden per project with the msbuild properties
 `MonoWasmSDKUri` and `MonoWasmAOTSDKUri`), specified in the `Constants.cs` file.
 
 To update to a later mono-wasm SDK:
