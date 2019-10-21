@@ -71,7 +71,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.38.45-upstream
+    EMSCRIPTEN_VERSION: 1.38.48-upstream
 
   steps:
   - checkout: self
