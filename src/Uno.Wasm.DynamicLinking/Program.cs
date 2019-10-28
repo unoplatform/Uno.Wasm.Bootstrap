@@ -34,13 +34,14 @@ namespace Uno.Wasm.Sample
 
 		static void Main(string[] args)
 		{
-			Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
+			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
+			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
 
 			Console.WriteLine($"test_add:{test_add(21, 21)}");
 			Console.WriteLine($"test_float:{test_add_float1(21, 21)}");
 			Console.WriteLine($"test_add_double:{test_add_double(21, 21)}");
 
-			var res = $"{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()}";
+			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()}";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
 		}
