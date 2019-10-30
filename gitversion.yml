@@ -5,9 +5,9 @@ continuous-delivery-fallback-tag: ""
 branches:
   master:
     tag: dev
-  stable:
+  release:
     tag: ""
-    regex: stable
+    regex: release/.*?
     source-branches: ['master']
   dev:
     tag: dev.{BranchName}
