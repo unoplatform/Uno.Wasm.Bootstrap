@@ -235,7 +235,7 @@ The Bootstrapper tooling will generate two folders `_compressed_gz` and `_compre
 When building an application, place [the following file](src/Uno.Wasm.Sample/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
 
 The parameters for the compression are as follows:
-- `WasmShellGenerateCompressedFiles` which can be `true` of `false`. This property is ignored when building `MonoRuntimeDebuggerEnabled` is set to `true`.
+- `WasmShellGenerateCompressedFiles` which can be `true` or `false`. This property is ignored when building `MonoRuntimeDebuggerEnabled` is set to `true`.
 - `WasmShellCompressedExtension` is an item group which specifies which files to compress. By default `wasm`, `clr`, `js`, `css` and `html files are pre-compressed. More files can be added as follows:
 ```xml
   <ItemGroup>
