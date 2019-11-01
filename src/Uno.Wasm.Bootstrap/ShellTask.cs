@@ -124,6 +124,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string PWAManifestFile { get; set; }
 
+		public bool EnableLongPathSupport { get; set; } = true;
+
 		public override bool Execute()
 		{
 			try
@@ -137,6 +139,7 @@ namespace Uno.Wasm.Bootstrap
 				// Debugger.Launch();
 
 
+				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
 				CreateDist();
@@ -162,6 +165,16 @@ namespace Uno.Wasm.Bootstrap
 				return false;
 			}
 		}
+
+		private void TryEnableLongPathAware()
+		{
+			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
+			DistPath = TryConvertLongPath(DistPath);
+			MonoTempFolder = TryConvertLongPath(MonoTempFolder);
+			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
+			CustomDebuggerPath = TryConvertLongPath(CustomDebuggerPath);
+		}
+
 
 		private void TouchServiceWorker()
 		{
@@ -393,7 +406,7 @@ namespace Uno.Wasm.Bootstrap
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			int packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+			int packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{TryConvertLongPath(Path.GetFullPath(Assembly))}\"", _distPath);
 
 			if (packagerResults != 0)
 			{
@@ -504,6 +517,15 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private bool IsRuntimeAOT() => _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+
+		private string TryConvertLongPath (string path)
+			=> Environment.OSVersion.Platform == PlatformID.Win32NT
+				&& !string.IsNullOrEmpty(path)
+				&& !path.StartsWith(@"\\?\")
+				&& Path.IsPathRooted(path)
+				&& EnableLongPathSupport
+				? @"\\?\" + path
+				: path;
 
 		private static string ValidateEmscripten()
 		{
@@ -650,8 +672,10 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CreateDist()
 		{
-			_distPath = Path.GetFullPath(DistPath);
+			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
 			_managedPath = Path.Combine(_distPath, "managed");
+
+			Log.LogMessage(importance: MessageImportance.High, $"Creating managed path {_managedPath}");
 			Directory.CreateDirectory(_managedPath);
 		}
 
