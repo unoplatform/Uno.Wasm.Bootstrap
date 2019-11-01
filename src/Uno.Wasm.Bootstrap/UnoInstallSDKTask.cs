@@ -141,6 +141,9 @@ namespace Uno.Wasm.Bootstrap
 						<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 					  </PropertyGroup>
 						<ItemGroup>
+							<!-- Enable cross targeting, in case net462 is not installed on the current machine -->
+							<PackageReference Include=""Microsoft.NETFramework.ReferenceAssemblies"" Version=""1.0.0-preview.2"" PrivateAssets=""All"" />
+
 							<Reference Include=""Mono.Cecil"">
 								<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
 							</Reference>
