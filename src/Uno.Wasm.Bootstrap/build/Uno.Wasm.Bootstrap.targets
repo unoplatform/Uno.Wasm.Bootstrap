@@ -147,6 +147,7 @@
         GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
         CompressedExtensions="@(WasmShellCompressedExtension)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
+        EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
         Assets="@(Content)"
         ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
   </Target>
