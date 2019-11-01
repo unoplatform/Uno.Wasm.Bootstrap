@@ -647,6 +647,8 @@ namespace Uno.Wasm.Bootstrap
 		{
 			_distPath = Path.GetFullPath(DistPath);
 			_managedPath = Path.Combine(_distPath, "managed");
+
+			Log.LogMessage($"Creating managed path {_managedPath}");
 			Directory.CreateDirectory(_managedPath);
 		}
 
