@@ -4,9 +4,9 @@ export EMSCRIPTEN_VERSION=1.38.48-upstream
 cd ~
 git clone https://github.com/emscripten-core/emsdk.git
 cd emsdk
-echo Installing emscripten $(EMSCRIPTEN_VERSION)
-sudo ./emsdk install $(EMSCRIPTEN_VERSION)
-sudo ./emsdk activate $(EMSCRIPTEN_VERSION)
+echo Installing emscripten $EMSCRIPTEN_VERSION
+./emsdk install $EMSCRIPTEN_VERSION
+./emsdk activate $EMSCRIPTEN_VERSION
 
 wget https://raw.githubusercontent.com/mono/mono/master/sdks/builds/emscripten-pr-8457.diff
 wget https://raw.githubusercontent.com/mono/mono/master/sdks/builds/fix-emscripten-8511.diff
