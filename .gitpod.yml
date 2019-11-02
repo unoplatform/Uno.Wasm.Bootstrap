@@ -8,6 +8,7 @@ tasks:
 	- prebuild: build/gitpod/build-all.sh
 
 github:
+
   prebuilds:
     # enable for the master/default branch (defaults to true)
     master: true
