@@ -1,5 +1,6 @@
 #!/bin/bash
 export EMSCRIPTEN_VERSION=1.38.48-upstream
+export NUGET_PACKAGES=/workspace/.nuget
 
 cd ~
 git clone https://github.com/emscripten-core/emsdk.git
