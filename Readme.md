@@ -204,6 +204,43 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
     - `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
 
+## Debugging and contributing to the Uno WebAssembly Bootstrapper
+
+The [src/Uno.Wasm.Bootstrap.sln](src/Uno.Wasm.Bootstrap.sln) solution is a good way to build the bootstrapper itself, as well as sample solutions that validate the different features of the bootstrapper.
+
+### Debugging in Visual Studio for Windows
+- Select a sample application, such as the `Uno.Wasm.Sample` project, and press `Ctrl+F5` or run **without debugger**. 
+- The bootstrapper will be built as part of the process, and will generate a new webassembly site layout.
+- Once the application has built, it will run in the selected browser in the Visual Studio debug location toolbar
+
+Some tips:
+- If you make modifications to the `Uno.Wasm.Bootstrap`, you may have to terminate all `msbuild.exe` processes, as they may lock files of that project.
+- If you make modifications to the `Uno.Wasm.Bootstrap.Cli` project, you may have to terminate the `dotnet.exe` processes that link to your solution's subfolders, as they may lock files of that project.
+
+Once the processes have been terminated, restart your build.
+
+Debugging the bootstrapper task can be done by adding a `Debugger.Launch()` statement in the `Run` method of `ShellTask.cs`.
+
+### Testing the bootstrapper through GitPod 
+You can also make contributions through GitPod, and validate that your changes are appropriate.
+
+Building and debugging samples is done through the command line.
+1. Build a sample using :
+   ```
+   cd src/Uno.Wasm.Sample
+   msbuild /r /bl
+   ```
+1. Start the web server to serve the sample on port 8000:
+   ```
+   cd bin/Debug/netstandard2.0/dist
+   python3 server.py
+   ```
+1. The GitPod IDE will open a preview window with the content of the site. You may need to open the browser debugger window to see the results of the sample's execution.
+
+Click on the button below to try this out!
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap) 
+
 ## Features
 ### WebAssembly Module Linking support
 
@@ -376,7 +413,7 @@ Emscripten modules initialization is performed in an asynchronous way and the Bo
 will ensure that a dependency that exposes a module will have finished its initialization 
 for starting the `Main` method of the C# code.
 
-## Index.html content override
+### Index.html content override
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
 This file should contain the following markers, for the runtime to initialize properly: 
@@ -402,7 +439,7 @@ To select a different sdk build:
 
 > Note that both properties require a zip file as the source, not an uncompressed folder.
 
-## Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
+### Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
 The bootstrapper comes with a default mono-wasm SDK (which can be overridden per project with the msbuild properties
 `MonoWasmSDKUri` and `MonoWasmAOTSDKUri`), specified in the `Constants.cs` file.
 
@@ -412,7 +449,7 @@ To update to a later mono-wasm SDK:
 - Copy the `wasm-release-Linux-xxx.zip` uri to the `DefaultAotSDKUrl` constant field
 - Open the `mono-wasm-xxxx.zip` and copy the `Mono.WebAssembly.DebuggerProxy.dll` and `.pdb` to the [CustomDebuggerProxy folder](src/Uno.Wasm.Bootstrap/build/CustomDebuggerProxy) folder.
 
-## Windows Long Path support
+### Windows Long Path support
 The bootstrapper supports Windows 10 long paths by default, but there may be cases where the 
 [`\\?\` path format](https://blogs.msdn.microsoft.com/jeremykuhne/2016/06/21/more-on-new-net-path-handling/) may not be supported. 
 
