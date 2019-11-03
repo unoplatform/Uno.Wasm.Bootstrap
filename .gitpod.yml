@@ -5,8 +5,8 @@ ports:
     onOpen: open-preview
 
 tasks:
+  - before: echo "export NUGET_PACKAGES=/workspace/.nuget" >> ~/.profile
   - prebuild: build/gitpod/build-all.sh
-  - command: echo "export NUGET_PACKAGES=/workspace/.nuget" >> ~/.profile
 
 github:
 
