@@ -21,4 +21,4 @@ cd /workspace/Uno.Wasm.Bootstrap
 
 source ~/emsdk/emsdk_env.sh
 
-msbuild /r /t:Publish /p:Configuration=Release /p:WasmShellMonoRuntimeExecutionMode=Interpreter src/Uno.Wasm.Bootstrap.sln
+msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln

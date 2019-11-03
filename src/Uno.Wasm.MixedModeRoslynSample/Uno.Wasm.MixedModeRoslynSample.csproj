@@ -7,10 +7,7 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<!--
-		Disable for gitpod pre-build timeout
 		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
-		-->
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
