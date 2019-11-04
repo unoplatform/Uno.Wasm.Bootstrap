@@ -1,8 +1,9 @@
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
@@ -38,7 +39,7 @@ const path = require("path");
     else {
         console.log(`Results: ${value}`);
     }
-    var expected = "42;42.3;42.7;e42";
+    var expected = "FullAOT;42;42.3;42.7;e42";
     if (value != expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);

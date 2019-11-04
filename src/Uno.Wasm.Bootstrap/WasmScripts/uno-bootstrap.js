@@ -9,7 +9,7 @@ var Module = {
             for (let key in config.environmentVariables) {
                 if (config.environmentVariables.hasOwnProperty(key)) {
                     if (config.enable_debugging) console.log(`Setting ${key}=${config.environmentVariables[key]}`);
-                    ENV[key] = config.environmentVariables[key];
+                    MONO.mono_wasm_setenv(key, config.environmentVariables[key]);
                 }
             }
         }
