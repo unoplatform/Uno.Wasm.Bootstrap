@@ -670,7 +670,7 @@ namespace Uno.Wasm.Bootstrap
 			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
 			_managedPath = Path.Combine(_distPath, "managed");
 
-			Log.LogMessage(importance: MessageImportance.High, $"Creating managed path {_managedPath}");
+			Log.LogMessage($"Creating managed path {_managedPath}");
 			Directory.CreateDirectory(_managedPath);
 		}
 
@@ -737,7 +737,16 @@ namespace Uno.Wasm.Bootstrap
 
 						var dest = Path.Combine(_distPath, relativePath);
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
-						File.Copy(fullSourcePath, dest, true);
+
+						try
+						{
+							File.Copy(fullSourcePath, dest, true);
+						}
+						catch(Exception e)
+						{
+							Log.LogError($"Failed to copy {fullSourcePath} to {dest}");
+							throw;
+						}
 					}
 				}
 			}
