@@ -9,6 +9,7 @@
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
 		<Version>2.0.1-test.3</Version>
+		<LangVersion>7.2</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -108,15 +109,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="build\linker\monolinker.exe.config" />
 	  <None Remove="WasmScripts\service-worker.js" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="build\packager.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="build\linker\" />
 	</ItemGroup>
 
 	<ItemGroup>

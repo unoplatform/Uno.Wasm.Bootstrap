@@ -391,3 +391,11 @@ To update to a later mono-wasm SDK:
 - Copy the `mono-wasm-xxxx.zip` uri to the `DefaultSdkUrl` constant field
 - Copy the `wasm-release-Linux-xxx.zip` uri to the `DefaultAotSDKUrl` constant field
 - Open the `mono-wasm-xxxx.zip` and copy the `Mono.WebAssembly.DebuggerProxy.dll` and `.pdb` to the [CustomDebuggerProxy folder](src/Uno.Wasm.Bootstrap/build/CustomDebuggerProxy) folder.
+
+## Windows Long Path support
+The bootstrapper supports Windows 10 long paths by default, but there may be cases where the 
+[`\\?\` path format](https://blogs.msdn.microsoft.com/jeremykuhne/2016/06/21/more-on-new-net-path-handling/) may not be supported. 
+
+In such a case, setting the `<WasmShellEnableLongPathSupport>false</WasmShellEnableLongPathSupport>` in the project file can disable this feature.
+
+Additional documentation on the support for long paths [is available here](https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#enable-long-paths-in-windows-10-version-1607-and-later).
