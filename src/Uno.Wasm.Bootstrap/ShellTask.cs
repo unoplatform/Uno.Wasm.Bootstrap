@@ -1004,7 +1004,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					var html = reader.ReadToEnd();
 
-					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
+					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"./{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
 
 					var extraBuilder = new StringBuilder();
@@ -1025,12 +1025,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
-				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"mono.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./mono.wasm\" />");
 
 				var distName = Path.GetFileName(_managedPath);
 				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
 				{
-					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{distName}/{Path.GetFileName(file)}\" />");
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./{distName}/{Path.GetFileName(file)}\" />");
 				}
 			}
 		}
@@ -1046,8 +1046,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
-				extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"./{PWAManifestFile}\" />");
+				extraBuilder.AppendLine($"<link rel=\"script\" href=\"./service-worker.js\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
@@ -1055,7 +1055,7 @@ namespace Uno.Wasm.Bootstrap
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
 				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{img["src"].ToString()}\" />");
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"./{img["src"].ToString()}\" />");
 				}
 
 				if (manifestDocument["theme_color"]?.Value<string>() is string color)
