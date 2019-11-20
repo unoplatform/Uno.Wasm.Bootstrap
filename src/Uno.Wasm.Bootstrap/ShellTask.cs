@@ -742,7 +742,16 @@ namespace Uno.Wasm.Bootstrap
 
 						var dest = Path.Combine(_distPath, relativePath);
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
-						File.Copy(fullSourcePath, dest, true);
+
+						try
+						{
+							File.Copy(fullSourcePath, dest, true);
+						}
+						catch(Exception e)
+						{
+							Log.LogError($"Failed to copy {fullSourcePath} to {dest}");
+							throw;
+						}
 					}
 				}
 			}
