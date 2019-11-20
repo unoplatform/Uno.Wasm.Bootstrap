@@ -9,6 +9,7 @@
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
 		<Version>2.0.1-test.3</Version>
+		<LangVersion>7.2</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
