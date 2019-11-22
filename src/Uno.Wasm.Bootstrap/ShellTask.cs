@@ -186,6 +186,23 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private void FileCopy(string source, string dest, bool overwrite = false)
+		{
+			// Straigten paths to fix issues with mixed path
+			string FixupPath(string path)
+				=> path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+			try
+			{ 
+				File.Copy(FixupPath(source), FixupPath(dest), overwrite);
+			}
+			catch (Exception)
+			{
+				Log.LogError($"Failed to copy {source} to {dest}");
+				throw;
+			}
+		}
+
 		private void CleanupDist()
 		{
 			var unusedFiles = new[] {
@@ -375,7 +392,7 @@ namespace Uno.Wasm.Bootstrap
 						if (File.Exists(sourceFileName))
 						{
 							Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
-							File.Copy(sourceFileName, destFileName);
+							FileCopy(sourceFileName, destFileName);
 						}
 						else
 						{
@@ -687,10 +704,10 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var dest = Path.Combine(_distPath, Path.GetFileName(sourceFile));
 				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
-				File.Copy(sourceFile, dest, true);
+				FileCopy(sourceFile, dest, true);
 			}
 
-			File.Copy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
+			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
 		}
 
 		private void CopyContent()
@@ -743,15 +760,7 @@ namespace Uno.Wasm.Bootstrap
 						var dest = Path.Combine(_distPath, relativePath);
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
 
-						try
-						{
-							File.Copy(fullSourcePath, dest, true);
-						}
-						catch(Exception e)
-						{
-							Log.LogError($"Failed to copy {fullSourcePath} to {dest}");
-							throw;
-						}
+						FileCopy(fullSourcePath, dest, true);
 					}
 				}
 			}
