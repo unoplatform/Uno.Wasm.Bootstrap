@@ -27,10 +27,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Include="AdditionalContent\SomeContent01.txt" />
+		<Content Include="AdditionalContent/SomeContent02.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
 	</ItemGroup>
+
+	<Target Name="AfterBuildValidation" AfterTargets="Build">
+		<Error Condition="!exists('bin/$(Configuration)/$(TargetFramework)/dist/AdditionalContent/SomeContent01.txt')" Text="SomeContent01.txt does not exist in dist"/>
+		<Error Condition="!exists('bin/$(Configuration)/$(TargetFramework)/dist/AdditionalContent/SomeContent02.txt')" Text="SomeContent02.txt does not exist in dist"/>
+		<Message Importance="high" Text="Output dist validated" />
+	</Target>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
