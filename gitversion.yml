@@ -1,12 +1,12 @@
 assembly-versioning-scheme: MajorMinorPatch
 mode: ContinuousDeployment
-next-version: 1.0.4
 continuous-delivery-fallback-tag: ""
 branches:
   master:
     tag: dev
   release:
     tag: ""
+    increment: Patch
     regex: release/.*?
     source-branches: ['master']
   dev:
