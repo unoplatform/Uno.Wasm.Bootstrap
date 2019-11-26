@@ -37,6 +37,7 @@ namespace Uno.Wasm.Bootstrap
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
+		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == Path.AltDirectorySeparatorChar ? '\\' : '/';
 
 		private string _distPath;
 		private string _managedPath;
@@ -190,7 +191,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// Straigten paths to fix issues with mixed path
 			string FixupPath(string path)
-				=> path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+				=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
 			try
 			{ 
