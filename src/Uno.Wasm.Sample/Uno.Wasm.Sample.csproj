@@ -27,10 +27,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Include="AdditionalContent\SomeContent01.txt" />
-		<Content Include="AdditionalContent/SomeContent02.txt" />
+		<!-- Add linked content first to validate directory creation from links -->
 		<Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)"/>
 		<Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)"/>
+	  <Content Include="AdditionalContent\SomeContent01.txt" />
+		<Content Include="AdditionalContent/SomeContent02.txt" />
 	</ItemGroup>
 
 	<ItemGroup>

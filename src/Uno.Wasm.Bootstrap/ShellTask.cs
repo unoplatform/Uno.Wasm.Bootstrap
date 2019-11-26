@@ -37,7 +37,7 @@ namespace Uno.Wasm.Bootstrap
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
-		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == Path.AltDirectorySeparatorChar ? '\\' : '/';
+		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
 		private string _distPath;
 		private string _managedPath;
@@ -187,19 +187,39 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		/// <summary>
+		/// Align paths to fix issues with mixed path
+		/// </summary>
+		string FixupPath(string path)
+			=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
 		private void FileCopy(string source, string dest, bool overwrite = false)
 		{
-			// Straigten paths to fix issues with mixed path
-			string FixupPath(string path)
-				=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
+			var sourceFileName = FixupPath(source);
+			var destFileName = FixupPath(dest);
 
 			try
-			{ 
-				File.Copy(FixupPath(source), FixupPath(dest), overwrite);
+			{
+				File.Copy(sourceFileName, destFileName, overwrite);
 			}
 			catch (Exception)
 			{
-				Log.LogError($"Failed to copy {source} to {dest}");
+				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}");
+				throw;
+			}
+		}
+
+		private void DirectoryCreateDirectory(string directory)
+		{
+			var directoryName = FixupPath(directory);
+
+			try
+			{
+				Directory.CreateDirectory(directoryName);
+			}
+			catch(Exception e)
+			{
+				Log.LogError($"Failed to create directory {directoryName}");
 				throw;
 			}
 		}
@@ -264,7 +284,7 @@ namespace Uno.Wasm.Bootstrap
 					var compressedFileName = fileName;
 					compressedFileName = compressedFileName.Replace(_distPath, compressedPathBase);
 
-					Directory.CreateDirectory(Path.GetDirectoryName(compressedFileName));
+					DirectoryCreateDirectory(Path.GetDirectoryName(compressedFileName));
 
 					if (File.Exists(compressedFileName))
 					{
@@ -360,7 +380,7 @@ namespace Uno.Wasm.Bootstrap
 				var sdkName = Path.GetFileName(MonoWasmSDKPath);
 
 				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
-				Directory.CreateDirectory(wasmDebuggerRootPath);
+				DirectoryCreateDirectory(wasmDebuggerRootPath);
 
 				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
@@ -373,7 +393,7 @@ namespace Uno.Wasm.Bootstrap
 						Directory.Delete(debugger, recursive: true);
 					}
 
-					Directory.CreateDirectory(debuggerLocalPath);
+					DirectoryCreateDirectory(debuggerLocalPath);
 
 					string[] debuggerFiles = new[] {
 						"Mono.WebAssembly.DebuggerProxy.dll",
@@ -415,7 +435,7 @@ namespace Uno.Wasm.Bootstrap
 				Directory.Delete(workAotPath, true);
 			}
 
-			Directory.CreateDirectory(workAotPath);
+			DirectoryCreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
@@ -481,7 +501,7 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					Directory.Move(_managedPath, linkerInput);
-					Directory.CreateDirectory(_managedPath);
+					DirectoryCreateDirectory(_managedPath);
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
@@ -689,7 +709,7 @@ namespace Uno.Wasm.Bootstrap
 			_managedPath = Path.Combine(_distPath, "managed");
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
-			Directory.CreateDirectory(_managedPath);
+			DirectoryCreateDirectory(_managedPath);
 		}
 
 		private void CopyRuntime()
@@ -751,7 +771,7 @@ namespace Uno.Wasm.Bootstrap
 						// Skip WasmScript folder files that may have been added as content files.
 						// This can happen when running the TypeScript compiler.
 
-						Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
+						DirectoryCreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
 
 						var dest = Path.Combine(_distPath, relativePath);
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
