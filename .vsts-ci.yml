@@ -23,8 +23,10 @@ jobs:
       versionSpec: 4.9.1
       checkLatest: false
     
-  - task: GitVersion@4
+  - task: GitVersion@5
     inputs:
+      useConfigFile: true
+      configFilePath: gitversion.yml
       updateAssemblyInfo: false
 
   - powershell: |
@@ -75,6 +77,12 @@ jobs:
   steps:
   - checkout: self
     clean: true
+    
+  - task: GitVersion@5
+    inputs:
+      useConfigFile: true
+      configFilePath: gitversion.yml
+      updateAssemblyInfo: false
 
   - bash: |
       cd /emsdk
