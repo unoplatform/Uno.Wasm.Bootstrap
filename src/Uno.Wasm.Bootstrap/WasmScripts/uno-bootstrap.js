@@ -495,7 +495,7 @@ if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 
     if (config.enable_pwa && 'serviceWorker' in navigator) {
         console.log('Registering service worker now');
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('./service-worker.js')
             .then(function () {
                 console.log('Service Worker Registered');
             });
