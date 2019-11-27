@@ -5,7 +5,7 @@ let config = {};
 self.addEventListener('install', function (e) {
     console.debug('[ServiceWorker] Installing offline worker');
     e.waitUntil(
-        fetch("/uno-config.js")
+        fetch("./uno-config.js")
             .then(r => r.text()
                 .then(configStr => {
                     eval(configStr);
