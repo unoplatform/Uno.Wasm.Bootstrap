@@ -764,16 +764,16 @@ namespace Uno.Wasm.Bootstrap
 
 					(var fullSourcePath, var relativePath) = GetFilePaths();
 
-					relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
+					relativePath = FixupPath(relativePath).Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
 					if (!relativePath.StartsWith(WasmScriptsFolder))
 					{
 						// Skip WasmScript folder files that may have been added as content files.
 						// This can happen when running the TypeScript compiler.
 
-						DirectoryCreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
-
 						var dest = Path.Combine(_distPath, relativePath);
+						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
+
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
 
 						FileCopy(fullSourcePath, dest, true);
