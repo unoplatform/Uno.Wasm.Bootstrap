@@ -494,10 +494,19 @@ if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
     document.addEventListener("DOMContentLoaded", () => App.preInit());
 
     if (config.enable_pwa && 'serviceWorker' in navigator) {
-        console.log('Registering service worker now');
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(function () {
-                console.log('Service Worker Registered');
-            });
+        if (navigator.serviceWorker.controller) {
+            console.debug("Active service worker found, skipping register");
+        } else {
+            console.debug('Registering service worker now');
+
+            navigator.serviceWorker
+                .register(
+                    './service-worker.js', {
+                        scope: "./"
+                    })
+                .then(function () {
+                    console.debug('Service Worker Registered');
+                });
+        }
     }
 }
