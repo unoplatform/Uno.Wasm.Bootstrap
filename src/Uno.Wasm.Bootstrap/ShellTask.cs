@@ -181,10 +181,13 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// The service worker file must change to be reloaded properly, add the dist digest
 			// as cache trasher.
-			using (var stream = new StreamWriter(File.Open(Path.Combine(_distPath, "service-worker.js"), FileMode.Append)))
-			{
-				stream.WriteLine($"// {Path.GetFileName(_managedPath)}");
-			}
+			var workerFilePath = Path.Combine(_distPath, "service-worker.js");
+			var workerBody = File.ReadAllText(workerFilePath);
+
+			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_managedPath));
+			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
+
+			File.WriteAllText(workerFilePath, workerBody);
 		}
 
 		/// <summary>
@@ -902,7 +905,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.offline_files = [{offlineFiles}];");
+				config.AppendLine($"config.offline_files = ['./', {offlineFiles}];");
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 

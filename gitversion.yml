@@ -12,7 +12,7 @@ branches:
     regex: ^(pull|pull\-requests|pr)[/-]
     mode: ContinuousDeployment
     tag: PullRequest
-    increment: Inherit
+    increment: None
 
   stable:
     regex: release/stable/.*
