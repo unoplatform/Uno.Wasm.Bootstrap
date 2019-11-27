@@ -30,7 +30,9 @@ self.addEventListener('fetch', event => {
             // cache content if needed.
             return await fetch(event.request);
         } catch (err) {
-            return caches.match(event.request, { ignoreSearch: true });
+            return caches.match(event.request).then(response => {
+                return response || fetch(event.request);
+            });
         }
     }());
 });
