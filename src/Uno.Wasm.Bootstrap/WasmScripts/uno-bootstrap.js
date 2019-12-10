@@ -151,13 +151,22 @@ var App = {
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
 
-            if (ENVIRONMENT_IS_NODE) {
-                var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
-                var array = BINDING.js_array_to_mono_array(process.argv);
-                MonoRuntime.call_method(mainMethod, null, [array]);
+            var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
+
+            if (typeof mainMethod === "undefined") {
+                throw `Unable to find entrypoint in ${config.uno_main}`;
             }
-            else {
-                BINDING.call_static_method(config.uno_main, []);
+
+            signature = Module.mono_method_get_call_signature(mainMethod);
+
+            if (signature === "") {
+                BINDING.call_method(mainMethod, null, signature, []);
+            } else {
+                let array = ENVIRONMENT_IS_NODE
+                    ? BINDING.js_array_to_mono_array(process.argv)
+                    : BINDING.js_array_to_mono_array([]);
+
+                MonoRuntime.call_method (mainMethod, null, [array]);
             }
         } catch (e) {
             console.error(e);

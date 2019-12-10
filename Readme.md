@@ -200,9 +200,17 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A Linux 18.04 machine or [WSL 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
-- An active Emscripten 1.38.13 (specifically, until [Esmcripten #7656](https://github.com/emscripten-core/emscripten/pull/7656) gets merged)
-- A [patch to the emscripten installation](https://github.com/mono/mono/blob/master/sdks/builds/fix-emscripten-7399.diff)
-    - `cd emscripten/1.38.13; patch -N -p1 < fix-emscripten-7399.diff`
+- An active Emscripten **1.39.4**
+- Patches to emscripten, run this (given emsdk is in `~/emsdk`):
+  ```bash
+  cd ~/emsdk/upstream/emscripten
+  wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff
+  wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff
+  patch -N -p1 < ~/emsdk/emscripten-pr-8457.diff
+  patch -N -p1 < ~/emsdk/fix-emscripten-8511.diff
+  ```
+
+The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build), and install the appropriate Emscripten in the container.
 
 ## Debugging and contributing to the Uno WebAssembly Bootstrapper
 
