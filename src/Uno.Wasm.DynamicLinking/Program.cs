@@ -32,7 +32,7 @@ namespace Uno.Wasm.Sample
 		[DllImport("side")]
 		private static extern int test_exception();
 
-		static void Main(string[] args)
+		static void Main()
 		{
 			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
 			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
@@ -41,9 +41,13 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"test_float:{test_add_float1(21, 21)}");
 			Console.WriteLine($"test_add_double:{test_add_double(21, 21)}");
 
+			var now = DateTime.Now;
+			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
+
 			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()}";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
+
 		}
 	}
 }

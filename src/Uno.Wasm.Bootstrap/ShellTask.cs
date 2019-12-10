@@ -139,7 +139,6 @@ namespace Uno.Wasm.Bootstrap
 
 				// Debugger.Launch();
 
-
 				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
@@ -468,12 +467,12 @@ namespace Uno.Wasm.Bootstrap
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
 
 				var bitcodeFiles = GetBitcodeFilesParams();
-				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--bc={f}\"")) : "";
+				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={f}\"")) : "";
 
 				var aotMode = _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
 				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 				if (aotPackagerResult != 0)
 				{
@@ -722,6 +721,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyRuntime()
 		{
+			// Adjust for backward compatibility
+			RuntimeConfiguration = RuntimeConfiguration == "release-dynamic" ? "dynamic-release" : RuntimeConfiguration;
+
 			var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
 
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
