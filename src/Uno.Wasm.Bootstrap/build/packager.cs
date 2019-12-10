@@ -1,3 +1,5 @@
+// https://github.com/jeromelaban/mono/blob/80bb1f880b9add76c7224f1333ad24230f678c9f/sdks/wasm/packager.cs 
+
 using System;
 using System.Linq;
 using System.IO;
