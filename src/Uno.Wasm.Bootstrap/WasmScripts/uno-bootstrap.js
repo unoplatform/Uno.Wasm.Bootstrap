@@ -162,7 +162,10 @@ var App = {
             if (signature === "") {
                 BINDING.call_method(mainMethod, null, signature, []);
             } else {
-                var array = BINDING.js_array_to_mono_array(0);
+                let array = ENVIRONMENT_IS_NODE
+                    ? BINDING.js_array_to_mono_array(process.argv)
+                    : BINDING.js_array_to_mono_array([]);
+
                 BINDING.call_method (mainMethod, null, signature, [array]);
             }
         } catch (e) {
