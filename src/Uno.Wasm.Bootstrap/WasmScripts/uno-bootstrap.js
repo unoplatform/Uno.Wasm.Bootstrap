@@ -166,7 +166,7 @@ var App = {
                     ? BINDING.js_array_to_mono_array(process.argv)
                     : BINDING.js_array_to_mono_array([]);
 
-                BINDING.call_method (mainMethod, null, signature, [array]);
+                MonoRuntime.call_method (mainMethod, null, [array]);
             }
         } catch (e) {
             console.error(e);
