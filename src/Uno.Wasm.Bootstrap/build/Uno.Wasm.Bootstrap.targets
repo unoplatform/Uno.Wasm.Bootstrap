@@ -21,7 +21,7 @@
     Set this variable to use custom debugger binaries instead of the files found 
     in the active mono-wasm folder.
     -->
-    <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)/CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
+    <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
     <MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
 
     <!-- 

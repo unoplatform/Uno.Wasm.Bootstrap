@@ -384,9 +384,11 @@ namespace Uno.Wasm.Bootstrap
 				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
 				DirectoryCreateDirectory(wasmDebuggerRootPath);
 
+				CustomDebuggerPath = FixupPath(CustomDebuggerPath);
+
 				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
-				Log.LogMessage(MessageImportance.Low, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+				Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
 				if (!Directory.Exists(debuggerLocalPath))
 				{
@@ -407,7 +409,7 @@ namespace Uno.Wasm.Bootstrap
 
 					foreach (var debuggerFile in debuggerFiles)
 					{
-						var sourceBasePath = string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath;
+						var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath);
 
 						string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
 						string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
