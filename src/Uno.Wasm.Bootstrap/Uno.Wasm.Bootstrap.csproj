@@ -42,7 +42,7 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="build/packager.cs">
+		<Content Include="build/packager2.exe">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
@@ -124,5 +124,20 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 	</ItemGroup>
+
+	<Target Name="BuildPackager" BeforeTargets="Build">
+		<PropertyGroup>
+			<_packagerIntermediatePath>$(IntermediateOutputPath)packager_build/</_packagerIntermediatePath>
+		</PropertyGroup>
+		<ItemGroup>
+			<_PackagerSource Include="Packager/*.*" />
+		</ItemGroup>
+		<Message Text="Building custom packager.exe" />
+		<MakeDir Directories="$(_packagerIntermediatePath)" />
+		<Copy SourceFiles="@(_PackagerSource)" DestinationFolder="$(_packagerIntermediatePath)" />
+		<Move SourceFiles="$(_packagerIntermediatePath)packager.proj" DestinationFiles="$(_packagerIntermediatePath)packager.csproj" />
+		<MSBuild Projects="$(_packagerIntermediatePath)packager.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/packager.exe" DestinationFiles="build/packager2.exe" />
+	</Target>
 
 </Project>
