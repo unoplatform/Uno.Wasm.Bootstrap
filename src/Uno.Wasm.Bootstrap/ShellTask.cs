@@ -618,7 +618,7 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var item in Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly))
 			{
 				var fileName = Path.GetFileNameWithoutExtension(item);
-				if (!fileName.Equals("mono.wasm", StringComparison.OrdinalIgnoreCase))
+				if (!fileName.Equals("dotnet.wasm", StringComparison.OrdinalIgnoreCase))
 				{
 					yield return fileName;
 				}
@@ -916,7 +916,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var dynamicLibraries = Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly)
 					.Select(Path.GetFileName)
-					.Where(f => !f.Equals("mono.wasm"));
+					.Where(f => !f.Equals("dotnet.wasm"));
 
 				// Note that the "./" is required because mono is requesting files this
 				// way, and emscripten is having an issue on second loads for the same
@@ -964,7 +964,7 @@ namespace Uno.Wasm.Bootstrap
 				var tempFile = Path.GetTempFileName();
 				try
 				{
-					var monoJsPath = Path.Combine(_distPath, "mono.js");
+					var monoJsPath = Path.Combine(_distPath, "dotnet.js");
 
 					using (var fs = new StreamWriter(tempFile))
 					{
@@ -977,7 +977,7 @@ namespace Uno.Wasm.Bootstrap
 					File.Delete(monoJsPath);
 					File.Move(tempFile, monoJsPath);
 
-					Log.LogMessage($"Merged config files with mono.js");
+					Log.LogMessage($"Merged config files with dotnet.js");
 				}
 				finally
 				{
@@ -1005,7 +1005,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
-			const string monoWasmFileName = "mono.wasm";
+			const string monoWasmFileName = "dotnet.wasm";
 
 			var monoWasmFilePathAndName = Path.Combine(_distPath, monoWasmFileName);
 			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
@@ -1091,7 +1091,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
-				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./mono.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./dotnet.wasm\" />");
 
 				var distName = Path.GetFileName(_managedPath);
 				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))

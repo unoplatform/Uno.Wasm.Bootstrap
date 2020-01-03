@@ -7,8 +7,8 @@ namespace Uno.Wasm.Bootstrap
 	internal class Constants
 	{
 		// NOTE: The SDK version may be overriden by an installation of the https://www.nuget.org/packages/Uno.Wasm.MonoRuntime nuget package
-		public const string DefaultSdkUrl = @"https://unowasmbootstrap.blob.core.windows.net/runtime/mono-wasm-a163e05d265.zip";
-		public const string DefaultAotSDKUrl = "https://unowasmbootstrap.blob.core.windows.net/runtime/wasm-release-Linux-a163e05d265afdc5aa2b53784b7a183f96980fe3.zip";
+		public const string DefaultSdkUrl = @"https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/4515/Azure/processDownloadRequest/4515/ubuntu-1804-amd64/sdks/wasm/mono-wasm-c9a97e5258d.zip";
+		public const string DefaultAotSDKUrl = "https://jenkins.mono-project.com/job/test-mono-mainline-wasm/label=ubuntu-1804-amd64/4515/Azure/processDownloadRequest/4515/ubuntu-1804-amd64/wasm-release-Linux-c9a97e5258d40d5337fe00ea38183b2f0d9fbe00.zip";
 
 		/// <summary>
 		/// Min version of the emscripten SDK. Must be aligned with mono's SDK build in <see cref="DefaultAotSDKUrl"/>.

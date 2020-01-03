@@ -35,7 +35,7 @@ var Module = {
             return WebAssembly
                 .instantiate(getBinary(), imports)
                 .then(results => {
-                    successCallback(results.instance);
+                    successCallback(results.instance, results.module);
                 });
         } else if (typeof WebAssembly.instantiateStreaming === 'function') {
             App.fetchWithProgress(
@@ -52,7 +52,7 @@ var Module = {
                                 WebAssembly
                                     .instantiate(buffer, imports)
                                     .then(results => {
-                                        successCallback(results.instance);
+                                        successCallback(results.instance, results.module);
                                     });
                             });
                     }
@@ -60,7 +60,7 @@ var Module = {
                         return WebAssembly
                             .instantiateStreaming(response, imports)
                             .then(results => {
-                                successCallback(results.instance);
+                                successCallback(results.instance, results.module);
                             });
                     }
                 });
