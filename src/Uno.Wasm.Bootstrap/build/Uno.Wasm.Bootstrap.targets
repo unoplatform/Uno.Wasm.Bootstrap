@@ -113,7 +113,7 @@
         MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
-        PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager2.exe"
+        PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager"
         MonoTempFolder="$(WasmShellMonoTempFolder)">
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
       <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
