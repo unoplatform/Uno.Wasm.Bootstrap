@@ -21,7 +21,7 @@ namespace Uno.Wasm.Bootstrap
 		public string MonoTempFolder { get; set; }
 
 		[Required]
-		public string PackagerOverrideFile { get; set; }
+		public string PackagerOverrideFolderPath { get; set; }
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
@@ -115,10 +115,16 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				if (!string.IsNullOrEmpty(PackagerOverrideFile))
+				if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
 				{
 					PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
-					File.Copy(PackagerOverrideFile, PackagerBinPath, true);
+
+					foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
+					{
+						var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
+						Log.LogMessage($"Copy packager override {file} to {destFileName}");
+						File.Copy(file, destFileName, true);
+					}
 				}
 			}
 			catch (Exception e)
