@@ -168,6 +168,25 @@ namespace Uno.Wasm.Bootstrap
 
 		private void TryEnableLongPathAware()
 		{
+			if (EnableLongPathSupport)
+			{
+				// In some cases, particularly when using the Azure publish task
+				// long paths using the "\\?\" prefix is not supported. Fallback on
+				// standard paths in such cases.
+
+				try
+				{
+					var path = TryConvertLongPath(Path.GetFullPath(DistPath));
+
+					DirectoryCreateDirectory(path);
+				}
+				catch (ArgumentException e)
+				{
+					Log.LogMessage($"Long path format use failed, falling back to standard path (Error: {e.Message})") ;
+					EnableLongPathSupport = false;
+				}
+			}
+
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
 			DistPath = TryConvertLongPath(DistPath);
 			MonoTempFolder = TryConvertLongPath(MonoTempFolder);
@@ -221,7 +240,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 			catch(Exception e)
 			{
-				Log.LogError($"Failed to create directory {directoryName}");
+				Log.LogError($"Failed to create directory [{directoryName}][{directory}]");
 				throw;
 			}
 		}
