@@ -13,11 +13,11 @@
 
 	<PropertyGroup>
 		<Authors>nventive</Authors>
-		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</PackageProjectUrl>
 		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
-		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+		<RepositoryUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</RepositoryUrl>
 		<Description>This package provides a Wasm bootstrap for netstandard 2.0 projects.</Description>
-		<Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
+		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
 	</PropertyGroup>
 	
 	<ItemGroup>
@@ -40,10 +40,6 @@
 		<Content Include="build/*.props">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
-		</Content>
-		<Content Include="build\packager\**">
-			<Pack>true</Pack>
-			<PackagePath>build/packager</PackagePath>
 		</Content>
 		<Content Include="build/CustomDebuggerProxy/**">
 			<Pack>true</Pack>
@@ -130,8 +126,16 @@
 		<Copy SourceFiles="@(_PackagerSource)" DestinationFolder="$(_packagerIntermediatePath)" />
 		<Move SourceFiles="$(_packagerIntermediatePath)packager.proj" DestinationFiles="$(_packagerIntermediatePath)packager.csproj" />
 		<MSBuild Projects="$(_packagerIntermediatePath)packager.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
-		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/packager.exe" DestinationFiles="build/packager/packager2.exe" />
-		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/Mono.Cecil.dll" DestinationFolder="build/packager" />
+		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/packager.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/packager/packager2.exe" />
+		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager" />
+
+		<!-- Update the item group with generated files -->
+		<ItemGroup>
+			<Content Include="build/packager/**">
+				<Pack>true</Pack>
+				<PackagePath>build/packager</PackagePath>
+			</Content>
+		</ItemGroup>
 	</Target>
 
 </Project>
