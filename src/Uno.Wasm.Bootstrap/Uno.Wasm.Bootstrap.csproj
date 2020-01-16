@@ -41,9 +41,9 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="build/packager.cs">
+		<Content Include="build\packager\**">
 			<Pack>true</Pack>
-			<PackagePath>build</PackagePath>
+			<PackagePath>build/packager</PackagePath>
 		</Content>
 		<Content Include="build/CustomDebuggerProxy/**">
 			<Pack>true</Pack>
@@ -99,10 +99,10 @@
 
 	<ItemGroup>
 		<!-- This file is built as part of the UnoInstallSDKTask_v0 task -->
-		<Compile Remove="build\packager.cs" />
+		<Compile Remove="Packager\*.cs" />
 
 		<!-- But make it visible in VS -->
-		<None Include="build\packager.cs" />
+		<None Include="Packager\*.*" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -117,5 +117,21 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 	</ItemGroup>
+
+	<Target Name="BuildPackager" BeforeTargets="Build">
+		<PropertyGroup>
+			<_packagerIntermediatePath>$(IntermediateOutputPath)packager_build/</_packagerIntermediatePath>
+		</PropertyGroup>
+		<ItemGroup>
+			<_PackagerSource Include="Packager/*.*" />
+		</ItemGroup>
+		<Message Text="Building custom packager.exe" />
+		<MakeDir Directories="$(_packagerIntermediatePath)" />
+		<Copy SourceFiles="@(_PackagerSource)" DestinationFolder="$(_packagerIntermediatePath)" />
+		<Move SourceFiles="$(_packagerIntermediatePath)packager.proj" DestinationFiles="$(_packagerIntermediatePath)packager.csproj" />
+		<MSBuild Projects="$(_packagerIntermediatePath)packager.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/packager.exe" DestinationFiles="build/packager/packager2.exe" />
+		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/Mono.Cecil.dll" DestinationFolder="build/packager" />
+	</Target>
 
 </Project>

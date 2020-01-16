@@ -21,7 +21,7 @@
     Set this variable to use custom debugger binaries instead of the files found 
     in the active mono-wasm folder.
     -->
-    <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)/CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
+    <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
     <MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
 
     <!-- 
@@ -118,14 +118,12 @@
         MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
-        PackagerOverrideFile="$(MSBuildThisFileDirectory)/packager.cs"
+        PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager"
         MonoTempFolder="$(WasmShellMonoTempFolder)">
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
       <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
       <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
     </UnoInstallSDKTask_v0>
-
-    <MSBuild Condition="'$(_UnoMonoPackagerProjectFile)'!=''" Projects="$(_UnoMonoPackagerProjectFile)" Targets="Restore;Build" Properties="TargetFramework=net462" />
 
     <ShellTask_v0
         CurrentProjectPath="$(MSBuildProjectDirectory)"

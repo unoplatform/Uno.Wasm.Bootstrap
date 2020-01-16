@@ -37,6 +37,7 @@ namespace Uno.Wasm.Bootstrap
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
+		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
 		private string _distPath;
 		private string _managedPath;
@@ -138,7 +139,6 @@ namespace Uno.Wasm.Bootstrap
 
 				// Debugger.Launch();
 
-
 				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
@@ -180,9 +180,49 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// The service worker file must change to be reloaded properly, add the dist digest
 			// as cache trasher.
-			using (var stream = new StreamWriter(File.Open(Path.Combine(_distPath, "service-worker.js"), FileMode.Append)))
+			var workerFilePath = Path.Combine(_distPath, "service-worker.js");
+			var workerBody = File.ReadAllText(workerFilePath);
+
+			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_managedPath));
+			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
+
+			File.WriteAllText(workerFilePath, workerBody);
+		}
+
+		/// <summary>
+		/// Align paths to fix issues with mixed path
+		/// </summary>
+		string FixupPath(string path)
+			=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+		private void FileCopy(string source, string dest, bool overwrite = false)
+		{
+			var sourceFileName = FixupPath(source);
+			var destFileName = FixupPath(dest);
+
+			try
 			{
-				stream.WriteLine($"// {Path.GetFileName(_managedPath)}");
+				File.Copy(sourceFileName, destFileName, overwrite);
+			}
+			catch (Exception)
+			{
+				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}");
+				throw;
+			}
+		}
+
+		private void DirectoryCreateDirectory(string directory)
+		{
+			var directoryName = FixupPath(directory);
+
+			try
+			{
+				Directory.CreateDirectory(directoryName);
+			}
+			catch(Exception e)
+			{
+				Log.LogError($"Failed to create directory {directoryName}");
+				throw;
 			}
 		}
 
@@ -246,7 +286,7 @@ namespace Uno.Wasm.Bootstrap
 					var compressedFileName = fileName;
 					compressedFileName = compressedFileName.Replace(_distPath, compressedPathBase);
 
-					Directory.CreateDirectory(Path.GetDirectoryName(compressedFileName));
+					DirectoryCreateDirectory(Path.GetDirectoryName(compressedFileName));
 
 					if (File.Exists(compressedFileName))
 					{
@@ -342,11 +382,13 @@ namespace Uno.Wasm.Bootstrap
 				var sdkName = Path.GetFileName(MonoWasmSDKPath);
 
 				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
-				Directory.CreateDirectory(wasmDebuggerRootPath);
+				DirectoryCreateDirectory(wasmDebuggerRootPath);
+
+				CustomDebuggerPath = FixupPath(CustomDebuggerPath);
 
 				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
-				Log.LogMessage(MessageImportance.Low, $"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+				Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
 				if (!Directory.Exists(debuggerLocalPath))
 				{
@@ -355,7 +397,7 @@ namespace Uno.Wasm.Bootstrap
 						Directory.Delete(debugger, recursive: true);
 					}
 
-					Directory.CreateDirectory(debuggerLocalPath);
+					DirectoryCreateDirectory(debuggerLocalPath);
 
 					string[] debuggerFiles = new[] {
 						"Mono.WebAssembly.DebuggerProxy.dll",
@@ -367,7 +409,7 @@ namespace Uno.Wasm.Bootstrap
 
 					foreach (var debuggerFile in debuggerFiles)
 					{
-						var sourceBasePath = string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath;
+						var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath);
 
 						string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
 						string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
@@ -375,7 +417,7 @@ namespace Uno.Wasm.Bootstrap
 						if (File.Exists(sourceFileName))
 						{
 							Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
-							File.Copy(sourceFileName, destFileName);
+							FileCopy(sourceFileName, destFileName);
 						}
 						else
 						{
@@ -397,7 +439,7 @@ namespace Uno.Wasm.Bootstrap
 				Directory.Delete(workAotPath, true);
 			}
 
-			Directory.CreateDirectory(workAotPath);
+			DirectoryCreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
@@ -427,12 +469,12 @@ namespace Uno.Wasm.Bootstrap
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
 
 				var bitcodeFiles = GetBitcodeFilesParams();
-				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--bc={f}\"")) : "";
+				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={f}\"")) : "";
 
 				var aotMode = _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
 				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
 
 				if (aotPackagerResult != 0)
 				{
@@ -463,7 +505,7 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					Directory.Move(_managedPath, linkerInput);
-					Directory.CreateDirectory(_managedPath);
+					DirectoryCreateDirectory(_managedPath);
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
@@ -676,21 +718,24 @@ namespace Uno.Wasm.Bootstrap
 			_managedPath = Path.Combine(_distPath, "managed");
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
-			Directory.CreateDirectory(_managedPath);
+			DirectoryCreateDirectory(_managedPath);
 		}
 
 		private void CopyRuntime()
 		{
+			// Adjust for backward compatibility
+			RuntimeConfiguration = RuntimeConfiguration == "release-dynamic" ? "dynamic-release" : RuntimeConfiguration;
+
 			var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
 
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
 				var dest = Path.Combine(_distPath, Path.GetFileName(sourceFile));
 				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
-				File.Copy(sourceFile, dest, true);
+				FileCopy(sourceFile, dest, true);
 			}
 
-			File.Copy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
+			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
 		}
 
 		private void CopyContent()
@@ -731,18 +776,19 @@ namespace Uno.Wasm.Bootstrap
 
 					(var fullSourcePath, var relativePath) = GetFilePaths();
 
-					relativePath = relativePath.Replace("wwwroot" + Path.DirectorySeparatorChar, "");
+					relativePath = FixupPath(relativePath).Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
 					if (!relativePath.StartsWith(WasmScriptsFolder))
 					{
 						// Skip WasmScript folder files that may have been added as content files.
 						// This can happen when running the TypeScript compiler.
 
-						Directory.CreateDirectory(Path.Combine(_distPath, Path.GetDirectoryName(relativePath)));
-
 						var dest = Path.Combine(_distPath, relativePath);
+						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
+
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
-						File.Copy(fullSourcePath, dest, true);
+
+						FileCopy(fullSourcePath, dest, true);
 					}
 				}
 			}
@@ -868,7 +914,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.offline_files = [{offlineFiles}];");
+				config.AppendLine($"config.offline_files = ['./', {offlineFiles}];");
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
@@ -1004,7 +1050,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					var html = reader.ReadToEnd();
 
-					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{s}\" />"));
+					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"./{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
 
 					var extraBuilder = new StringBuilder();
@@ -1025,12 +1071,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
-				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"mono.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./mono.wasm\" />");
 
 				var distName = Path.GetFileName(_managedPath);
 				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
 				{
-					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{distName}/{Path.GetFileName(file)}\" />");
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./{distName}/{Path.GetFileName(file)}\" />");
 				}
 			}
 		}
@@ -1046,8 +1092,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{PWAManifestFile}\" />");
-				extraBuilder.AppendLine($"<link rel=\"script\" href=\"service-worker.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"./{PWAManifestFile}\" />");
+				extraBuilder.AppendLine($"<link rel=\"script\" href=\"./service-worker.js\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
@@ -1055,7 +1101,7 @@ namespace Uno.Wasm.Bootstrap
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
 				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{img["src"].ToString()}\" />");
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"./{img["src"].ToString()}\" />");
 				}
 
 				if (manifestDocument["theme_color"]?.Value<string>() is string color)

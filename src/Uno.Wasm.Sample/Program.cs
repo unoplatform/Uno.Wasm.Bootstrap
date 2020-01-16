@@ -18,11 +18,12 @@ using System;
 
 namespace Uno.Wasm.Sample
 { 
-    public static class Program	    
+    public static class Program
     { 
 		static void Main(string[] args)  
 		{
 			Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
+			Console.WriteLine($"args: " + args.Length);
 
 			var i = 42; 
 			var now = DateTime.Now.ToString();
