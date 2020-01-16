@@ -41,7 +41,7 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="build\packager\**">
+		<Content Include="build/packager/**">
 			<Pack>true</Pack>
 			<PackagePath>build/packager</PackagePath>
 		</Content>

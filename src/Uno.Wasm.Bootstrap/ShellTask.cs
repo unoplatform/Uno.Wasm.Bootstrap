@@ -31,6 +31,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
 using Newtonsoft.Json.Linq;
+using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
@@ -585,9 +586,9 @@ namespace Uno.Wasm.Bootstrap
 				&& !path.StartsWith(@"\\?\")
 				&& Path.IsPathRooted(path)
 				&& EnableLongPathSupport
+				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
-
 		private static string ValidateEmscripten()
 		{
 			var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
