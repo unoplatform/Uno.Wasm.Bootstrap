@@ -1079,8 +1079,10 @@ namespace Uno.Wasm.Bootstrap
 
 					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
 
-					w.Write(html);
+					// Compatibility after the change from mono.js to dotnet.js
+					html = html.Replace("mono.js\"", "dotnet.js\"");
 
+					w.Write(html);
 
 					Log.LogMessage($"HTML {htmlPath}");
 				}
