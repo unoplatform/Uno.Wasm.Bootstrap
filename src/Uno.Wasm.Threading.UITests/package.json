@@ -1,7 +1,7 @@
 {
-  "name": "uno.wasm.dynamiclinking.uitests",
+  "name": "uno.wasm.threading.uitests",
   "version": "0.0.0",
-  "description": "Uno.Wasm.DynamicLinking.UITests",
+  "description": "Uno.Wasm.threading.UITests",
   "main": "app.js",
   "author": {
     "name": ""

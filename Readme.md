@@ -273,6 +273,22 @@ from the loaded module.
 
 For more information, see the `Uno.Wasm.DynamicLinking` sample side module build script.
 
+### Threads support
+
+Mono now supports the ability to create threads, in browsers that support it (Chrome 79+, Edge 81+).  Threads are backed by [`atomics` and WebWorkers](https://emscripten.org/docs/porting/pthreads.html).
+
+To enable the support, add the following configuration:
+
+```xml
+<MonoWasmRuntimeConfiguration>threads-release</MonoWasmRuntimeConfiguration>
+```
+
+Note that executing javascript in the context of a thread stays in the worked that is assigned to the thread, thus modifying the DOM from that context will do nothing.
+
+To update the UI, execution will need to go back to the main thread, generally by using a mecanism similar to `System.Threading.Timer` which uses `setTimeout` so execute on the main thread.
+
+This mode is currently exclusive with `dynamic linking` and `debug` modes.
+
 ### Support for IIS / Azure Webapp GZip/Brotli pre-compression
 The IIS compression support has too many knobs for the size of generated WebAssembly files, which
 makes the serving of static files inefficient.

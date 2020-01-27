@@ -36,6 +36,8 @@ jobs:
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
         npm install
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
+        npm install
 
     displayName: UI Tests npm dependencies
 
@@ -73,7 +75,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.39.4
+    EMSCRIPTEN_VERSION: 1.39.5
 
   steps:
   - checkout: self
@@ -143,6 +145,16 @@ jobs:
       node app
 
     displayName: DynamicLinking Tests 
+
+  - bash: |
+      sed -i "s/8000/8002/g" "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist/server.py"
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
+      npm install
+      node app
+
+    displayName: Threading Tests 
 
   - task: PublishBuildArtifacts@1
     condition: always()

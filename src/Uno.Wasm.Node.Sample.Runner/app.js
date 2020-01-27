@@ -1,2 +1,2 @@
-global.Module = require("./app/mono");
+global.Module = require("./app/dotnet");
 //# sourceMappingURL=app.js.map
