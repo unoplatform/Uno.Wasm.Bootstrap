@@ -17,6 +17,6 @@ namespace Uno.Wasm.Bootstrap
 		/// The emscripten version use by mono can be found here:
 		/// https://github.com/mono/mono/blob/master/sdks/builds/wasm.mk#L4
 		/// </remarks>
-		public static Version EmscriptenMinVersion { get; } = new Version("1.39.4");
+		public static Version EmscriptenMinVersion { get; } = new Version("1.39.5");
 	}
 }

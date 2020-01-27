@@ -1,33 +1,50 @@
 ﻿const puppeteer = require('puppeteer');
 const path = require("path");
 
+function delay(time) {
+	return new Promise(function (resolve) {
+		setTimeout(resolve, time)
+	});
+}
+
 (async () => {
 	const browser = await puppeteer.launch({
-		"headless": true,
+		"headless": false,
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 		"defaultViewport": { "width": 1280, "height": 1024 }
 	});
 	const page = await browser.newPage();
-	await page.goto("http://localhost:8002/");
 
-	var value = null;
+	page.on('console', msg => {
+		console.log('BROWSER LOG:', msg.text());
+	});
+	page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err))
+
+	await page.goto("http://localhost:50841/");
+
+	let value: string = null;
 
 	console.log(`Init puppeteer`);
 
-	var counter = 3;
+	let counter = 10;
 
-	while (value == null && counter-- > 0) {
+	while (value === null && counter-- > 0) {
 		await delay(2000);
 		try {
-			value = await page.$eval('#results', a => a.textContent);
+			value = await page.$eval('#results', a => a.textContent) as string;
+
 			console.log(`got value= ${value}`);
+
+			if (value.indexOf('results') === -1) {
+				value = null;
+			}
 		}
 		catch (e) {
 			console.log(`Waiting for results... (${e})`);
 		}
 	}
 
-	await page.screenshot({ path: 'aotTests.png' });
+	await page.screenshot({ path: 'threads-tests.png' });
 
 	await browser.close();
 
@@ -38,7 +55,7 @@ const path = require("path");
 		console.log(`Results: ${value}`);
 	}
 
-	var expected = "StartupWorking...Done 10000 results";
+	const expected = "StartupWorking...Done 10000 results";
 
 	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);
@@ -46,9 +63,3 @@ const path = require("path");
 	}
 })();
 
-
-function delay(time) {
-	return new Promise(function (resolve) {
-		setTimeout(resolve, time)
-	});
-}

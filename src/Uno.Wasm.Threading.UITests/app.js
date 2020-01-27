@@ -9,28 +9,40 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const puppeteer = require('puppeteer');
 const path = require("path");
+function delay(time) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, time);
+    });
+}
 (() => __awaiter(this, void 0, void 0, function* () {
     const browser = yield puppeteer.launch({
-        "headless": true,
+        "headless": false,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         "defaultViewport": { "width": 1280, "height": 1024 }
     });
     const page = yield browser.newPage();
-    yield page.goto("http://localhost:8002/");
-    var value = null;
+    page.on('console', msg => {
+        console.log('BROWSER LOG:', msg.text());
+    });
+    page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err));
+    yield page.goto("http://localhost:50841/");
+    let value = null;
     console.log(`Init puppeteer`);
-    var counter = 3;
-    while (value == null && counter-- > 0) {
+    let counter = 10;
+    while (value === null && counter-- > 0) {
         yield delay(2000);
         try {
-            value = yield page.$eval('#results', a => a.textContent);
+            value = (yield page.$eval('#results', a => a.textContent));
             console.log(`got value= ${value}`);
+            if (value.indexOf('results') === -1) {
+                value = null;
+            }
         }
         catch (e) {
             console.log(`Waiting for results... (${e})`);
         }
     }
-    yield page.screenshot({ path: 'aotTests.png' });
+    yield page.screenshot({ path: 'threads-tests.png' });
     yield browser.close();
     if (!value) {
         console.log(`Failed to read the results`);
@@ -39,15 +51,10 @@ const path = require("path");
     else {
         console.log(`Results: ${value}`);
     }
-    var expected = "StartupWorking...Done 10000 results";
+    const expected = "StartupWorking...Done 10000 results";
     if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);
     }
 }))();
-function delay(time) {
-    return new Promise(function (resolve) {
-        setTimeout(resolve, time);
-    });
-}
 //# sourceMappingURL=app.js.map

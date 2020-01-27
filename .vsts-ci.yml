@@ -36,7 +36,7 @@ jobs:
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
         npm install
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
         npm install
 
     displayName: UI Tests npm dependencies
@@ -75,7 +75,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.39.4
+    EMSCRIPTEN_VERSION: 1.39.5
 
   steps:
   - checkout: self

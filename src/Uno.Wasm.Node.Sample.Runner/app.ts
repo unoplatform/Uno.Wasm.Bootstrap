@@ -1,1 +1,1 @@
-﻿(<any>global).Module = require("./app/mono");
+﻿(<any>global).Module = require("./app/dotnet");
