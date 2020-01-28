@@ -50,6 +50,7 @@ namespace Uno.Wasm.Bootstrap
 		private List<AssemblyDefinition> _referencedAssemblyDefinitions;
 		private RuntimeExecutionMode _runtimeExecutionMode;
 		private ShellMode _shellMode;
+		private string _linkerBinPath;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; }
@@ -510,12 +511,13 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
+				LinkerSetup();
+
 				//
 				// Run the IL Linker on the interpreter based output, as the packager does not yet do it.
 				//
 				if (
 					MonoILLinker
-					&& !string.IsNullOrEmpty(CustomLinkerPath)
 				)
 				{
 					string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
@@ -537,10 +539,8 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 
-					var linkerPath = Path.Combine(Path.Combine(CustomLinkerPath, "linker"), "monolinker.exe");
-
 					int linkerResults = RunProcess(
-						linkerPath,
+						_linkerBinPath,
 						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
@@ -575,6 +575,26 @@ namespace Uno.Wasm.Bootstrap
 
 					File.WriteAllText(monoConfigFilePath, monoConfig);
 				}
+			}
+		}
+
+		private void LinkerSetup()
+		{
+			_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm_tools", "monolinker.exe");
+
+			var configFilePath = _linkerBinPath + ".config";
+			if (!File.Exists(configFilePath))
+			{
+				var content = @"
+<?xml version=""1.0"" encoding=""utf-16"" ?>
+<configuration>
+  <runtime>
+    <AppContextSwitchOverrides value=""Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false"" />
+  </runtime>
+</configuration>
+";
+				// Enable long path support for the linker
+				File.WriteAllText(configFilePath, content, Encoding.Unicode);
 			}
 		}
 
