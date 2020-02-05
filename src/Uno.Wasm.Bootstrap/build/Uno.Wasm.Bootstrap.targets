@@ -157,6 +157,7 @@
         CompressedExtensions="@(WasmShellCompressedExtension)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
+		ForceUseWSL="$(WasmShellForceUseWSL)"
         Assets="@(Content)"
         ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
   </Target>

@@ -119,6 +119,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateCompressedFiles { get; set; }
 
+		public bool ForceUseWSL { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string RuntimeConfiguration { get; set; }
 
@@ -365,7 +367,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
-			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter);
+			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL);
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
@@ -502,7 +504,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (IsRuntimeAOT() || GetBitcodeFilesParams().Any())
+			if (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired)
 			{
 				var emsdkPath = ValidateEmscripten();
 

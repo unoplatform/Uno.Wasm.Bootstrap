@@ -214,7 +214,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 
 The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build), and install the appropriate Emscripten in the container.
 
-## Required configuration for AOT Compilation on Windows 10
+## Required configuration for AOT, Mixed Mode or external bitcode support Compilation on Windows 10
 
 - A Windows 10 machine with [WSL 1 or 2 with Ubuntu 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
@@ -486,3 +486,14 @@ The bootstrapper supports Windows 10 long paths by default, but there may be cas
 In such a case, setting the `<WasmShellEnableLongPathSupport>false</WasmShellEnableLongPathSupport>` in the project file can disable this feature.
 
 Additional documentation on the support for long paths [is available here](https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#enable-long-paths-in-windows-10-version-1607-and-later).
+
+### WSL Integration for Windows 10
+
+The integration with WSL provides a way for using AOT, Mixed mode or external bitcode support using Windows 10.
+
+This feature is active only if one of those condition is true:
+- The `WasmShellMonoRuntimeExecutionMode` property is `FullAOT` or `InterpreterAndAOT
+- There is a `*.bc` file in the `Content` item group
+- The `WasmShellForceUseWSL` is set to `true`
+
+Otherwise, the WSL integration is not used and the mono runtime present in the SDK is used as-is.
