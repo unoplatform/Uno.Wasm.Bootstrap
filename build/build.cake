@@ -89,17 +89,10 @@ Task("Build")
     .Description("Build all projects and get the assemblies")
     .Does(() =>
 {
-	DirectoryPath vsLatest  = VSWhereLatest();
-	FilePath msBuildPathX86 = (vsLatest==null)
-                            ? null
-                            : vsLatest.CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
-
     Information("\nBuilding Solution");
 
     var buildSettings = new MSBuildSettings
     {
-        MaxCpuCount = 1,
-		ToolPath = msBuildPathX86
 
     }
     .SetConfiguration("Release")

@@ -43,6 +43,7 @@ namespace Uno.Wasm.Bootstrap
 		private string _distPath;
 		private string _managedPath;
 		private string _bclPath;
+		private string[] _bitcodeFilesCache;
 		private List<string> _referencedAssemblies;
 		private Dictionary<string, string> _bclAssemblies;
 		private readonly List<string> _dependencies = new List<string>();
@@ -56,6 +57,9 @@ namespace Uno.Wasm.Bootstrap
 		public string CurrentProjectPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public string BuildTaskBasePath { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public string Assembly { get; set; }
 
 		[Microsoft.Build.Framework.Required]
@@ -63,6 +67,8 @@ namespace Uno.Wasm.Bootstrap
 
 		[Microsoft.Build.Framework.Required]
 		public string IntermediateOutputPath { get; set; }
+		[Microsoft.Build.Framework.Required]
+		public string BaseIntermediateOutputPath { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public string MonoWasmSDKPath { get; set; }
@@ -184,12 +190,13 @@ namespace Uno.Wasm.Bootstrap
 				}
 				catch (ArgumentException e)
 				{
-					Log.LogMessage($"Long path format use failed, falling back to standard path (Error: {e.Message})") ;
+					Log.LogMessage($"Long path format use failed, falling back to standard path (Error: {e.Message})");
 					EnableLongPathSupport = false;
 				}
 			}
 
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
+			BaseIntermediateOutputPath = TryConvertLongPath(BaseIntermediateOutputPath);
 			DistPath = TryConvertLongPath(DistPath);
 			MonoTempFolder = TryConvertLongPath(MonoTempFolder);
 			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
@@ -240,7 +247,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Directory.CreateDirectory(directoryName);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				Log.LogError($"Failed to create directory [{directoryName}][{directory}]");
 				throw;
@@ -254,9 +261,9 @@ namespace Uno.Wasm.Bootstrap
 				"*.bc",
 			};
 
-			foreach(var unusedFile in unusedFiles)
+			foreach (var unusedFile in unusedFiles)
 			{
-				foreach(var file in Directory.EnumerateFiles(_distPath, unusedFile))
+				foreach (var file in Directory.EnumerateFiles(_distPath, unusedFile))
 				{
 					Log.LogMessage(MessageImportance.Low, $"Removing unused file {file}");
 					File.Delete(file);
@@ -356,8 +363,22 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private int RunProcess(string executable, string parameters, string workingDirectory = null)
+		private bool IsWSLRequired =>
+			Environment.OSVersion.Platform == PlatformID.Win32NT
+			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter);
+
+		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
+			if(IsWSLRequired)
+			{
+				var unixPath = AlignPath(executable);
+				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
+				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory)} && " : "";
+
+				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
+			}
+
 			var p = new Process
 			{
 				StartInfo =
@@ -377,8 +398,10 @@ namespace Uno.Wasm.Bootstrap
 
 			Log.LogMessage($"Running [{p.StartInfo.WorkingDirectory}]: {p.StartInfo.FileName} {p.StartInfo.Arguments}");
 
-			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage(e.Data); } };
-			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError(e.Data); } };
+			var output = new StringBuilder();
+			var error = new StringBuilder();
+			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage(e.Data); output.Append(e.Data); } };
+			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError(e.Data); error.Append(e.Data); } };
 
 			if (p.Start())
 			{
@@ -388,13 +411,16 @@ namespace Uno.Wasm.Bootstrap
 				var exitCore = p.ExitCode;
 				p.Close();
 
-				return exitCore;
+				return (exitCore, output.ToString(), error.ToString());
 			}
 			else
 			{
 				throw new Exception($"Failed to start [{executable}]");
 			}
 		}
+
+		private string AlignPath(string path)
+			=> IsWSLRequired ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
 
 		private void TryDeployDebuggerProxy()
 		{
@@ -462,21 +488,21 @@ namespace Uno.Wasm.Bootstrap
 
 			DirectoryCreateDirectory(workAotPath);
 
-			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{r}\""));
+			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			int packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{TryConvertLongPath(Path.GetFullPath(Assembly))}\"", _distPath);
+			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _distPath);
 
-			if (packagerResults != 0)
+			if (packagerResults.exitCode != 0)
 			{
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (IsRuntimeAOT())
+			if (IsRuntimeAOT() || GetBitcodeFilesParams().Any())
 			{
 				var emsdkPath = ValidateEmscripten();
 
@@ -490,21 +516,36 @@ namespace Uno.Wasm.Bootstrap
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
 
 				var bitcodeFiles = GetBitcodeFilesParams();
-				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={f}\"")) : "";
+				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={AlignPath(f)}\"")) : "";
 
-				var aotMode = _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT ? $"--aot-interp {mixedModeAotAssembliesParam}" : "--aot";
-				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{workAotPath}\"";
+				string buildRuntimeFlags()
+				{
+					switch (_runtimeExecutionMode)
+					{
+						case RuntimeExecutionMode.FullAOT:
+							return "--aot";
+						case RuntimeExecutionMode.InterpreterAndAOT:
+							return $"--aot-interp {mixedModeAotAssembliesParam}";
+						case RuntimeExecutionMode.Interpreter:
+							return "";
+						default:
+							throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported");
+					}
+				}
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{Path.GetFullPath(Assembly)}\"", _distPath);
+				var aotMode = buildRuntimeFlags();
+				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
-				if (aotPackagerResult != 0)
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{AlignPath(Path.GetFullPath(Assembly))}\"", _distPath);
+
+				if (aotPackagerResult.exitCode != 0)
 				{
 					throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 
 				var ninjaResult = RunProcess("ninja", "", workAotPath);
 
-				if (ninjaResult != 0)
+				if (ninjaResult.exitCode != 0)
 				{
 					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
@@ -539,13 +580,13 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 
-					int linkerResults = RunProcess(
+					var linkerResults = RunProcess(
 						_linkerBinPath,
 						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
-					if (linkerResults != 0)
+					if (linkerResults.exitCode != 0)
 					{
 						throw new Exception("Failed to execute the linker");
 					}
@@ -609,48 +650,59 @@ namespace Uno.Wasm.Bootstrap
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
-		private static string ValidateEmscripten()
+
+		private string ValidateEmscripten()
 		{
-			var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-			if (string.IsNullOrEmpty(emsdkPath))
+			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
-				throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-			}
+				var setupScript = Path.Combine(BuildTaskBasePath, "scripts", "wsl-setup.sh");
 
-			// Get the version file https://github.com/emscripten-core/emsdk/blob/efc64876db1473312587a3f346be000a733bc16d/emsdk.py#L1698
-			var emsdkVersionVersionFile = Path.Combine(emsdkPath, "upstream", "emscripten", "emscripten-version.txt");
+				// Adjust line endings
+				File.WriteAllText(setupScript, File.ReadAllText(setupScript).Replace("\r\n", "\n"));
 
-			var rawEmsdkVersionVersion = File.Exists(emsdkVersionVersionFile) ? File.ReadAllText(emsdkVersionVersionFile)?.Trim('\"') : "";
-			var validVersion = Version.TryParse(rawEmsdkVersionVersion, out var emsdkVersion);
+				var result = RunProcess(
+					setupScript,
+					$"\"{BaseIntermediateOutputPath.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenMinVersion}");
 
-			if (string.IsNullOrWhiteSpace(emsdkPath)
-				|| !validVersion
-				|| emsdkVersion < Constants.EmscriptenMinVersion)
-			{
-				throw new InvalidOperationException($"The EMSDK version {emsdkVersion} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
-			}
-
-			return emsdkPath;
-		}
-
-		private IEnumerable<string> GetDynamicLibrariesParams()
-		{
-			foreach (var item in Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly))
-			{
-				var fileName = Path.GetFileNameWithoutExtension(item);
-				if (!fileName.Equals("dotnet.wasm", StringComparison.OrdinalIgnoreCase))
+				if(result.exitCode == 0)
 				{
-					yield return fileName;
+					return BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}\\emsdk";
 				}
+
+				throw new InvalidOperationException($"Failed to setup WSL environment. Make sure to run the installation scripts.");
+			}
+			else
+			{
+				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
+				if (string.IsNullOrEmpty(emsdkPath))
+				{
+					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
+				}
+
+				// Get the version file https://github.com/emscripten-core/emsdk/blob/efc64876db1473312587a3f346be000a733bc16d/emsdk.py#L1698
+				var emsdkVersionVersionFile = Path.Combine(emsdkPath, "upstream", "emscripten", "emscripten-version.txt");
+
+				var rawEmsdkVersionVersion = File.Exists(emsdkVersionVersionFile) ? File.ReadAllText(emsdkVersionVersionFile)?.Trim('\"') : "";
+				var validVersion = Version.TryParse(rawEmsdkVersionVersion, out var emsdkVersion);
+
+				if (string.IsNullOrWhiteSpace(emsdkPath)
+					|| !validVersion
+					|| emsdkVersion < Constants.EmscriptenMinVersion)
+				{
+					throw new InvalidOperationException($"The EMSDK version {emsdkVersion} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
+				}
+
+				return emsdkPath;
 			}
 		}
+
+		private IEnumerable<string> GetDynamicLibrariesParams() =>
+			GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension);
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			foreach (var item in Directory.GetFiles(_distPath, "*.bc", SearchOption.TopDirectoryOnly))
-			{
-				yield return item;
-			}
+			_bitcodeFilesCache = _bitcodeFilesCache ?? Directory.EnumerateFiles(_distPath, "*.bc", SearchOption.TopDirectoryOnly).ToArray();
+			return _bitcodeFilesCache;
 		}
 
 		private void ParseProperties()

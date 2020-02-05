@@ -49,6 +49,10 @@
 			<Pack>true</Pack>
 			<PackagePath>build/linker</PackagePath>
 		</Content>
+		<Content Include="build/scripts/**">
+			<Pack>true</Pack>
+			<PackagePath>build/scripts</PackagePath>
+		</Content>
 		<Content Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>

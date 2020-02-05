@@ -1,15 +1,8 @@
-
-resources:
-  containers:
-  - container: nv-bionic-wasm
-    image: nventive/wasm-build:1.3
-
-
 jobs:
 - job: Windows
 
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'windows-2019'
     
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
@@ -30,6 +23,7 @@ jobs:
       updateAssemblyInfo: false
 
   - powershell: |
+        $ErrorActionPreference = 'SilentlyContinue'
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
@@ -63,105 +57,17 @@ jobs:
       ArtifactName: uno-wasm-bootstrap-drop
       ArtifactType: Container
 
-- job: Linux
+- template: .vsts-ci-linux.yml
+  parameters:
+    jobName: Linux_netcore2_2
+    netcore_version: 2.2.x
+    linux_container: nventive/wasm-build:1.3
 
-  container: nv-bionic-wasm
-
-  workspace:
-    clean: all
-      
-  pool:
-    vmImage: 'ubuntu-16.04'
-
-  variables:
-    NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.39.7
-
-  steps:
-  - checkout: self
-    clean: true
-    
-  - task: GitVersion@5
-    inputs:
-      useConfigFile: true
-      configFilePath: gitversion.yml
-      updateAssemblyInfo: false
-
-  - bash: |
-      cd ~
-      echo Installing emscripten $(EMSCRIPTEN_VERSION)
-      git clone https://github.com/emscripten-core/emsdk
-      cd ~/emsdk
-      ./emsdk install $(EMSCRIPTEN_VERSION)
-      ./emsdk activate $(EMSCRIPTEN_VERSION)
-
-    displayName: 'Setup Emscripten'
-
-  - bash: |
-      cd ~/emsdk
-      wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff
-      wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff
-      cd ~/emsdk/upstream/emscripten
-      patch -N -p1 < ~/emsdk/emscripten-pr-8457.diff
-      patch -N -p1 < ~/emsdk/fix-emscripten-8511.diff
-
-    displayName: 'Apply Emscripten Mono patches'
-
-  - task: NuGetToolInstaller@0
-    inputs:
-      versionSpec: 4.9.1
-      checkLatest: false
-
-  - bash: |
-      source ~/emsdk/emsdk_env.sh
-      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
-
-    displayName: Build 
-
-  - task: CopyFiles@2
-    inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/publish
-      Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)
-      CleanTargetFolder: false
-      OverWrite: false
-      flattenFolders: false
-
-  - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/WasmAot.UITests
-      npm install
-      node app
-
-    displayName: Raytracer UI Tests 
-
-  - bash: |
-      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist/server.py"
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
-      npm install
-      node app
-
-    displayName: DynamicLinking Tests 
-
-  - bash: |
-      sed -i "s/8000/8002/g" "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist/server.py"
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
-      npm install
-      node app
-
-    displayName: Threading Tests 
-
-  - task: PublishBuildArtifacts@1
-    condition: always()
-    inputs:
-      PathtoPublish: $(build.artifactstagingdirectory)
-      ArtifactName: uno-wasm-bootstrap-linux-aot
-      ArtifactType: Container
+- template: .vsts-ci-linux.yml
+  parameters:
+    jobName: Linux_netcore3_0
+    netcore_version: 3.0.x
+    linux_container: unoplatform/wasm-build:2.0
 
 - job: macOS
 

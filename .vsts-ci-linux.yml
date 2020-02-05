@@ -1,0 +1,125 @@
+parameters:
+  jobName: ''
+  linux_container: ''
+  linux_vmImage: 'ubuntu-16.04'
+  netcore_version: ''
+
+jobs:
+- job: ${{ parameters.jobName }}
+
+  container: ${{ parameters.linux_container }}
+
+  workspace:
+    clean: all
+      
+  pool:
+    vmImage: ${{ parameters.linux_vmImage }}
+
+  variables:
+    NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+    EMSCRIPTEN_VERSION: 1.39.7
+    NETCORE_VERSION: ${{ parameters.netcore_version }}
+
+  steps:
+  - checkout: self
+    clean: true
+
+  # Select .NET Core 2.2 for gitversion@5
+  - task: UseDotNet@2
+    condition: ne(variables['NETCORE_VERSION'], '2.2.x')
+    displayName: 'Use .NET Core sdk'
+    inputs:
+      packageType: sdk
+      version: 2.2.x
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - task: GitVersion@5
+    inputs:
+      runtime: 'core'
+      useConfigFile: true
+      configFilePath: gitversion.yml
+      updateAssemblyInfo: false
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET Core sdk'
+    condition: ne(variables['NETCORE_VERSION'], '2.2.x')
+    inputs:
+      packageType: sdk
+      version: ${{ parameters.netcore_version }}
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - bash: |
+      cd ~
+      echo Installing emscripten $(EMSCRIPTEN_VERSION)
+      git clone https://github.com/emscripten-core/emsdk
+      cd ~/emsdk
+      ./emsdk install $(EMSCRIPTEN_VERSION)
+      ./emsdk activate $(EMSCRIPTEN_VERSION)
+
+    displayName: 'Setup Emscripten'
+
+  - bash: |
+      cd ~/emsdk
+      wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff
+      wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff
+      cd ~/emsdk/upstream/emscripten
+      patch -N -p1 < ~/emsdk/emscripten-pr-8457.diff
+      patch -N -p1 < ~/emsdk/fix-emscripten-8511.diff
+
+    displayName: 'Apply Emscripten Mono patches'
+
+  - task: NuGetToolInstaller@0
+    inputs:
+      versionSpec: 4.9.1
+      checkLatest: false
+
+  - bash: |
+      source ~/emsdk/emsdk_env.sh
+      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+
+    displayName: Build 
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/publish
+      Contents: '**/*.*'
+      TargetFolder: $(build.artifactstagingdirectory)
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/WasmAot.UITests
+      npm install
+      node app
+
+    displayName: Raytracer UI Tests 
+
+  - bash: |
+      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist/server.py"
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+      npm install
+      node app
+
+    displayName: DynamicLinking Tests 
+
+  - bash: |
+      sed -i "s/8000/8002/g" "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist/server.py"
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist
+      python server.py &
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
+      npm install
+      node app
+
+    displayName: Threading Tests 
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-linux-aot
+      ArtifactType: Container
