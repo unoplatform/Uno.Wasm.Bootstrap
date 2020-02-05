@@ -117,6 +117,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] CompressedExtensions { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] ExtraEmccFlags { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public bool ForceUseWSL { get; set; }
@@ -538,7 +540,9 @@ namespace Uno.Wasm.Bootstrap
 				var aotMode = buildRuntimeFlags();
 				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{AlignPath(Path.GetFullPath(Assembly))}\"", _distPath);
+				var extraEmccFlags = string.Join(" ", ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).Replace("\\", "\\\\");
+
+				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --extra-emccflags=\"{extraEmccFlags}\" --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{AlignPath(Path.GetFullPath(Assembly))}\"", _distPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{

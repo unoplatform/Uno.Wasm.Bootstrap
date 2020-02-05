@@ -277,6 +277,14 @@ Any `.bc` file placed as content in the built project will be statically linked 
 the currently running application, allowing for p/invoke to be functional when resolving methods
 from the loaded module.
 
+Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
+
+```xml
+<ItemGroup>
+	<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
+</ItemGroup>
+```
+
 For more information, see the `Uno.Wasm.DynamicLinking` sample side module build script.
 
 ### Threads support

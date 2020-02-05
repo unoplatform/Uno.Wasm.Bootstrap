@@ -144,6 +144,7 @@ class Driver {
 		Console.WriteLine ("\t--native-lib=x  Link the native library 'x' into the final executable.");
 		Console.WriteLine ("\t--preload-file=x Preloads the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--embed-file=x  Embeds the file or directory 'x' into the virtual filesystem.");
+		Console.WriteLine ("\t--extra-emccflags=\"x\"  Additional emscripten arguments (e.g. -s USE_LIBPNG=1).");
 
 		Console.WriteLine ("foo.dll         Include foo.dll as one of the root assemblies");
 		Console.WriteLine ();
@@ -423,6 +424,7 @@ class Driver {
 		string coremode, usermode;
 		string aot_profile = null;
 		var runtime_config = "release";
+		string extra_emccflags = "";
 
 		var opts = new WasmOptions () {
 			AddBinding = true,
@@ -467,6 +469,7 @@ class Driver {
 				{ "preload-file=", s => preload_files.Add (s) },
 				{ "embed-file=", s => embed_files.Add (s) },
 				{ "framework=", s => framework = s },
+				{ "extra-emccflags=", s => extra_emccflags = s },
 				{ "help", s => print_usage = true },
 			};
 
@@ -895,6 +898,9 @@ class Driver {
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
 			emcc_flags = "-s SIMD=1 ";
+		}
+		if (!string.IsNullOrEmpty(extra_emccflags)) {
+			emcc_flags += " " + extra_emccflags + " ";
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));

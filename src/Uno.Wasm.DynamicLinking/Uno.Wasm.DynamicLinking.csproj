@@ -40,6 +40,10 @@
 		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
 	</ItemGroup>
+	
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
+	</ItemGroup>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
