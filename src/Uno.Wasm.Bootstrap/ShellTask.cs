@@ -538,7 +538,7 @@ namespace Uno.Wasm.Bootstrap
 				}
 
 				var aotMode = buildRuntimeFlags();
-				var aotOptions = $"{aotMode} --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} --linker --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				var extraEmccFlags = string.Join(" ", ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).Replace("\\", "\\\\");
 
@@ -586,9 +586,10 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 
+					// Opts should be aligned with the monolinker call in packager.cs
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none --exclude-feature com --exclude-feature remoting -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
+						$"-out \"{_managedPath}\" --verbose -b true -l none --deterministic --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
