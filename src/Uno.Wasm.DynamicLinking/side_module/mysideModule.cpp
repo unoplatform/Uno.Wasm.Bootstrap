@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <png.h>
 
 #define WASM_EXPORT __attribute__((visibility("default")))
 
@@ -9,6 +10,7 @@ extern "C" {
 	WASM_EXPORT float test_add_float(float a, float b);
 	WASM_EXPORT double test_add_double(double a, double b);
 	WASM_EXPORT int test_exception();
+	WASM_EXPORT void test_png();
 }
 
 WASM_EXPORT int test_add(int a, int b) {
@@ -44,4 +46,9 @@ WASM_EXPORT int test_exception() {
 
 	printf("After block\r\n");
 	return 42;
+}
+
+WASM_EXPORT void test_png() {
+	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	printf("After test_png\r\n");
 }

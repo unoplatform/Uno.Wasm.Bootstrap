@@ -24,9 +24,9 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.0.0-dev.1" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.1.0-dev.1" />
 
-    <DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />
+    <DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.1.0-dev.1" />
  </ItemGroup>
 
 </Project>
@@ -175,7 +175,9 @@ The linker mode can also be completely disabled for troubleshooting, as this wil
 ### AOT Mode
 This mode generates WebAssembly binary for all the referenced assemblies and provides the fastest code execution, but also generates the largest payload. This mode will not allow the execution of code that was not known at compile time (e.g. dynamically generated assemblies or loaded through `Assembly.LoadFrom`).
 
-It is **currently only available on Linux** (18.04 and later, or similar).
+It is available on Windows 10 and Linux (18.04 and later, or similar). 
+
+> Note that this mode and the mixed mode below are not available on windows 2019 hosted agents. Use Linux agents instead.
 
 To ensure that AOT is only run under Linux, add the following to your project:
 ```xml
@@ -196,11 +198,11 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
 
-## Required configuration for AOT Compilation
-- A Linux 18.04 machine or [WSL 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+## Required configuration for AOT Compilation on Linux
+- A Linux 18.04 machine or [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
-- An active Emscripten **1.39.4**
+- An active Emscripten **1.39.7**
 - Patches to emscripten, run this (given emsdk is in `~/emsdk`):
   ```bash
   cd ~/emsdk/upstream/emscripten
@@ -211,6 +213,14 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
   ```
 
 The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build), and install the appropriate Emscripten in the container.
+
+## Required configuration for AOT, Mixed Mode or external bitcode support Compilation on Windows 10
+
+- A Windows 10 machine with [WSL 1 or 2 with Ubuntu 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
+- A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
+
+The rest is taken care of by the build process (e.g. installing the proper emscripten binaries).
 
 ## Debugging and contributing to the Uno WebAssembly Bootstrapper
 
@@ -253,16 +263,12 @@ Click on the button below to try this out!
 ### WebAssembly Module Linking support
 
 #### Dynamic Linking
-Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/emscripten/wiki/Linking) is included in the bootstrapper and is used for interpreter based builds.
+Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/emscripten/wiki/Linking) has been removed from the boostrapper as of version 1.1, as it has been too unstable to work with.
 
-Any `.wasm` file placed as content in the built project will be dynamically linked to 
-the currently running application, allowing for p/invoke to be functional when resolving methods
-from the loaded module.
-
-For more information, please refer to the `Uno.Wasm.DynamicLinking` sample in the `Uno.Wasm.Bootstrap` solution.
+Instead, use Static Linking below.
 
 #### Static Linking
-Statically linking Emscripten LLVM Bitcode (`.bc` files) files to mono is supported when building for AOT and Mixed runtime modes.
+Statically linking Emscripten LLVM Bitcode (`.bc` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
 This linking type embeds the `.bc` files with the rest of the WebAssembly modules, and uses _normal_
 webassembly function invocations that are faster than with dynamic linking.
@@ -270,6 +276,14 @@ webassembly function invocations that are faster than with dynamic linking.
 Any `.bc` file placed as content in the built project will be statically linked to 
 the currently running application, allowing for p/invoke to be functional when resolving methods
 from the loaded module.
+
+Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
+
+```xml
+<ItemGroup>
+	<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
+</ItemGroup>
+```
 
 For more information, see the `Uno.Wasm.DynamicLinking` sample side module build script.
 
@@ -480,3 +494,14 @@ The bootstrapper supports Windows 10 long paths by default, but there may be cas
 In such a case, setting the `<WasmShellEnableLongPathSupport>false</WasmShellEnableLongPathSupport>` in the project file can disable this feature.
 
 Additional documentation on the support for long paths [is available here](https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#enable-long-paths-in-windows-10-version-1607-and-later).
+
+### WSL Integration for Windows 10
+
+The integration with WSL provides a way for using AOT, Mixed mode or external bitcode support using Windows 10.
+
+This feature is active only if one of those condition is true:
+- The `WasmShellMonoRuntimeExecutionMode` property is `FullAOT` or `InterpreterAndAOT
+- There is a `*.bc` file in the `Content` item group
+- The `WasmShellForceUseWSL` is set to `true`
+
+Otherwise, the WSL integration is not used and the mono runtime present in the SDK is used as-is.

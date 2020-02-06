@@ -29,6 +29,9 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string MonoRuntimeExecutionMode { get; set; }
 
+		[Microsoft.Build.Framework.Required]
+		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
+
 		[Output]
 		public string SdkPath { get; set; }
 
@@ -94,6 +97,7 @@ namespace Uno.Wasm.Bootstrap
 					(
 					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
 					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
+					|| HasBitcodeAssets()
 					)
 					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
 				)
@@ -132,6 +136,9 @@ namespace Uno.Wasm.Bootstrap
 				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}, {e}");
 			}
 		}
+
+		private bool HasBitcodeAssets()
+			=> Assets.Any(a => a.ItemSpec.EndsWith(".bc", StringComparison.OrdinalIgnoreCase));
 
 		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
 		{

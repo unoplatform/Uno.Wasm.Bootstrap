@@ -144,6 +144,7 @@ class Driver {
 		Console.WriteLine ("\t--native-lib=x  Link the native library 'x' into the final executable.");
 		Console.WriteLine ("\t--preload-file=x Preloads the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--embed-file=x  Embeds the file or directory 'x' into the virtual filesystem.");
+		Console.WriteLine ("\t--extra-emccflags=\"x\"  Additional emscripten arguments (e.g. -s USE_LIBPNG=1).");
 
 		Console.WriteLine ("foo.dll         Include foo.dll as one of the root assemblies");
 		Console.WriteLine ();
@@ -423,6 +424,7 @@ class Driver {
 		string coremode, usermode;
 		string aot_profile = null;
 		var runtime_config = "release";
+		string extra_emccflags = "";
 
 		var opts = new WasmOptions () {
 			AddBinding = true,
@@ -467,6 +469,7 @@ class Driver {
 				{ "preload-file=", s => preload_files.Add (s) },
 				{ "embed-file=", s => embed_files.Add (s) },
 				{ "framework=", s => framework = s },
+				{ "extra-emccflags=", s => extra_emccflags = s },
 				{ "help", s => print_usage = true },
 			};
 
@@ -896,6 +899,9 @@ class Driver {
 			aot_args += "mattr=simd,";
 			emcc_flags = "-s SIMD=1 ";
 		}
+		if (!string.IsNullOrEmpty(extra_emccflags)) {
+			emcc_flags += " " + extra_emccflags + " ";
+		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
 
@@ -933,7 +939,7 @@ class Driver {
 		}else{
 			ninja.WriteLine("emcc = source $emsdk_env && emcc");
 			// -s ASSERTIONS=2 is very slow
-			ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s DISABLE_EXCEPTION_CATCHING=0 -s WASM_OBJECT_FILES=0  -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\', \'memset\']\"");
+			ninja.WriteLine($"emcc_flags = -Oz -g {emcc_flags}-s DISABLE_EXCEPTION_CATCHING=0 -s WASM_OBJECT_FILES=0  -s RESERVED_FUNCTION_POINTERS=64 -s ALLOW_TABLE_GROWTH=1 -s ASSERTIONS=1 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN=1 -s TOTAL_MEMORY=134217728 -s ALIASING_FUNCTION_POINTERS=0 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\', \'memset\']\"");
 		}
 
 		ninja.WriteLine ("wasm_strip = $emscripten_sdkdir/upstream/bin/wasm-strip");

@@ -7,7 +7,7 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>
-		<MonoWasmRuntimeConfiguration Condition="!$([MSBuild]::IsOsPlatform('Linux'))">release-dynamic</MonoWasmRuntimeConfiguration>
+		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Windows'))">Interpreter</WasmShellMonoRuntimeExecutionMode>
 	</PropertyGroup>
       
 	<ItemGroup>
@@ -26,20 +26,23 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Remove="side.wasm" />
 		<None Remove="side.bc" />
 		<None Remove="WasmScripts\test.js" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="side.wasm" />
-		<Content Include="side.bc" />
+		<!-- Remove this so that the CI passes without validating for WSL support -->
+		<Content Condition="$([MSBuild]::IsOsPlatform('Linux')) or exists('$(WINDIR)\sysnative\bash.exe')" Include="side.bc" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
 	</ItemGroup>
 
 	<ItemGroup>
