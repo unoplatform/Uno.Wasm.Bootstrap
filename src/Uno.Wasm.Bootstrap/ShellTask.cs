@@ -661,21 +661,33 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
-				var setupScript = Path.Combine(BuildTaskBasePath, "scripts", "wsl-setup.sh");
+				if(!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
+				{
+					throw new InvalidCastException("The  is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+				}
+
+				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
 
 				// Adjust line endings
-				File.WriteAllText(setupScript, File.ReadAllText(setupScript).Replace("\r\n", "\n"));
+				AdjustFileLineEndings(emscriptenSetupScript);
 
 				var result = RunProcess(
-					setupScript,
+					emscriptenSetupScript,
 					$"\"{BaseIntermediateOutputPath.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenMinVersion}");
 
-				if(result.exitCode == 0)
+				if (result.exitCode == 0)
 				{
 					return BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}\\emsdk";
 				}
 
-				throw new InvalidOperationException($"Failed to setup WSL environment. Make sure to run the installation scripts.");
+				var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");
+				AdjustFileLineEndings(dotnetSetupScript);
+
+				Log.LogError(
+					$"The Windows Subsystem for Linux dotnet environment may not be properly setup, and you may need to run " +
+					$"the environment setup script. Open a Windows Command Prompt and run:\n\nbash -c `wslpath \"{dotnetSetupScript}\"`\n\n");
+
+				throw new InvalidOperationException($"Failed to setup WSL environment.");
 			}
 			else
 			{
@@ -701,6 +713,9 @@ namespace Uno.Wasm.Bootstrap
 				return emsdkPath;
 			}
 		}
+
+		private static void AdjustFileLineEndings(string emscriptenSetupScript)
+			=> File.WriteAllText(emscriptenSetupScript, File.ReadAllText(emscriptenSetupScript).Replace("\r\n", "\n"));
 
 		private IEnumerable<string> GetDynamicLibrariesParams() =>
 			GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension);

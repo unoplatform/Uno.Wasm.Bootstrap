@@ -220,7 +220,9 @@ The easiest is to build using the environment provided by the [unoplatform/wasm-
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
 
-The rest is taken care of by the build process (e.g. installing the proper emscripten binaries).
+During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](/src/Uno.Wasm.Bootstrap/build/scripts/dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
+
+The emscripten installation is automatically done as part of the build.
 
 ## Debugging and contributing to the Uno WebAssembly Bootstrapper
 
