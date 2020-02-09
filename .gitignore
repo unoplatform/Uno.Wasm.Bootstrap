@@ -263,3 +263,8 @@ __pycache__/
 PublishProfiles
 launchSettings.json
 *.binlog
+
+# Directory Cache files
+.DS_Store
+thumbs.db
+/src/Uno.Wasm.Bootstrap/build/packager

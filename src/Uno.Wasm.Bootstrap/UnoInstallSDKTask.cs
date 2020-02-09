@@ -21,7 +21,7 @@ namespace Uno.Wasm.Bootstrap
 		public string MonoTempFolder { get; set; }
 
 		[Required]
-		public string PackagerOverrideFile { get; set; }
+		public string PackagerOverrideFolderPath { get; set; }
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
@@ -114,53 +114,18 @@ namespace Uno.Wasm.Bootstrap
 						Process.Start("chmod", $"-R +x {SdkPath}");
 					}
 				}
-				//
-				// Disable the packager override as the local updates have been merged into mono master.
-				//
 
-				// Download the corresponding packager
-				var packagerPath = Path.Combine(SdkPath, "packager_build");
-				var packagerFilePath = Path.Combine(packagerPath, "packager.cs");
-
-				Directory.CreateDirectory(packagerPath);
-
-				if (!File.Exists(packagerFilePath))
+				if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
 				{
-					Log.LogMessage($"Overriding packager for {sdkName} with {PackagerOverrideFile}");
-					File.Copy(PackagerOverrideFile, packagerFilePath, true);
+					PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
+
+					foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
+					{
+						var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
+						Log.LogMessage($"Copy packager override {file} to {destFileName}");
+						File.Copy(file, destFileName, true);
+					}
 				}
-
-				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
-
-				var projectFile = $@"
-					<Project Sdk=""Microsoft.NET.Sdk"">
-					  <PropertyGroup>
-						<TargetFramework>net462</TargetFramework>
-						<OutputType>Exe</OutputType>
-						<OutputPath>..</OutputPath>
-						<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-					  </PropertyGroup>
-						<ItemGroup>
-							<!-- Enable cross targeting, in case net462 is not installed on the current machine -->
-							<PackageReference Include=""Microsoft.NETFramework.ReferenceAssemblies"" Version=""1.0.0-preview.2"" PrivateAssets=""All"" />
-
-							<Reference Include=""Mono.Cecil"">
-								<HintPath>{SdkPath}/Mono.Cecil.dll</HintPath>
-							</Reference>
-							<Reference Include=""Mono.Options"">
-								<HintPath>{SdkPath}/Mono.Options.dll</HintPath>
-							</Reference>
-						</ItemGroup>
-					</Project>
-				";
-
-				PackagerProjectFile = Path.Combine(packagerPath, "packager2.csproj");
-				File.WriteAllText(PackagerProjectFile, projectFile);
-
-				var thisPath = Path.Combine(Path.GetDirectoryName(new Uri(GetType().Assembly.Location).LocalPath));
-
-				File.Copy(Path.Combine(thisPath, "Mono.Cecil.dll"), Path.Combine(SdkPath, "Mono.Cecil.dll"), true);
-				File.Copy(Path.Combine(thisPath, "Mono.Options.dll"), Path.Combine(SdkPath, "Mono.Options.dll"), true);
 			}
 			catch (Exception e)
 			{
