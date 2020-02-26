@@ -495,11 +495,12 @@ namespace Uno.Wasm.Bootstrap
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
+			var appDirParm = $"--appdir=\"{AlignPath(_distPath)}\" ";
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _distPath);
+			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _distPath);
 
 			if (packagerResults.exitCode != 0)
 			{
@@ -542,7 +543,18 @@ namespace Uno.Wasm.Bootstrap
 
 				var extraEmccFlags = string.Join(" ", ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).Replace("\\", "\\\\");
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"{debugOption} --zlib --enable-fs --extra-emccflags=\"{extraEmccFlags}\" --runtime-config={RuntimeConfiguration} {aotOptions} {referencePathsParameter} \"{AlignPath(Path.GetFullPath(Assembly))}\"", _distPath);
+				var packagerParams =
+					$"{debugOption} " +
+					$"--zlib " +
+					$"--enable-fs " +
+					$"--extra-emccflags=\"{extraEmccFlags}\" " +
+					$"{appDirParm} " +
+					$"--runtime-config={RuntimeConfiguration} " +
+					$"{aotOptions} " +
+					$"{referencePathsParameter} " +
+					$"\"{AlignPath(Path.GetFullPath(Assembly))}\"";
+
+				var aotPackagerResult = RunProcess(packagerBinPath, packagerParams, _distPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -586,10 +598,12 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 
-					// Opts should be aligned with the monolinker call in packager.cs
+					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
+					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw --used-attrs-only true ";
+
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none --deterministic --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
+						$"-out \"{_managedPath}\" --verbose -b true -l none {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
