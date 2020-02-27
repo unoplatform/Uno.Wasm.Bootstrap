@@ -381,6 +381,11 @@ namespace Uno.Wasm.Bootstrap
 
 				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
+
+				if (!File.Exists(executable))
+				{
+					throw new InvalidOperationException($"WSL is required for this build but could not be found. (Searched for [{executable}])");
+				}
 			}
 
 			var p = new Process
@@ -547,7 +552,7 @@ namespace Uno.Wasm.Bootstrap
 					$"{debugOption} " +
 					$"--zlib " +
 					$"--enable-fs " +
-					$"--extra-emccflags=\"{extraEmccFlags}\" " +
+					$"--extra-emccflags=\"{extraEmccFlags} -lidbfs.js\" " +
 					$"{appDirParm} " +
 					$"--runtime-config={RuntimeConfiguration} " +
 					$"{aotOptions} " +

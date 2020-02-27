@@ -9,3 +9,15 @@ var Interop = {
         parent.appendChild(txt, parent.lastChild);
     }
 };
+
+var Validation = {
+    validateEmAddFunction: function (str) {
+        var fPtr = Module.addFunction((state) => { }, 'vi');
+
+        if (!fPtr) {
+            throw `Could not execute emscripten addFunction`;
+        }
+
+        return fPtr;
+    }
+};
