@@ -17,10 +17,10 @@ const path = require("path");
     });
     const page = yield browser.newPage();
     yield page.goto("http://localhost:8001/");
-    var value = null;
+    let value = null;
     console.log(`Init puppeteer`);
-    var counter = 3;
-    while (value == null && counter-- > 0) {
+    let counter = 3;
+    while (value === null && counter-- > 0) {
         yield delay(2000);
         try {
             value = yield page.$eval('#results', a => a.textContent);
@@ -39,8 +39,8 @@ const path = require("path");
     else {
         console.log(`Results: ${value}`);
     }
-    var expected = "FullAOT;42;42.3;42.7;e42";
-    if (value != expected) {
+    const expected = "FullAOT;42;42.3;42.7;e42;True";
+    if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);
     }

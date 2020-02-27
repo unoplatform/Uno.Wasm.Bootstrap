@@ -10,13 +10,13 @@ const path = require("path");
 	const page = await browser.newPage();
 	await page.goto("http://localhost:8001/");
 
-	var value = null;
+	let value = null;
 
 	console.log(`Init puppeteer`);
 
-	var counter = 3;
+	let counter = 3;
 
-	while (value == null && counter-- > 0) {
+	while (value === null && counter-- > 0) {
 		await delay(2000);
 		try {
 			value = await page.$eval('#results', a => a.textContent);
@@ -38,9 +38,9 @@ const path = require("path");
 		console.log(`Results: ${value}`);
 	}
 
-    var expected = "FullAOT;42;42.3;42.7;e42";
+    const expected = "FullAOT;42;42.3;42.7;e42;True";
 
-	if (value != expected) {
+	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);
 		process.exit(1);
 	}

@@ -46,7 +46,9 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now;
 			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
 
-			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()}";
+			var validateEmAddFunctionResult = int.Parse(Runtime.InvokeJS($"Validation.validateEmAddFunction()", out var result2)) != 0;
+
+			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()};{validateEmAddFunctionResult}";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
 
