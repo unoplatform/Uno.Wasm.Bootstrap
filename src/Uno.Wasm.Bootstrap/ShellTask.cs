@@ -377,7 +377,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var unixPath = AlignPath(executable);
 				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
-				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory)} && " : "";
+				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory).Replace("\"", "\\\"")} && " : "";
 
 				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
