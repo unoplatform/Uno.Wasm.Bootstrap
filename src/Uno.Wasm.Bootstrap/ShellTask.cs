@@ -375,9 +375,9 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if(IsWSLRequired)
 			{
-				var unixPath = AlignPath(executable);
+				var unixPath = AlignPath(executable, escape: true);
 				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
-				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory).Replace("\"", "\\\"")} && " : "";
+				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory, escape: true)} && " : "";
 
 				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
@@ -428,8 +428,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private string AlignPath(string path)
-			=> IsWSLRequired ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
+		private string AlignPath(string path, bool escape = false)
+		{
+			var output = IsWSLRequired ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
+
+			if (escape)
+			{
+				output = output.Replace("\"", "\\\"");
+			}
+
+			return output;
+		}
 
 		private void TryDeployDebuggerProxy()
 		{
