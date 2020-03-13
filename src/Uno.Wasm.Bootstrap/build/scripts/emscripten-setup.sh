@@ -32,11 +32,9 @@ if [ ! -f .uno-install-done ]; then
 	./emsdk activate --embedded $UNO_EMSDK_VERSION
 
 	# Those two files need to follow the currently used build of mono
-	wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff 2>&1
-	wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff 2>&1
+	wget https://raw.githubusercontent.com/mono/mono/b777471fcace85325e2c2af0e460f4ecd8059b5a/sdks/builds/fix-emscripten-8511.diff 2>&1
 
 	pushd upstream/emscripten
-	patch -N -p1 < ../../emscripten-pr-8457.diff
 	patch -N -p1 < ../../fix-emscripten-8511.diff
 	popd
 
