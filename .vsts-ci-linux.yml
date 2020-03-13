@@ -1,7 +1,7 @@
 parameters:
   jobName: ''
   linux_container: ''
-  linux_vmImage: 'ubuntu-16.04'
+  linux_vmImage: 'ubuntu-18.04'
   netcore_version: ''
 
 jobs:
