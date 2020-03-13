@@ -142,24 +142,38 @@ namespace Uno.Wasm.Bootstrap
 
 		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
 		{
-			var uri = new Uri(sdkUri);
+			var tries = 3;
 
-			if (!uri.IsFile)
+			while (--tries > 0)
 			{
-				var client = new WebClient();
-				var wp = WebRequest.DefaultWebProxy;
-				wp.Credentials = CredentialCache.DefaultCredentials;
-				client.Proxy = wp;
+				try
+				{
+					var uri = new Uri(sdkUri);
 
-				Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-				client.DownloadFile(sdkUri, zipPath);
+					if (!uri.IsFile)
+					{
+						var client = new WebClient();
+						var wp = WebRequest.DefaultWebProxy;
+						wp.Credentials = CredentialCache.DefaultCredentials;
+						client.Proxy = wp;
 
-				return zipPath;
+						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
+						client.DownloadFile(sdkUri, zipPath);
+
+						return zipPath;
+					}
+					else
+					{
+						return uri.LocalPath;
+					}
+				}
+				catch(Exception e)
+				{
+					Log.LogWarning($"Failed to download Downloading {sdkName} to {zipPath}. Retrying... ({e.Message})");
+				}
 			}
-			else
-			{
-				return uri.LocalPath;
-			}
+
+			throw new Exception($"Failed to download {sdkName} to {zipPath}");
 		}
 
 		private string GetMonoTempPath()
