@@ -1,5 +1,5 @@
 #!/bin/bash
-export EMSCRIPTEN_VERSION=1.38.48-upstream
+export EMSCRIPTEN_VERSION=1.39.7
 export NUGET_PACKAGES=/workspace/.nuget
 
 cd ~
@@ -9,8 +9,8 @@ echo Installing emscripten $EMSCRIPTEN_VERSION
 ./emsdk install $EMSCRIPTEN_VERSION
 ./emsdk activate $EMSCRIPTEN_VERSION
 
-wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff
-wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff
+wget https://raw.githubusercontent.com/mono/mono/b777471fcace85325e2c2af0e460f4ecd8059b5a/sdks/builds/emscripten-pr-8457.diff
+wget https://raw.githubusercontent.com/mono/mono/b777471fcace85325e2c2af0e460f4ecd8059b5a/sdks/builds/fix-emscripten-8511.diff
 
 # apply patches
 cd upstream/emscripten

@@ -69,6 +69,12 @@ jobs:
     netcore_version: 3.0.x
     linux_container: unoplatform/wasm-build:2.0
 
+- template: .vsts-ci-linux.yml
+  parameters:
+    jobName: Linux_netcore3_1
+    netcore_version: 3.1.x
+    linux_container: unoplatform/wasm-build:2.0
+
 - job: macOS
 
   pool:

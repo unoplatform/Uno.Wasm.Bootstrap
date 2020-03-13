@@ -374,6 +374,7 @@ class Driver {
 		public bool NativeStrip;
 		public bool Simd;
 		public bool EnableDynamicRuntime;
+		public bool LinkerExcludeDeserialization;
 	}
 
 	int Run (string[] args) {
@@ -422,22 +423,24 @@ class Driver {
 		var netcore_sdkdir = "";
 		string coremode, usermode;
 		string aot_profile = null;
+		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		string extra_emccflags = "";
 
 		var opts = new WasmOptions () {
-			AddBinding = true,
-			Debug = false,
-			DebugRuntime = false,
-			Linker = false,
-			ILStrip = true,
-			LinkerVerbose = false,
-			EnableZLib = false,
-			EnableFS = false,
-			NativeStrip = true,
-			Simd = false,
-			EnableDynamicRuntime = false
-		};
+				AddBinding = true,
+				Debug = false,
+				DebugRuntime = false,
+				Linker = false,
+				ILStrip = true,
+				LinkerVerbose = false,
+				EnableZLib = false,
+				EnableFS = false,
+				NativeStrip = true,
+				Simd = false,
+				EnableDynamicRuntime = false,
+				LinkerExcludeDeserialization = true
+			};
 
 		var p = new OptionSet () {
 				{ "nobinding", s => opts.AddBinding = false },
@@ -448,6 +451,7 @@ class Driver {
 				{ "emscripten-sdkdir=", s => emscripten_sdkdir = s },
 				{ "netcore-sdkdir=", s => netcore_sdkdir = s },
 				{ "prefix=", s => app_prefix = s },
+				{ "wasm-runtime-path=", s => wasm_runtime_path = s },
 				{ "deploy=", s => deploy_prefix = s },
 				{ "vfs=", s => vfs_prefix = s },
 				{ "aot", s => ee_mode = ExecMode.Aot },
@@ -485,6 +489,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
 		AddFlag (p, new BoolFlag ("native-strip", "strip final executable", opts.NativeStrip, b => opts.NativeStrip = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
+		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 
 		var new_args = p.Parse (args).ToArray ();
 		foreach (var a in new_args) {
@@ -615,6 +620,11 @@ class Driver {
 
 		if (aot_profile != null && !File.Exists (aot_profile)) {
 			Console.Error.WriteLine ($"AOT profile file '{aot_profile}' not found.");
+			return 1;
+		}
+
+		if (enable_simd && !is_netcore) {
+			Console.Error.WriteLine ("--simd is only supported with netcore.");
 			return 1;
 		}
 
@@ -766,16 +776,19 @@ class Driver {
 		File.Delete (config_js);
 		File.WriteAllText (config_js, config);
 
+
+		if (wasm_runtime_path == null)
+			wasm_runtime_path = Path.Combine (tool_prefix, "builds");
+
 		string wasm_runtime_dir;
 		if (is_netcore)
-			wasm_runtime_dir = Path.Combine (tool_prefix, "builds", use_release_runtime ? "netcore-release" : "netcore-debug");
+			wasm_runtime_dir = Path.Combine (wasm_runtime_path, use_release_runtime ? "netcore-release" : "netcore-debug");
 		else if (enable_threads)
-			wasm_runtime_dir = Path.Combine (tool_prefix, "builds", use_release_runtime ? "threads-release" : "threads-debug");
+			wasm_runtime_dir = Path.Combine (wasm_runtime_path, use_release_runtime ? "threads-release" : "threads-debug");
 		else if (enable_dynamic_runtime)
-			wasm_runtime_dir = Path.Combine (tool_prefix, "builds", use_release_runtime ? "dynamic-release" : "dynamic-debug");
+			wasm_runtime_dir = Path.Combine (wasm_runtime_path, use_release_runtime ? "dynamic-release" : "dynamic-debug");
 		else
-			wasm_runtime_dir = Path.Combine (tool_prefix, "builds", use_release_runtime ? "release" : "debug");
-
+			wasm_runtime_dir = Path.Combine (wasm_runtime_path, use_release_runtime ? "release" : "debug");
 		if (!emit_ninja) {
 			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
 			if (enable_threads) {
@@ -1189,6 +1202,8 @@ class Driver {
 			linker_args += "--used-attrs-only true ";
 			linker_args += "--substitutions linker-subs.xml ";
 			linker_infiles += "| linker-subs.xml";
+			if (opts.LinkerExcludeDeserialization)
+				linker_args += "--exclude-feature deserialization ";
 			if (!string.IsNullOrEmpty (linkDescriptor)) {
 				linker_args += $"-x {linkDescriptor} ";
 				foreach (var assembly in root_assemblies) {
