@@ -699,11 +699,23 @@ namespace Uno.Wasm.Bootstrap
 
 		private string ValidateEmscripten()
 		{
+
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
+				var emsdkBaseFolder = BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}";
+
 				if(!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
 					throw new InvalidCastException("The  is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+				}
+
+				// Enable compression for the emsdk folder
+				var emsdkBaseFolderRaw = emsdkBaseFolder.Replace(@"\\?\", "");
+				if (!Directory.Exists(emsdkBaseFolderRaw))
+				{
+					Log.LogMessage($"Creating {emsdkBaseFolder}");
+					Directory.CreateDirectory(emsdkBaseFolderRaw);
+					Process.Start("compact", $"/c \"/s:{emsdkBaseFolder}\"");
 				}
 
 				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
@@ -717,7 +729,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (result.exitCode == 0)
 				{
-					return BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}\\emsdk";
+					return emsdkBaseFolder + $"\\emsdk";
 				}
 
 				var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");
