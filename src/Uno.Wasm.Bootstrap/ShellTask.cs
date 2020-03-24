@@ -139,6 +139,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableLongPathSupport { get; set; } = true;
 
+		public bool EnableEmccProfiling { get; set; } = false;
+
 		public override bool Execute()
 		{
 			try
@@ -263,6 +265,7 @@ namespace Uno.Wasm.Bootstrap
 			var unusedFiles = new[] {
 				"*.wast",
 				"*.bc",
+				"*.a",
 			};
 
 			foreach (var unusedFile in unusedFiles)
@@ -525,6 +528,9 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var emsdkPath = ValidateEmscripten();
 
+				var extraEmccFlags = (ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).ToList();
+				var packagerParams = new List<string>();
+
 				var mixedModeExcluded = MixedModeExcludedAssembly
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
@@ -555,20 +561,26 @@ namespace Uno.Wasm.Bootstrap
 				var aotMode = buildRuntimeFlags();
 				var aotOptions = $"{aotMode} --linker --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
-				var extraEmccFlags = string.Join(" ", ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).Replace("\\", "\\\\");
+				if (EnableEmccProfiling)
+				{
+					extraEmccFlags.Add("--profiling");
+					packagerParams.Add("--no-native-strip");
+				}
 
-				var packagerParams =
-					$"{debugOption} " +
-					$"--zlib " +
-					$"--enable-fs " +
-					$"--extra-emccflags=\"{extraEmccFlags} -lidbfs.js\" " +
-					$"{appDirParm} " +
-					$"--runtime-config={RuntimeConfiguration} " +
-					$"{aotOptions} " +
-					$"{referencePathsParameter} " +
-					$"\"{AlignPath(Path.GetFullPath(Assembly))}\"";
+				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
 
-				var aotPackagerResult = RunProcess(packagerBinPath, packagerParams, _distPath);
+				packagerParams.Add(debugOption);
+				packagerParams.Add("--zlib");
+				packagerParams.Add("--enable-fs ");
+				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
+				packagerParams.Add("-lidbfs.js\" ");
+				packagerParams.Add(appDirParm);
+				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
+				packagerParams.Add(aotOptions);
+				packagerParams.Add(referencePathsParameter);
+				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
+
+				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _distPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -688,11 +700,23 @@ namespace Uno.Wasm.Bootstrap
 
 		private string ValidateEmscripten()
 		{
+
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
+				var emsdkBaseFolder = BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}";
+
 				if(!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
 					throw new InvalidCastException("The  is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+				}
+
+				// Enable compression for the emsdk folder
+				var emsdkBaseFolderRaw = emsdkBaseFolder.Replace(@"\\?\", "");
+				if (!Directory.Exists(emsdkBaseFolderRaw))
+				{
+					Log.LogMessage($"Creating {emsdkBaseFolder}");
+					Directory.CreateDirectory(emsdkBaseFolderRaw);
+					Process.Start("compact", $"/c \"/s:{emsdkBaseFolder}\"");
 				}
 
 				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
@@ -706,7 +730,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (result.exitCode == 0)
 				{
-					return BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}\\emsdk";
+					return emsdkBaseFolder + $"\\emsdk";
 				}
 
 				var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");
@@ -751,7 +775,12 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			_bitcodeFilesCache = _bitcodeFilesCache ?? Directory.EnumerateFiles(_distPath, "*.bc", SearchOption.TopDirectoryOnly).ToArray();
+			var bitcodeFiles = new[] { "*.bc", "*.a" };
+
+			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
+				.SelectMany(b => Directory.EnumerateFiles(_distPath, b, SearchOption.TopDirectoryOnly))
+				.ToArray();
+
 			return _bitcodeFilesCache;
 		}
 

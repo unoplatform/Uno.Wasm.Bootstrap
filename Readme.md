@@ -270,12 +270,12 @@ Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/em
 Instead, use Static Linking below.
 
 #### Static Linking
-Statically linking Emscripten LLVM Bitcode (`.bc` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
+Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
-This linking type embeds the `.bc` files with the rest of the WebAssembly modules, and uses _normal_
+This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_
 webassembly function invocations that are faster than with dynamic linking.
 
-Any `.bc` file placed as content in the built project will be statically linked to 
+Any `.bc` or `.a` file placed as content in the built project will be statically linked to 
 the currently running application, allowing for p/invoke to be functional when resolving methods
 from the loaded module.
 
@@ -503,7 +503,19 @@ The integration with WSL provides a way for using AOT, Mixed mode or external bi
 
 This feature is active only if one of those condition is true:
 - The `WasmShellMonoRuntimeExecutionMode` property is `FullAOT` or `InterpreterAndAOT
-- There is a `*.bc` file in the `Content` item group
+- There is a `*.bc` or `*.a` file in the `Content` item group
 - The `WasmShellForceUseWSL` is set to `true`
 
 Otherwise, the WSL integration is not used and the mono runtime present in the SDK is used as-is.
+
+## Profiling 
+
+To enable the profiling of the WebAssembly code, set te following parameter:
+
+```xml
+<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
+```
+
+This will ensure that the toolchain keeps the function names so that the browser shows meaningful information in the **Performance** tab.
+
+Note that code executed through the interpreter will not appear explicitly in the performance charts, as it is executed through the interpreter. Only AOTed code will be visible.

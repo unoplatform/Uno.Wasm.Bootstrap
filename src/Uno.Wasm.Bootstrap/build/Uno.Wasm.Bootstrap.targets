@@ -159,6 +159,7 @@
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
 		ForceUseWSL="$(WasmShellForceUseWSL)"
+		EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
         Assets="@(Content)"
         ReferencePath="@(_AssembliesForReferenceCopyLocalPaths)" />
   </Target>
