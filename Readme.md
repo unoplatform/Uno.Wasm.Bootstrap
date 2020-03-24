@@ -507,3 +507,15 @@ This feature is active only if one of those condition is true:
 - The `WasmShellForceUseWSL` is set to `true`
 
 Otherwise, the WSL integration is not used and the mono runtime present in the SDK is used as-is.
+
+## Profiling 
+
+To enable the profiling of the WebAssembly code, set te following parameter:
+
+```xml
+<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
+```
+
+This will ensure that the toolchain keeps the function names so that the browser shows meaningful information in the **Performance** tab.
+
+Note that code executed through the interpreter will not appear explicitly in the performance charts, as it is executed through the interpreter. Only AOTed code will be visible.
