@@ -265,6 +265,7 @@ namespace Uno.Wasm.Bootstrap
 			var unusedFiles = new[] {
 				"*.wast",
 				"*.bc",
+				"*.a",
 			};
 
 			foreach (var unusedFile in unusedFiles)
@@ -774,7 +775,12 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			_bitcodeFilesCache = _bitcodeFilesCache ?? Directory.EnumerateFiles(_distPath, "*.bc", SearchOption.TopDirectoryOnly).ToArray();
+			var bitcodeFiles = new[] { "*.bc", "*.a" };
+
+			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
+				.SelectMany(b => Directory.EnumerateFiles(_distPath, b, SearchOption.TopDirectoryOnly))
+				.ToArray();
+
 			return _bitcodeFilesCache;
 		}
 
