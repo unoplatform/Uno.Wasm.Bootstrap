@@ -452,7 +452,10 @@ namespace Uno.Wasm.Bootstrap
 				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
 				DirectoryCreateDirectory(wasmDebuggerRootPath);
 
-				CustomDebuggerPath = FixupPath(CustomDebuggerPath);
+				if (!string.IsNullOrEmpty(CustomDebuggerPath))
+				{
+					CustomDebuggerPath = FixupPath(CustomDebuggerPath);
+				}
 
 				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
@@ -467,17 +470,11 @@ namespace Uno.Wasm.Bootstrap
 
 					DirectoryCreateDirectory(debuggerLocalPath);
 
-					string[] debuggerFiles = new[] {
-						"Mono.WebAssembly.DebuggerProxy.dll",
-						"Mono.Cecil.dll",
-						"Mono.Cecil.Mdb.dll",
-						"Mono.Cecil.Pdb.dll",
-						"Mono.Cecil.Rocks.dll",
-					};
+					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0") : CustomDebuggerPath);
 
-					foreach (var debuggerFile in debuggerFiles)
+					foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
 					{
-						var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? MonoWasmSDKPath : CustomDebuggerPath);
+						var debuggerFile = Path.GetFileName(debuggerFilePath);
 
 						string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
 						string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);

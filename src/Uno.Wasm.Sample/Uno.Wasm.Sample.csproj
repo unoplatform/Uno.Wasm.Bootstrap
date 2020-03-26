@@ -5,7 +5,7 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
-		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
+		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 	</PropertyGroup>
 

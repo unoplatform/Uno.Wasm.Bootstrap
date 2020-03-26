@@ -135,7 +135,23 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
 [this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to set up the debugging.
 
-### How to use the debugger
+### How to use the Visual Studio 2019 Debugger
+Starting from **Visual Studio 2019 16.6 Preview 1**, it is possible to debug a WebAssembly app.
+
+To enable the debugging, add the following line to your `launchSettings.json` file:
+```
+"inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
+```
+
+in every profile section of the file, below each `"launchBrowser": true,` line.
+
+Press `F5` to start debugging.
+
+Note that breakpoints in the main entry point of the executable are currently ignored.
+
+### How to use the Browser debugger
+The boostrapper also supports debugging directly in the browser debugging tools.
+
 In Visual Studio:
 - Make your project the startup project (right-click **set as startup**)
 - In the debugging toolbar:
@@ -153,7 +169,6 @@ The debugger is still under development, and here are a few things to look for:
 - If none of your assemblies appear in the debugger window, it's generally caused 
 by the debugger caching previously loaded files. Make sure to hit Ctrl+Shit+R to force 
 reload the debugged page.
-
 
 ## Runtime Execution Modes
 The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT and Mixed Mode Interpreter/AOT.

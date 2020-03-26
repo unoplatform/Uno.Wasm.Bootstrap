@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>dotnet-unowasm</AssemblyName>
     <PackageId>Uno.Wasm.Bootstrap.Cli</PackageId>
   </PropertyGroup>
@@ -17,15 +17,21 @@
     <Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.2" />
+		<PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
+  </ItemGroup>
+	<!--<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.2" />
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
-    <PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
-  </ItemGroup>
+  </ItemGroup>-->
 
-  <ItemGroup>
+	<ItemGroup>
     <!--
     Explicit references to an arbitrary version of the Mono.WebAssembly.DebuggerProxy assembly, to allow
     for the server to compile. The references are marked as public so the binaries are not copied to the output
