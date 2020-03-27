@@ -62,6 +62,9 @@
     <!-- Uno.Wasm.Bootstrap internal args -->
     <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp3.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
     <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
+
+	<!-- Force the Cli tool framework if not specified (2.2 by default as of VS2019 16.6 Pre 1 -->
+	<DotnetCliToolTargetFramework Condition="'$(DotnetCliToolTargetFramework)'==''">netcoreapp3.1</DotnetCliToolTargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
