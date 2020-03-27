@@ -6,7 +6,9 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>dotnet-unowasm</AssemblyName>
     <PackageId>Uno.Wasm.Bootstrap.Cli</PackageId>
-  </PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
 
   <PropertyGroup>
     <Authors>nventive</Authors>
@@ -14,7 +16,7 @@
     <PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
     <Description>This package provides CLI support for Wasm bootstrap projects</Description>
-    <Copyright>Copyright (C) 2015-2018 nventive inc. - all rights reserved</Copyright>
+    <Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -24,12 +26,6 @@
 		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
     <PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
   </ItemGroup>
-	<!--<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.2" />
-    <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
-    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
-  </ItemGroup>-->
 
 	<ItemGroup>
     <!--
