@@ -21,7 +21,7 @@
     Set this variable to use custom debugger binaries instead of the files found 
     in the active mono-wasm folder.
     -->
-    <MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>
+    <!--<MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>-->
     <!--
 	Uncomment to enable custom linker path
 	<MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
@@ -60,7 +60,7 @@
     <!-- Nuget deployed run parameters -->
     <_unoBinArgs>unowasm serve</_unoBinArgs>
     <!-- Uno.Wasm.Bootstrap internal args -->
-    <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp2.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+    <_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp3.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
     <RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 

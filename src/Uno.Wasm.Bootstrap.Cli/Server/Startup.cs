@@ -91,7 +91,8 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
                 OnPrepareResponse = SetCacheHeaders
             });
 
-            app.UseMonoDebugProxy();
+            app.UseDebugHost();
+            app.UseDebugProxy(new ProxyOptions());
 
             // Use SPA fallback routing (serve default page for anything else,
             // excluding /_framework/*)
@@ -160,6 +161,5 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
                 };
             }
         }
-
     }
 }

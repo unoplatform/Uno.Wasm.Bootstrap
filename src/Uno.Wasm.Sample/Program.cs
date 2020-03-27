@@ -15,6 +15,7 @@
 //
 // ******************************************************************
 using System;
+using System.Threading;
 
 namespace Uno.Wasm.Sample
 { 
@@ -27,7 +28,11 @@ namespace Uno.Wasm.Sample
 
 			var i = 42; 
 			var now = DateTime.Now.ToString();
-			Console.WriteLine($"Main! {i} {now}"); 
+			Console.WriteLine($"Main! {i} {now}");
+
+			var t = new Timer(_ => {
+				Console.WriteLine("message");
+			}, null, 5000, 5000);
 		}
 	}
 }

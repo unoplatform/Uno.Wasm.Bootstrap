@@ -59,18 +59,6 @@ jobs:
 
 - template: .vsts-ci-linux.yml
   parameters:
-    jobName: Linux_netcore2_2
-    netcore_version: 2.2.x
-    linux_container: nventive/wasm-build:1.3
-
-- template: .vsts-ci-linux.yml
-  parameters:
-    jobName: Linux_netcore3_0
-    netcore_version: 3.0.x
-    linux_container: unoplatform/wasm-build:2.0
-
-- template: .vsts-ci-linux.yml
-  parameters:
     jobName: Linux_netcore3_1
     netcore_version: 3.1.x
     linux_container: unoplatform/wasm-build:2.0
@@ -78,7 +66,7 @@ jobs:
 - job: macOS
 
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
