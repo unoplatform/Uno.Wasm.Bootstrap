@@ -138,6 +138,8 @@ Mono-wasm now has integrated **preliminary** support for in-browser debugging. R
 ### How to use the Visual Studio 2019 Debugger
 Starting from **Visual Studio 2019 16.6 Preview 1**, it is possible to debug a WebAssembly app.
 
+> If you're updating from a previous version of the bootstrapper, make sure to manually update the `Uno.Wasm.Bootstrap.Cli` package to the same version as the `Uno.Wasm.Bootstrap` package in your `csproj` file.
+
 To enable the debugging, add the following line to your `launchSettings.json` file:
 ```
 "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
