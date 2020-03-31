@@ -20,13 +20,12 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <MonoRuntimeDebuggerEnabled>false</MonoRuntimeDebuggerEnabled>
+    <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.1.0-dev.1" />
-
-    <DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.1.0-dev.1" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.2.0-dev.1" />
+    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.2.0-dev.1" PrivateAssets="all" />
  </ItemGroup>
 
 </Project>
@@ -55,7 +54,11 @@ See below the instructions on how to install the **Windows Subsystem for Linux**
 ### Upgrading from previous versions of the Uno.Wasm.Bootstrap package
 Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To enable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
 
-To upgrade a project:
+To upgrade a project from 1.1 to 1.2:
+- If you had a `<DotNetCliToolReference />` line, remove it
+- Add the `<PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.2.0-dev.1" PrivateAssets="all" />` item in the same item group as the other nuget packages.
+
+To upgrade a project from 1.0 to 1.1:
 - Change `Microsoft.NET.Sdk` to `Microsoft.NET.Sdk.Web` in the Sdk attribute of your project
 - Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
 
