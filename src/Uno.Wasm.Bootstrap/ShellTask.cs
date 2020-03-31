@@ -91,6 +91,9 @@ namespace Uno.Wasm.Bootstrap
 		public string TargetFrameworkIdentifier { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public string TargetFramework { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; }
 
 		[Required]
@@ -145,7 +148,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			try
 			{
-				if (TargetFrameworkIdentifier != ".NETStandard")
+				if (TargetFrameworkIdentifier != ".NETStandard" && TargetFrameworkIdentifier != ".NETCoreApp")
 				{
 					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
 					return true;

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<NoWarn>1701;1702;1705;649</NoWarn>
+		<PackageId>Uno.Wasm.Bootstrap.DevServer</PackageId>
+		<IsTool>true</IsTool>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>nventive</Authors>
+		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+		<Description>This package provides the development server and debugger support for Wasm bootstrap projects</Description>
+		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
+			<PackagePath>build</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\%(FileName)%(Extension)">
+			<PackagePath>tools\server</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+	</ItemGroup>
+
+</Project>
