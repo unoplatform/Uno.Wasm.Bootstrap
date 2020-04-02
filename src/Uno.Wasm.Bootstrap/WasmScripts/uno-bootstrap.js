@@ -133,15 +133,13 @@ var MonoRuntime = {
 };
 
 var App = {
-
     preInit() {
         this.body = document.getElementById("uno-body");
 
         this.initProgress();
     },
 
-    init: function () {
-
+    init() {
         this.initializeRequire();
     },
 
@@ -367,22 +365,26 @@ var App = {
         }
     },
 
-    initializeRequire: function () {
+    initializeRequire() {
+
+        // Uno.Wasm.Bootstrap is using "requirejs" by default, which is an AMD implementation
+        // But when run with NodeJS or Electron, it's using CommonJS instead of AMD
+        this.isUsingCommonJS = ENVIRONMENT_IS_NODE || Module.isElectron();
+
         if (config.enable_debugging) console.log("Done loading the BCL");
 
         if (config.uno_dependencies && config.uno_dependencies.length !== 0) {
-            let pending = 0;
+            let pending = config.uno_dependencies.length;
 
             const checkDone = (dependency) => {
                 --pending;
+                if (config.enable_debugging) console.log(`Loaded dependency (${dependency}) - remains ${pending} other(s).`);
                 if (pending === 0) {
-                    if (config.enable_debugging) console.log(`Loaded dependency (${dependency})`);
                     App.mainInit();
                 }
             };
 
-            config.uno_dependencies.forEach(function (dependency) {
-                ++pending;
+            config.uno_dependencies.forEach((dependency) => {
                 if (config.enable_debugging) console.log(`Loading dependency (${dependency})`);
 
                 let processDependency = instance => {
@@ -406,20 +408,25 @@ var App = {
                     }
                 };
 
-                if (ENVIRONMENT_IS_NODE) {
-                    dependency = './' + dependency;
-                    processDependency(require(dependency));
-                }
-                else {
-                    require(
-                        [dependency],
-                        processDependency
-                    );
-                }
+                this.require([dependency], processDependency);
             });
         }
         else {
             App.mainInit();
+        }
+    },
+
+    require(modules, callback) {
+        if (this.isUsingCommonJS) {
+            modules.forEach(id => {
+                // Emulate asynchronous process of AMD
+                setTimeout(() => {
+                    const d = require('./' + id);
+                    callback(d);
+                }, 0);
+            });
+        } else {
+            require(modules, callback);
         }
     },
 
