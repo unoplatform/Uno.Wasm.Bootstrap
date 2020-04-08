@@ -62,7 +62,7 @@ class Driver {
 
 	const string BINDINGS_ASM_NAME = "WebAssembly.Bindings";
 	const string BINDINGS_RUNTIME_CLASS_NAME = "WebAssembly.Runtime";
-	const string HTTP_ASM_NAME = "WebAssembly.Net.Http";
+	const string HTTP_ASM_NAME = "System.Net.Http.WebAssemblyHttpHandler";
 	const string WEBSOCKETS_ASM_NAME = "WebAssembly.Net.WebSockets";
 	const string BINDINGS_MODULE = "corebindings.o";
 	const string BINDINGS_MODULE_SUPPORT = "$tool_prefix/src/binding_support.js";
@@ -1042,7 +1042,7 @@ class Driver {
 			ninja.WriteLine ("build $appdir/dotnet.js: cpifdiff $wasm_runtime_dir/dotnet.js");
 			ninja.WriteLine ("build $appdir/dotnet.wasm: cpifdiff $wasm_runtime_dir/dotnet.wasm");
 			if (enable_threads) {
-				ninja.WriteLine ("build $appdir/mono.worker.js: cpifdiff $wasm_runtime_dir/mono.worker.js");
+				ninja.WriteLine ("build $appdir/dotnet.worker.js: cpifdiff $wasm_runtime_dir/dotnet.worker.js");
 			}
 		}
 		if (enable_aot)

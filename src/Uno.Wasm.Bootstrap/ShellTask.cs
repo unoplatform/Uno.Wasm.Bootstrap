@@ -618,7 +618,7 @@ namespace Uno.Wasm.Bootstrap
 
 					var frameworkBindings = new[] {
 						"WebAssembly.Bindings.dll",
-						"WebAssembly.Net.Http.dll",
+						"System.Net.Http.WebAssemblyHttpHandler.dll",
 						"WebAssembly.Net.WebSockets.dll",
 					};
 
