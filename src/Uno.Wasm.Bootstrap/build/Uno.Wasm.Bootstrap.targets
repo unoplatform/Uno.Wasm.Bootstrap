@@ -165,8 +165,14 @@
     <Delete Files="@(_DistFilesToDelete)" />
   </Target>
 
+  <Target Name="_ValidateLegacyCLIPackage" BeforeTargets="CoreCompile">
+	<PropertyGroup>
+	  <_CliToolRefs>@(DotNetCliToolReference)</_CliToolRefs>
+	</PropertyGroup>
+
+	<Error Text="The current project is referencing the deprecated Uno.Wasm.Bootstrap.Cli package. Remove it manually in the project file and add a reference to Uno.Wasm.Bootstrap.DevServer instead. For more information visit: https://github.com/unoplatform/Uno.Wasm.Bootstrap#upgrading-from-previous-versions-of-the-unowasmbootstrap-package"
+		 Condition="$(_CliToolRefs.Contains('Uno.Wasm.Bootstrap.Cli'))"/>
+  </Target>
 
   <Import Project="Uno.Wasm.Bootstrap.Publish.targets"/>
-
-
 </Project>
