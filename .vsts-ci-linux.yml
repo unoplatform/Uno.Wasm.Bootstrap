@@ -1,7 +1,7 @@
 parameters:
   jobName: ''
   linux_container: ''
-  linux_vmImage: 'ubuntu-18.04'
+  linux_vmImage: 'ubuntu-latest'
   netcore_version: ''
 
 jobs:
@@ -85,6 +85,9 @@ jobs:
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
+
+  - bash: rm -fr ~/emsdk
+    displayName: Cleanup Emscripten folder to run tests
 
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
