@@ -61,7 +61,7 @@ jobs:
   parameters:
     jobName: Linux_netcore3_1
     netcore_version: 3.1.x
-    linux_container: unoplatform/wasm-build:2.0
+    linux_container: unoplatform/wasm-build:2.1.1
 
 - job: macOS
 
@@ -80,26 +80,15 @@ jobs:
      
     displayName: 'Install Ninja'
 
-  - bash: |
-      cd $(Agent.WorkFolder)
-      git clone https://github.com/juj/emsdk.git
-      cd emsdk
-      ./emsdk install latest
-      ./emsdk activate latest
-
-    displayName: 'Install Emscripten'
-
   - task: NuGetToolInstaller@0
     inputs:
       versionSpec: 4.7.0
       checkLatest: false
 
   - bash: |
-      export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
-      source $(Agent.WorkFolder)/emsdk/emsdk_env.sh
       msbuild /m /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
-    displayName: Build 
+    displayName: MSBuild Validation
 
   - task: CopyFiles@2
     inputs:
@@ -109,6 +98,13 @@ jobs:
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
+      dotnet build || true # expected failure
+      dotnet build
+
+    displayName: .NET Core Validation
 
   - task: PublishBuildArtifacts@1
     condition: always()
