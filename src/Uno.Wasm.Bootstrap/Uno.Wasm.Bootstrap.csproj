@@ -10,6 +10,7 @@
 		<IsTool>true</IsTool>
 		<Version>2.0.1-test.3</Version>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+		<LangVersion>8.0</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>

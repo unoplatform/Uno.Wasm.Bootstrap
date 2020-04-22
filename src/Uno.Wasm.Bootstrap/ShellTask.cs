@@ -393,6 +393,11 @@ namespace Uno.Wasm.Bootstrap
 					throw new InvalidOperationException($"WSL is required for this build but could not be found. (Searched for [{executable}])");
 				}
 			}
+			else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+			{
+				parameters = $"{executable} {parameters}";
+				executable = "mono";
+			}
 
 			var p = new Process
 			{
