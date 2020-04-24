@@ -31,6 +31,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
     class Startup
     {
         private const string WasmMimeType = "application/wasm";
+        private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -80,7 +81,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
             RegisterDebuggerLookup(app, configuration);
 
             app.UseDeveloperExceptionPage();
-            var pathBase = configuration.GetValue<string>("pathbase");
+            var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
             var env = app.ApplicationServices.GetRequiredService<IHostingEnvironment>();
             var contentRoot = env.ContentRootPath;
 
@@ -161,5 +162,11 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
                 };
             }
         }
+
+        /// <summary>
+		/// Align paths to fix issues with mixed path
+		/// </summary>
+		string FixupPath(string path)
+			=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
     }
 }
