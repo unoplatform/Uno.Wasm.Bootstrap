@@ -101,7 +101,7 @@ jobs:
 
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet build || true # expected failure
+      dotnet build || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
       dotnet build
 
     displayName: .NET Core Validation
