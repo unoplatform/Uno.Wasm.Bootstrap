@@ -77,6 +77,11 @@ jobs:
 
     displayName: Build 
 
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
+      dotnet build || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
+      dotnet build
+
   - task: CopyFiles@2
     inputs:
       SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/publish

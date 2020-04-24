@@ -25,6 +25,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -393,7 +394,11 @@ namespace Uno.Wasm.Bootstrap
 					throw new InvalidOperationException($"WSL is required for this build but could not be found. (Searched for [{executable}])");
 				}
 			}
-			else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+			else if (RuntimeHelpers.IsNetCore
+				&& (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+				|| RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+				)
+			)
 			{
 				parameters = $"{executable} {parameters}";
 				executable = "mono";
