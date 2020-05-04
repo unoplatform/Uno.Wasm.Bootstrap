@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
@@ -137,8 +138,10 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		static readonly string[] BitCodeExtensions = new string[] { ".bc", ".a" };
+
 		private bool HasBitcodeAssets()
-			=> Assets.Any(a => a.ItemSpec.EndsWith(".bc", StringComparison.OrdinalIgnoreCase));
+			=> Assets.Any(asset => BitCodeExtensions.Any(ext => asset.ItemSpec.EndsWith(ext, StringComparison.OrdinalIgnoreCase)));
 
 		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
 		{
