@@ -27,6 +27,20 @@ var Module = {
     },
     instantiateWasm: function (imports, successCallback) {
 
+        if (typeof WasmOffsetConverter !== 'undefined') {
+            // Workaround for https://github.com/emscripten-core/emscripten/issues/9836
+            originalSuccessCallback = successCallback;
+
+            successCallback = function (instance, module) {
+                getBinaryPromise().then(function (binary) {
+                    wasmOffsetConverter = new WasmOffsetConverter(new Uint8Array(binary), module);
+                    removeRunDependency('offset-converter');
+
+                    originalSuccessCallback(instance, module);
+                });
+            };
+        }
+
         // There's no way to get the filename from mono.js right now.
         // so we just hardcode it.
         const wasmUrl = config.mono_wasm_runtime || "mono.wasm";
