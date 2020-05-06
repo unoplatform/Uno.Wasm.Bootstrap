@@ -710,14 +710,13 @@ namespace Uno.Wasm.Bootstrap
 
 		private string ValidateEmscripten()
 		{
-
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
 				var emsdkBaseFolder = BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}";
 
 				if(!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
-					throw new InvalidCastException("The  is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+					throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
 				}
 
 				// Enable compression for the emsdk folder
