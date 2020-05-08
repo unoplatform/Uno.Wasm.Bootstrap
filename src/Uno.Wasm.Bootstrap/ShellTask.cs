@@ -26,6 +26,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -157,6 +158,7 @@ namespace Uno.Wasm.Bootstrap
 
 				// Debugger.Launch();
 
+				PreloadAssemblies();
 				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
@@ -181,6 +183,20 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private void PreloadAssemblies()
+		{
+			// Under some circumstances, the assemblies bundled with the bootstrapper do not
+			// get loaded properly by .NET Core. This is method forces the loading of those
+			// assemblies in order to let the loading find them automatically.
+
+			var path = Path.GetDirectoryName(new Uri(GetType().Assembly.GetName().CodeBase).LocalPath);
+
+			foreach (var file in Directory.GetFiles(path, "*.dll"))
+			{
+				_ = System.Reflection.Assembly.LoadFile(Path.Combine(path, file));
 			}
 		}
 
