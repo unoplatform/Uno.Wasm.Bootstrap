@@ -148,10 +148,13 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 		{
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				return $@"<p>Close all Chrome instances, then press Win+R and enter the following:</p>
-                          <p><strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl}</code></strong></p>
-                          <p>You can also force to start an isolated instance of Chrome if you are already using it for another purpose:</p>
-                          <p><strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl} --user-data-dir=""%TEMP%\ChromeDebug""</code></strong></p>";
+				return $@"<p>Close all browser instances, then restart it with the debug server enabled. Press Win+R and enter the following:</p>
+							<h4>Google Chrome</h4>
+							<p><strong><code>taskkill /IM chrome* /F /T<br />""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 {appRootUrl}</code></strong></p>
+							<p>Or with an isolated profile: <strong><code>""%programfiles(x86)%\Google\Chrome\Application\chrome.exe"" --remote-debugging-port=9222 --user-data-dir=""%TEMP%\ChromeDebug"" {appRootUrl}</code></strong></p>
+							<h4>Microsoft Edge (Chromium)</h4>
+							<p><strong><code>taskkill /IM msedge* /F /T<br />""%programfiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe"" --remote-debugging-port=9222 {appRootUrl}</code></strong></p>
+							<p>Or with an isolated profile: <strong><code>""%programfiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe"" --remote-debugging-port=9222 --user-data-dir=""%TEMP%\EdgeDebug"" {appRootUrl}</code></strong></p>";
 			}
 			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 			{
