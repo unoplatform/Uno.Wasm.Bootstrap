@@ -14,6 +14,10 @@ var Module = {
             }
         }
 
+        if (config.generate_aot_profile) {
+            MONO.mono_wasm_init_aot_profiler(null);
+        }
+
         MONO.mono_load_runtime_and_bcl(
             config.vfs_prefix,
             config.deploy_prefix,
@@ -160,6 +164,7 @@ var App = {
     mainInit: function () {
         try {
             App.attachDebuggerHotkey(config.file_list);
+            App.attachProfilerHotKey();
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
 
@@ -485,6 +490,41 @@ var App = {
                         App.launchDebugger();
                     }
                 }
+            });
+        }
+    },
+
+    attachProfilerHotKey: function () {
+
+        if (ENVIRONMENT_IS_WEB && config.generate_aot_profile) {
+
+            // Use the combination shift+alt+D because it isn't used by the major browsers
+            // for anything else by default
+            const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
+
+            console.info(`Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus)`);
+
+            // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
+            document.addEventListener(
+                "keydown",
+                function (evt) {
+                    if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyP") {
+                        var stopProfile = Module.mono_bind_static_method("[WebAssembly.Bindings] WebAssembly.Runtime:StopProfile");
+                        stopProfile();
+
+                        // Export the file
+                        var a = window.document.createElement('a');
+                        var blob = new Blob([Module.aot_profile_data]);
+                        a.href = window.URL.createObjectURL(blob);
+                        a.download = "aot.profile";
+
+                        // Append anchor to body.
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Remove anchor from body
+                        document.body.removeChild(a); 
+                  }
             });
         }
     },

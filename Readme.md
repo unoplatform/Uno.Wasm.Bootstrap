@@ -204,6 +204,39 @@ To ensure that AOT is only run under Linux, add the following to your project:
 <WasmShellMonoRuntimeExecutionMode>FullAOT</WasmShellMonoRuntimeExecutionMode>
 ```
 
+## Profile Guided AOT
+This mode allows for the AOT engine to selectively optimize methods to WebAssembly, and keep the rest as interpreted. This gives a very good balance when choosing between performance and payload size. It also has the advantage of reducing the build time, as less code needs to be compiled down to WebAssembly.
+
+This feature is used in two passes:
+- The first pass needs the creation of a profiled interpreter build, which records any methods invoked during the profiling session.
+- The second pass rebuilds the application using the Mixed AOT/Interpreter mode augmented by the recording created during the first pass.
+
+This mode gives very good results, where the RayTracer sample of this repository goes from an uncomressed size of 5.5MB to 2.9MB.
+
+To create a profiled build:
+- In your Wasm csproj, add the following: 
+```xml
+<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
+```
+- Run the application once, without the debugger (e.g. Ctrl+F5)
+- Navigate throughout the application in high usage places.
+- Once done, press the `Alt+Shift+P` key secquence
+- Download the `aot.profile` file next to the csproj file
+- Comment the `WasmShellGenerateAOTProfile` line
+- Add the following lines:
+```xml
+<ItemGroup>
+	<WasmShellEnableAotProfile Include="aot.profile" />
+</ItemGroup>
+```
+- Make sure that Mixed mode is enabled:
+```xml
+<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
+```
+- Build you application again
+
+Note that the AOT profile is a snapshot of the current set of assemblies and methods in your application. If that set changes significantly, you'll need to re-create the AOT profile to get optimal results.
+
 ### Mixed AOT/Interpreter Mode
 This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
 
@@ -217,6 +250,7 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 </ItemGroup>
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
+
 
 ## Required configuration for AOT Compilation on Linux
 - A Linux 18.04 machine or [container](https://hub.docker.com/r/unoplatform/wasm-build)

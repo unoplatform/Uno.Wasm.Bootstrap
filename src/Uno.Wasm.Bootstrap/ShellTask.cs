@@ -116,6 +116,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[] AotProfile { get; set; }
+
 		public Microsoft.Build.Framework.ITaskItem[] LinkerDescriptors { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[] MixedModeExcludedAssembly { get; set; }
@@ -145,6 +147,8 @@ namespace Uno.Wasm.Bootstrap
 		public bool EnableLongPathSupport { get; set; } = true;
 
 		public bool EnableEmccProfiling { get; set; } = false;
+
+		public bool GenerateAOTProfile { get; set; } = false;
 
 		public override bool Execute()
 		{
@@ -392,7 +396,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
-			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL);
+			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || (AotProfile?.Length != 0));
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string workingDirectory = null)
 		{
@@ -561,7 +565,10 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
+				var hasAotProfile = AotProfile?.Any() ?? false;
+
+				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
+				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
 
 				var dynamicLibraries = GetDynamicLibrariesParams();
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
@@ -569,22 +576,20 @@ namespace Uno.Wasm.Bootstrap
 				var bitcodeFiles = GetBitcodeFilesParams();
 				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={AlignPath(f)}\"")) : "";
 
-				string buildRuntimeFlags()
+				if(_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
 				{
-					switch (_runtimeExecutionMode)
-					{
-						case RuntimeExecutionMode.FullAOT:
-							return "--aot";
-						case RuntimeExecutionMode.InterpreterAndAOT:
-							return $"--aot-interp {mixedModeAotAssembliesParam}";
-						case RuntimeExecutionMode.Interpreter:
-							return "";
-						default:
-							throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported");
-					}
+					Log.LogMessage($"Forcing Interpreter mode because GenerateAOTProfile is set");
+					_runtimeExecutionMode = RuntimeExecutionMode.Interpreter;
 				}
 
-				var aotMode = buildRuntimeFlags();
+				var aotMode = _runtimeExecutionMode switch
+				{
+					RuntimeExecutionMode.FullAOT => "--aot",
+					RuntimeExecutionMode.InterpreterAndAOT => $"--aot-interp {mixedModeAotAssembliesParam}",
+					RuntimeExecutionMode.Interpreter => "",
+					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
+				};
+
 				var aotOptions = $"{aotMode} --linker --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
@@ -603,7 +608,9 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(appDirParm);
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
+				packagerParams.Add(aotProfile);
 				packagerParams.Add(referencePathsParameter);
+				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
 
 				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _distPath);
@@ -813,6 +820,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 			ParseEnumProperty(nameof(MonoRuntimeExecutionMode), MonoRuntimeExecutionMode, out _runtimeExecutionMode);
+			AotProfile ??= new ITaskItem[0];
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -1111,6 +1119,11 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['./', {offlineFiles}];");
+
+				if (GenerateAOTProfile)
+				{
+					config.AppendLine($"config.generate_aot_profile = true;");
+				}
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 

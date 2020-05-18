@@ -33,6 +33,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
 
+		public bool GenerateAOTProfile { get; set; } = false;
+
 		[Output]
 		public string SdkPath { get; set; }
 
@@ -99,6 +101,7 @@ namespace Uno.Wasm.Bootstrap
 					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
 					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
 					|| HasBitcodeAssets()
+					|| GenerateAOTProfile
 					)
 					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
 				)
