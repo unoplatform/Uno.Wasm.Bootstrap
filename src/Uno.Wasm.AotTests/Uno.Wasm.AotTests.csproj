@@ -4,17 +4,19 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>
+		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
+		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 	</PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
 
 	<ItemGroup>
+		<None Remove="aot.profile" />
 		<None Remove="Uno.Wasm.AotTests.xml" />
 		<None Remove="WasmScripts\image.js" />
 	</ItemGroup>
@@ -37,6 +39,10 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+		<WasmShellEnableAotProfile Include="aot.profile" />
 	</ItemGroup>
 
 	<ProjectExtensions>
