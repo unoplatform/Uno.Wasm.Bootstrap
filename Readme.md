@@ -220,7 +220,9 @@ To create a profiled build:
 ```
 - Run the application once, without the debugger (e.g. Ctrl+F5)
 - Navigate throughout the application in high usage places.
-- Once done, press the `Alt+Shift+P` key secquence
+- Once done, either:
+  - Press the `Alt+Shift+P` key sequence
+  - Launch App.saveProfile()
 - Download the `aot.profile` file next to the csproj file
 - Comment the `WasmShellGenerateAOTProfile` line
 - Add the following lines:
@@ -356,8 +358,6 @@ To enable the support, add the following configuration:
 Note that executing javascript in the context of a thread stays in the worked that is assigned to the thread, thus modifying the DOM from that context will do nothing.
 
 To update the UI, execution will need to go back to the main thread, generally by using a mecanism similar to `System.Threading.Timer` which uses `setTimeout` so execute on the main thread.
-
-This mode is currently exclusive with `dynamic linking` and `debug` modes.
 
 ### Support for IIS / Azure Webapp GZip/Brotli pre-compression
 The IIS compression support has too many knobs for the size of generated WebAssembly files, which

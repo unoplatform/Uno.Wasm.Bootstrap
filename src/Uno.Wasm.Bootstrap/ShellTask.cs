@@ -570,6 +570,8 @@ namespace Uno.Wasm.Bootstrap
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
 
+				TryAdjustAOTProfile();
+
 				var dynamicLibraries = GetDynamicLibrariesParams();
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
 
@@ -696,6 +698,39 @@ namespace Uno.Wasm.Bootstrap
 
 					File.WriteAllText(monoConfigFilePath, monoConfig);
 				}
+			}
+		}
+
+		/// <summary>
+		/// Applies a temporary workaround for https://github.com/mono/mono/issues/19824
+		/// </summary>
+		private void TryAdjustAOTProfile()
+		{
+			var profilePath = AotProfile?.FirstOrDefault()?.GetMetadata("FullPath");
+
+			if (profilePath != null)
+			{
+				var span = File.ReadAllBytes(profilePath).AsSpan();
+
+				var replacedMethods = new[] { "LoadIntoBufferAsync" };
+
+				foreach (var method in replacedMethods)
+				{
+					var searchSpan = Encoding.ASCII.GetBytes(method).AsSpan();
+
+					for (int i = 0; i < span.Length - searchSpan.Length; i++)
+					{
+						if (span[i] == searchSpan[0])
+						{
+							if (span.Slice(i, searchSpan.Length).SequenceEqual(searchSpan))
+							{
+								span[i] = (byte)'_';
+							}
+						}
+					}
+				}
+
+				File.WriteAllBytes(profilePath, span.ToArray());
 			}
 		}
 
