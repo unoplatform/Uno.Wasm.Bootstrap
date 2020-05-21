@@ -220,7 +220,9 @@ To create a profiled build:
 ```
 - Run the application once, without the debugger (e.g. Ctrl+F5)
 - Navigate throughout the application in high usage places.
-- Once done, press the `Alt+Shift+P` key secquence
+- Once done, either:
+  - Press the `Alt+Shift+P` key sequence
+  - Launch App.saveProfile()
 - Download the `aot.profile` file next to the csproj file
 - Comment the `WasmShellGenerateAOTProfile` line
 - Add the following lines:

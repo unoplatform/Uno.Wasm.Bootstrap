@@ -502,31 +502,35 @@ var App = {
             // for anything else by default
             const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
-            console.info(`Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus)`);
+            console.info(`Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus), or Run App.saveProfile() from the browser debug console.`);
 
             // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
             document.addEventListener(
                 "keydown",
                 function (evt) {
                     if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyP") {
-                        var stopProfile = Module.mono_bind_static_method("[WebAssembly.Bindings] WebAssembly.Runtime:StopProfile");
-                        stopProfile();
-
-                        // Export the file
-                        var a = window.document.createElement('a');
-                        var blob = new Blob([Module.aot_profile_data]);
-                        a.href = window.URL.createObjectURL(blob);
-                        a.download = "aot.profile";
-
-                        // Append anchor to body.
-                        document.body.appendChild(a);
-                        a.click();
-
-                        // Remove anchor from body
-                        document.body.removeChild(a); 
+                        App.saveProfile();
                   }
             });
         }
+    },
+
+    saveProfile: function () {
+        var stopProfile = Module.mono_bind_static_method("[WebAssembly.Bindings] WebAssembly.Runtime:StopProfile");
+        stopProfile();
+
+        // Export the file
+        var a = window.document.createElement('a');
+        var blob = new Blob([Module.aot_profile_data]);
+        a.href = window.URL.createObjectURL(blob);
+        a.download = "aot.profile";
+
+        // Append anchor to body.
+        document.body.appendChild(a);
+        a.click();
+
+        // Remove anchor from body
+        document.body.removeChild(a);
     },
 
     launchDebugger: function () {
