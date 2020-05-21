@@ -357,8 +357,6 @@ Note that executing javascript in the context of a thread stays in the worked th
 
 To update the UI, execution will need to go back to the main thread, generally by using a mecanism similar to `System.Threading.Timer` which uses `setTimeout` so execute on the main thread.
 
-This mode is currently exclusive with `dynamic linking` and `debug` modes.
-
 ### Support for IIS / Azure Webapp GZip/Brotli pre-compression
 The IIS compression support has too many knobs for the size of generated WebAssembly files, which
 makes the serving of static files inefficient.
