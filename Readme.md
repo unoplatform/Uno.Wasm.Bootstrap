@@ -280,6 +280,8 @@ During the first use of WSL, if the environment is not properly setup, you will 
 
 The emscripten installation is automatically done as part of the build.
 
+The installation of emscripten is by default in the project's `obj` folder, but can be globally overriden by setting the `WASMSHELL_EMSDK` environment variable.
+
 ## Debugging and contributing to the Uno WebAssembly Bootstrapper
 
 The [src/Uno.Wasm.Bootstrap.sln](src/Uno.Wasm.Bootstrap.sln) solution is a good way to build the bootstrapper itself, as well as sample solutions that validate the different features of the bootstrapper.

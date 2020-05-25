@@ -6,7 +6,6 @@ UNO_INTERMEDIATE_PATH=$1
 
 echo "UNO_INTERMEDIATE_PATH: $UNO_INTERMEDIATE_PATH"
 echo "UNO_EMSDK_VERSION: $UNO_EMSDK_VERSION"
-echo "UNO_EMSDK_PATH: $UNO_EMSDK_PATH"
 
 echo Validating Mono Version
 mono --version
@@ -15,6 +14,8 @@ echo Validating MSBuild Version
 msbuild /version
 
 export UNO_EMSDK_PATH=`wslpath "$UNO_INTERMEDIATE_PATH"`/emsdk-$UNO_EMSDK_VERSION
+
+echo "UNO_EMSDK_PATH: $UNO_EMSDK_PATH"
 
 if [ ! -f $UNO_EMSDK_PATH ]; then
 	mkdir -p $UNO_EMSDK_PATH
