@@ -565,7 +565,7 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var hasAotProfile = AotProfile?.Any() ?? false;
+				var hasAotProfile = !GenerateAOTProfile && (AotProfile?.Any() ?? false);
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
