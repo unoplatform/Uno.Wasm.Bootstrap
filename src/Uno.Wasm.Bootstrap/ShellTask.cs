@@ -565,7 +565,7 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var hasAotProfile = AotProfile?.Any() ?? false;
+				var hasAotProfile = !GenerateAOTProfile && (AotProfile?.Any() ?? false);
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
@@ -770,9 +770,10 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
-				var emsdkBaseFolder = BaseIntermediateOutputPath + $"\\emsdk-{Constants.EmscriptenMinVersion}";
+				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_EMSDK") ?? BaseIntermediateOutputPath;
+				var emsdkBaseFolder = emsdkHostFolder + $"\\emsdk-{Constants.EmscriptenMinVersion}";
 
-				if(!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
+				if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
 					throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
 				}
@@ -793,7 +794,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var result = RunProcess(
 					emscriptenSetupScript,
-					$"\"{BaseIntermediateOutputPath.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenMinVersion}");
+					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenMinVersion}");
 
 				if (result.exitCode == 0)
 				{
