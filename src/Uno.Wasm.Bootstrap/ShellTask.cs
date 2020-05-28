@@ -445,8 +445,9 @@ namespace Uno.Wasm.Bootstrap
 
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage(e.Data); output.Append(e.Data); } };
-			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError(e.Data); error.Append(e.Data); } };
+			var elapsed = Stopwatch.StartNew();
+			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage($"[{elapsed.Elapsed}] {e.Data}"); output.Append(e.Data); } };
+			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError($"[{elapsed.Elapsed}] {e.Data}"); error.Append(e.Data); } };
 
 			if (p.Start())
 			{
