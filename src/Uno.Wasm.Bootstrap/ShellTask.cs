@@ -593,7 +593,7 @@ namespace Uno.Wasm.Bootstrap
 					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
 				};
 
-				var aotOptions = $"{aotMode} --linker --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
@@ -612,6 +612,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
+				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
