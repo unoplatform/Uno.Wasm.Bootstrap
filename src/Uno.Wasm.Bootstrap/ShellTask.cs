@@ -445,8 +445,9 @@ namespace Uno.Wasm.Bootstrap
 
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage(e.Data); output.Append(e.Data); } };
-			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError(e.Data); error.Append(e.Data); } };
+			var elapsed = Stopwatch.StartNew();
+			p.OutputDataReceived += (s, e) => { if (e.Data != null) { Log.LogMessage($"[{elapsed.Elapsed}] {e.Data}"); output.Append(e.Data); } };
+			p.ErrorDataReceived += (s, e) => { if (e.Data != null) { Log.LogError($"[{elapsed.Elapsed}] {e.Data}"); error.Append(e.Data); } };
 
 			if (p.Start())
 			{
@@ -592,7 +593,7 @@ namespace Uno.Wasm.Bootstrap
 					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
 				};
 
-				var aotOptions = $"{aotMode} --linker --link-mode=all {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
@@ -611,6 +612,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
+				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
