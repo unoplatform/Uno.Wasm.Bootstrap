@@ -15,34 +15,34 @@ namespace Uno.Wasm.Bootstrap
 {
 	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task
 	{
-		public string MonoWasmSDKUri { get; set; }
+		public string? MonoWasmSDKUri { get; set; }
 
-		public string MonoWasmAOTSDKUri { get; set; }
+		public string? MonoWasmAOTSDKUri { get; set; }
 
-		public string MonoTempFolder { get; set; }
+		public string? MonoTempFolder { get; set; }
 
 		[Required]
-		public string PackagerOverrideFolderPath { get; set; }
+		public string PackagerOverrideFolderPath { get; set; } = "";
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public string MonoRuntimeExecutionMode { get; set; }
+		public string MonoRuntimeExecutionMode { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
 		[Output]
-		public string SdkPath { get; set; }
+		public string? SdkPath { get; set; }
 
 		[Output]
-		public string PackagerBinPath { get; set; }
+		public string? PackagerBinPath { get; set; }
 
 		[Output]
-		public string PackagerProjectFile { get; private set; }
+		public string? PackagerProjectFile { get; private set; }
 
 		public override bool Execute()
 		{
@@ -55,8 +55,8 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var runtimeExecutionMode = ParseRuntimeExecutionMode();
 
-			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri;
-			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri;
+			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri!;
+			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri!;
 
 			var m = Regex.Match(sdkUri, @"(?!.*\-)(.*?)\.zip$");
 
@@ -184,7 +184,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private string GetMonoTempPath()
 		{
-			var path = string.IsNullOrWhiteSpace(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder;
+			var path = string.IsNullOrWhiteSpace(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder!;
 
 			Directory.CreateDirectory(path);
 
