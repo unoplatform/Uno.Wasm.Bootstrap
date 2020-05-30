@@ -130,6 +130,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool ForceUseWSL { get; set; }
 
+		public bool ForceDisableWSL { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string RuntimeConfiguration { get; set; } = "";
 
@@ -409,7 +411,9 @@ namespace Uno.Wasm.Bootstrap
 
 				if (!File.Exists(executable))
 				{
-					throw new InvalidOperationException($"WSL is required for this build but could not be found. (Searched for [{executable}])");
+					throw new InvalidOperationException(
+						$"WSL is required for this build but could not be found (Searched for [{executable}]). " +
+						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: XXXXXXXXXXXXXXXXXX");
 				}
 			}
 			else if (RuntimeHelpers.IsNetCore
@@ -553,7 +557,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired)
+			if (!ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired))
 			{
 				var emsdkPath = ValidateEmscripten();
 
@@ -631,6 +635,13 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
+				if (ForceDisableWSL)
+				{
+					Log.LogWarning(
+						"WARNING: WebAssembly emscripten packaging has been explicitly disabled through" +
+						" WasmShellForceDisableWSL, the resulting compilation may not run properly.");
+				}
+
 				LinkerSetup();
 
 				//
