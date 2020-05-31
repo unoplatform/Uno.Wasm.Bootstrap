@@ -258,15 +258,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 - A Linux 18.04 machine or [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
 - A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
-- An active Emscripten **1.39.7**
-- Patches to emscripten, run this (given emsdk is in `~/emsdk`):
-  ```bash
-  cd ~/emsdk/upstream/emscripten
-  wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/emscripten-pr-8457.diff
-  wget https://raw.githubusercontent.com/mono/mono/27247739c68faee7b2a63ae805222d4b375d2161/sdks/builds/fix-emscripten-8511.diff
-  patch -N -p1 < ~/emsdk/emscripten-pr-8457.diff
-  patch -N -p1 < ~/emsdk/fix-emscripten-8511.diff
-  ```
+- An active Emscripten **1.39.11**
 
 The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build), and install the appropriate Emscripten in the container.
 
@@ -281,6 +273,25 @@ During the first use of WSL, if the environment is not properly setup, you will 
 The emscripten installation is automatically done as part of the build.
 
 The installation of emscripten is by default in the project's `obj` folder, but can be globally overriden by setting the `WASMSHELL_EMSDK` environment variable.
+
+### Special considerations for CI servers (GitHub Actions, Azure Devops)
+When building an application on Windows based CI servers, WSL is generally not enabled in base images. This can cause builds to fail if they require the use of static linking and/or AOT.
+
+In order to work around this issue, the following property can be set:
+```xml
+<WasmShellForceDisableWSL>true</WasmShellForceDisableWSL>
+```
+
+**It is important to note that generating a build this way, on a Windows CI server, without WSL enabled will generate an interpreter only build, and generate an invalid package if static linking was to be required.**
+
+When using GitHub actions:
+```xml
+<WasmShellForceDisableWSL Condition="'$(CI)'=='true'">true</WasmShellForceDisableWSL>
+```
+When using Azure Devops:
+```xml
+<WasmShellForceDisableWSL Condition="'$(BUILD_BUILDID)'=='true'">true</WasmShellForceDisableWSL>
+```
 
 ## Debugging and contributing to the Uno WebAssembly Bootstrapper
 

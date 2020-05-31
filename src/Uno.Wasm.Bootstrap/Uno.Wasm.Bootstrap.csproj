@@ -11,6 +11,8 @@
 		<Version>2.0.1-test.3</Version>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
 		<LangVersion>8.0</LangVersion>
+		<Nullable>enable</Nullable>
+	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<PropertyGroup>

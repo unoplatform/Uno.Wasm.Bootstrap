@@ -42,40 +42,40 @@ namespace Uno.Wasm.Bootstrap
 		private const string WasmScriptsFolder = "WasmScripts";
 		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
-		private string _distPath;
-		private string _managedPath;
-		private string _bclPath;
-		private string[] _bitcodeFilesCache;
-		private List<string> _referencedAssemblies;
-		private Dictionary<string, string> _bclAssemblies;
+		private string _distPath = "";
+		private string _managedPath = "";
+		private string _bclPath = "";
+		private string[]? _bitcodeFilesCache;
+		private List<string> _referencedAssemblies = new List<string>();
+		private Dictionary<string, string>? _bclAssemblies;
 		private readonly List<string> _dependencies = new List<string>();
-		private string[] _additionalStyles;
-		private List<AssemblyDefinition> _referencedAssemblyDefinitions;
+		private string[]? _additionalStyles;
+		private List<AssemblyDefinition>? _referencedAssemblyDefinitions;
 		private RuntimeExecutionMode _runtimeExecutionMode;
 		private ShellMode _shellMode;
-		private string _linkerBinPath;
+		private string _linkerBinPath = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string CurrentProjectPath { get; set; }
+		public string CurrentProjectPath { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string BuildTaskBasePath { get; set; }
+		public string BuildTaskBasePath { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string Assembly { get; set; }
+		public string Assembly { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string DistPath { get; set; }
+		public string DistPath { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string IntermediateOutputPath { get; set; }
+		public string IntermediateOutputPath { get; set; } = "";
 		[Microsoft.Build.Framework.Required]
-		public string BaseIntermediateOutputPath { get; set; }
+		public string BaseIntermediateOutputPath { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string MonoWasmSDKPath { get; set; }
+		public string MonoWasmSDKPath { get; set; } = "";
 
-		public string PackagerBinPath { get; set; }
+		public string? PackagerBinPath { get; set; }
 
 		public bool UseFileIntegrity { get; set; } = true;
 
@@ -85,24 +85,24 @@ namespace Uno.Wasm.Bootstrap
 		/// </remarks>
 		public bool GeneratePrefetchHeaders { get; set; } = false;
 
-		public Microsoft.Build.Framework.ITaskItem[] ReferencePath { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? ReferencePath { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] MonoEnvironment { get; set; }
-
-		[Microsoft.Build.Framework.Required]
-		public string TargetFrameworkIdentifier { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? MonoEnvironment { get; set; }
 
 		[Microsoft.Build.Framework.Required]
-		public string TargetFramework { get; set; }
+		public string TargetFrameworkIdentifier { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string IndexHtmlPath { get; set; }
+		public string TargetFramework { get; set; } = "";
+
+		[Microsoft.Build.Framework.Required]
+		public string IndexHtmlPath { get; set; } = "";
 
 		[Required]
-		public string WasmShellMode { get; set; }
+		public string WasmShellMode { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
-		public string MonoRuntimeExecutionMode { get; set; }
+		public string MonoRuntimeExecutionMode { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
 		public bool MonoILLinker { get; set; }
@@ -110,39 +110,41 @@ namespace Uno.Wasm.Bootstrap
 		/// <summary>
 		/// Path override for the mono-wasm SDK folder
 		/// </summary>
-		public string MonoTempFolder { get; private set; }
+		public string? MonoTempFolder { get; private set; }
 
 		public string AssembliesFileExtension { get; set; } = "clr";
 
-		public Microsoft.Build.Framework.ITaskItem[] Assets { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] AotProfile { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] LinkerDescriptors { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? LinkerDescriptors { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] MixedModeExcludedAssembly { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] CompressedExtensions { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? CompressedExtensions { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] ExtraEmccFlags { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
 
 		public bool GenerateCompressedFiles { get; set; }
 
 		public bool ForceUseWSL { get; set; }
 
+		public bool ForceDisableWSL { get; set; }
+
 		[Microsoft.Build.Framework.Required]
-		public string RuntimeConfiguration { get; set; }
+		public string RuntimeConfiguration { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public int BrotliCompressionQuality { get; set; } = 7;
 
-		public string CustomDebuggerPath { get; set; }
+		public string? CustomDebuggerPath { get; set; }
 
-		public string CustomLinkerPath { get; set; }
+		public string? CustomLinkerPath { get; set; }
 
-		public string PWAManifestFile { get; set; }
+		public string? PWAManifestFile { get; set; }
 
 		public bool EnableLongPathSupport { get; set; } = true;
 
@@ -228,9 +230,9 @@ namespace Uno.Wasm.Bootstrap
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
 			BaseIntermediateOutputPath = TryConvertLongPath(BaseIntermediateOutputPath);
 			DistPath = TryConvertLongPath(DistPath);
-			MonoTempFolder = TryConvertLongPath(MonoTempFolder);
 			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
-			CustomDebuggerPath = TryConvertLongPath(CustomDebuggerPath);
+			MonoTempFolder = TryConvertLongPath(MonoTempFolder!);
+			CustomDebuggerPath = TryConvertLongPath(CustomDebuggerPath!);
 		}
 
 
@@ -277,7 +279,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Directory.CreateDirectory(directoryName);
 			}
-			catch (Exception e)
+			catch (Exception /*e*/)
 			{
 				Log.LogError($"Failed to create directory [{directoryName}][{directory}]");
 				throw;
@@ -366,39 +368,37 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GzipCompress(string source, string destination)
 		{
-			using (var inStream = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read))
-			using (var compressedFileStream = File.Create(destination))
-			using (var compressionStream = new GZipStream(compressedFileStream, CompressionLevel.Optimal))
-			{
-				inStream.CopyTo(compressionStream);
-			}
+			using var inStream = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+			using var compressedFileStream = File.Create(destination);
+			using var compressionStream = new GZipStream(compressedFileStream, CompressionLevel.Optimal);
+
+			inStream.CopyTo(compressionStream);
 		}
 
 		private void BrotliCompress(string source, string destination)
 		{
-			using (var input = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read))
-			using (var output = File.Create(destination))
-			using (var bs = new BrotliSharpLib.BrotliStream(output, CompressionMode.Compress))
-			{
-				// By default, BrotliSharpLib uses a quality value of 1 and window size of 22 if the methods are not called.
-				bs.SetQuality(BrotliCompressionQuality);
-				/** bs.SetWindow(windowSize); **/
-				/** bs.SetCustomDictionary(customDict); **/
-				input.CopyTo(bs);
+			using var input = File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+			using var output = File.Create(destination);
+			using var bs = new BrotliSharpLib.BrotliStream(output, CompressionMode.Compress);
 
-				/* IMPORTANT: Only use the destination stream after closing/disposing the BrotliStream
-				   as the BrotliStream must be closed in order to signal that no more blocks are being written
-				   for the final block to be flushed out 
-				*/
-				bs.Dispose();
-			}
+			// By default, BrotliSharpLib uses a quality value of 1 and window size of 22 if the methods are not called.
+			bs.SetQuality(BrotliCompressionQuality);
+			/** bs.SetWindow(windowSize); **/
+			/** bs.SetCustomDictionary(customDict); **/
+			input.CopyTo(bs);
+
+			/* IMPORTANT: Only use the destination stream after closing/disposing the BrotliStream
+			   as the BrotliStream must be closed in order to signal that no more blocks are being written
+			   for the final block to be flushed out 
+			*/
+			bs.Dispose();
 		}
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
 			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || (AotProfile?.Length != 0));
 
-		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string workingDirectory = null)
+		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
 			if(IsWSLRequired)
 			{
@@ -411,7 +411,9 @@ namespace Uno.Wasm.Bootstrap
 
 				if (!File.Exists(executable))
 				{
-					throw new InvalidOperationException($"WSL is required for this build but could not be found. (Searched for [{executable}])");
+					throw new InvalidOperationException(
+						$"WSL is required for this build but could not be found (Searched for [{executable}]). " +
+						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: XXXXXXXXXXXXXXXXXX");
 				}
 			}
 			else if (RuntimeHelpers.IsNetCore
@@ -488,7 +490,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (!string.IsNullOrEmpty(CustomDebuggerPath))
 				{
-					CustomDebuggerPath = FixupPath(CustomDebuggerPath);
+					CustomDebuggerPath = FixupPath(CustomDebuggerPath!);
 				}
 
 				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
@@ -504,7 +506,7 @@ namespace Uno.Wasm.Bootstrap
 
 					DirectoryCreateDirectory(debuggerLocalPath);
 
-					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0") : CustomDebuggerPath);
+					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0") : CustomDebuggerPath!);
 
 					foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
 					{
@@ -542,7 +544,7 @@ namespace Uno.Wasm.Bootstrap
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
-			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath;
+			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
 			var appDirParm = $"--appdir=\"{AlignPath(_distPath)}\" ";
 
 			//
@@ -555,7 +557,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired)
+			if (!ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired))
 			{
 				var emsdkPath = ValidateEmscripten();
 
@@ -633,6 +635,13 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
+				if (ForceDisableWSL)
+				{
+					Log.LogWarning(
+						"WARNING: WebAssembly emscripten packaging has been explicitly disabled through" +
+						" WasmShellForceDisableWSL, the resulting compilation may not run properly.");
+				}
+
 				LinkerSetup();
 
 				//
@@ -863,10 +872,10 @@ namespace Uno.Wasm.Bootstrap
 
 		private void BuildReferencedAssembliesList()
 		{
-			_referencedAssemblies = new List<string>();
-
 			if (ReferencePath != null)
 			{
+				_bclAssemblies = _bclAssemblies ?? throw new Exception("_bclAssemblies is not yet defined");
+
 				foreach (var r in ReferencePath)
 				{
 					var name = Path.GetFileName(r.ItemSpec);
