@@ -162,11 +162,18 @@
   </Target>
 
   <Target Name="_CleanDist" BeforeTargets="Clean">
-    <ItemGroup>
-      <_DistFilesToDelete Include="$(OutputPath)dist\**" />
-    </ItemGroup>
+	<PropertyGroup>
+	  <!-- Defined here because OutputPath is defined late -->
+	  <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
+	</PropertyGroup>
 
-    <Delete Files="@(_DistFilesToDelete)" />
+	<ItemGroup>
+      <_DistFilesToDelete Include="$(OutputPath)dist\**" />
+	  <_DistDirToDelete Include="$([System.IO.Directory]::GetDirectories(&quot;$(WasmShellDistPath)&quot;))" Condition="exists('$(WasmShellDistPath)')" />
+	</ItemGroup>
+
+	<Delete Files="@(_DistFilesToDelete)" />
+	<RemoveDir Directories="@(_DistDirToDelete)" />
   </Target>
 
   <Target Name="_ValidateLegacyCLIPackage" BeforeTargets="CoreCompile">
