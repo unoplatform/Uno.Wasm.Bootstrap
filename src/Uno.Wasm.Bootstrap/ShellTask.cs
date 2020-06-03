@@ -402,7 +402,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
-			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || (AotProfile?.Length != 0));
+			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || HasAotProfile);
+
+		private bool HasAotProfile => AotProfile?.Any() ?? false;
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
@@ -574,7 +576,7 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var hasAotProfile = !GenerateAOTProfile && (AotProfile?.Any() ?? false);
+				var hasAotProfile = !GenerateAOTProfile && HasAotProfile;
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
 				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
@@ -1216,7 +1218,10 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
+				var isProfiledAOT = HasAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
