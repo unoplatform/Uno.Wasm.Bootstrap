@@ -210,20 +210,37 @@ var App = {
             this.progress = progress;
         }
 
-        const manifest = window["UnoAppManifest"];
+        const configLoader = () => {
+            if (manifest && manifest.splashScreenColor) {
+                this.loader.style.setProperty("--bg-color", manifest.splashScreenColor);
+            }
+            if (manifest && manifest.accentColor) {
+                this.loader.style.setProperty("--accent-color", manifest.accentColor);
+            }
+            const img = this.loader.querySelector("img");
+            if (manifest && manifest.splashScreenImage) {
+                img.setAttribute("src", manifest.splashScreenImage);
+            } else {
+                img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
+            }
+        };
 
-        if (manifest && manifest.splashScreenColor) {
-            this.loader.style["--bg-color"] = manifest.splashScreenColor;
-        }
-        if (manifest && manifest.accentColor) {
-            this.loader.style["--accent-color"] = manifest.accentColor;
-        }
-        const img = this.loader.querySelector("img");
-        if (manifest && manifest.splashScreenImage) {
-            img.setAttribute("src", manifest.splashScreenImage);
+        let manifest = window["UnoAppManifest"];
+        if (manifest) {
+            configLoader();
         } else {
-            img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
+
+            for (var i = 0; i < config.uno_dependencies.length; i++) {
+                if (config.uno_dependencies[i].endsWith('AppManifest')) {
+                    require([config.uno_dependencies[i]], function () {
+                        manifest = window["UnoAppManifest"];
+                        configLoader();
+                    });
+                    break;
+                }
+            }
         }
+
     },
 
     reportProgressWasmLoading: function (loaded) {
