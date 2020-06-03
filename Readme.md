@@ -492,6 +492,7 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_LINKER_ENABLED`, which is set to `True` if the linker was enabled, otherwise `False`
 - `UNO_BOOTSTRAP_DEBUGGER_ENABLED`, which is set to `True` if the debugging support was enabled, otherwise `False`
 - `UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION`, which provides the mono runtime configuration, which can be can either be `release` or `debug`.
+- `UNO_BOOTSTRAP_MONO_PROFILED_AOT`, which specifies if the package was built using a PG-AOT profile.
 
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
 
@@ -530,6 +531,23 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_HEAD)`
 
 Use the [Templates/Index.html](src/Uno.Wasm.Bootstrap/Templates/Index.html) file as an example.
+
+## Splash screen customization
+
+The default configuration for the bootstrapper is to show the Uno Platform logo. This can be changed, along with the background color and progress bar color by doing the following:
+
+- Create an AppManifest.js file in the `WasmScripts` folder
+- Set its build action to `EmbeddedResource`
+- Add the following content:
+```
+var UnoAppManifest = {
+    splashScreenImage: "https://microsoft.github.io/microsoft-ui-xaml/img/winui-logo.png",
+    splashScreenColor: "#00f",
+    accentColor: "#f00",
+}
+```
+
+Once the app start, the content will be updated to show the custom logo
 
 ### Configuration of the runtime
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
