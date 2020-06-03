@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<DefineConstants>NET_CORE</DefineConstants>
-		<NoWarn>1701;1702;1705;649</NoWarn>
+		<NoWarn>1701;1702;1705;649;NU5128</NoWarn>
 		<AssemblyName>Uno.Wasm.Bootstrap.v0</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
@@ -18,10 +18,10 @@
 	<PropertyGroup>
 		<Authors>nventive</Authors>
 		<PackageProjectUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</PackageProjectUrl>
-		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
 		<RepositoryUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</RepositoryUrl>
 		<Description>This package provides a Wasm bootstrap for netstandard 2.0 projects.</Description>
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
+		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 	
 	<ItemGroup>
@@ -38,6 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="images\icon.png" Pack="true" PackagePath="\" />
 		<Content Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
@@ -72,11 +73,6 @@
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
 		</Content>
 		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">

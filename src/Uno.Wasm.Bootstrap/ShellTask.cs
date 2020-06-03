@@ -43,6 +43,7 @@ namespace Uno.Wasm.Bootstrap
 		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
 		private string _distPath = "";
+		private string _workDistPath = "";
 		private string _managedPath = "";
 		private string _bclPath = "";
 		private string[]? _bitcodeFilesCache;
@@ -54,6 +55,8 @@ namespace Uno.Wasm.Bootstrap
 		private RuntimeExecutionMode _runtimeExecutionMode;
 		private ShellMode _shellMode;
 		private string _linkerBinPath = "";
+		private string _finalPackagePath = "";
+		private string _remoteBasePackagePath = "";
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -152,6 +155,9 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
+		[Output]
+		public string? OutputPackagePath { get; private set; }
+
 		public override bool Execute()
 		{
 			try
@@ -173,14 +179,14 @@ namespace Uno.Wasm.Bootstrap
 				CopyRuntime();
 				RunPackager();
 				TryDeployDebuggerProxy();
-				HashManagedPath();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
-				GenerateHtml();
 				CleanupDist();
+				TouchServiceWorker();
+				PrepareFinalDist();
 				GenerateConfig();
 				MergeConfig();
-				TouchServiceWorker();
+				GenerateHtml();
 				TryCompressDist();
 
 				return true;
@@ -240,7 +246,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// The service worker file must change to be reloaded properly, add the dist digest
 			// as cache trasher.
-			var workerFilePath = Path.Combine(_distPath, "service-worker.js");
+			var workerFilePath = Path.Combine(_workDistPath, "service-worker.js");
 			var workerBody = File.ReadAllText(workerFilePath);
 
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_managedPath));
@@ -296,7 +302,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var unusedFile in unusedFiles)
 			{
-				foreach (var file in Directory.EnumerateFiles(_distPath, unusedFile))
+				foreach (var file in Directory.EnumerateFiles(_workDistPath, unusedFile))
 				{
 					Log.LogMessage(MessageImportance.Low, $"Removing unused file {file}");
 					File.Delete(file);
@@ -320,7 +326,7 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage(MessageImportance.Low, $"Compressing {string.Join(", ", compressibleExtensions)}");
 
 				var filesToCompress = compressibleExtensions
-					.SelectMany(e => Directory.GetFiles(_distPath, "*" + e, SearchOption.AllDirectories))
+					.SelectMany(e => Directory.GetFiles(_finalPackagePath, "*" + e, SearchOption.AllDirectories))
 					.Where(f => !Path.GetDirectoryName(f).Contains("_compressed_"))
 					.Distinct()
 					.ToArray();
@@ -545,12 +551,12 @@ namespace Uno.Wasm.Bootstrap
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
-			var appDirParm = $"--appdir=\"{AlignPath(_distPath)}\" ";
+			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _distPath);
+			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _workDistPath);
 
 			if (packagerResults.exitCode != 0)
 			{
@@ -619,7 +625,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
 
-				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _distPath);
+				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _workDistPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -696,7 +702,7 @@ namespace Uno.Wasm.Bootstrap
 							.Select(Path.GetFileName)
 						);
 
-					string monoConfigFilePath = Path.Combine(_distPath, "mono-config.js");
+					string monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.js");
 					var monoConfig = File.ReadAllText(monoConfigFilePath);
 
 					foreach (var deletedFile in deletedFiles)
@@ -857,7 +863,7 @@ namespace Uno.Wasm.Bootstrap
 			var bitcodeFiles = new[] { "*.bc", "*.a" };
 
 			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
-				.SelectMany(b => Directory.EnumerateFiles(_distPath, b, SearchOption.TopDirectoryOnly))
+				.SelectMany(b => Directory.EnumerateFiles(_workDistPath, b, SearchOption.TopDirectoryOnly))
 				.ToArray();
 
 			return _bitcodeFilesCache;
@@ -905,47 +911,77 @@ namespace Uno.Wasm.Bootstrap
 			);
 		}
 
-		private void HashManagedPath()
+		private void PrepareFinalDist()
 		{
-			var hashFunction = SHA1.Create();
-
 			IEnumerable<byte> ComputeHash(string file)
 			{
-				using (var s = File.OpenRead(file))
-				{
-					return hashFunction.ComputeHash(s);
-				}
+				using var hashFunction = SHA1.Create();
+				using var s = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+				return hashFunction.ComputeHash(s);
 			}
 
-			var allBytes = Directory.GetFiles(_managedPath)
+			var allBytes = Directory.GetFiles(_workDistPath, "*.*", SearchOption.AllDirectories)
+				.AsParallel()
 				.OrderBy(s => s)
 				.Select(ComputeHash)
 				.SelectMany(h => h)
 				.ToArray();
 
+			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
-			var oldManagedPath = _managedPath;
-			_managedPath = _managedPath + "-" + hash;
-
-			if (Directory.Exists(_managedPath))
+			if (_shellMode == ShellMode.Node)
+			{ 
+				_remoteBasePackagePath = "";
+				_finalPackagePath = _distPath;
+				OutputPackagePath = _distPath;
+			}
+			else
 			{
-				Directory.Delete(_managedPath, true);
+				_remoteBasePackagePath = $"package_{hash}";
+				_finalPackagePath = TryConvertLongPath(Path.Combine(_distPath, _remoteBasePackagePath));
+				OutputPackagePath = _finalPackagePath.Replace(@"\\?\", "");
 			}
 
-			Directory.Move(oldManagedPath, _managedPath);
+			// Create the path if it does not exist (particularly if the path is
+			// not in a set of folder that exists)
+			Directory.CreateDirectory(_finalPackagePath);
 
-			RenameFiles("dll");
+			if (Directory.Exists(_finalPackagePath))
+			{
+				Directory.Delete(_finalPackagePath, true);
+			}
+
+			Directory.Move(_workDistPath, _finalPackagePath);
+
+			MoveFileSafe(Path.Combine(_finalPackagePath, "web.config"), Path.Combine(_distPath, "web.config"));
+			MoveFileSafe(Path.Combine(_finalPackagePath, "server.py"), Path.Combine(_distPath, "server.py"));
+
+			RenameFiles(_finalPackagePath, "dll");
 		}
+
+		private static void MoveFileSafe(string source, string target)
+		{
+			if (File.Exists(source) && source != target)
+			{
+				if (File.Exists(target))
+				{
+					File.Delete(target);
+				}
+
+				File.Move(source, target);
+			}
+		}
+
 
 		/// <summary>
 		/// Renames the files to avoid quarantine by antivirus software such as Symantec, 
 		/// which are quite present in the enterprise space.
 		/// </summary>
 		/// <param name="extension">The extension to rename</param>
-		private void RenameFiles(string extension)
+		private void RenameFiles(string path, string extension)
 		{
-			foreach (var dllFile in Directory.GetFiles(_managedPath, "*." + extension))
+			foreach (var dllFile in Directory.GetFiles(path, "*." + extension, SearchOption.AllDirectories))
 			{
 				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + "." + AssembliesFileExtension);
 
@@ -966,7 +1002,13 @@ namespace Uno.Wasm.Bootstrap
 		private void CreateDist()
 		{
 			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
-			_managedPath = Path.Combine(_distPath, "managed");
+			_workDistPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_work"));
+			_managedPath = Path.Combine(_workDistPath, "managed");
+
+			if (Directory.Exists(_workDistPath))
+			{
+				Directory.Delete(_workDistPath, true);
+			}
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
 			DirectoryCreateDirectory(_managedPath);
@@ -981,12 +1023,12 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
-				var dest = Path.Combine(_distPath, Path.GetFileName(sourceFile));
+				var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
 				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
 				FileCopy(sourceFile, dest, true);
 			}
 
-			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_distPath, "server.py"), true);
+			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistPath, "server.py"), true);
 		}
 
 		private void CopyContent()
@@ -1034,7 +1076,7 @@ namespace Uno.Wasm.Bootstrap
 						// Skip WasmScript folder files that may have been added as content files.
 						// This can happen when running the TypeScript compiler.
 
-						var dest = Path.Combine(_distPath, relativePath);
+						var dest = Path.Combine(_workDistPath, relativePath);
 						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
 
 						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
@@ -1084,7 +1126,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyResourceToOutput(string name, EmbeddedResource resource)
 		{
-			var dest = Path.Combine(_distPath, name);
+			var dest = Path.Combine(_workDistPath, name);
 
 			using (var srcs = resource.GetResourceStream())
 			{
@@ -1125,11 +1167,11 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GenerateConfig()
 		{
-			var unoConfigJsPath = Path.Combine(_distPath, "uno-config.js");
+			var unoConfigJsPath = Path.Combine(_finalPackagePath, "uno-config.js");
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, new UTF8Encoding(false)))
 			{
-				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{Path.GetFileNameWithoutExtension(x)}\""));
+				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"./{_remoteBasePackagePath}/{Path.GetFileNameWithoutExtension(x)}\""));
 				var entryPoint = DiscoverEntryPoint();
 
 				var config = new StringBuilder();
@@ -1143,23 +1185,13 @@ namespace Uno.Wasm.Bootstrap
 					filesIntegrity.Select(f => $"\"{f.fileName}\":\"{f.integrity}\""));
 
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
-				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\"{f}\"")) : "";
-
-				var dynamicLibraries = Directory.GetFiles(_distPath, "*.wasm", SearchOption.TopDirectoryOnly)
-					.Select(Path.GetFileName)
-					.Where(f => !f.Equals("dotnet.wasm"));
-
-				// Note that the "./" is required because mono is requesting files this
-				// way, and emscripten is having an issue on second loads for the same
-				// logical path: https://github.com/emscripten-core/emscripten/issues/8511
-				var sdynamicLibrariesOption = IsRuntimeAOT() ? "" : string.Join(", ", dynamicLibraries.Select(f => $"\"./{f}\""));
+				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
 				config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
-				config.AppendLine($"config.dynamicLibraries = [{sdynamicLibrariesOption}];");
 				config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
 				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
@@ -1200,13 +1232,13 @@ namespace Uno.Wasm.Bootstrap
 				var tempFile = Path.GetTempFileName();
 				try
 				{
-					var monoJsPath = Path.Combine(_distPath, "dotnet.js");
+					var monoJsPath = Path.Combine(_finalPackagePath, "dotnet.js");
 
 					using (var fs = new StreamWriter(tempFile))
 					{
-						fs.Write(File.ReadAllText(Path.Combine(_distPath, "mono-config.js")));
-						fs.Write(File.ReadAllText(Path.Combine(_distPath, "uno-config.js")));
-						fs.Write(File.ReadAllText(Path.Combine(_distPath, "uno-bootstrap.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "mono-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "uno-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "uno-bootstrap.js")));
 						fs.Write(File.ReadAllText(monoJsPath));
 					}
 
@@ -1233,7 +1265,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private IEnumerable<string> GetPWACacheableFiles()
-			=> from file in Directory.EnumerateFiles(_distPath, "*.*", SearchOption.AllDirectories)
+			=> from file in Directory.EnumerateFiles(_finalPackagePath, "*.*", SearchOption.AllDirectories)
 			   where !file.EndsWith("web.config", StringComparison.OrdinalIgnoreCase)
 			   select file.Replace(_distPath, "").Replace("\\", "/");
 
@@ -1243,11 +1275,11 @@ namespace Uno.Wasm.Bootstrap
 		{
 			const string monoWasmFileName = "dotnet.wasm";
 
-			var monoWasmFilePathAndName = Path.Combine(_distPath, monoWasmFileName);
+			var monoWasmFilePathAndName = Path.Combine(_finalPackagePath, monoWasmFileName);
 			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
 
 			var assemblyPathAndFiles = Directory
-				.EnumerateFiles(_managedPath, "*." + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
+				.EnumerateFiles(Path.Combine(_finalPackagePath, "managed"), "*." + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
 				.ToArray();
 
 			var assemblyFiles = assemblyPathAndFiles
@@ -1270,7 +1302,9 @@ namespace Uno.Wasm.Bootstrap
 					var bytes = File.ReadAllBytes(filePath);
 					var hash = _sha384.ComputeHash(bytes);
 					var integrity = Convert.ToBase64String(hash);
-					integrities.Add((Path.GetFileName(filePath), $"sha384-{integrity}"));
+					var path = filePath.Replace(_distPath, "").Replace("\\", "/");
+
+					integrities.Add(($".{path}", $"sha384-{integrity}"));
 				}
 
 				AddFileIntegrity(monoWasmFilePathAndName);
@@ -1288,7 +1322,7 @@ namespace Uno.Wasm.Bootstrap
 				filesIntegrity = new (string fileName, string integrity)[0];
 			}
 
-			return (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
+			return ($"./{_remoteBasePackagePath}/" + monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
 		}
 
 		private void GenerateHtml()
@@ -1317,6 +1351,7 @@ namespace Uno.Wasm.Bootstrap
 
 					// Compatibility after the change from mono.js to dotnet.js
 					html = html.Replace("mono.js\"", "dotnet.js\"");
+					html = html.Replace("\"./", $"\"./{_remoteBasePackagePath}/");
 
 					w.Write(html);
 
