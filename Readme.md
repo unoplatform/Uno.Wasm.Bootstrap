@@ -82,6 +82,8 @@ The documentation for this file [can be found here](https://github.com/mono/link
 ## Publishing the build results
 The easiest way to publish the build results is to use the Visual Studio publish menu on your project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).
 
+For deeper integration in the publishing pipeline, the `WasmShellOutputPackagePath` property is defined by the bootstrapper after the `BuildDist` target, which contains the path to the generated `package_XXX` content.
+
 ## Serve the Wasm app through Windows Linux Subsystem
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 

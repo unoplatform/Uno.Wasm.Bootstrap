@@ -155,6 +155,9 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
+		[Output]
+		public string? OutputPackagePath { get; private set; }
+
 		public override bool Execute()
 		{
 			try
@@ -179,10 +182,10 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				CleanupDist();
-				MergeConfig();
 				TouchServiceWorker();
 				PrepareFinalDist();
 				GenerateConfig();
+				MergeConfig();
 				GenerateHtml();
 				TryCompressDist();
 
@@ -345,10 +348,10 @@ namespace Uno.Wasm.Bootstrap
 				.AsParallel()
 				.Select(fileName =>
 				{
-					var compressedPathBase = Path.Combine(_workDistPath, "_compressed_" + method);
+					var compressedPathBase = Path.Combine(_distPath, "_compressed_" + method);
 
 					var compressedFileName = fileName;
-					compressedFileName = compressedFileName.Replace(_workDistPath, compressedPathBase);
+					compressedFileName = compressedFileName.Replace(_distPath, compressedPathBase);
 
 					DirectoryCreateDirectory(Path.GetDirectoryName(compressedFileName));
 
@@ -910,11 +913,10 @@ namespace Uno.Wasm.Bootstrap
 
 		private void PrepareFinalDist()
 		{
-
 			IEnumerable<byte> ComputeHash(string file)
 			{
 				using var hashFunction = SHA1.Create();
-				using var s = File.OpenRead(file);
+				using var s = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
 				return hashFunction.ComputeHash(s);
 			}
 
@@ -928,8 +930,22 @@ namespace Uno.Wasm.Bootstrap
 			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
-			_remoteBasePackagePath = $"package_{hash}";
-			_finalPackagePath = TryConvertLongPath(Path.Combine(_distPath, _remoteBasePackagePath));
+			if (_shellMode == ShellMode.Node)
+			{ 
+				_remoteBasePackagePath = "";
+				_finalPackagePath = _distPath;
+				OutputPackagePath = _distPath;
+			}
+			else
+			{
+				_remoteBasePackagePath = $"package_{hash}";
+				_finalPackagePath = TryConvertLongPath(Path.Combine(_distPath, _remoteBasePackagePath));
+				OutputPackagePath = _finalPackagePath.Replace(@"\\?\", "");
+			}
+
+			// Create the path if it does not exist (particularly if the path is
+			// not in a set of folder that exists)
+			Directory.CreateDirectory(_finalPackagePath);
 
 			if (Directory.Exists(_finalPackagePath))
 			{
@@ -938,7 +954,23 @@ namespace Uno.Wasm.Bootstrap
 
 			Directory.Move(_workDistPath, _finalPackagePath);
 
+			MoveFileSafe(Path.Combine(_finalPackagePath, "web.config"), Path.Combine(_distPath, "web.config"));
+			MoveFileSafe(Path.Combine(_finalPackagePath, "server.py"), Path.Combine(_distPath, "server.py"));
+
 			RenameFiles(_finalPackagePath, "dll");
+		}
+
+		private static void MoveFileSafe(string source, string target)
+		{
+			if (File.Exists(source) && source != target)
+			{
+				if (File.Exists(target))
+				{
+					File.Delete(target);
+				}
+
+				File.Move(source, target);
+			}
 		}
 
 
@@ -1200,13 +1232,13 @@ namespace Uno.Wasm.Bootstrap
 				var tempFile = Path.GetTempFileName();
 				try
 				{
-					var monoJsPath = Path.Combine(_workDistPath, "dotnet.js");
+					var monoJsPath = Path.Combine(_finalPackagePath, "dotnet.js");
 
 					using (var fs = new StreamWriter(tempFile))
 					{
-						fs.Write(File.ReadAllText(Path.Combine(_workDistPath, "mono-config.js")));
-						fs.Write(File.ReadAllText(Path.Combine(_workDistPath, "uno-config.js")));
-						fs.Write(File.ReadAllText(Path.Combine(_workDistPath, "uno-bootstrap.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "mono-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "uno-config.js")));
+						fs.Write(File.ReadAllText(Path.Combine(_finalPackagePath, "uno-bootstrap.js")));
 						fs.Write(File.ReadAllText(monoJsPath));
 					}
 
