@@ -16,6 +16,10 @@ const path = require("path");
         "defaultViewport": { "width": 1280, "height": 1024 }
     });
     const page = yield browser.newPage();
+    page.on('console', msg => {
+        console.log('BROWSER LOG:', msg.text());
+    });
+    page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err));
     yield page.goto("http://localhost:8001/");
     let value = null;
     console.log(`Init puppeteer`);
@@ -30,7 +34,7 @@ const path = require("path");
             console.log(`Waiting for results... (${e})`);
         }
     }
-    yield page.screenshot({ path: 'aotTests.png' });
+    yield page.screenshot({ path: `${process.env.BUILD_ARTIFACTSTAGINGDIRECTORY}/linking_test.png` });
     yield browser.close();
     if (!value) {
         console.log(`Failed to read the results`);
