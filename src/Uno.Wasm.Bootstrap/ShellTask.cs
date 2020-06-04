@@ -40,6 +40,7 @@ namespace Uno.Wasm.Bootstrap
 	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
+		private const string ServiceWorkerFileName = "service-worker.js";
 		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
 		private string _distPath = "";
@@ -182,9 +183,9 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				CleanupDist();
-				TouchServiceWorker();
 				PrepareFinalDist();
 				GenerateConfig();
+				TouchServiceWorker();
 				MergeConfig();
 				GenerateHtml();
 				TryCompressDist();
@@ -246,13 +247,19 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// The service worker file must change to be reloaded properly, add the dist digest
 			// as cache trasher.
-			var workerFilePath = Path.Combine(_workDistPath, "service-worker.js");
+			var workerFilePath = Path.Combine(_finalPackagePath, ServiceWorkerFileName);
 			var workerBody = File.ReadAllText(workerFilePath);
 
-			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_managedPath));
+			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_remoteBasePackagePath));
+			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath + "/");
 			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
 
 			File.WriteAllText(workerFilePath, workerBody);
+
+			// The service worker file must be placed at the root in order to specify the
+			// "./" scope to include index.html in the worker. Otherwise, offline mode cannot
+			// work if index.html is not cached.
+			MoveFileSafe(workerFilePath, Path.Combine(_distPath, ServiceWorkerFileName));
 		}
 
 		/// <summary>
@@ -1190,6 +1197,7 @@ namespace Uno.Wasm.Bootstrap
 				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
+				config.AppendLine($"config.uno_app_base = \"{ _remoteBasePackagePath }\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
