@@ -586,9 +586,9 @@ if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 
             navigator.serviceWorker
                 .register(
-                    './service-worker.js', {
-                        scope: "./"
-                    })
+                    "./service-worker.js", {
+                    scope: "./"
+                })
                 .then(function () {
                     console.debug('Service Worker Registered');
                 });
