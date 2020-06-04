@@ -6,8 +6,10 @@
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>
-		<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Windows'))">Interpreter</WasmShellMonoRuntimeExecutionMode>
+		
+		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
+		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
+		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 	</PropertyGroup>
       
 	<ItemGroup>
@@ -30,10 +32,16 @@
 		<None Remove="side.bc" />
 		<None Remove="WasmScripts\test.js" />
 	</ItemGroup>
-
+	
+	<!--
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-fsanitize=address" />
+	</ItemGroup>
+	-->
+	
 	<ItemGroup>
 		<!-- Remove this so that the CI passes without validating for WSL support -->
-		<Content Condition="$([MSBuild]::IsOsPlatform('Linux')) or exists('$(WINDIR)\sysnative\bash.exe')" Include="side.bc" />
+		<Content Condition="'$(UseAOT)'=='true'" Include="side.bc" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -67,3 +75,4 @@
 	  <Folder Include="Content\" />
 	</ItemGroup>
 </Project>
+<!---->

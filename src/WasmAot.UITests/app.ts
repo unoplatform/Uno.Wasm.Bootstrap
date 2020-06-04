@@ -10,6 +10,10 @@ const path = require("path");
 		"defaultViewport": { "width": 1280, "height": 1024 }
 	});
 	const page = await browser.newPage();
+	page.on('console', msg => {
+		console.log('BROWSER LOG:', msg.text());
+	});
+	page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err))
 	await page.goto("http://localhost:8000/");
 
 	var value = null;
@@ -29,7 +33,7 @@ const path = require("path");
 		}
 	}
 
-	await page.screenshot({ path: 'aotTests.png' });
+	await page.screenshot({ path: `${process.env.BUILD_ARTIFACTSTAGINGDIRECTORY}/aotTests.png` });
 
 	await browser.close();
 

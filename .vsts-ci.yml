@@ -86,7 +86,7 @@ jobs:
       checkLatest: false
 
   - bash: |
-      msbuild /m /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: MSBuild Validation
 
