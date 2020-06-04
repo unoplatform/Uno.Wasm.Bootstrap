@@ -219,6 +219,11 @@ var App = {
             }
             const img = this.loader.querySelector("img");
             if (manifest && manifest.splashScreenImage) {
+                if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g) ) {
+                    // Local images need to be prefixed with the app based path
+                    manifest.splashScreenImage = `${config.uno_app_base}/${manifest.splashScreenImage}`;
+                }
+
                 img.setAttribute("src", manifest.splashScreenImage);
             } else {
                 img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
