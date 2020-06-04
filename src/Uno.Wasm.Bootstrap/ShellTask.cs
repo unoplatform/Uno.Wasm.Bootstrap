@@ -52,7 +52,7 @@ namespace Uno.Wasm.Bootstrap
 		private Dictionary<string, string>? _bclAssemblies;
 		private readonly List<string> _dependencies = new List<string>();
 		private string[]? _additionalStyles;
-		private List<AssemblyDefinition>? _referencedAssemblyDefinitions;
+		private List<AssemblyDefinition>? _resourceSearchList;
 		private RuntimeExecutionMode _runtimeExecutionMode;
 		private ShellMode _shellMode;
 		private string _linkerBinPath = "";
@@ -913,11 +913,6 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 			}
-
-			_referencedAssemblyDefinitions = new List<AssemblyDefinition>(
-				from asmPath in _referencedAssemblies.Concat(new[] { Assembly, GetType().Assembly.Location })
-				select AssemblyDefinition.ReadAssembly(asmPath)
-			);
 		}
 
 		private void PrepareFinalDist()
@@ -1098,6 +1093,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void ExtractAdditionalJS()
 		{
+			BuildResourceSearchList();
+
 			var q = EnumerateResources("js", "WasmDist")
 				.Concat(EnumerateResources("js", WasmScriptsFolder));
 
@@ -1116,6 +1113,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void ExtractAdditionalCSS()
 		{
+			BuildResourceSearchList();
+
 			var q = EnumerateResources("css", "WasmCSS");
 
 			foreach (var (name, source, resource) in q)
@@ -1131,6 +1130,27 @@ namespace Uno.Wasm.Bootstrap
 			_additionalStyles = q
 				.Select(res => res.name)
 				.ToArray();
+		}
+
+		private void BuildResourceSearchList()
+		{
+			if (_resourceSearchList == null)
+			{
+				var sourceList = new List<string> {
+					// Add the boostrapper assembly first, so the css defined there can be overriden.
+					GetType().Assembly.Location
+				};
+
+				sourceList.AddRange(_referencedAssemblies);
+
+				// Add the main assembly last so it can have a final say
+				sourceList.Add(Assembly);
+
+				_resourceSearchList ??= new List<AssemblyDefinition>(
+					from asmPath in sourceList.Distinct()
+					select AssemblyDefinition.ReadAssembly(asmPath)
+				);
+			}
 		}
 
 		private void CopyResourceToOutput(string name, EmbeddedResource resource)
@@ -1151,7 +1171,7 @@ namespace Uno.Wasm.Bootstrap
 			var fullExtension = "." + extension;
 			var fullFolder = "." + folder + ".";
 
-			return from asm in _referencedAssemblyDefinitions
+			return from asm in _resourceSearchList
 				   from res in asm.MainModule.Resources.OfType<EmbeddedResource>()
 				   where res.Name.EndsWith(fullExtension)
 				   where res.Name.Contains(fullFolder)
