@@ -31,6 +31,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
+using Microsoft.Win32.SafeHandles;
 using Mono.Cecil;
 using Newtonsoft.Json.Linq;
 using Uno.Wasm.Bootstrap.Extensions;
@@ -1408,7 +1409,7 @@ namespace Uno.Wasm.Bootstrap
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
 				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"./{img["src"].ToString()}\" />");
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"./{img["src"]}\" />");
 				}
 
 				if (manifestDocument["theme_color"]?.Value<string>() is string color)
@@ -1419,6 +1420,24 @@ namespace Uno.Wasm.Bootstrap
 				{
 					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
 				}
+
+				// Transform the PWA assets
+				if(manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(_remoteBasePackagePath))
+				{
+					foreach(var icon in icons)
+					{
+						var originalSource = icon["src"]?.Value<string>();
+
+						icon["src"] = originalSource switch
+						{
+							string s when s.StartsWith("./") => $"./{_remoteBasePackagePath}/" + s.Substring(2),
+							string s => $"{_remoteBasePackagePath}/" + s,
+							_ => originalSource
+						};
+					}
+				}
+
+				File.WriteAllText(PWAManifestFile, manifestDocument.ToString());
 			}
 		}
 
