@@ -892,9 +892,19 @@ namespace Uno.Wasm.Bootstrap
 			{
 				_bclAssemblies = _bclAssemblies ?? throw new Exception("_bclAssemblies is not yet defined");
 
-				foreach (var r in ReferencePath)
+				foreach (var referencePath in ReferencePath)
 				{
-					var name = Path.GetFileName(r.ItemSpec);
+					var isReferenceAssembly = referencePath.GetMetadata("PathInPackage")?.StartsWith("ref/", StringComparison.OrdinalIgnoreCase) ?? false;
+					var hasConcreteAssembly = isReferenceAssembly && ReferencePath.Any(innerReference => HasConcreteAssemblyForReferenceAssembly(innerReference, referencePath));
+
+					if (isReferenceAssembly && hasConcreteAssembly)
+					{
+						// Reference assemblies may be present along with the actual assemblies.
+						// Filter out those assemblies as they cannot be used at runtime.
+						continue;
+					}
+
+					var name = Path.GetFileName(referencePath.ItemSpec);
 					if (
 						_bclAssemblies.ContainsKey(name)
 
@@ -910,11 +920,14 @@ namespace Uno.Wasm.Bootstrap
 					}
 					else
 					{
-						_referencedAssemblies.Add(r.ItemSpec);
+						_referencedAssemblies.Add(referencePath.ItemSpec);
 					}
 				}
 			}
 		}
+
+		private static bool HasConcreteAssemblyForReferenceAssembly(ITaskItem other, ITaskItem referenceAssembly)
+			=> Path.GetFileName(other.ItemSpec) == Path.GetFileName(referenceAssembly.ItemSpec) && (other.GetMetadata("PathInPackage")?.StartsWith("lib/", StringComparison.OrdinalIgnoreCase) ?? false);
 
 		private void PrepareFinalDist()
 		{

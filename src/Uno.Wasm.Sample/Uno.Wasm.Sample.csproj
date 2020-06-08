@@ -10,6 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Identity.Client" Version="4.14.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
@@ -29,8 +30,8 @@
 
 	<ItemGroup>
 		<!-- Add linked content first to validate directory creation from links -->
-		<Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)"/>
-		<Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)"/>
+		<Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)" />
+		<Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)" />
 		<Content Include="AdditionalContent\SomeContent01.txt" />
 		<Content Include="AdditionalContent/SomeContent02.txt" />
 	</ItemGroup>
@@ -49,7 +50,7 @@
 			<_AdditionalFile Include="nuget.config" />
 		</ItemGroup>
 		
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)/AdditionalContent/%(_AdditionalFile.Identity)')" Text="%(_AdditionalFile.Identity) does not exist in $(WasmShellOutputPackagePath)"/>
+		<Error Condition="!exists('$(WasmShellOutputPackagePath)/AdditionalContent/%(_AdditionalFile.Identity)')" Text="%(_AdditionalFile.Identity) does not exist in $(WasmShellOutputPackagePath)" />
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>
 

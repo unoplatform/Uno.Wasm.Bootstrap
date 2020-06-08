@@ -30,6 +30,9 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");
 
+			// Validate reference assembly call
+			var r = new Microsoft.Identity.Client.AccountId("", "", "");
+
 			var t = new Timer(_ => {
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
