@@ -467,6 +467,10 @@ var App = {
                 }, 0);
             });
         } else {
+            if (typeof require === undefined) {
+                throw `Require.js has not been loaded yet. If you have customized your index.html file, make sure that <script src="./require.js"></script> does not contain the defer directive.`;
+            }
+
             require(modules, callback);
         }
     },
