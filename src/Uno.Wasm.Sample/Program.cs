@@ -33,6 +33,9 @@ namespace Uno.Wasm.Sample
 			// Validate reference assembly call
 			var r = new Microsoft.Identity.Client.AccountId("", "", "");
 
+			var idbFSEnabled = WebAssembly.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
+			Console.WriteLine($"IDBFS: {idbFSEnabled}");
+
 			var t = new Timer(_ => {
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
