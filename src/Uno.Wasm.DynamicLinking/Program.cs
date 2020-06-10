@@ -48,7 +48,9 @@ namespace Uno.Wasm.Sample
 
 			var validateEmAddFunctionResult = int.Parse(Runtime.InvokeJS($"Validation.validateEmAddFunction()", out var result2)) != 0;
 
-			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()};{validateEmAddFunctionResult}";
+			var idbFSValidation = Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
+
+			var res = $"{runtimeMode};{test_add(21, 21)};{test_add_float1(21.1f, 21.2f)};{test_add_double(21.3, 21.4)};e{test_exception()};{validateEmAddFunctionResult};{idbFSValidation}";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")", out var result);
 
