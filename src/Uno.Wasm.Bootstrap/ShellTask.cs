@@ -563,6 +563,11 @@ namespace Uno.Wasm.Bootstrap
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
 
+			// Determines if the packager needs to be used.
+			var useFullPackager = !ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired);
+
+			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
+
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
@@ -573,10 +578,8 @@ namespace Uno.Wasm.Bootstrap
 				throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 			}
 
-			if (!ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired))
+			if (useFullPackager)
 			{
-				var emsdkPath = ValidateEmscripten();
-
 				var extraEmccFlags = (ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).ToList();
 				var packagerParams = new List<string>();
 
