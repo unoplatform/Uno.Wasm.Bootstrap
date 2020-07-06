@@ -56,6 +56,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.DevServe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.WasmSample.WithSpace.Aot", "Uno.WasmSample WithSpace Aot\Uno.WasmSample.WithSpace.Aot.csproj", "{754DC3FB-771E-41A8-B5FF-E97B8972A9E7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking", "Uno.Wasm.Static Linking\Uno.Wasm.StaticLinking.csproj", "{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -142,6 +144,10 @@ Global
 		{754DC3FB-771E-41A8-B5FF-E97B8972A9E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{754DC3FB-771E-41A8-B5FF-E97B8972A9E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{754DC3FB-771E-41A8-B5FF-E97B8972A9E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -164,6 +170,7 @@ Global
 		{A73BC29E-C720-44C8-A406-2A82D6079921} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{3D59ACEE-12BF-4B69-AEF7-893514C0BA7D} = {BA079449-9703-42D1-9B7B-B534C2D1DB88}
 		{754DC3FB-771E-41A8-B5FF-E97B8972A9E7} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{5C5D1A46-C01A-44FE-A493-B7BED1D0EF25} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
