@@ -416,12 +416,12 @@ namespace Uno.Wasm.Bootstrap
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
-			if(IsWSLRequired)
+			if (IsWSLRequired)
 			{
 				var unixPath = AlignPath(executable, escape: true);
 				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
-				var cwd = workingDirectory != null ? $"cd {AlignPath(workingDirectory, escape: true)} && " : "";
-
+				var cwd = workingDirectory != null ? $"cd \\\"{AlignPath(workingDirectory, escape: true)}\\\" && " : "";
+				
 				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
 
@@ -636,7 +636,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
-				packagerParams.Add(AlignPath(Path.GetFullPath(Assembly)));
+				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
 				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _workDistPath);
 
