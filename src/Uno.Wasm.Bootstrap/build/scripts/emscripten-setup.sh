@@ -27,7 +27,7 @@ if [ ! -f .uno-install-done ]; then
 
 	echo "Installing emscripten $UNO_EMSDK_VERSION in $UNO_EMSDK_PATH"
 
-	git clone https://github.com/emscripten-core/emsdk 2>&1
+	git clone --branch $UNO_EMSDK_VERSION https://github.com/emscripten-core/emsdk 2>&1
 	cd emsdk
 	./emsdk install $UNO_EMSDK_VERSION
 	./emsdk activate --embedded $UNO_EMSDK_VERSION

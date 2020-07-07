@@ -1,9 +1,9 @@
 #!/bin/bash
-export EMSCRIPTEN_VERSION=1.39.7
+export EMSCRIPTEN_VERSION=1.39.11
 export NUGET_PACKAGES=/workspace/.nuget
 
 cd ~
-git clone https://github.com/emscripten-core/emsdk.git
+git clone --branch $EMSCRIPTEN_VERSION https://github.com/emscripten-core/emsdk.git
 cd emsdk
 echo Installing emscripten $EMSCRIPTEN_VERSION
 ./emsdk install $EMSCRIPTEN_VERSION
