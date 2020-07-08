@@ -875,7 +875,7 @@ class Driver {
 		else
 			runtime_libs += $"$runtime_libdir/libmono-native.a";
 
-		string aot_args = "llvm-path=$emscripten_sdkdir/upstream/bin,";
+		string aot_args = "llvm-path=\"$emscripten_sdkdir/upstream/bin\",";
 		string profiler_libs = "";
 		string profiler_aot_args = "";
 		foreach (var profiler in profilers) {
@@ -886,10 +886,10 @@ class Driver {
 		}
 		string extra_link_libs = "";
 		foreach (var lib in native_libs)
-			extra_link_libs += lib + " ";
+			extra_link_libs += $"{EscapePath(lib)} ";
 		if (aot_profile != null) {
 			CopyFile (aot_profile, Path.Combine (builddir, Path.GetFileName (aot_profile)), CopyType.IfNewer, "");
-			aot_args += $"profile={aot_profile},profile-only,";
+			aot_args += $"profile=\"{aot_profile}\",profile-only,";
 		}
 		if (ee_mode == ExecMode.AotInterp)
 			aot_args += "interp,";
@@ -923,7 +923,7 @@ class Driver {
 			emcc_link_flags += "-O0 ";
 		string strip_cmd = "";
 		if (opts.NativeStrip)
-			strip_cmd = " && $wasm_strip $out_wasm";
+			strip_cmd = " && \"$wasm_strip\" \"$out_wasm\"";
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
 			emcc_flags += "-s SIMD=1 ";
@@ -969,7 +969,7 @@ class Driver {
 			ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
 		ninja.WriteLine ("emcc = source $emsdk_env && emcc");
 		ninja.WriteLine ("wasm_strip = $emscripten_sdkdir/upstream/bin/wasm-strip");
-		ninja.WriteLine ($"emcc_flags = -Oz -g {emcc_flags}-s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\" -s \"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\" -s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\', \'memset\']\"");
+		ninja.WriteLine ($"emcc_flags = -Oz -g {emcc_flags}-s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'setThrew\', \'memset\']\\\"");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,{aot_args}");
 
 		// Rules
@@ -989,12 +989,12 @@ class Driver {
 		ninja.WriteLine ("  restat = true");
 		ninja.WriteLine ("  description = [CPIFDIFF] $in -> $out");
 		ninja.WriteLine ("rule create-emsdk-env");
-		ninja.WriteLine ("  command = $emscripten_sdkdir/emsdk construct_env $out");
+		ninja.WriteLine ("  command = \"$emscripten_sdkdir/emsdk\" construct_env $out");
 		ninja.WriteLine ("rule emcc");
-		ninja.WriteLine ("  command = bash -c '$emcc $emcc_flags $flags -c -o $out $in'");
+		ninja.WriteLine ("  command = bash -c \"$emcc $emcc_flags $flags -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
-		ninja.WriteLine ($"  command = bash -c '$emcc $emcc_flags {emcc_link_flags} -o $out_js --js-library $tool_prefix/src/library_mono.js --js-library $tool_prefix/src/dotnet_support.js {wasm_core_support_library} $in' {strip_cmd}");
+		ninja.WriteLine ($"  command = bash -c \"$emcc $emcc_flags {emcc_link_flags} -o \\\"$out_js\\\" --js-library $tool_prefix/src/library_mono.js --js-library $tool_prefix/src/dotnet_support.js {wasm_core_support_library} $in\" {strip_cmd}");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 		ninja.WriteLine ("  command = mono $tools_dir/monolinker.exe -out $builddir/linker-out -l none --deterministic --disable-opt unreachablebodies --exclude-feature com,remoting,etw $linker_args || exit 1; mono $tools_dir/wasm-tuner.exe --gen-empty-assemblies $out");
@@ -1114,9 +1114,9 @@ class Driver {
 				if (a.aot) {
 					linker_ofiles_dedup += $" {a.linkout_path}";
 				}
-				ninja.WriteLine ($"build {a.linkin_path}: cp {source_file_path}");
+				ninja.WriteLine ($"build {a.linkin_path}: cp {EscapePath(source_file_path)}");
 				if (File.Exists(source_file_path_pdb)) {
-					ninja.WriteLine($"build {a.linkin_pdb_path}: cp {source_file_path_pdb}");
+					ninja.WriteLine($"build {a.linkin_pdb_path}: cp {EscapePath(source_file_path_pdb)}");
 					linker_ofiles += $" {a.linkout_pdb_path}";
 					infile_pdb = a.linkout_pdb_path;
 				}
@@ -1317,5 +1317,5 @@ class Driver {
 
 	}
 
-
+	private string EscapePath(string path) => path.Replace(" ", "$ ");
 }
