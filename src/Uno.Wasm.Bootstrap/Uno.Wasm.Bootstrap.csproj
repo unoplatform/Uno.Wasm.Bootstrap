@@ -63,6 +63,10 @@
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
+		<Content Include="..\tools\support\Uno.Wasm.TimezoneData.*">
+			<Pack>true</Pack>
+			<PackagePath>tools/support</PackagePath>
+		</Content>
 		<Content Include="$(NuGetPackageRoot)/brotlisharplib/0.3.3/lib/netstandard2.0/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
@@ -120,6 +124,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.TimezoneData\Uno.Wasm.TimezoneData.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>

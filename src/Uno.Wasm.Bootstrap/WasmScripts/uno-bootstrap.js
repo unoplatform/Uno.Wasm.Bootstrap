@@ -167,6 +167,7 @@ var App = {
             App.attachProfilerHotKey();
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
+            App.timezoneSetup();
 
             var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
 
@@ -190,6 +191,14 @@ var App = {
         }
 
         this.cleanupInit();
+    },
+
+    timezoneSetup() {
+        var timeZoneSetupMethod = Module.mono_bind_static_method("[Uno.Wasm.TimezoneData] Uno.Wasm.TimezoneData.TimezoneHelper:Setup");
+
+        if (timeZoneSetupMethod) {
+            timeZoneSetupMethod(Intl.DateTimeFormat().resolvedOptions().timeZone);
+        }
     },
 
     cleanupInit: function () {

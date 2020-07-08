@@ -36,6 +36,8 @@ namespace Uno.Wasm.Sample
 			var idbFSEnabled = WebAssembly.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
 
+			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
+
 			var t = new Timer(_ => {
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
