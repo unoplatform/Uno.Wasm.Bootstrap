@@ -236,7 +236,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
-			BaseIntermediateOutputPath = TryConvertLongPath(BaseIntermediateOutputPath);
+			BaseIntermediateOutputPath = TryConvertLongPath(Path.GetFullPath(BaseIntermediateOutputPath));
 			DistPath = TryConvertLongPath(DistPath);
 			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
 			MonoTempFolder = TryConvertLongPath(MonoTempFolder!);
