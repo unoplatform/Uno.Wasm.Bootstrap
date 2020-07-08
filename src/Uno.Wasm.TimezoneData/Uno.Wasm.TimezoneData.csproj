@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+	
+	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+		<EmbeddedResource Include="LinkerConfig.xml">
+			<LogicalName>$(AssemblyName).xml</LogicalName>
+		</EmbeddedResource>
+	</ItemGroup>
+	
+	<Target Name="CopyToBoostrapDev" AfterTargets="Build">
+		<ItemGroup>
+			<_TimeZoneOutputFiles Include="$(TargetDir)\Uno.Wasm.TimezoneData.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_TimeZoneOutputFiles)" DestinationFolder="..\Uno.Wasm.Bootstrap\tools\support" />
+	</Target>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="zoneinfo\**" />
+	</ItemGroup>
+</Project>

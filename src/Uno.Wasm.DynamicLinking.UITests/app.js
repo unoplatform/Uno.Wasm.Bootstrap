@@ -43,7 +43,7 @@ const path = require("path");
     else {
         console.log(`Results: ${value}`);
     }
-    const expected = "FullAOT;42;42.3;42.7;e42;True;true";
+    const expected = "FullAOT;42;42.3;42.7;e42;True;true;True";
     if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);

@@ -559,6 +559,11 @@ namespace Uno.Wasm.Bootstrap
 			DirectoryCreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
+
+			// Timezone support
+			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
+			referencePathsParameter += $" {AlignPath(releaseTimeZoneData)}";
+
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
@@ -688,13 +693,14 @@ namespace Uno.Wasm.Bootstrap
 					};
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
+					bindingsPath += $" -a \"{releaseTimeZoneData}\"";
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
 					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw --used-attrs-only true ";
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -d \"{_managedPath}\"",
+						$"-out \"{_managedPath}\" --verbose -b true -l none {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" -d \"{_managedPath}\"",
 						_managedPath
 					   );
 
