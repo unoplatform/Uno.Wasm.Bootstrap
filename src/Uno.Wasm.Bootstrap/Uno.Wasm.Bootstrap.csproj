@@ -63,7 +63,7 @@
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
-		<Content Include="..\tools\support\Uno.Wasm.TimezoneData.*">
+		<Content Include="./tools/support/Uno.Wasm.TimezoneData.*">
 			<Pack>true</Pack>
 			<PackagePath>tools/support</PackagePath>
 		</Content>
