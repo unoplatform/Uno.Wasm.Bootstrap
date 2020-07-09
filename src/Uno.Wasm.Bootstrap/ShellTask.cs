@@ -842,7 +842,7 @@ namespace Uno.Wasm.Bootstrap
 
 				Log.LogError(
 					$"The Windows Subsystem for Linux dotnet environment may not be properly setup, and you may need to run " +
-					$"the environment setup script. Open a Windows Command Prompt and run:\n\nbash -c `wslpath \"{dotnetSetupScript}\"`\n\n");
+					$"the environment setup script. Open an Ubuntu WSL shell and run:\n\nbash -c `wslpath \"{dotnetSetupScript}\"`\n\n");
 
 				throw new InvalidOperationException($"Failed to setup WSL environment.");
 			}
