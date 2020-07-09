@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
 	
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
 		<EmbeddedResource Include="LinkerConfig.xml">
