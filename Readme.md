@@ -567,6 +567,12 @@ To select a different sdk build:
 
 > Note that both properties require a zip file as the source, not an uncompressed folder.
 
+### Changing the mono-wasm SDKs install location
+The SDKs are installed under `Path.GetTempPath()` by default, you may change this by setting the following msbuild property(or environment variable): `WasmShellMonoTempFolder`.
+
+For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
+instead of `C:\Users\xxx\AppData\Local\Temp\mono-wasm-e351637985e`.
+
 ### Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
 The bootstrapper comes with a default mono-wasm SDK (which can be overridden per project with the msbuild properties
 `MonoWasmSDKUri` and `MonoWasmAOTSDKUri`), specified in the `Constants.cs` file.
