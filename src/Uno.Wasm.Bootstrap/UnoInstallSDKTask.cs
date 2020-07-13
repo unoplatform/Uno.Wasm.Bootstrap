@@ -75,14 +75,18 @@ namespace Uno.Wasm.Bootstrap
 				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
-				if (
-					Directory.Exists(SdkPath)
-					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-bcl", "wasm"))
-				)
+				var writeChecksum = false;
+
+				if (Directory.Exists(SdkPath) && !VerifyChecksum(SdkPath))
 				{
-					// The temp folder may get cleaned-up by windows' storage sense.
+					// SDK folder was tampered with (e.g. StorageSense, User, etc.)
 					Log.LogMessage($"Removing invalid mono-wasm SDK: {SdkPath}");
-					Directory.Delete(SdkPath, true);
+
+					var destination = $"{SdkPath}.{Guid.NewGuid():N}";
+
+					Directory.Move(SdkPath, destination);
+
+					Directory.Delete(destination, true);
 				}
 
 				if (!Directory.Exists(SdkPath))
@@ -94,6 +98,8 @@ namespace Uno.Wasm.Bootstrap
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+
+					writeChecksum = true;
 				}
 
 				if (
@@ -121,6 +127,8 @@ namespace Uno.Wasm.Bootstrap
 					{
 						Process.Start("chmod", $"-R +x {SdkPath}");
 					}
+
+					writeChecksum = true;
 				}
 
 				if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
@@ -133,6 +141,12 @@ namespace Uno.Wasm.Bootstrap
 						Log.LogMessage($"Copy packager override {file} to {destFileName}");
 						File.Copy(file, destFileName, true);
 					}
+				}
+
+				if (writeChecksum)
+				{
+					WriteChecksum(SdkPath);
+					Log.LogMessage($"Wrote checksum to {SdkPath}");
 				}
 			}
 			catch (Exception e)
@@ -180,6 +194,42 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			throw new Exception($"Failed to download {sdkName} to {zipPath}");
+		}
+
+		private const string ChecksumFilename = "UNO_WASM_SDK.CHECKSUM";
+
+		private int ComputeChecksum(string path)
+		{
+			var exclusions = new[]
+			{
+				Path.Combine(path, ChecksumFilename),
+				Path.Combine(path, @"wasm-bcl\wasm_tools\monolinker.exe.config")
+			};
+
+			return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+				.Where(f => !exclusions.Contains(f))
+				.Sum(f => f.Length);
+		}
+
+		private bool VerifyChecksum(string path)
+		{
+			try
+			{
+				var checksum = int.Parse(File.ReadAllText(Path.Combine(path, ChecksumFilename)));
+
+				return ComputeChecksum(path) == checksum;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		private void WriteChecksum(string path)
+		{
+			var file = Path.Combine(path, ChecksumFilename);
+
+			File.WriteAllText(file, $"{ComputeChecksum(path)}");
 		}
 
 		private string GetMonoTempPath()
