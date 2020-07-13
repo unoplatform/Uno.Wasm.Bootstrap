@@ -650,7 +650,7 @@ namespace Uno.Wasm.Bootstrap
 					throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 
-				var ninjaResult = RunProcess("ninja", "-j 1", workAotPath);
+				var ninjaResult = RunProcess("ninja", "", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
 				{
