@@ -235,7 +235,7 @@ var App = {
 
                 img.setAttribute("src", manifest.splashScreenImage);
             } else {
-                img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno.png");
+                img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno-splashscreen-light.png");
             }
         };
 

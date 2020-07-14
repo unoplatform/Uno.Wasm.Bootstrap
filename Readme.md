@@ -548,7 +548,7 @@ var UnoAppManifest = {
 }
 ```
 
-Once the app start, the content will be updated to show the custom logo
+Once the app start, the content will be updated to show the custom logo. The logo must be of size 630x300 (or same ratio).
 
 ### Configuration of the runtime
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
