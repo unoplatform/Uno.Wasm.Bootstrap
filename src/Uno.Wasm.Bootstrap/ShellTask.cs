@@ -619,7 +619,7 @@ namespace Uno.Wasm.Bootstrap
 					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
 				};
 
-				var aotOptions = $"{aotMode} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{AlignPath(emsdkPath)}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
@@ -806,21 +806,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
-				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_EMSDK") ?? BaseIntermediateOutputPath;
-				var emsdkBaseFolder = emsdkHostFolder + $"\\emsdk-{Constants.EmscriptenMinVersion}";
+				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenMinVersion}";
 
 				if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
 					throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
-				}
-
-				// Enable compression for the emsdk folder
-				var emsdkBaseFolderRaw = emsdkBaseFolder.Replace(@"\\?\", "");
-				if (!Directory.Exists(emsdkBaseFolderRaw))
-				{
-					Log.LogMessage($"Creating {emsdkBaseFolder}");
-					Directory.CreateDirectory(emsdkBaseFolderRaw);
-					Process.Start("compact", $"/c \"/s:{emsdkBaseFolder}\"");
 				}
 
 				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
@@ -834,7 +825,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (result.exitCode == 0)
 				{
-					return emsdkBaseFolder + $"\\emsdk";
+					return emsdkBaseFolder + $"/emsdk";
 				}
 
 				var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");

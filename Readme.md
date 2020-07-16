@@ -274,7 +274,7 @@ During the first use of WSL, if the environment is not properly setup, you will 
 
 The emscripten installation is automatically done as part of the build.
 
-The installation of emscripten is by default in the project's `obj` folder, but can be globally overriden by setting the `WASMSHELL_EMSDK` environment variable.
+The boostrapper uses its own installation of emscripten, installed by default in `$HOME/.uno/emsdk` in the WSL filesystem. This can be globally overriden by setting the `WASMSHELL_WSLEMSDK` environment variable.
 
 ### Special considerations for CI servers (GitHub Actions, Azure Devops)
 When building an application on Windows based CI servers, WSL is generally not enabled in base images. This can cause builds to fail if they require the use of static linking and/or AOT.
