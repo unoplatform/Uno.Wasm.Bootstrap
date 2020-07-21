@@ -416,7 +416,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
-			if (IsWSLRequired)
+			if (IsWSLRequired && !ForceDisableWSL)
 			{
 				var unixPath = AlignPath(executable, escape: true);
 				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
@@ -485,7 +485,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private string AlignPath(string path, bool escape = false)
 		{
-			var output = IsWSLRequired ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
+			var output = IsWSLRequired && !ForceDisableWSL ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
 
 			if (escape)
 			{
