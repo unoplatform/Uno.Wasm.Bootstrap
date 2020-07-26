@@ -220,6 +220,10 @@ To create a profiled build:
 ```xml
 <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
 ```
+- In your `LinkerConfig.xml` file, add the following:
+```xml
+<assembly fullname="WebAssembly.Bindings" />
+```
 - Run the application once, without the debugger (e.g. Ctrl+F5)
 - Navigate throughout the application in high usage places.
 - Once done, either:
