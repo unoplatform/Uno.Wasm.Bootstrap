@@ -1051,6 +1051,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyContent()
 		{
+			var assets = new List<string>();
+
 			if (Assets != null)
 			{
 				foreach (var sourceFile in Assets)
@@ -1094,6 +1096,13 @@ namespace Uno.Wasm.Bootstrap
 						// Skip WasmScript folder files that may have been added as content files.
 						// This can happen when running the TypeScript compiler.
 
+						if (!relativePath.EndsWith(".a", StringComparison.InvariantCultureIgnoreCase) &&
+							!relativePath.EndsWith(".bc", StringComparison.InvariantCultureIgnoreCase) &&
+							!relativePath.Equals("web.config", StringComparison.InvariantCultureIgnoreCase))
+						{
+							assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
+						}
+
 						var dest = Path.Combine(_workDistPath, relativePath);
 						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
 
@@ -1103,6 +1112,8 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 			}
+
+			File.WriteAllLines(Path.Combine(_workDistPath, "uno-assets.txt"), assets);
 		}
 
 		private void ExtractAdditionalJS()

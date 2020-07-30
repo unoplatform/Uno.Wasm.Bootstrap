@@ -432,7 +432,12 @@ Files are processed as embedded resources to allow for libraries to provide java
 Additional CSS files are supported through the inclusion of `EmbeddedResource`  msbuild item files, in a project folder named `WasmCSS`.
 
 ### Support for additional Content files
-Additional CSS files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
+Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
+
+`uno-assets.txt` contains the package relative paths of the content files that were copied to the dist folder.
+It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
+
+A few files are excluded such as `*.a`, `*.bc` and `web.config`.
 
 ### Support for PWA Manifest File
 A **Progressive Web App** manifest link definition can be added to the index.html file's head:
