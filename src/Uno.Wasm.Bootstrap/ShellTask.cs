@@ -562,7 +562,7 @@ namespace Uno.Wasm.Bootstrap
 
 			// Timezone support
 			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
-			referencePathsParameter += $" {AlignPath(releaseTimeZoneData)}";
+			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
 
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
