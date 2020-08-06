@@ -123,6 +123,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? DynamicLibraries { get; set; }
+
 		public Microsoft.Build.Framework.ITaskItem[]? LinkerDescriptors { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
@@ -410,7 +412,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
-			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || HasAotProfile);
+			&& (GetDynamicLibrariesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || HasAotProfile);
 
 		private bool HasAotProfile => AotProfile?.Any() ?? false;
 
@@ -569,7 +571,7 @@ namespace Uno.Wasm.Bootstrap
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
 
 			// Determines if the packager needs to be used.
-			var useFullPackager = !ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired);
+			var useFullPackager = !ForceDisableWSL && (IsRuntimeAOT() || GetDynamicLibrariesParams().Any() || IsWSLRequired);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -865,8 +867,12 @@ namespace Uno.Wasm.Bootstrap
 		private static void AdjustFileLineEndings(string emscriptenSetupScript)
 			=> File.WriteAllText(emscriptenSetupScript, File.ReadAllText(emscriptenSetupScript).Replace("\r\n", "\n"));
 
-		private IEnumerable<string> GetDynamicLibrariesParams() =>
-			GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension);
+		private IEnumerable<string> GetDynamicLibrariesParams()
+		{
+			var dynamicLibraries = (DynamicLibraries?.Select(l => l.ItemSpec) ?? new string[0]).ToList();
+			dynamicLibraries.AddRange(GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension));
+			return dynamicLibraries;
+		}
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
