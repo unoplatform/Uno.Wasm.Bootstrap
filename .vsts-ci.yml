@@ -26,7 +26,7 @@ jobs:
         $ErrorActionPreference = 'SilentlyContinue'
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
         npm install
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
         npm install
@@ -63,52 +63,8 @@ jobs:
     netcore_version: 3.1.x
     linux_container: unoplatform/wasm-build:2.3
 
-- job: macOS
-
-  pool:
-    vmImage: 'macOS-10.15'
-
-  variables:
-    NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
-    SourceLinkEnabled: false
-
-  steps:
-  - bash: |
-      cd $(Agent.WorkFolder)
-      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
-      unzip ninja-mac.zip -d ninja-mac
-     
-    displayName: 'Install Ninja'
-
-  - task: NuGetToolInstaller@0
-    inputs:
-      versionSpec: 4.7.0
-      checkLatest: false
-
-  - bash: |
-      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
-
-    displayName: MSBuild Validation
-
-  - task: CopyFiles@2
-    inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-      Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)
-      CleanTargetFolder: false
-      OverWrite: false
-      flattenFolders: false
-
-  - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet build || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
-      dotnet build
-
-    displayName: .NET Core Validation
-
-  - task: PublishBuildArtifacts@1
-    condition: always()
-    inputs:
-      PathtoPublish: $(build.artifactstagingdirectory)
-      ArtifactName: uno-wasm-bootstrap-macos-aot
-      ArtifactType: Container
+- template: .vsts-ci-macos.yml
+  parameters:
+    jobName: macOS_netcore3_1
+    vmImage: macOS-10.15
+    netcore_version: 3.1.x

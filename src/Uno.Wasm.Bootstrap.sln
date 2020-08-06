@@ -35,9 +35,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{BA079449
 EndProject
 Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "WasmAot.UITests", "WasmAot.UITests\WasmAot.UITests.njsproj", "{B4C15C47-85E2-444E-B9F3-D970E35601A9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.DynamicLinking", "Uno.Wasm.DynamicLinking\Uno.Wasm.DynamicLinking.csproj", "{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Aot", "Uno.Wasm.StaticLinking.Aot\Uno.Wasm.StaticLinking.Aot.csproj", "{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}"
 EndProject
-Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.DynamicLinking.UITests", "Uno.Wasm.DynamicLinking.UITests\Uno.Wasm.DynamicLinking.UITests.njsproj", "{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}"
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.StaticLinking.Aot.UITests", "Uno.Wasm.StaticLinking.Aot.UITests\Uno.Wasm.StaticLinking.Aot.UITests.njsproj", "{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Node.Sample", "Uno.Wasm.Node.Sample\Uno.Wasm.Node.Sample.csproj", "{B98B35A0-181C-4151-9671-6B9D207D40A6}"
 EndProject
@@ -59,6 +59,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking", "Uno.Wasm.Static Linking\Uno.Wasm.StaticLinking.csproj", "{EBCB3142-593E-4815-915D-3B88B75161C1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.WasmSample.WithSpace.Aot", "Uno.WasmSample WithSpace Aot\Uno.WasmSample.WithSpace.Aot.csproj", "{359A63C4-C5D0-4011-8C39-89D23190B22F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Interpreter", "Uno.Wasm.StaticLinking.Interpreter\Uno.Wasm.StaticLinking.Interpreter.csproj", "{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -154,6 +156,10 @@ Global
 		{359A63C4-C5D0-4011-8C39-89D23190B22F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{359A63C4-C5D0-4011-8C39-89D23190B22F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{359A63C4-C5D0-4011-8C39-89D23190B22F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -177,6 +183,7 @@ Global
 		{3D59ACEE-12BF-4B69-AEF7-893514C0BA7D} = {BA079449-9703-42D1-9B7B-B534C2D1DB88}
 		{EBCB3142-593E-4815-915D-3B88B75161C1} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{359A63C4-C5D0-4011-8C39-89D23190B22F} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}

@@ -362,7 +362,7 @@ Static linking may also require some additional emscripten flags, for instance w
 </ItemGroup>
 ```
 
-For more information, see the `Uno.Wasm.DynamicLinking` sample side module build script.
+For more information, see the `Uno.Wasm.StaticLinking.Aot` sample side module build script.
 
 ### Threads support
 
