@@ -436,6 +436,7 @@ namespace Uno.Wasm.Bootstrap
 				&& (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
 				|| RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
 				)
+				&& executable.EndsWith(".exe")
 			)
 			{
 				parameters = $"{executable} {parameters}";
