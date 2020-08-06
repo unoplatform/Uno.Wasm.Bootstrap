@@ -26,7 +26,7 @@ jobs:
         $ErrorActionPreference = 'SilentlyContinue'
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
         npm install
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests
         npm install
         cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
         npm install

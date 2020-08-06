@@ -104,14 +104,14 @@ jobs:
     displayName: Raytracer UI Tests 
 
   - bash: |
-      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist/server.py"
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking/bin/Release/netstandard2.0/dist
+      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist/server.py"
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist
       python server.py &
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.DynamicLinking.UITests
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests
       npm install
       node app
 
-    displayName: DynamicLinking Tests 
+    displayName: StaticLinking.Aot Tests 
 
   - bash: |
       sed -i "s/8000/8002/g" "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist/server.py"

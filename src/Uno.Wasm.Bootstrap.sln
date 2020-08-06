@@ -35,9 +35,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{BA079449
 EndProject
 Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "WasmAot.UITests", "WasmAot.UITests\WasmAot.UITests.njsproj", "{B4C15C47-85E2-444E-B9F3-D970E35601A9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.DynamicLinking", "Uno.Wasm.DynamicLinking\Uno.Wasm.DynamicLinking.csproj", "{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Aot", "Uno.Wasm.StaticLinking.Aot\Uno.Wasm.StaticLinking.Aot.csproj", "{8CF49D1D-ED83-41AE-B2D5-1F8B1EBB4BE6}"
 EndProject
-Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.DynamicLinking.UITests", "Uno.Wasm.DynamicLinking.UITests\Uno.Wasm.DynamicLinking.UITests.njsproj", "{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}"
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.StaticLinking.Aot.UITests", "Uno.Wasm.StaticLinking.Aot.UITests\Uno.Wasm.StaticLinking.Aot.UITests.njsproj", "{4A68C463-ADB6-48FB-BC22-F52A97F2FDBE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Node.Sample", "Uno.Wasm.Node.Sample\Uno.Wasm.Node.Sample.csproj", "{B98B35A0-181C-4151-9671-6B9D207D40A6}"
 EndProject
