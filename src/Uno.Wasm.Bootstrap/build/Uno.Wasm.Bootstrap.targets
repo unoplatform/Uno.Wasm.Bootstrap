@@ -146,6 +146,7 @@
         MonoEnvironment="@(WasmShellMonoEnvironment)"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
         MixedModeExcludedAssembly="@(MonoRuntimeMixedModeExcludedAssembly)"
+        DynamicLibraries="@(WasmShellDynamicLibraries)"
         ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
         MonoILLinker="$(WasmShellILLinkerEnabled)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
