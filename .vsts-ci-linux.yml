@@ -17,7 +17,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.39.18
+    EMSCRIPTEN_VERSION: 1.39.20
     NETCORE_VERSION: ${{ parameters.netcore_version }}
 
   steps:
