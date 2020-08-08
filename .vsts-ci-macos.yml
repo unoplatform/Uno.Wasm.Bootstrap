@@ -11,7 +11,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
-    EMSCRIPTEN_VERSION: 1.39.18
+    EMSCRIPTEN_VERSION: 1.39.20
     SourceLinkEnabled: false
 
   steps:
