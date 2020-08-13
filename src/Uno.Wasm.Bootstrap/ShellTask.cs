@@ -30,6 +30,7 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Transactions;
 using Microsoft.Build.Framework;
 using Microsoft.Win32.SafeHandles;
 using Mono.Cecil;
@@ -97,7 +98,6 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string TargetFrameworkIdentifier { get; set; } = "";
 
-		[Microsoft.Build.Framework.Required]
 		public string TargetFramework { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
@@ -168,6 +168,11 @@ namespace Uno.Wasm.Bootstrap
 				{
 					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
 					return true;
+				}
+
+				if (string.IsNullOrEmpty(TargetFramework))
+				{
+					throw new InvalidOperationException($"The TargetFramework task parameter must be defined.");
 				}
 
 				// Debugger.Launch();
