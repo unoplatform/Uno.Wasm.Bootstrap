@@ -843,28 +843,30 @@ namespace Uno.Wasm.Bootstrap
 
 				throw new InvalidOperationException($"Failed to setup WSL environment.");
 			}
+			else if (Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				var home = Environment.GetEnvironmentVariable("HOME");
+				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? $"{home}/.uno/emsdk";
+				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenMinVersion}";
+
+				// Adjust line endings
+				AdjustFileLineEndings(emscriptenSetupScript);
+
+				var result = RunProcess(
+					"bash",
+					$"-c \"chmod +x {emscriptenSetupScript}; {emscriptenSetupScript} \\\"{emsdkHostFolder}\\\" {Constants.EmscriptenMinVersion}\"");
+
+				if (result.exitCode == 0)
+				{
+					return emsdkBaseFolder + $"/emsdk";
+				}
+
+				throw new NotSupportedException($"Failed to install emscripten");
+			}
 			else
 			{
-				var emsdkPath = Environment.GetEnvironmentVariable("EMSDK");
-				if (string.IsNullOrEmpty(emsdkPath))
-				{
-					throw new InvalidOperationException($"The EMSDK environment variable must be defined. See http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions");
-				}
-
-				// Get the version file https://github.com/emscripten-core/emsdk/blob/efc64876db1473312587a3f346be000a733bc16d/emsdk.py#L1698
-				var emsdkVersionVersionFile = Path.Combine(emsdkPath, "upstream", "emscripten", "emscripten-version.txt");
-
-				var rawEmsdkVersionVersion = File.Exists(emsdkVersionVersionFile) ? File.ReadAllText(emsdkVersionVersionFile)?.Trim('\"') : "";
-				var validVersion = Version.TryParse(rawEmsdkVersionVersion, out var emsdkVersion);
-
-				if (string.IsNullOrWhiteSpace(emsdkPath)
-					|| !validVersion
-					|| emsdkVersion < Constants.EmscriptenMinVersion)
-				{
-					throw new InvalidOperationException($"The EMSDK version {emsdkVersion} is not compatible with the current mono SDK. Install {Constants.EmscriptenMinVersion} or later.");
-				}
-
-				return emsdkPath;
+				throw new NotSupportedException($"Unsupported platform");
 			}
 		}
 
