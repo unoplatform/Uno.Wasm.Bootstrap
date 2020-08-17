@@ -32,6 +32,7 @@ namespace Uno.Wasm.Bootstrap
 
 		[Microsoft.Build.Framework.Required]
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? DynamicLibraries { get; set; }
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
@@ -107,6 +108,7 @@ namespace Uno.Wasm.Bootstrap
 					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
 					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
 					|| HasBitcodeAssets()
+					|| HasDynamicLibraries()
 					|| GenerateAOTProfile
 					)
 					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
@@ -159,6 +161,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool HasBitcodeAssets()
 			=> Assets.Any(asset => BitCodeExtensions.Any(ext => asset.ItemSpec.EndsWith(ext, StringComparison.OrdinalIgnoreCase)));
+
+		private bool HasDynamicLibraries()
+			=> DynamicLibraries?.Any() ?? false;
 
 		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
 		{
