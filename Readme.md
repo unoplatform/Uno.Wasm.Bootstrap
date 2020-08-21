@@ -24,8 +24,8 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.2.0-dev.1" />
-    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.2.0-dev.1" PrivateAssets="all" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.3.0" />
+    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.3.0" PrivateAssets="all" />
  </ItemGroup>
 
 </Project>
