@@ -33,11 +33,11 @@
 		<Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)" />
 		<Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)" />
 		<Content Include="AdditionalContent\SomeContent01.txt">
-			<Deploy>Package</Deploy>
+			<UnoDeploy>Package</UnoDeploy>
 		</Content>
 		<Content Include="AdditionalContent/SomeContent02.txt" />
-		<Content Include="AdditionalContent/SomeContent03.txt" Deploy="Root" />
-		<Content Include="AdditionalContent/SomeContent04.txt" Deploy="None" />
+		<Content Include="AdditionalContent/SomeContent03.txt" UnoDeploy="Root" />
+		<Content Include="AdditionalContent/SomeContent04.txt" UnoDeploy="None" />
 	</ItemGroup>
 
 	<ItemGroup>

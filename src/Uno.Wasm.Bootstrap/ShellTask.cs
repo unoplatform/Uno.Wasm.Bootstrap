@@ -43,6 +43,7 @@ namespace Uno.Wasm.Bootstrap
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string ServiceWorkerFileName = "service-worker.js";
+		private const string DeployMetadataName = "UnoDeploy";
 		private static readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 		private static readonly string _wwwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
@@ -1173,7 +1174,7 @@ namespace Uno.Wasm.Bootstrap
 						defaultDeployMode = DeployMode.None;
 					}
 
-					var deployToRootMetadata = sourceFile.GetMetadata("Deploy");
+					var deployToRootMetadata = sourceFile.GetMetadata(DeployMetadataName);
 
 					if (Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
 					{
