@@ -887,11 +887,10 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			var bitcodeFiles = new[] { "*.bc", "*.a" };
-
-			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
-				.SelectMany(b => Directory.EnumerateFiles(_workDistPath, b, SearchOption.TopDirectoryOnly))
-				.ToArray();
+			_bitcodeFilesCache ??= Assets
+					.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+					.Select(a => GetFilePaths(a).fullPath)
+					.ToArray();
 
 			return _bitcodeFilesCache;
 		}
@@ -1112,6 +1111,37 @@ namespace Uno.Wasm.Bootstrap
 			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
 		}
 
+		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
+		{
+			// This is for project-local defined content
+			var baseSourceFile = item.GetMetadata("DefiningProjectDirectory");
+
+			if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
+			{
+				// This case is mainly for shared projects
+				return (item.ItemSpec, link);
+			}
+			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
+			{
+				var sourceFilePath = item.ToString();
+
+				if (sourceFilePath.StartsWith(CurrentProjectPath))
+				{
+					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
+				}
+				else
+				{
+					return (fullPath, sourceFilePath);
+				}
+			}
+			else
+			{
+				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ToString());
+			}
+		}
+
+
 		private void CopyContent()
 		{
 			var assets = new List<string>();
@@ -1120,37 +1150,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					(string fullPath, string relativePath) GetFilePaths()
-					{
-						// This is for project-local defined content
-						var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
 
-						if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
-						{
-							// This case is mainly for shared projects
-							return (sourceFile.ItemSpec, link);
-						}
-						else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
-						{
-							var sourceFilePath = sourceFile.ToString();
-
-							if (sourceFilePath.StartsWith(CurrentProjectPath))
-							{
-								// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-								return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
-							}
-							else
-							{
-								return (fullPath, sourceFilePath);
-							}
-						}
-						else
-						{
-							return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
-						}
-					}
-
-					var (fullSourcePath, relativePath) = GetFilePaths();
+					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
 
 					// Files in "wwwroot" folder will get deployed to root by default
 					var defaultDeployMode = relativePath.Contains(_wwwwroot) ? DeployMode.Root : DeployMode.Package;

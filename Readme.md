@@ -347,12 +347,16 @@ Instead, use Static Linking below.
 #### Static Linking
 Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
-This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_
-webassembly function invocations that are faster than with dynamic linking.
+This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_ webassembly function invocations that are faster than with dynamic linking.
 
-Any `.bc` or `.a` file placed as content in the built project will be statically linked to 
-the currently running application, allowing for p/invoke to be functional when resolving methods
-from the loaded module.
+Any `.bc` or `.a` file placed as `content` in the built project will be statically linked to the currently running application, allowing for p/invoke to be functional when resolving methods from the loaded module. If you have a `.bc` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
+
+``` xml
+<ItemGroup>
+    <!-- Deactivate the discovery of a .bc or a .a file for static linking -->
+    <Content Update="path\to\my\file.bc" UnoAotCompile="False" />
+</ItemGroup>
+```
 
 Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
 
