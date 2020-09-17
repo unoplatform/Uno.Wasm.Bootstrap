@@ -985,8 +985,23 @@ namespace Uno.Wasm.Bootstrap
 				Directory.Delete(_distPath, true);
 			}
 
-			Directory.Move(_workDistRootPath, _distPath);
-			Directory.Move(_workDistPath, _finalPackagePath);
+			try
+			{
+				Directory.Move(_workDistRootPath, _distPath);
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Unable to move ROOT DIST {_workDistRootPath} to {_distPath}: {ex}", ex);
+			}
+
+			try
+			{
+				Directory.Move(_workDistPath, _finalPackagePath);
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Unable to move PACKAGE DIST {_workDistPath} to {_finalPackagePath}: {ex}", ex);
+			}
 
 			RenameFiles(_finalPackagePath, "dll");
 		}
