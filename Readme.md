@@ -432,18 +432,45 @@ Files are processed as embedded resources to allow for libraries to provide java
 Additional CSS files are supported through the inclusion of `EmbeddedResource`  msbuild item files, in a project folder named `WasmCSS`.
 
 ### Support for additional Content files
-Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
+Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder. There is 3 deployment mode for content files:
 
-`uno-assets.txt` contains the package relative paths of the content files that were copied to the dist folder.
-It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
+* `Package`: files using `Deploy="Package"` mode will be deployed in the `dist\package_<hash>` folder and the folder structure will be preserved. This is the default mode for most files (see exclusions below).
+* `Root`: files using `Deploy="Root"` mode will be deployed directly in the `dist\` folder and the folder structure will be preserved.
+* `None`: files using the `Deploy="None"` mode will be ignored and won't be deployed.
 
-A few files are excluded such as `*.a`, `*.bc` and `web.config`.
+Exclusions:
+
+1. Files in the `WasmScript` folder will be set as `Deploy="None"` by default (they are not treat as content)
+
+2. Files in the `wwwroot` folder will be set as `Deploy="Root"` by default
+
+3. You can manually set the _deploy mode_ in the `.csproj` in the following way:
+
+   ```xml
+   <ItemGroup>
+       <!-- Manually set a file to be deployed as "root" mode -->
+       <Content Include="Path\To\My\File.txt" Deploy="Root" />
+   
+       <!-- Manually set a file to be deployed as "package" mode -- overriding the default "root" mode for wwwroot -->
+       <Content Include="wwwroot\config.json" Deploy="Package" />
+   
+       <!-- Manually set a file to be deployed as "none" mode (not deployed) -->
+       <Content Include="wwwroot\output.log" Deploy="None" />
+   </ItemGroup>
+   ```
+
+Asset files: `dist/package_XXXX/uno-assets.txt` contains the package relative paths of the content files that were copied to the  `dist/package_XXXX` folder. It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations. Important: Will only contain files deployed in `Deploy="Package"` mode.
+
+A few files extensions are excluded (`Deploy="None")`by default such as `*.a`, `*.bc`.
+ `.html` files are those named `web.config` will default to `Deploy="Root"`.
+
+> **IMPORTANT INFORMATION ABOUT BROWSER CACHE:** Browsers will often cache files based on their final url. When deploying a file in the `Deploy="Root"` mode, beware the browser could cache the previous version. Files the the `Deploy="Package"` mode won't have this problem since the path name contains a hash of their content. It important to take that into consideration when deciding to use the `Deploy="Root"` mode.
 
 ### Support for PWA Manifest File
 A **Progressive Web App** manifest link definition can be added to the index.html file's head:
 - Use the `WasmPWAManifestFile` property to set the file name
-- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest) 
-- Set the `Content` build action to this new file so it gets copied to the output folder
+- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest).
+- Ensure the build action is `Content` for this file so it gets copied to the output folder. The `Deploy="Package"` mode (which is the default) must be used. This file must not be put in the `wwwroot` folder.
 - Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
 
 iOS's support for home screen icon is optionally set by searching for a 1024x1024 icon in the 
@@ -502,7 +529,7 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_DEBUGGER_ENABLED`, which is set to `True` if the debugging support was enabled, otherwise `False`
 - `UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION`, which provides the mono runtime configuration, which can be can either be `release` or `debug`.
 - `UNO_BOOTSTRAP_MONO_PROFILED_AOT`, which specifies if the package was built using a PG-AOT profile.
-- `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base.
+- `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base. Useful to reach assets deployed using the `Deploy="Package"` mode.
 
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
 
