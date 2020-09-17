@@ -290,9 +290,9 @@ namespace Uno.Wasm.Bootstrap
 			{
 				File.Copy(sourceFileName, destFileName, overwrite);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}");
+				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}: {ex.Message}");
 				throw;
 			}
 		}
@@ -1066,6 +1066,8 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
 				FileCopy(sourceFile, dest, true);
 			}
+
+			DirectoryCreateDirectory(_workDistRootPath);
 
 			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
 		}
