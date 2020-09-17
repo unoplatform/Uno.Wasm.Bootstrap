@@ -62,6 +62,7 @@ namespace Uno.Wasm.Bootstrap
 		private string _linkerBinPath = "";
 		private string _finalPackagePath = "";
 		private string _remoteBasePackagePath = "";
+		private string[]? _contentExtensionsToExclude;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -122,6 +123,8 @@ namespace Uno.Wasm.Bootstrap
 		public string AssembliesFileExtension { get; set; } = "clr";
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
+
+		public string? ContentExtensionsToExclude { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
@@ -897,6 +900,12 @@ namespace Uno.Wasm.Bootstrap
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 			ParseEnumProperty(nameof(MonoRuntimeExecutionMode), MonoRuntimeExecutionMode, out _runtimeExecutionMode);
 			AotProfile ??= new ITaskItem[0];
+			_contentExtensionsToExclude =
+				ContentExtensionsToExclude
+					?.Split(new[] {';'}, StringSplitOptions.RemoveEmptyEntries)
+				?? new string[0];
+
+			Log.LogMessage($"Ignoring content files with following extensions:\n\t{string.Join("\n\t", _contentExtensionsToExclude)}");
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -996,7 +1005,10 @@ namespace Uno.Wasm.Bootstrap
 
 			try
 			{
-				Directory.Move(_workDistPath, _finalPackagePath);
+				if (!_workDistRootPath.Equals(_workDistPath))
+				{
+					Directory.Move(_workDistPath, _finalPackagePath);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -1049,7 +1061,10 @@ namespace Uno.Wasm.Bootstrap
 		{
 			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
 			_workDistPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_work"));
-			_workDistRootPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_root_work"));
+			_workDistRootPath =
+				_shellMode == ShellMode.Node
+				? _workDistPath
+				: TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_root_work"));
 			_managedPath = Path.Combine(_workDistPath, "managed");
 
 			if (Directory.Exists(_workDistPath))
@@ -1076,8 +1091,19 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
 				var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
-				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
-				FileCopy(sourceFile, dest, true);
+
+				var matchedExtension = _contentExtensionsToExclude
+					.FirstOrDefault(x => sourceFile.EndsWith(x, StringComparison.OrdinalIgnoreCase));
+
+				if (matchedExtension == null)
+				{
+					Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
+					FileCopy(sourceFile, dest, true);
+				}
+				else
+				{
+					Log.LogMessage($"Runtime: ignoring file {sourceFile} / matched with exclusion extension {matchedExtension}");
+				}
 			}
 
 			DirectoryCreateDirectory(_workDistRootPath);
@@ -1127,6 +1153,15 @@ namespace Uno.Wasm.Bootstrap
 
 					// Files in "wwwroot" folder will get deployed to root by default
 					var defaultDeployMode = relativePath.Contains(_wwwwroot) ? DeployMode.Root : DeployMode.Package;
+					var deployModeSource = "Default";
+
+					var matchedExtension = _contentExtensionsToExclude
+						.FirstOrDefault(x => relativePath.EndsWith(x, StringComparison.OrdinalIgnoreCase));
+					if (matchedExtension != null)
+					{
+						defaultDeployMode = DeployMode.None;
+						deployModeSource = "Excluded extension";
+					}
 
 					relativePath = FixupPath(relativePath).Replace(_wwwwroot, "");
 
@@ -1139,7 +1174,6 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					var deployToRootMetadata = sourceFile.GetMetadata("Deploy");
-					string deployModeSource;
 
 					if (Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
 					{
@@ -1147,7 +1181,6 @@ namespace Uno.Wasm.Bootstrap
 					}
 					else
 					{
-						deployModeSource = "Default";
 						deployMode = defaultDeployMode;
 					}
 
@@ -1393,7 +1426,7 @@ namespace Uno.Wasm.Bootstrap
 			   select file.Replace(_distPath, "").Replace("\\", "/");
 
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
-
+		
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
 			const string monoWasmFileName = "dotnet.wasm";
