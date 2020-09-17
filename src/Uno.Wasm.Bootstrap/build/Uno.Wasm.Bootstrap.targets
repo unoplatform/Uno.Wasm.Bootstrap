@@ -65,15 +65,6 @@
     <WasmShellCompressedExtension Include=".html"/>
   </ItemGroup>
 
-	<ItemGroup>
-	  <!-- Any "Content" file in wwwroot folder ending with that extension will get deployed at the root folder -->
-	  <WasmShellDeployModeContent Include=".a" Deploy="None"/>
-	  <WasmShellDeployModeContent Include=".o" Deploy="None"/>
-	  <WasmShellDeployModeContent Include=".bc" Deploy="None"/>
-	  <WasmShellDeployModeContent Include=".html" Deploy="Root" />
-	  <WasmShellDeployModeContent Include="web.config" Deploy="Root"/>
-	</ItemGroup>
-
   <ItemGroup>
     <UpToDateCheckInput Include="@(LinkerDescriptors)" />
     <UpToDateCheckInput Include="@(LinkerDescriptor)" />
@@ -160,7 +151,6 @@
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
         CompressedExtensions="@(WasmShellCompressedExtension)"
-        DeployModeContent="@(WasmShellDeployModeContent)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
         ForceUseWSL="$(WasmShellForceUseWSL)"

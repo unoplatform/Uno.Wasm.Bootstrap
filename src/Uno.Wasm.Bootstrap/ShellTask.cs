@@ -123,8 +123,6 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[]? DeployModeContent { get; set; }
-
 		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? LinkerDescriptors { get; set; }
@@ -1078,25 +1076,6 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Assets != null)
 			{
-				var rootContentExtensions =
-					DeployModeContent
-						?.ToDictionary(
-							keySelector: i => i.ItemSpec,
-							elementSelector: i =>
-							{
-								var metadata = i.GetMetadata("Deploy");
-								if (Enum.TryParse<DeployMode>(metadata, out var deployMode))
-								{
-									return deployMode;
-								}
-								Log.LogWarning($"CopyContent(): Deploy=\"{metadata}\" is unknown. Default to Package.");
-
-								return DeployMode.Package; // default mode
-							})
-					?? new Dictionary<string, DeployMode>(0);
-
-				Log.LogMessage($"CopyContent(): extension rules {string.Join(", ", rootContentExtensions)}");
-
 				foreach (var sourceFile in Assets)
 				{
 					(string fullPath, string relativePath) GetFilePaths()
@@ -1145,28 +1124,16 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					var deployToRootMetadata = sourceFile.GetMetadata("Deploy");
-					var deployModeSource = "Default";
-					if (!Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
-					{
-						var d = rootContentExtensions
-							.Where(extension =>
-								relativePath.EndsWith(extension.Key, StringComparison.InvariantCultureIgnoreCase))
-							.Select(e => (DeployMode?)e.Value)
-							.FirstOrDefault();
+					string deployModeSource;
 
-						if (d.HasValue)
-						{
-							deployModeSource = "DeployModeContent";
-							deployMode = d.Value;
-						}
-						else
-						{
-							deployMode = defaultDeployMode;
-						}
+					if (Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
+					{
+						deployModeSource = "Metadata";
 					}
 					else
 					{
-						deployModeSource = "Metadata";
+						deployModeSource = "Default";
+						deployMode = defaultDeployMode;
 					}
 
 					if (deployMode == DeployMode.Package)
@@ -1180,7 +1147,7 @@ namespace Uno.Wasm.Bootstrap
 						{
 							DeployMode.Package => Path.Combine(_workDistPath, relativePath),
 							DeployMode.Root => Path.Combine(_workDistRootPath, relativePath),
-							_ => default // None or unknown
+							_ => default // None or unknown mode
 						};
 
 
