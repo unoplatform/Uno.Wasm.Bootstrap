@@ -43,10 +43,12 @@ namespace Uno.Wasm.Bootstrap
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string ServiceWorkerFileName = "service-worker.js";
-		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
+		private static readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
+		private static readonly string _wwwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
 		private string _distPath = "";
 		private string _workDistPath = "";
+		private string _workDistRootPath = "";
 		private string _managedPath = "";
 		private string _bclPath = "";
 		private string[]? _bitcodeFilesCache;
@@ -121,6 +123,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? DeployModeContent { get; set; }
+
 		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? LinkerDescriptors { get; set; }
@@ -159,6 +163,9 @@ namespace Uno.Wasm.Bootstrap
 
 		[Output]
 		public string? OutputPackagePath { get; private set; }
+
+		[Output]
+		public string? OutputDistPath { get; private set; }
 
 		public override bool Execute()
 		{
@@ -956,6 +963,8 @@ namespace Uno.Wasm.Bootstrap
 			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
+			OutputDistPath = _distPath;
+
 			if (_shellMode == ShellMode.Node)
 			{ 
 				_remoteBasePackagePath = "";
@@ -973,15 +982,13 @@ namespace Uno.Wasm.Bootstrap
 			// not in a set of folder that exists)
 			Directory.CreateDirectory(_finalPackagePath);
 
-			if (Directory.Exists(_finalPackagePath))
+			if (Directory.Exists(_distPath))
 			{
-				Directory.Delete(_finalPackagePath, true);
+				Directory.Delete(_distPath, true);
 			}
 
+			Directory.Move(_workDistRootPath, _distPath);
 			Directory.Move(_workDistPath, _finalPackagePath);
-
-			MoveFileSafe(Path.Combine(_finalPackagePath, "web.config"), Path.Combine(_distPath, "web.config"));
-			MoveFileSafe(Path.Combine(_finalPackagePath, "server.py"), Path.Combine(_distPath, "server.py"));
 
 			RenameFiles(_finalPackagePath, "dll");
 		}
@@ -1029,11 +1036,17 @@ namespace Uno.Wasm.Bootstrap
 		{
 			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
 			_workDistPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_work"));
+			_workDistRootPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_root_work"));
 			_managedPath = Path.Combine(_workDistPath, "managed");
 
 			if (Directory.Exists(_workDistPath))
 			{
 				Directory.Delete(_workDistPath, true);
+			}
+
+			if (Directory.Exists(_workDistRootPath))
+			{
+				Directory.Delete(_workDistRootPath, true);
 			}
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
@@ -1054,7 +1067,7 @@ namespace Uno.Wasm.Bootstrap
 				FileCopy(sourceFile, dest, true);
 			}
 
-			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistPath, "server.py"), true);
+			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
 		}
 
 		private void CopyContent()
@@ -1063,6 +1076,25 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Assets != null)
 			{
+				var rootContentExtensions =
+					DeployModeContent
+						?.ToDictionary(
+							keySelector: i => i.ItemSpec,
+							elementSelector: i =>
+							{
+								var metadata = i.GetMetadata("Deploy");
+								if (Enum.TryParse<DeployMode>(metadata, out var deployMode))
+								{
+									return deployMode;
+								}
+								Log.LogWarning($"CopyContent(): Deploy=\"{metadata}\" is unknown. Default to Package.");
+
+								return DeployMode.Package; // default mode
+							})
+					?? new Dictionary<string, DeployMode>(0);
+
+				Log.LogMessage($"CopyContent(): extension rules {string.Join(", ", rootContentExtensions)}");
+
 				foreach (var sourceFile in Assets)
 				{
 					(string fullPath, string relativePath) GetFilePaths()
@@ -1095,26 +1127,66 @@ namespace Uno.Wasm.Bootstrap
 						}
 					}
 
-					(var fullSourcePath, var relativePath) = GetFilePaths();
+					var (fullSourcePath, relativePath) = GetFilePaths();
 
-					relativePath = FixupPath(relativePath).Replace("wwwroot" + Path.DirectorySeparatorChar, "");
+					// Files in "wwwroot" folder will get deployed to root by default
+					var defaultDeployMode = relativePath.Contains(_wwwwroot) ? DeployMode.Root : DeployMode.Package;
 
-					if (!relativePath.StartsWith(WasmScriptsFolder))
+					relativePath = FixupPath(relativePath).Replace(_wwwwroot, "");
+
+					if (relativePath.StartsWith(WasmScriptsFolder))
 					{
-						// Skip WasmScript folder files that may have been added as content files.
+						// Skip by default the WasmScript folder files that may
+						// have been added as content files.
 						// This can happen when running the TypeScript compiler.
+						defaultDeployMode = DeployMode.None;
+					}
 
-						if (!relativePath.EndsWith(".a", StringComparison.InvariantCultureIgnoreCase) &&
-							!relativePath.EndsWith(".bc", StringComparison.InvariantCultureIgnoreCase) &&
-							!relativePath.Equals("web.config", StringComparison.InvariantCultureIgnoreCase))
+					var deployToRootMetadata = sourceFile.GetMetadata("Deploy");
+					var deployModeSource = "Default";
+					if (!Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
+					{
+						var d = rootContentExtensions
+							.Where(extension =>
+								relativePath.EndsWith(extension.Key, StringComparison.InvariantCultureIgnoreCase))
+							.Select(e => (DeployMode?)e.Value)
+							.FirstOrDefault();
+
+						if (d.HasValue)
 						{
-							assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
+							deployModeSource = "DeployModeContent";
+							deployMode = d.Value;
 						}
+						else
+						{
+							deployMode = defaultDeployMode;
+						}
+					}
+					else
+					{
+						deployModeSource = "Metadata";
+					}
 
-						var dest = Path.Combine(_workDistPath, relativePath);
+					if (deployMode == DeployMode.Package)
+					{
+						// Add the file to the package assets manifest
+						assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
+					}
+
+					var dest = deployMode
+						switch
+						{
+							DeployMode.Package => Path.Combine(_workDistPath, relativePath),
+							DeployMode.Root => Path.Combine(_workDistRootPath, relativePath),
+							_ => default // None or unknown
+						};
+
+
+					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}]");
+
+					if (dest != null)
+					{
 						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
-
-						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
 
 						FileCopy(fullSourcePath, dest, true);
 					}
