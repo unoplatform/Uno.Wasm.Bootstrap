@@ -347,12 +347,16 @@ Instead, use Static Linking below.
 #### Static Linking
 Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
-This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_
-webassembly function invocations that are faster than with dynamic linking.
+This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_ webassembly function invocations that are faster than with dynamic linking.
 
-Any `.bc` or `.a` file placed as content in the built project will be statically linked to 
-the currently running application, allowing for p/invoke to be functional when resolving methods
-from the loaded module.
+Any `.bc` or `.a` file placed as `content` in the built project will be statically linked to the currently running application, allowing for p/invoke to be functional when resolving methods from the loaded module. If you have a `.bc` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
+
+``` xml
+<ItemGroup>
+    <!-- Deactivate the discovery of a .bc or a .a file for static linking -->
+    <Content Update="path\to\my\file.bc" UnoAotCompile="False" />
+</ItemGroup>
+```
 
 Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
 
@@ -432,18 +436,45 @@ Files are processed as embedded resources to allow for libraries to provide java
 Additional CSS files are supported through the inclusion of `EmbeddedResource`  msbuild item files, in a project folder named `WasmCSS`.
 
 ### Support for additional Content files
-Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder.
+Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder. There is 3 deployment modes for content files:
 
-`uno-assets.txt` contains the package relative paths of the content files that were copied to the dist folder.
-It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
+* `Package`: files using `UnoDeploy="Package"` mode will be deployed in the `dist\package_<hash>` folder and the folder structure will be preserved. This is the default mode for most files (see exclusions below).
+* `Root`: files using `UnoDeploy="Root"` mode will be deployed directly in the `dist\` folder and the folder structure will be preserved.
+* `None`: files using the `UnoDeploy="None"` mode will be ignored and won't be deployed.
 
-A few files are excluded such as `*.a`, `*.bc` and `web.config`.
+Exclusions:
+
+1. Files in the `WasmScript` folder will be set as `UnoDeploy="None"` by default (they are not treat as content)
+
+2. Files in the `wwwroot` folder will be set as `UnoDeploy="Root"` by default
+
+3. You can manually set the _deploy mode_ in the `.csproj` in the following way:
+
+   ```xml
+   <ItemGroup>
+       <!-- Manually set a file to be deployed as "root" mode -->
+       <Content Include="Path\To\My\File.txt" UnoDeploy="Root" />
+   
+       <!-- Manually set a file to be deployed as "package" mode -- overriding the default "root" mode for wwwroot -->
+       <Content Include="wwwroot\config.json" UnoDeploy="Package" />
+   
+       <!-- Manually set a file to be deployed as "none" mode (not deployed) -->
+       <Content Include="wwwroot\output.log" UnoDeploy="None" />
+   </ItemGroup>
+   ```
+
+Asset files: `dist/package_XXXX/uno-assets.txt` contains the package relative paths of the content files that were copied to the  `dist/package_XXXX` folder. It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations. Important: Will only contain files deployed in `UnoDeploy="Package"` mode.
+
+A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.bc`.
+ `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
+
+> **IMPORTANT INFORMATION ABOUT BROWSER CACHE:** Browsers will often cache files based on their final url. When deploying a file in the `UnoDeploy="Root"` mode, beware the browser could cache the previous version. Files the the `UnoDeploy="Package"` mode won't have this problem since the path name contains a hash of their content. It important to take that into consideration when deciding to use the `UnoDeploy="Root"` mode.
 
 ### Support for PWA Manifest File
 A **Progressive Web App** manifest link definition can be added to the index.html file's head:
 - Use the `WasmPWAManifestFile` property to set the file name
-- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest) 
-- Set the `Content` build action to this new file so it gets copied to the output folder
+- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest).
+- Ensure the build action is `Content` for this file so it gets copied to the output folder. The `UnoDeploy="Package"` mode (which is the default) must be used. This file must not be put in the `wwwroot` folder.
 - Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
 
 iOS's support for home screen icon is optionally set by searching for a 1024x1024 icon in the 
@@ -502,7 +533,7 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_DEBUGGER_ENABLED`, which is set to `True` if the debugging support was enabled, otherwise `False`
 - `UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION`, which provides the mono runtime configuration, which can be can either be `release` or `debug`.
 - `UNO_BOOTSTRAP_MONO_PROFILED_AOT`, which specifies if the package was built using a PG-AOT profile.
-- `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base.
+- `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base. Useful to reach assets deployed using the `UnoDeploy="Package"` mode.
 
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
 

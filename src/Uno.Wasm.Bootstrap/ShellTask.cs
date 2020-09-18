@@ -34,6 +34,7 @@ using System.Transactions;
 using Microsoft.Build.Framework;
 using Microsoft.Win32.SafeHandles;
 using Mono.Cecil;
+using Mono.CompilerServices.SymbolWriter;
 using Newtonsoft.Json.Linq;
 using Uno.Wasm.Bootstrap.Extensions;
 
@@ -43,10 +44,13 @@ namespace Uno.Wasm.Bootstrap
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string ServiceWorkerFileName = "service-worker.js";
-		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
+		private const string DeployMetadataName = "UnoDeploy";
+		private static readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
+		private static readonly string _wwwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
 		private string _distPath = "";
 		private string _workDistPath = "";
+		private string _workDistRootPath = "";
 		private string _managedPath = "";
 		private string _bclPath = "";
 		private string[]? _bitcodeFilesCache;
@@ -60,6 +64,7 @@ namespace Uno.Wasm.Bootstrap
 		private string _linkerBinPath = "";
 		private string _finalPackagePath = "";
 		private string _remoteBasePackagePath = "";
+		private string[]? _contentExtensionsToExclude;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -121,6 +126,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
+		public string? ContentExtensionsToExclude { get; set; }
+
 		public Microsoft.Build.Framework.ITaskItem[]? AotProfile { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? LinkerDescriptors { get; set; }
@@ -159,6 +166,9 @@ namespace Uno.Wasm.Bootstrap
 
 		[Output]
 		public string? OutputPackagePath { get; private set; }
+
+		[Output]
+		public string? OutputDistPath { get; private set; }
 
 		public override bool Execute()
 		{
@@ -283,9 +293,9 @@ namespace Uno.Wasm.Bootstrap
 			{
 				File.Copy(sourceFileName, destFileName, overwrite);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}");
+				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}: {ex.Message}");
 				throw;
 			}
 		}
@@ -878,11 +888,12 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			var bitcodeFiles = new[] { "*.bc", "*.a" };
-
-			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
-				.SelectMany(b => Directory.EnumerateFiles(_workDistPath, b, SearchOption.TopDirectoryOnly))
-				.ToArray();
+			_bitcodeFilesCache ??= Assets
+				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
+				.Select(a => GetFilePaths(a).fullPath)
+				.ToArray()
+				?? new string[0];
 
 			return _bitcodeFilesCache;
 		}
@@ -892,6 +903,12 @@ namespace Uno.Wasm.Bootstrap
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 			ParseEnumProperty(nameof(MonoRuntimeExecutionMode), MonoRuntimeExecutionMode, out _runtimeExecutionMode);
 			AotProfile ??= new ITaskItem[0];
+			_contentExtensionsToExclude =
+				ContentExtensionsToExclude
+					?.Split(new[] {';'}, StringSplitOptions.RemoveEmptyEntries)
+				?? new string[0];
+
+			Log.LogMessage($"Ignoring content files with following extensions:\n\t{string.Join("\n\t", _contentExtensionsToExclude)}");
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -956,6 +973,8 @@ namespace Uno.Wasm.Bootstrap
 			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
+			OutputDistPath = _distPath;
+
 			if (_shellMode == ShellMode.Node)
 			{ 
 				_remoteBasePackagePath = "";
@@ -973,15 +992,31 @@ namespace Uno.Wasm.Bootstrap
 			// not in a set of folder that exists)
 			Directory.CreateDirectory(_finalPackagePath);
 
-			if (Directory.Exists(_finalPackagePath))
+			if (Directory.Exists(_distPath))
 			{
-				Directory.Delete(_finalPackagePath, true);
+				Directory.Delete(_distPath, true);
 			}
 
-			Directory.Move(_workDistPath, _finalPackagePath);
+			try
+			{
+				Directory.Move(_workDistRootPath, _distPath);
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Unable to move ROOT DIST {_workDistRootPath} to {_distPath}: {ex}", ex);
+			}
 
-			MoveFileSafe(Path.Combine(_finalPackagePath, "web.config"), Path.Combine(_distPath, "web.config"));
-			MoveFileSafe(Path.Combine(_finalPackagePath, "server.py"), Path.Combine(_distPath, "server.py"));
+			try
+			{
+				if (!_workDistRootPath.Equals(_workDistPath))
+				{
+					Directory.Move(_workDistPath, _finalPackagePath);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Unable to move PACKAGE DIST {_workDistPath} to {_finalPackagePath}: {ex}", ex);
+			}
 
 			RenameFiles(_finalPackagePath, "dll");
 		}
@@ -1029,11 +1064,20 @@ namespace Uno.Wasm.Bootstrap
 		{
 			_distPath = TryConvertLongPath(Path.GetFullPath(DistPath));
 			_workDistPath = TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_work"));
+			_workDistRootPath =
+				_shellMode == ShellMode.Node
+				? _workDistPath
+				: TryConvertLongPath(Path.Combine(IntermediateOutputPath, "dist_root_work"));
 			_managedPath = Path.Combine(_workDistPath, "managed");
 
 			if (Directory.Exists(_workDistPath))
 			{
 				Directory.Delete(_workDistPath, true);
+			}
+
+			if (Directory.Exists(_workDistRootPath))
+			{
+				Directory.Delete(_workDistRootPath, true);
 			}
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
@@ -1050,12 +1094,56 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
 				var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
-				Log.LogMessage($"Runtime {sourceFile} -> {dest}");
-				FileCopy(sourceFile, dest, true);
+
+				var matchedExtension = _contentExtensionsToExclude
+					.FirstOrDefault(x => sourceFile.EndsWith(x, StringComparison.OrdinalIgnoreCase));
+
+				if (matchedExtension == null)
+				{
+					Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
+					FileCopy(sourceFile, dest, true);
+				}
+				else
+				{
+					Log.LogMessage($"Runtime: ignoring file {sourceFile} / matched with exclusion extension {matchedExtension}");
+				}
 			}
 
-			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistPath, "server.py"), true);
+			DirectoryCreateDirectory(_workDistRootPath);
+
+			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
 		}
+
+		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
+		{
+			// This is for project-local defined content
+			var baseSourceFile = item.GetMetadata("DefiningProjectDirectory");
+
+			if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
+			{
+				// This case is mainly for shared projects
+				return (item.ItemSpec, link);
+			}
+			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
+			{
+				var sourceFilePath = item.ToString();
+
+				if (sourceFilePath.StartsWith(CurrentProjectPath))
+				{
+					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
+				}
+				else
+				{
+					return (fullPath, sourceFilePath);
+				}
+			}
+			else
+			{
+				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ToString());
+			}
+		}
+
 
 		private void CopyContent()
 		{
@@ -1065,56 +1153,62 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					(string fullPath, string relativePath) GetFilePaths()
+
+					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
+
+					// Files in "wwwroot" folder will get deployed to root by default
+					var defaultDeployMode = relativePath.Contains(_wwwwroot) ? DeployMode.Root : DeployMode.Package;
+					var deployModeSource = "Default";
+
+					var matchedExtension = _contentExtensionsToExclude
+						.FirstOrDefault(x => relativePath.EndsWith(x, StringComparison.OrdinalIgnoreCase));
+					if (matchedExtension != null)
 					{
-						// This is for project-local defined content
-						var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
-
-						if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
-						{
-							// This case is mainly for shared projects
-							return (sourceFile.ItemSpec, link);
-						}
-						else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
-						{
-							var sourceFilePath = sourceFile.ToString();
-
-							if (sourceFilePath.StartsWith(CurrentProjectPath))
-							{
-								// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-								return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
-							}
-							else
-							{
-								return (fullPath, sourceFilePath);
-							}
-						}
-						else
-						{
-							return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
-						}
+						defaultDeployMode = DeployMode.None;
+						deployModeSource = "Excluded extension";
 					}
 
-					(var fullSourcePath, var relativePath) = GetFilePaths();
+					relativePath = FixupPath(relativePath).Replace(_wwwwroot, "");
 
-					relativePath = FixupPath(relativePath).Replace("wwwroot" + Path.DirectorySeparatorChar, "");
-
-					if (!relativePath.StartsWith(WasmScriptsFolder))
+					if (relativePath.StartsWith(WasmScriptsFolder))
 					{
-						// Skip WasmScript folder files that may have been added as content files.
+						// Skip by default the WasmScript folder files that may
+						// have been added as content files.
 						// This can happen when running the TypeScript compiler.
+						defaultDeployMode = DeployMode.None;
+					}
 
-						if (!relativePath.EndsWith(".a", StringComparison.InvariantCultureIgnoreCase) &&
-							!relativePath.EndsWith(".bc", StringComparison.InvariantCultureIgnoreCase) &&
-							!relativePath.Equals("web.config", StringComparison.InvariantCultureIgnoreCase))
+					var deployToRootMetadata = sourceFile.GetMetadata(DeployMetadataName);
+
+					if (Enum.TryParse<DeployMode>(deployToRootMetadata, out var deployMode))
+					{
+						deployModeSource = "Metadata";
+					}
+					else
+					{
+						deployMode = defaultDeployMode;
+					}
+
+					if (deployMode == DeployMode.Package)
+					{
+						// Add the file to the package assets manifest
+						assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
+					}
+
+					var dest = deployMode
+						switch
 						{
-							assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
-						}
+							DeployMode.Package => Path.Combine(_workDistPath, relativePath),
+							DeployMode.Root => Path.Combine(_workDistRootPath, relativePath),
+							_ => default // None or unknown mode
+						};
 
-						var dest = Path.Combine(_workDistPath, relativePath);
+
+					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}]");
+
+					if (dest != null)
+					{
 						DirectoryCreateDirectory(Path.GetDirectoryName(dest));
-
-						Log.LogMessage($"ContentFile {fullSourcePath} -> {dest}");
 
 						FileCopy(fullSourcePath, dest, true);
 					}
@@ -1337,7 +1431,7 @@ namespace Uno.Wasm.Bootstrap
 			   select file.Replace(_distPath, "").Replace("\\", "/");
 
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
-
+		
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
 			const string monoWasmFileName = "dotnet.wasm";

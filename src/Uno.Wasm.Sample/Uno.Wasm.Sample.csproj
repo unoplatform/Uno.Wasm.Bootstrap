@@ -32,8 +32,12 @@
 		<!-- Add linked content first to validate directory creation from links -->
 		<Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)" />
 		<Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)" />
-		<Content Include="AdditionalContent\SomeContent01.txt" />
+		<Content Include="AdditionalContent\SomeContent01.txt">
+			<UnoDeploy>Package</UnoDeploy>
+		</Content>
 		<Content Include="AdditionalContent/SomeContent02.txt" />
+		<Content Include="AdditionalContent/SomeContent03.txt" UnoDeploy="Root" />
+		<Content Include="AdditionalContent/SomeContent04.txt" UnoDeploy="None" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -44,13 +48,18 @@
 
 	<Target Name="AfterBuildValidation" AfterTargets="Build">
 		<ItemGroup>
-			<_AdditionalFile Include="SomeContent01.txt" />
-			<_AdditionalFile Include="SomeContent02.txt" />
-			<_AdditionalFile Include=".editorconfig" />
-			<_AdditionalFile Include="nuget.config" />
+			<_AdditionalFile1 Include="SomeContent01.txt" />
+			<_AdditionalFile1 Include="SomeContent02.txt" />
+			<_AdditionalFile1 Include=".editorconfig" />
+			<_AdditionalFile1 Include="nuget.config" />
 		</ItemGroup>
-		
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)/AdditionalContent/%(_AdditionalFile.Identity)')" Text="%(_AdditionalFile.Identity) does not exist in $(WasmShellOutputPackagePath)" />
+
+		<Error Condition="!exists('$(WasmShellOutputPackagePath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) does not exist in $(WasmShellOutputPackagePath)" />
+		<Error Condition="exists('$(WasmShellOutputPackagePath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.tx should not exist in $(WasmShellOutputPackagePath)" />
+
+		<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) should not exist in $(WasmShellOutputDistPath)" />
+		<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />
+		<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.txt should not exist in $(WasmShellOutputDistPath)" />
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>
 

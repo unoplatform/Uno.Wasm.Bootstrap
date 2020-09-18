@@ -9,6 +9,8 @@
     <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
     <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
+	<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
+
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
     <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
@@ -159,8 +161,10 @@
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
         Assets="@(Content)"
+        ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)">
-	  <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
+        <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
+        <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
 	</ShellTask_v0>
   </Target>
 
