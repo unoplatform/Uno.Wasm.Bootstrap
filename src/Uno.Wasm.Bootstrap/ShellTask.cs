@@ -34,6 +34,7 @@ using System.Transactions;
 using Microsoft.Build.Framework;
 using Microsoft.Win32.SafeHandles;
 using Mono.Cecil;
+using Mono.CompilerServices.SymbolWriter;
 using Newtonsoft.Json.Linq;
 using Uno.Wasm.Bootstrap.Extensions;
 
@@ -888,9 +889,11 @@ namespace Uno.Wasm.Bootstrap
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
 			_bitcodeFilesCache ??= Assets
-					.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
-					.Select(a => GetFilePaths(a).fullPath)
-					.ToArray();
+				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
+				.Select(a => GetFilePaths(a).fullPath)
+				.ToArray()
+				?? new string[0];
 
 			return _bitcodeFilesCache;
 		}
