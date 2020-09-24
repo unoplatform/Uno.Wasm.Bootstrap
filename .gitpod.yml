@@ -1,4 +1,4 @@
-image: nventive/wasm-build:1.5
+image: unoplatform/wasm-build:3.0
 
 ports:
   - port: 8000
