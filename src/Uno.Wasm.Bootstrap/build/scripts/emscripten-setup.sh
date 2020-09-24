@@ -32,7 +32,7 @@ if [ ! -f .uno-install-done ]; then
 	git clone --branch $UNO_EMSDK_VERSION https://github.com/emscripten-core/emsdk 2>&1
 	cd emsdk
 	./emsdk install $UNO_EMSDK_VERSION
-	./emsdk activate --embedded $UNO_EMSDK_VERSION
+	./emsdk activate $UNO_EMSDK_VERSION
 
 	# Those two files need to follow the currently used build of mono
 	wget https://raw.githubusercontent.com/mono/mono/b777471fcace85325e2c2af0e460f4ecd8059b5a/sdks/builds/fix-emscripten-8511.diff 2>&1
