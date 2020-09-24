@@ -26,8 +26,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Remove this so that the CI passes without validating for WSL support -->
-		<Content Condition="'$(UseAOT)'=='true'" Include="side.bc" />
+		<!--
+		This file is placed outside the current folder to validate external inclusion.
+		This scenario is used when including files from nuget packages.
+		-->
+		<Content Condition="'$(UseAOT)'=='true'" Include="..\Uno.Wasm.StaticLinking.Aot\side.bc" />
 	</ItemGroup>
 
 	<ItemGroup>

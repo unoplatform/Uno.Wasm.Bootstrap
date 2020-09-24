@@ -1121,8 +1121,10 @@ namespace Uno.Wasm.Bootstrap
 
 			if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
 			{
-				// This case is mainly for shared projects
-				return (item.ItemSpec, link);
+				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
+
+				// This case is mainly for shared projects and files out of the baseSourceFile path
+				return (fullPath, link);
 			}
 			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
 			{
