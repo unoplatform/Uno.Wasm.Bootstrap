@@ -48,31 +48,12 @@ jobs:
       version: ${{ parameters.netcore_version }}
       installationPath: $(Agent.ToolsDirectory)/dotnet
 
-  - bash: |
-      cd ~
-      echo Installing emscripten $(EMSCRIPTEN_VERSION)
-      git clone --branch $(EMSCRIPTEN_VERSION) https://github.com/emscripten-core/emsdk
-      cd ~/emsdk
-      ./emsdk install $(EMSCRIPTEN_VERSION)
-      ./emsdk activate $(EMSCRIPTEN_VERSION)
-
-    displayName: 'Setup Emscripten'
-
-  - bash: |
-      cd ~/emsdk
-      wget https://raw.githubusercontent.com/mono/mono/b777471fcace85325e2c2af0e460f4ecd8059b5a/sdks/builds/fix-emscripten-8511.diff
-      cd ~/emsdk/upstream/emscripten
-      patch -N -p1 < ~/emsdk/fix-emscripten-8511.diff
-
-    displayName: 'Apply Emscripten Mono patches'
-
   - task: NuGetToolInstaller@0
     inputs:
       versionSpec: 4.9.1
       checkLatest: false
 
   - bash: |
-      source ~/emsdk/emsdk_env.sh
       msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
 
     displayName: Build 
