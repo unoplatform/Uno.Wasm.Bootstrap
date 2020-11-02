@@ -60,7 +60,7 @@ jobs:
 - template: .vsts-ci-linux.yml
   parameters:
     jobName: Linux_netcore3_1
-    netcore_version: 3.1.x
+    netcore_version: 3.1.201
     linux_container: unoplatform/wasm-build:2.1.1
 
 - job: macOS
