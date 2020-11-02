@@ -203,7 +203,7 @@ namespace Uno.Wasm.Bootstrap
 			var exclusions = new[]
 			{
 				Path.Combine(path, ChecksumFilename),
-				Path.Combine(path, @"wasm-bcl\wasm_tools\monolinker.exe.config")
+				Path.Combine(path, Path.Combine("wasm-bcl", "wasm_tools", "monolinker.exe.config"))
 			};
 
 			return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
