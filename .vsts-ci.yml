@@ -45,22 +45,10 @@ jobs:
 
     displayName: UI Tests npm dependencies
 
-  - task: MSBuild@1
-    inputs:
-      solution: $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf
-      msbuildLocationMethod: version
-      msbuildVersion: latest
-      msbuildArchitecture: x86
-      msbuildArguments: /r /bl /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
-      clean: false
-      maximumCpuCount: false
-      restoreNugetPackages: false
-      logProjectEvents: false
-      createLogFile: false
-
-  - powershell: |
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
-        .\Validate.ps1
+  - script: |
+      cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release -m:1
+    displayName: Build packages
 
   - task: CopyFiles@2
     inputs:
@@ -70,6 +58,23 @@ jobs:
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
+
+  - task: MSBuild@1
+    inputs:
+      solution: $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf
+      msbuildLocationMethod: version
+      msbuildVersion: latest
+      msbuildArchitecture: x86
+      msbuildArguments: /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
+      clean: false
+      maximumCpuCount: false
+      restoreNugetPackages: false
+      logProjectEvents: false
+      createLogFile: false
+
+  - powershell: |
+        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+        .\Validate.ps1
 
   - task: PublishBuildArtifacts@1
     inputs:
