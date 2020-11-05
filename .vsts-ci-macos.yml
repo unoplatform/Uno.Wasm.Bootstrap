@@ -15,6 +15,15 @@ jobs:
     SourceLinkEnabled: false
 
   steps:
+  - template: build/ci/gitversion.yml
+
+  - task: UseDotNet@2
+    displayName: 'Install .NET 5 SDK'
+    inputs:
+      packageType: sdk
+      version: 5.0.100-rc.2.20479.15
+      includePreviewVersions: true
+
   - bash: |
       cd $(Agent.WorkFolder)
       wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
@@ -32,28 +41,35 @@ jobs:
 
     displayName: 'Setup Emscripten'
 
+  # - bash: |
+  #     source ~/emsdk/emsdk_env.sh
+  #     export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
+  #     msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
+  # 
+  #   displayName: MSBuild Validation
+
+  # - task: CopyFiles@2
+  #   inputs:
+  #     SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
+  #     Contents: '**/*.*'
+  #     TargetFolder: $(build.artifactstagingdirectory)
+  #     CleanTargetFolder: false
+  #     OverWrite: false
+  #     flattenFolders: false
+
   - bash: |
       source ~/emsdk/emsdk_env.sh
-      export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
-      msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
-
-    displayName: MSBuild Validation
-
-  - task: CopyFiles@2
-    inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-      Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)
-      CleanTargetFolder: false
-      OverWrite: false
-      flattenFolders: false
-
-  - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
       dotnet build || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
-      dotnet build
+      dotnet build || true # expected failure (nuget restore does not provide the iltrim a proper TargetFramework support)
+      dotnet build -m:1
 
-    displayName: .NET Core Validation
+    displayName: Build Mono Sample
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet5
+      dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-mac.binlog
+    displayName: Build NetCore-Wasm Sample
 
   - task: PublishBuildArtifacts@1
     condition: always()

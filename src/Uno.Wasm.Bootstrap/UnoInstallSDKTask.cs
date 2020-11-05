@@ -19,10 +19,25 @@ namespace Uno.Wasm.Bootstrap
 
 		public string? MonoWasmAOTSDKUri { get; set; }
 
+		public string? NetCoreWasmSDKUri { get; set; }
+
 		public string? MonoTempFolder { get; set; }
+
+		[Microsoft.Build.Framework.Required]
+		public string TargetFrameworkIdentifier { get; set; } = "";
+
+		public string TargetFramework { get; set; } = "";
+
+		public string TargetFrameworkVersion { get; set; } = "0.0";
 
 		[Required]
 		public string PackagerOverrideFolderPath { get; set; } = "";
+
+		[Required]
+		public string WasmTunerOverrideFolderPath { get; set; } = "";
+
+		[Required]
+		public string CilStripOverrideFolderPath { get; set; } = "";
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
@@ -35,23 +50,93 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
+		public bool DisableSDKCheckSumValidation { get; set; } = false;
+
 		[Output]
 		public string? SdkPath { get; set; }
 
 		[Output]
 		public string? PackagerBinPath { get; set; }
+		[Output]
+		public string? WasmTunerBinPath { get; set; }
 
 		[Output]
 		public string? PackagerProjectFile { get; private set; }
 
 		public override bool Execute()
 		{
-			InstallSdk();
+			if (IsNetCore)
+			{
+				InstallNetCoreWasmSdk();
+			}
+			else
+			{
+				InstallMonoSdk();
+			}
 
 			return true;
 		}
+		private Version ActualTargetFrameworkVersion => Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
 
-		private void InstallSdk()
+		private void InstallNetCoreWasmSdk()
+		{
+			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultMonoVMSdkUrl : NetCoreWasmSDKUri!;
+
+			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
+
+			Log.LogMessage("NetCore-Wasm SDK: " + sdkName);
+			SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
+			Log.LogMessage("NetCore-Wasm SDK Path: " + SdkPath);
+
+			var writeChecksum = false;
+
+			ValidateSDKCheckSum("NetCore-Wasm", SdkPath);
+
+			if (!Directory.Exists(SdkPath))
+			{
+				var zipPath = SdkPath + ".zip";
+				Log.LogMessage($"Using NetCore-Wasm SDK {sdkUri}");
+
+				zipPath = RetreiveSDKFile(sdkName, sdkUri, zipPath);
+
+				ZipFile.ExtractToDirectory(zipPath, SdkPath);
+				Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+
+				MarkSDKExecutable();
+
+				writeChecksum = true;
+			}
+
+			WritePackager();
+			WriteWasmTuner();
+			WriteCilStrip();
+
+			if (writeChecksum)
+			{
+				WriteChecksum(SdkPath);
+				Log.LogMessage($"Wrote checksum to {SdkPath}");
+			}
+		}
+
+		private void ValidateSDKCheckSum(string sdkName, string sdkPath)
+		{
+			if (!DisableSDKCheckSumValidation && Directory.Exists(sdkPath) && !VerifyChecksum(sdkPath))
+			{
+				// SDK folder was tampered with (e.g. StorageSense, User, etc.)
+				Log.LogMessage($"Removing invalid {sdkName} SDK: {sdkPath}");
+
+				var destination = $"{sdkPath}.{Guid.NewGuid():N}";
+
+				Directory.Move(sdkPath, destination);
+
+				Directory.Delete(destination, true);
+			}
+		}
+
+		private bool IsNetCore =>
+			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
+
+		private void InstallMonoSdk()
 		{
 			var runtimeExecutionMode = ParseRuntimeExecutionMode();
 
@@ -77,17 +162,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var writeChecksum = false;
 
-				if (Directory.Exists(SdkPath) && !VerifyChecksum(SdkPath))
-				{
-					// SDK folder was tampered with (e.g. StorageSense, User, etc.)
-					Log.LogMessage($"Removing invalid mono-wasm SDK: {SdkPath}");
-
-					var destination = $"{SdkPath}.{Guid.NewGuid():N}";
-
-					Directory.Move(SdkPath, destination);
-
-					Directory.Delete(destination, true);
-				}
+				ValidateSDKCheckSum("mono-wasm", SdkPath);
 
 				if (!Directory.Exists(SdkPath))
 				{
@@ -122,26 +197,12 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
-
-					if (IsOSUnixLike)
-					{
-						Process.Start("chmod", $"-R +x {SdkPath}");
-					}
+					MarkSDKExecutable();
 
 					writeChecksum = true;
 				}
 
-				if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
-				{
-					PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
-
-					foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
-					{
-						var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
-						Log.LogMessage($"Copy packager override {file} to {destFileName}");
-						File.Copy(file, destFileName, true);
-					}
-				}
+				WritePackager();
 
 				if (writeChecksum)
 				{
@@ -155,6 +216,60 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private void MarkSDKExecutable()
+		{
+			if (IsOSUnixLike)
+			{
+				Process.Start("chmod", $"-R +x {SdkPath}");
+			}
+		}
+
+		private void WritePackager()
+		{
+			if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
+			{
+				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
+
+				foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
+				{
+					var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
+					Log.LogMessage($"Copy packager override {file} to {destFileName}");
+					File.Copy(file, destFileName, true);
+				}
+			}
+		}
+
+		private void WriteWasmTuner()
+		{
+			if (!string.IsNullOrEmpty(WasmTunerOverrideFolderPath))
+			{
+				var basePath = Path.Combine(SdkPath, "tools");
+				Directory.CreateDirectory(basePath);
+
+				foreach (var file in Directory.EnumerateFiles(WasmTunerOverrideFolderPath))
+				{
+					var destFileName = Path.Combine(basePath, Path.GetFileName(file));
+					Log.LogMessage($"Copy wasm-tuner {file} to {destFileName}");
+					File.Copy(file, destFileName, true);
+				}
+			}
+		}
+
+		private void WriteCilStrip()
+		{
+			if (!string.IsNullOrEmpty(CilStripOverrideFolderPath))
+			{
+				var basePath = Path.Combine(SdkPath, "tools");
+				Directory.CreateDirectory(basePath);
+
+				foreach (var file in Directory.EnumerateFiles(CilStripOverrideFolderPath))
+				{
+					var destFileName = Path.Combine(basePath, Path.GetFileName(file));
+					Log.LogMessage($"Copy cil-strip {file} to {destFileName}");
+					File.Copy(file, destFileName, true);
+				}
+			}
+		}
 		static readonly string[] BitCodeExtensions = new string[] { ".bc", ".a" };
 
 		private bool HasBitcodeAssets()

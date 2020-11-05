@@ -56,7 +56,15 @@
 
     <!-- Compatibility with previous version of the task using WasmShellEnableAOT -->
     <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellEnableAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
+
+    <_WasmShellIsNetCore Condition="'$(TargetFramework)'=='net5' or '$(TargetFramework)'=='net6'">true</_WasmShellIsNetCore>
   </PropertyGroup>
+  
+  <ItemGroup Condition="'$(_WasmShellIsNetCore)'=='true'">
+	<!-- Remove all the AspNetCore references so we can use them in the output -->
+    <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
+	<PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0-rc.2.20475.5" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Default compressed extensions when WasmShellGenerateCompressedFiles is enabled -->
@@ -114,15 +122,22 @@
     <UnoInstallSDKTask_v0
         MonoWasmSDKUri="$(MonoWasmSDKUri)"
         MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
+		NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
         PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager"
+        WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner"
+        CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
+		DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
+        TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
+        TargetFramework="$(TargetFramework)"
+        TargetFrameworkVersion="$(TargetFrameworkVersion)"
         Assets="@(Content)">
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
-      <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
-      <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
+	  <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
+	  <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
     </UnoInstallSDKTask_v0>
 
 	<ShellTask_v0
@@ -134,6 +149,7 @@
         IntermediateOutputPath="$(ProjectDir)$(IntermediateOutputPath)"
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         TargetFramework="$(TargetFramework)"
+        TargetFrameworkVersion="$(TargetFrameworkVersion)"
         WasmShellMode="$(WasmShellMode)"
         MonoWasmSDKPath="$(_UnoMonoSdkPath)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
+    <TargetFrameworks>netcoreapp3.1;net5</TargetFrameworks>
+    <AssemblyName>dotnet-unowasm</AssemblyName>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.2" />
+		<PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
+  </ItemGroup>
+
+	<ItemGroup>
+    <!--
+    Explicit references to an arbitrary version of the Mono.WebAssembly.DebuggerProxy assembly, to allow
+    for the server to compile. The references are marked as public so the binaries are not copied to the output
+    folder, and the proper assemblies can be loaded from the active mono-wasm version.
+    -->
+    <Reference Include="Mono.Cecil">
+      <HintPath>External\Mono.Cecil.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mono.WebAssembly.DebuggerProxy" Condition="'$(TargetFramework)'=='netcoreapp3.1'">
+      <HintPath>External\netcoreapp3.1\Mono.WebAssembly.DebuggerProxy.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BrowserDebugProxy" Condition="'$(TargetFramework)'=='net5'">
+      <HintPath>External\net5\BrowserDebugProxy.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+	<Target Name="GetTargetPath" />
+	
+</Project>

@@ -19,7 +19,12 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+
+#if NETCOREAPP3_1
 using WebAssembly.Net.Debugging;
+#elif NET5_0
+using Microsoft.WebAssembly.Diagnostics;
+#endif
 
 namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 {
@@ -62,8 +67,15 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 
 			var browserUri = new Uri(context.Request.Query["browser"]);
 			var ideSocket = await context.WebSockets.AcceptWebSocketAsync();
-			await new DebuggerProxy(loggerFactory).Run(browserUri, ideSocket);
+			await GetProxy(loggerFactory).Run(browserUri, ideSocket);
 		}
+
+		private static DebuggerProxy GetProxy(ILoggerFactory loggerFactory) =>
+#if NETCOREAPP3_1
+			new DebuggerProxy(loggerFactory);
+#elif NET5_0
+			new DebuggerProxy(loggerFactory, new List<string>());
+#endif
 
 		private static async Task DebugHome(HttpContext context)
 		{

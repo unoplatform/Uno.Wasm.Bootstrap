@@ -1,0 +1,5 @@
+﻿<linker>
+	<assembly fullname="Uno.Wasm.SampleNet5"/>
+	<assembly fullname="System.Private.CoreLib"/>
+	<!--<assembly fullname="WebAssembly.Bindings" />-->
+</linker>

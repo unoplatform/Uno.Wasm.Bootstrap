@@ -23,8 +23,12 @@
 			<PackagePath>build</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\%(FileName)%(Extension)">
-			<PackagePath>tools\server</PackagePath>
+		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\netcoreapp3.1\%(FileName)%(Extension)">
+			<PackagePath>tools\server\netcoreapp3.1</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
+			<PackagePath>tools\server\net5</PackagePath>
 			<Pack>true</Pack>
 		</Content>
 	</ItemGroup>

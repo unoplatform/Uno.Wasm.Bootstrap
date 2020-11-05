@@ -15,7 +15,10 @@ var Module = {
         }
 
         if (config.generate_aot_profile) {
-            MONO.mono_wasm_init_aot_profiler(null);
+            MONO.mono_wasm_init_aot_profiler({
+                write_at: "Uno.ProfilerSupport::StopProfile",
+                send_to: "Uno.ProfilerSupport::DumpAotProfileData"
+            });
         }
 
         MONO.mono_load_runtime_and_bcl(
@@ -24,6 +27,14 @@ var Module = {
             config.enable_debugging,
             config.file_list,
             function () {
+
+                if (config.generate_aot_profile) {
+                    var initializeProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.ProfilerSupport:Initialize");
+                    if (initializeProfile) {
+                        initializeProfile();
+                    }
+                }
+
                 App.init();
             },
             config.fetch_file_cb
@@ -167,7 +178,7 @@ var App = {
             App.attachProfilerHotKey();
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
-            App.timezoneSetup();
+            // App.timezoneSetup();
 
             var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
 
@@ -375,6 +386,10 @@ var App = {
             asset = asset.replace(".dll", `.${config.assemblyFileExtension}`);
         }
 
+        if (asset.startsWith("icudt") && asset.endsWith(".dat")) {
+            asset = `${config.uno_app_base}/${asset}`;
+        }
+
         asset = asset.replace("/managed/", `/${config.uno_remote_managedpath}/`);
 
         if (ENVIRONMENT_IS_NODE) {
@@ -409,9 +424,8 @@ var App = {
                         .fetchWithProgress(asset, (loaded, adding) => this.reportAssemblyLoading(adding));
                 }
             }
-            else {
-                return fetch(asset);
-            }
+
+            return fetch(asset);
         }
     },
 
@@ -551,7 +565,7 @@ var App = {
     },
 
     saveProfile: function () {
-        var stopProfile = Module.mono_bind_static_method("[WebAssembly.Bindings] WebAssembly.Runtime:StopProfile");
+        var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.ProfilerSupport:StopProfile");
         stopProfile();
 
         // Export the file

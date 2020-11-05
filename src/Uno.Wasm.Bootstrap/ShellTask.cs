@@ -105,6 +105,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string TargetFramework { get; set; } = "";
 
+		public string TargetFrameworkVersion { get; set; } = "0.0";
+
 		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; } = "";
 
@@ -170,19 +172,26 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public string? OutputDistPath { get; private set; }
 
+		private Version ActualTargetFrameworkVersion => Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
+
 		public override bool Execute()
 		{
 			try
 			{
-				if (TargetFrameworkIdentifier != ".NETStandard" && TargetFrameworkIdentifier != ".NETCoreApp")
-				{
-					Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
-					return true;
-				}
+				//if (TargetFrameworkIdentifier != ".NETStandard" && TargetFrameworkIdentifier != ".NETCoreApp")
+				//{
+				//	Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
+				//	return true;
+				//}
 
 				if (string.IsNullOrEmpty(TargetFramework))
 				{
 					throw new InvalidOperationException($"The TargetFramework task parameter must be defined.");
+				}
+
+				if(TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion < new Version("5.0"))
+				{
+					throw new InvalidOperationException($"The TargetFramework version must be above 5.0 (found {TargetFrameworkVersion})");
 				}
 
 				// Debugger.Launch();
@@ -214,6 +223,9 @@ namespace Uno.Wasm.Bootstrap
 				return false;
 			}
 		}
+
+		private bool IsNetCoreWasm =>
+			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
 
 		private void PreloadAssemblies()
 		{
@@ -434,28 +446,49 @@ namespace Uno.Wasm.Bootstrap
 			if (IsWSLRequired && !ForceDisableWSL)
 			{
 				var unixPath = AlignPath(executable, escape: true);
-				var monoPath = executable.EndsWith(".exe") ? "mono" : "";
+				var dotnetRuntimePath = Path.GetExtension(executable).ToLowerInvariant()
+					switch {
+						".exe" => "mono",
+						".dll" => "dotnet",
+						_ => ""
+					};
 				var cwd = workingDirectory != null ? $"cd \\\"{AlignPath(workingDirectory, escape: true)}\\\" && " : "";
-				
-				parameters = $"-c \" {cwd} {monoPath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+
+				parameters = $"-c \" {cwd} {dotnetRuntimePath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
 
 				if (!File.Exists(executable))
 				{
 					throw new InvalidOperationException(
 						$"WSL is required for this build but could not be found (Searched for [{executable}]). " +
-						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: XXXXXXXXXXXXXXXXXX");
+						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: https://github.com/unoplatform/Uno.Wasm.Bootstrap#special-considerations-for-ci-servers-github-actions-azure-devops");
 				}
 			}
 			else if (RuntimeHelpers.IsNetCore
 				&& (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
 				|| RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
 				)
-				&& executable.EndsWith(".exe")
 			)
 			{
-				parameters = $"{executable} {parameters}";
-				executable = "mono";
+				if (executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+				{
+					parameters = $"{executable} {parameters}";
+					executable = "mono";
+				}
+
+				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+				{
+					parameters = $"{executable} {parameters}";
+					executable = "dotnet";
+				}
+			}
+			else
+			{
+				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+				{
+					parameters = $"{executable} {parameters}";
+					executable = "dotnet";
+				}
 			}
 
 			var p = new Process
@@ -538,7 +571,11 @@ namespace Uno.Wasm.Bootstrap
 
 					DirectoryCreateDirectory(debuggerLocalPath);
 
-					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0") : CustomDebuggerPath!);
+					var proxyBasePath = IsNetCoreWasm
+						? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release")
+						: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
+
+					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
 
 					foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
 					{
@@ -578,7 +615,17 @@ namespace Uno.Wasm.Bootstrap
 
 			// Timezone support
 			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
-			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
+
+			if (!IsNetCoreWasm)
+			{
+				referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
+			}
+
+			if (GenerateAOTProfile)
+			{
+				var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
+				referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
+			}
 
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
@@ -589,10 +636,12 @@ namespace Uno.Wasm.Bootstrap
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
+			var monovmparams = IsNetCoreWasm ? $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)}" : "";
+
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _workDistPath);
+			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _workDistPath);
 
 			if (packagerResults.exitCode != 0)
 			{
@@ -646,6 +695,7 @@ namespace Uno.Wasm.Bootstrap
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
 
 				packagerParams.Add(debugOption);
+				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
@@ -682,8 +732,6 @@ namespace Uno.Wasm.Bootstrap
 						" WasmShellForceDisableWSL, the resulting compilation may not run properly.");
 				}
 
-				LinkerSetup();
-
 				//
 				// Run the IL Linker on the interpreter based output, as the packager does not yet do it.
 				//
@@ -691,6 +739,8 @@ namespace Uno.Wasm.Bootstrap
 					MonoILLinker
 				)
 				{
+					LinkerSetup();
+
 					string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
 					if (Directory.Exists(linkerInput))
 					{
@@ -702,23 +752,33 @@ namespace Uno.Wasm.Bootstrap
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
-					var frameworkBindings = new[] {
-						"WebAssembly.Bindings.dll",
-						"System.Net.Http.WebAssemblyHttpHandler.dll",
-						"WebAssembly.Net.WebSockets.dll",
-					};
+					var frameworkBindings = new List<string>();
+
+					if (!IsNetCoreWasm)
+					{
+						frameworkBindings.Add("WebAssembly.Bindings.dll");
+						frameworkBindings.Add("System.Net.Http.WebAssemblyHttpHandler.dll");
+						frameworkBindings.Add("WebAssembly.Net.WebSockets.dll");
+					}
+
+					var linkerSearchPaths = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" "));
+					var fullSDKFolder = IsNetCoreWasm ? $"-d \"{_bclPath}\" {linkerSearchPaths}" : "";
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 					bindingsPath += $" -a \"{releaseTimeZoneData}\"";
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
-					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --exclude-feature com --exclude-feature remoting --exclude-feature etw --used-attrs-only true ";
+					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
+
+					if (!IsNetCoreWasm) {
+						packagerLinkerOpts += "--exclude-feature com --exclude-feature remoting --exclude-feature etw  -l none ";
+					}
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true -l none {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" -d \"{_managedPath}\"",
+						$"-out \"{_managedPath}\" --verbose -b true {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" -d \"{_managedPath}\" {fullSDKFolder}",
 						_managedPath
-					   );
+					);
 
 					if (linkerResults.exitCode != 0)
 					{
@@ -788,7 +848,14 @@ namespace Uno.Wasm.Bootstrap
 
 		private void LinkerSetup()
 		{
-			_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm_tools", "monolinker.exe");
+			if (IsNetCoreWasm)
+			{
+				_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools", "illink.dll");
+			}
+			else
+			{
+				_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm_tools", "monolinker.exe");
+			}
 
 			var configFilePath = _linkerBinPath + ".config";
 			if (!File.Exists(configFilePath))
@@ -1053,11 +1120,20 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GetBcl()
 		{
-			_bclPath = Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm");
-			var reals = Directory.GetFiles(_bclPath, "*.dll");
-			var facades = Directory.GetFiles(Path.Combine(_bclPath, "Facades"), "*.dll");
-			var allFiles = reals.Concat(facades);
-			_bclAssemblies = allFiles.ToDictionary(x => Path.GetFileName(x));
+			if (IsNetCoreWasm)
+			{
+				_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib", "net6.0");
+				var reals = Directory.GetFiles(_bclPath, "*.dll");
+				_bclAssemblies = reals.ToDictionary(x => Path.GetFileName(x));
+			}
+			else
+			{
+				_bclPath = Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm");
+				var reals = Directory.GetFiles(_bclPath, "*.dll");
+				var facades = Directory.GetFiles(Path.Combine(_bclPath, "Facades"), "*.dll");
+				var allFiles = reals.Concat(facades);
+				_bclAssemblies = allFiles.ToDictionary(x => Path.GetFileName(x));
+			}
 		}
 
 		private void CreateDist()
@@ -1086,32 +1162,46 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CopyRuntime()
 		{
-			// Adjust for backward compatibility
-			RuntimeConfiguration = RuntimeConfiguration == "release-dynamic" ? "dynamic-release" : RuntimeConfiguration;
+			DirectoryCreateDirectory(_workDistRootPath);
 
-			var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
-
-			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
+			if (IsNetCoreWasm)
 			{
-				var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
+				var runtimePath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "native");
 
-				var matchedExtension = _contentExtensionsToExclude
-					.FirstOrDefault(x => sourceFile.EndsWith(x, StringComparison.OrdinalIgnoreCase));
-
-				if (matchedExtension == null)
+				foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 				{
+					var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
 					Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
 					FileCopy(sourceFile, dest, true);
 				}
-				else
-				{
-					Log.LogMessage($"Runtime: ignoring file {sourceFile} / matched with exclusion extension {matchedExtension}");
-				}
 			}
+			else
+			{
+				// Adjust for backward compatibility
+				RuntimeConfiguration = RuntimeConfiguration == "release-dynamic" ? "dynamic-release" : RuntimeConfiguration;
 
-			DirectoryCreateDirectory(_workDistRootPath);
+				var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
 
-			FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
+				foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
+				{
+					var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
+
+					var matchedExtension = _contentExtensionsToExclude
+						.FirstOrDefault(x => sourceFile.EndsWith(x, StringComparison.OrdinalIgnoreCase));
+
+					if (matchedExtension == null)
+					{
+						Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
+						FileCopy(sourceFile, dest, true);
+					}
+					else
+					{
+						Log.LogMessage($"Runtime: ignoring file {sourceFile} / matched with exclusion extension {matchedExtension}");
+					}
+				}
+
+				FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
+			}
 		}
 
 		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
@@ -1145,7 +1235,6 @@ namespace Uno.Wasm.Bootstrap
 				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ToString());
 			}
 		}
-
 
 		private void CopyContent()
 		{
@@ -1277,8 +1366,23 @@ namespace Uno.Wasm.Bootstrap
 
 				_resourceSearchList ??= new List<AssemblyDefinition>(
 					from asmPath in sourceList.Distinct()
-					select AssemblyDefinition.ReadAssembly(asmPath)
+					let asm = ReadAssembly(asmPath)
+					where asm != null
+					select asm
 				);
+			}
+
+			AssemblyDefinition? ReadAssembly(string asmPath)
+			{
+				try
+				{
+					return AssemblyDefinition.ReadAssembly(asmPath);
+				}
+				catch (Exception ex)
+				{
+					Log.LogMessage($"Failed to read assembly {ex}");
+					return null;
+				}
 			}
 		}
 

@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -18,7 +19,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+#if NETCOREAPP3_1
 using WebAssembly.Net.Debugging;
+#elif NET5_0
+using Microsoft.WebAssembly.Diagnostics;
+#endif
 
 namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 {
@@ -124,7 +130,7 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 					{
 						using var loggerFactory = LoggerFactory.Create(
 							builder => builder.AddConsole().AddFilter(null, LogLevel.Trace));
-						var proxy = new DebuggerProxy(loggerFactory);
+						var proxy = GetProxy(loggerFactory);
 						var ideSocket = await context.WebSockets.AcceptWebSocketAsync();
 
 						await proxy.Run(endpoint, ideSocket);
@@ -137,6 +143,13 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 			});
 			return app;
 		}
+
+		private static DebuggerProxy GetProxy(ILoggerFactory loggerFactory) =>
+#if NETCOREAPP3_1
+			new DebuggerProxy(loggerFactory);
+#elif NET5_0
+			new DebuggerProxy(loggerFactory, new List<string>());
+#endif
 
 		static async Task<T> ProxyGetJsonAsync<T>(string url)
 		{
