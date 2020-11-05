@@ -7,9 +7,12 @@
 	<!-- Nuget deployed run parameters -->
 	<_unoBinArgs>unowasm serve</_unoBinArgs>
 
+	<_UnoDevServerBasePath Condition="'$(TargetFramework)'=='netstandard2.0'">netcoreapp3.1</_UnoDevServerBasePath>
+	<_UnoDevServerBasePath Condition="'$(TargetFramework.substring(0,3))'=='net' and '$(TargetFramework)'!='netstandard2.0'">net5</_UnoDevServerBasePath>
+
 	<!-- Uno.Wasm.Bootstrap internal args -->
-	<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/netcoreapp3.1/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
-	<_unoBinArgs Condition="!exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">&quot;$(MSBuildThisFileDirectory)../tools/server/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+	<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+	<_unoBinArgs Condition="!exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">&quot;$(MSBuildThisFileDirectory)../tools/server/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
 	<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 

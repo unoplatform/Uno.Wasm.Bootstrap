@@ -1,0 +1,29 @@
+{
+  "solution": {
+    "path": "Uno.Wasm.Bootstrap.sln",
+    "projects": [
+      "LongPathTest\\Uno.Wasm.LongPath.csproj",
+      "Uno.Wasm.AotTests\\Uno.Wasm.AotTests.csproj",
+      "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
+      "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
+      "Uno.Wasm.Bootstrap\\Uno.Wasm.Bootstrap.csproj",
+      "Uno.Wasm.MixedModeRoslynSample\\Uno.Wasm.MixedModeRoslynSample.csproj",
+      "Uno.Wasm.MixedModeSample\\Uno.Wasm.MixedModeSample.csproj",
+      "Uno.Wasm.Node.Sample.Runner\\Uno.Wasm.Node.Sample.Runner.njsproj",
+      "Uno.Wasm.Node.Sample\\Uno.Wasm.Node.Sample.csproj",
+      "Uno.Wasm.SampleNet5.Aot\\Uno.Wasm.SampleNet5.Aot.csproj",
+      "Uno.Wasm.SampleNet5\\Uno.Wasm.SampleNet5.csproj",
+      "Uno.Wasm.Sample\\Uno.Wasm.Sample.csproj",
+      "Uno.Wasm.Static Linking\\Uno.Wasm.StaticLinking.csproj",
+      "Uno.Wasm.StaticLinking.Aot\\Uno.Wasm.StaticLinking.Aot.csproj",
+      "Uno.Wasm.StaticLinking.Interpreter\\Uno.Wasm.StaticLinking.Interpreter.csproj",
+      "Uno.Wasm.Tests.Electron\\Uno.Wasm.Tests.Electron.csproj",
+      "Uno.Wasm.Tests.Empty\\Uno.Wasm.Test.Empty.csproj",
+      "Uno.Wasm.Tests.TypeScript\\Uno.Wasm.Tests.TypeScript.csproj",
+      "Uno.Wasm.Threads\\Uno.Wasm.Threads.csproj",
+      "Uno.Wasm.TimezoneData\\Uno.Wasm.TimezoneData.csproj",
+      "Uno.WasmSample WithSpace Aot\\Uno.WasmSample.WithSpace.Aot.csproj",
+      "Uno.WasmSample WithSpace\\Uno.WasmSample.WithSpace.csproj"
+    ]
+  }
+}

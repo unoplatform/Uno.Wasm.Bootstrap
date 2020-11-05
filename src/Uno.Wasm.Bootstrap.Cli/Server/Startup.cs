@@ -63,7 +63,9 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 				//
 				// Resolve the debugger content from the files copied over from the Wasm SDK folder.
 				//
-				var isDebuggerFile = e.Name.StartsWith("Mono.Cecil") || e.Name.Contains("Mono.WebAssembly.DebuggerProxy");
+				var isDebuggerFile = e.Name.StartsWith("Mono.Cecil")
+					|| e.Name.Contains("Mono.WebAssembly.DebuggerProxy")
+					|| e.Name.Contains("BrowserDebugProxy");
 
 				if (!enumeratingDebuggerFiles && isDebuggerFile)
 				{
@@ -150,6 +152,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 		{
 			var result = new FileExtensionContentTypeProvider();
 			result.Mappings.Add(".clr", MediaTypeNames.Application.Octet);
+			result.Mappings.Add(".dat", MediaTypeNames.Application.Octet);
 			// result.Mappings.Add(".wasm", "application/wasm");
 
 			if (enableDebugging)

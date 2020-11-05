@@ -1,0 +1,3 @@
+﻿<linker>
+  <assembly fullname="Uno.Wasm.SampleNet5.Aot" />
+</linker>

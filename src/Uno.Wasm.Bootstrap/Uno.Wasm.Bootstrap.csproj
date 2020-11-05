@@ -8,7 +8,7 @@
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
-		<Version>2.0.1-test.3</Version>
+		<Version>2.0.1-test.8</Version>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
 		<LangVersion>8.0</LangVersion>
 		<Nullable>enable</Nullable>
@@ -39,6 +39,7 @@
 
 	<ItemGroup>
 		<None Include="images\icon.png" Pack="true" PackagePath="\" />
+		<None Include="wasm-tuner\wasm-tuner.proj" />
 		<Content Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
@@ -54,6 +55,10 @@
 		<Content Include="build/linker/**">
 			<Pack>true</Pack>
 			<PackagePath>build/linker</PackagePath>
+		</Content>
+		<Content Include="build/cilstrip/**">
+			<Pack>true</Pack>
+			<PackagePath>build/cilstrip</PackagePath>
 		</Content>
 		<Content Include="build/scripts/**">
 			<Pack>true</Pack>
@@ -108,9 +113,11 @@
 	<ItemGroup>
 		<!-- This file is built as part of the UnoInstallSDKTask_v0 task -->
 		<Compile Remove="Packager\*.cs" />
+		<Compile Remove="wasm-tuner\*.cs" />
 
 		<!-- But make it visible in VS -->
 		<None Include="Packager\*.*" />
+		<None Include="wasm-tuner\*.*" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -129,17 +136,26 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.Profiler\Uno.Wasm.Profiler.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
 	</ItemGroup>
 
-	<Target Name="UpdateTimezonePack" AfterTargets="CoreCompile">
+	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>
 			<Content Include="./tools/support/Uno.Wasm.TimezoneData.*">
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
 			</Content>
+			<Content Include="./tools/support/Uno.Wasm.Profiler.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
 		</ItemGroup>
 	</Target>
-	
+
 	<Target Name="BuildPackager" BeforeTargets="Build">
 		<PropertyGroup>
 			<_packagerIntermediatePath>$(IntermediateOutputPath)packager_build/</_packagerIntermediatePath>
@@ -160,6 +176,29 @@
 			<Content Include="build/packager/**">
 				<Pack>true</Pack>
 				<PackagePath>build/packager</PackagePath>
+			</Content>
+		</ItemGroup>
+	</Target>
+
+	<Target Name="BuildWasmTuner" BeforeTargets="Build">
+		<PropertyGroup>
+			<_wasmTunerIntermediatePath>$(IntermediateOutputPath)wasmtuner_build/</_wasmTunerIntermediatePath>
+		</PropertyGroup>
+		<ItemGroup>
+			<_WasmTunerSource Include="wasm-tuner/*.*" />
+		</ItemGroup>
+		<Message Text="Building custom wasm-tuner.exe $(_wasmTunerIntermediatePath)" Importance="high" />
+		<MakeDir Directories="$(_packagerIntermediatePath)" />
+		<Copy SourceFiles="@(_WasmTunerSource)" DestinationFolder="$(_wasmTunerIntermediatePath)" />
+		<Move SourceFiles="$(_wasmTunerIntermediatePath)wasm-tuner.proj" DestinationFiles="$(_wasmTunerIntermediatePath)wasm-tuner.csproj" />
+		<MSBuild Projects="$(_wasmTunerIntermediatePath)wasm-tuner.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+		<Copy SourceFiles="$(_wasmTunerIntermediatePath)bin/$(Configuration)/wasm-tuner.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/wasm-tuner/wasm-tuner.exe" />
+
+		<!-- Update the item group with generated files -->
+		<ItemGroup>
+			<Content Include="build/wasm-tuner/**">
+				<Pack>true</Pack>
+				<PackagePath>build/wasm-tuner</PackagePath>
 			</Content>
 		</ItemGroup>
 	</Target>
