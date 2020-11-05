@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
-		<TargetFrameworks>netcoreapp3.1;net5</TargetFrameworks>
-		<TargetFrameworks Condition="'$(DISABLE_CLIHOST_NET5)'=='True'">netcoreapp3.1</TargetFrameworks>
+		<TargetFrameworks Condition="'$(DISABLE_CLIHOST_NET5)'==''">netcoreapp3.1;net5</TargetFrameworks>
+		<TargetFramework Condition="'$(DISABLE_CLIHOST_NET5)'=='True'">netcoreapp3.1</TargetFramework>
 		<AssemblyName>dotnet-unowasm</AssemblyName>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
