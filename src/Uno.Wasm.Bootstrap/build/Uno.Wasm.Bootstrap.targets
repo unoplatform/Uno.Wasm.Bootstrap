@@ -171,6 +171,7 @@
         CompressedExtensions="@(WasmShellCompressedExtension)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
+		EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
         ForceUseWSL="$(WasmShellForceUseWSL)"
 		ForceDisableWSL="$(WasmShellForceDisableWSL)"
         EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"

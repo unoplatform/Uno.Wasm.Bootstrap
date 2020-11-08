@@ -164,6 +164,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableEmccProfiling { get; set; } = false;
 
+		public bool EnableNetCoreICU { get; set; } = false;
+
 		public bool GenerateAOTProfile { get; set; } = false;
 
 		[Output]
@@ -636,7 +638,8 @@ namespace Uno.Wasm.Bootstrap
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
-			var monovmparams = IsNetCoreWasm ? $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)}" : "";
+			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
+			var monovmparams = IsNetCoreWasm ? $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} " : "";
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
