@@ -392,6 +392,7 @@ class Driver {
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
+		public bool EnableICU;
 	}
 
 	int Run (string[] args) {
@@ -457,7 +458,8 @@ class Driver {
 				Simd = false,
 				EnableDynamicRuntime = false,
 				LinkerExcludeDeserialization = true,
-				EnableCollation = false
+				EnableCollation = false,
+				EnableICU = false
 			};
 
 		var p = new OptionSet () {
@@ -509,6 +511,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
+		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
 
 		var new_args = p.Parse (args).ToArray ();
 		foreach (var a in new_args) {
@@ -818,7 +821,7 @@ class Driver {
 
 		if (is_netcore)
 		{
-			if (!enable_aot)
+			if (!enable_aot && opts.EnableICU)
 			{
 				foreach (var icudat in Directory.EnumerateFiles(wasm_runtime_dir))
 				{
