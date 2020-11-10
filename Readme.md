@@ -2,17 +2,36 @@
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap) 
 
-Uno.Wasm.Bootstrap provides a simple way to package a C# .NET Standard 2.0 library, and run it from a compatible browser environment. 
+Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
 
-It is a standalone Mono Web Assembly (WASM) sdk bootstrapper taking the form of a nuget package.
+It is a standalone .NET Web Assembly (WASM) sdk bootstrapper taking the form of a nuget package.
 
-Installing it on a .NET Standard 2.0 library with an entry point allows to publish it as part of a WASM distribution folder, along with CSS, Javascript and content files.
+Installing it on a .NET 5 project or .NET Standard 2.0 library with an entry point allows to publish it as part of a WASM distribution folder, along with CSS, Javascript and content files.
 
 This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`.
 
 This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
-## How to use the package
+## How to use the package with .NET 5
+* Create a .NET 5 Console Application, and update it with the following basic definition:
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5</TargetFramework>
+    <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.0.0-dev.69" />
+    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.0.0-dev.69" PrivateAssets="all" />
+ </ItemGroup>
+
+</Project>
+```
+
+## How to use the package with .NET Standard 2.0
 * Create a .NET Standard 2.0 library, and update it with the following basic definition:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -24,8 +43,8 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="1.2.0-dev.1" />
-    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.2.0-dev.1" PrivateAssets="all" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.0.0-dev.69" />
+    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.0.0-dev.69" PrivateAssets="all" />
  </ItemGroup>
 
 </Project>
@@ -63,7 +82,7 @@ To upgrade a project from 1.0 to 1.1:
 - Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
 
 ## Linker configuration
-The mono-wasm tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.
+The .NET tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.
 
 The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`, with the following sample content:
 
@@ -100,7 +119,7 @@ Here's how to install it:
     - If this command does not exist, run the following `sudo apt-get install python3`
 - Using your favorite browser, navigate to `http://localhost:8000`
 
-## Mono-wasm Debugger Support
+## .NET for WebAssembly Debugger Support
 
 Debugging is supported through the integration of a .NET Core CLI component, which acts as a static files server, as well as a debugger proxy for Chrome (other browsers are not supported).
 
@@ -141,7 +160,7 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 <assembly fullname="System.Core" />
 ```
 
-Mono-wasm now has integrated **preliminary** support for in-browser debugging. Refer to
+.NET for WebAssembly now has integrated **preliminary** support for in-browser debugging. Refer to
 [this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to set up the debugging.
 
 ### How to use the Visual Studio 2019 Debugger
@@ -597,20 +616,26 @@ Once the app start, the content will be updated to show the custom logo. The log
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 
-### Updating the mono-sdk build
-The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` allow the override of the default SDK paths. Paths can be local files.
+### Overriding the .NET WebAssembly sdk build
+The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` (for `netstandard2.0 projects), and `NetCoreWasmSDKUri` (for `net5` projects) allow the override of the default SDK paths. Paths can be local files or remote files.
 
 To select a different sdk build:
-- Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
-- Select a build
-- Click on the "default" configuration
-- On the left click *Azure Artifacts*
-- Copy the `mono-wasm-xxxx.zip` uri or local zip file path to the `MonoWasmSDKUri` property
-- Copy the `wasm-release-Linux-xxx.zip` uri or local zip file to the `MonoWasmAOTSDKUri` property
+- For `netstandard2.0` projects:
+    - Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
+    - Select a build
+    - Click on the "default" configuration
+    - On the left click *Azure Artifacts*
+    - Copy the `mono-wasm-xxxx.zip` uri or local zip file path to the `MonoWasmSDKUri` property
+    - Copy the `wasm-release-Linux-xxx.zip` uri or local zip file to the `MonoWasmAOTSDKUri` property
+- For `net5` projects:
+    - Generate a build from the `https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly` project
+    - Copy the `dotnet-runtime-wasm-XX-XX-Release.zip` uri or local zip file path to the `NetCoreWasmSDKUri` property
 
-> Note that both properties require a zip file as the source, not an uncompressed folder.
+> Note that override properties require a zip file as the source, not an uncompressed folder.
 
-### Changing the mono-wasm SDKs install location
+If you are overriding the contents of the uncompressed SDK folder, for debugging purposes, you will need to set the `WasmShellDisableSDKCheckSumValidation` property to true to avoid the bootstrapper to recreate the SDK folder.
+
+### Changing the .NET SDKs install location
 The SDKs are installed under `Path.GetTempPath()` by default, you may change this by setting the following msbuild property(or environment variable): `WasmShellMonoTempFolder`.
 
 For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
