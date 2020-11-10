@@ -13,6 +13,12 @@
 		<LangVersion>8.0</LangVersion>
 		<Nullable>enable</Nullable>
 	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<GitVersion_Sha>1234</GitVersion_Sha>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(GitVersion_Sha)'!=''">
+		<AssemblyName>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</AssemblyName>
+		<RootNamespace>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</RootNamespace>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -35,6 +41,7 @@
 		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.3.409" PrivateAssets="All" />
 		<PackageReference Include="Mono.Cecil" Version="0.10.1" PrivateAssets="All" />
 		<PackageReference Include="Mono.Options" Version="5.3.0.1" PrivateAssets="All" />
+		<PackageReference Include="MSBuildTasks" Version="1.5.0.235" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -203,4 +210,38 @@
 		</ItemGroup>
 	</Target>
 
+	<Target Name="UpdateTasksSHA" Condition="'$(GitVersion_Sha)'!=''" BeforeTargets="CoreCompile">
+
+		<PropertyGroup>
+			<_CurrentVersion>v$(GitVersion_Sha)</_CurrentVersion>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<_Sha1Replace Include="ShellTask.cs" />
+			<_Sha1Replace Include="UnoInstallSDKTask.cs" />
+			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.targets" />
+		</ItemGroup>
+
+		<ReplaceSHAVersion FilePath="%(_Sha1Replace.Identity)" SHAVersion="$(_CurrentVersion)" />
+	</Target>
+
+	<UsingTask TaskName="ReplaceSHAVersion"
+						 TaskFactory="RoslynCodeTaskFactory"
+						 AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<FilePath ParameterType="System.String" Required="True" Output="False" />
+			<SHAVersion ParameterType="System.String" Required="True" Output="False" />
+		</ParameterGroup>
+		<Task>
+			<Using Namespace="System" />
+			<Using Namespace="System.IO" />
+			<Code Type="Fragment" Language="cs">
+				<![CDATA[
+					Log.LogMessage("Updating : " + FilePath);
+					var output = File.ReadAllText(FilePath).Replace("v0", SHAVersion);
+					File.WriteAllText(FilePath, output);
+				]]>
+			</Code>
+		</Task>
+	</UsingTask>
 </Project>
