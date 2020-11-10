@@ -858,21 +858,23 @@ namespace Uno.Wasm.Bootstrap
 			else
 			{
 				_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm_tools", "monolinker.exe");
-			}
 
-			var configFilePath = _linkerBinPath + ".config";
-			if (!File.Exists(configFilePath))
-			{
-				var content = @"
+				var configFilePath = _linkerBinPath + ".config";
+
+				if (!File.Exists(configFilePath))
+				{
+					var content = @"
 <?xml version=""1.0"" encoding=""utf-16"" ?>
 <configuration>
-  <runtime>
-    <AppContextSwitchOverrides value=""Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false"" />
-  </runtime>
+	<runtime>
+	<AppContextSwitchOverrides value=""Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false"" />
+	</runtime>
 </configuration>
 ";
-				// Enable long path support for the linker
-				File.WriteAllText(configFilePath, content, Encoding.Unicode);
+					// Enable long path support for the linker. This is not needed for illink as it is runnning on .NET 5
+					// which supports long paths by default.
+					File.WriteAllText(configFilePath, content, Encoding.Unicode);
+				}
 			}
 		}
 
