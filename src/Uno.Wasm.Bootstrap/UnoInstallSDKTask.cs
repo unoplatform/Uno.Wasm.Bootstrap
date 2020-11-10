@@ -52,6 +52,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool DisableSDKCheckSumValidation { get; set; } = false;
 
+		public bool DebugSDKChecksum { get; set; } = false;
+
 		[Output]
 		public string? SdkPath { get; set; }
 
@@ -321,8 +323,16 @@ namespace Uno.Wasm.Bootstrap
 				Path.Combine(path, Path.Combine("wasm-bcl", "wasm_tools", "monolinker.exe.config"))
 			};
 
-			return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-				.Where(f => !exclusions.Contains(f))
+			var files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+							.Where(f => !exclusions.Contains(f));
+
+			if (DebugSDKChecksum)
+			{
+				var raw = string.Join("\r\n", files.Select(f => $"{f}: {new FileInfo(f).Length}"));
+				Log.LogMessage($"SDK Files Checksum: {raw}");
+			}
+
+			return files
 				.Sum(f => f.Length);
 		}
 
