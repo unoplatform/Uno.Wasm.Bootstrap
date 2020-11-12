@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -13,7 +13,7 @@ using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
-	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task
+	public class UnoInstallSDKTask_v1234 : Microsoft.Build.Utilities.Task
 	{
 		public string? MonoWasmSDKUri { get; set; }
 
@@ -232,12 +232,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
 
-				foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
-				{
-					var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
-					Log.LogMessage($"Copy packager override {file} to {destFileName}");
-					File.Copy(file, destFileName, true);
-				}
+				CopyFolderNoOverwrite("wasm-tuner", SdkPath!, PackagerOverrideFolderPath);
 			}
 		}
 
@@ -245,15 +240,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (!string.IsNullOrEmpty(WasmTunerOverrideFolderPath))
 			{
-				var basePath = Path.Combine(SdkPath, "tools");
-				Directory.CreateDirectory(basePath);
-
-				foreach (var file in Directory.EnumerateFiles(WasmTunerOverrideFolderPath))
-				{
-					var destFileName = Path.Combine(basePath, Path.GetFileName(file));
-					Log.LogMessage($"Copy wasm-tuner {file} to {destFileName}");
-					File.Copy(file, destFileName, true);
-				}
+				CopyFolderNoOverwrite("wasm-tuner", Path.Combine(SdkPath, "tools"), WasmTunerOverrideFolderPath);
 			}
 		}
 
@@ -261,17 +248,26 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (!string.IsNullOrEmpty(CilStripOverrideFolderPath))
 			{
-				var basePath = Path.Combine(SdkPath, "tools");
-				Directory.CreateDirectory(basePath);
+				CopyFolderNoOverwrite("cil-strip", Path.Combine(SdkPath, "tools"), CilStripOverrideFolderPath);
+			}
+		}
 
-				foreach (var file in Directory.EnumerateFiles(CilStripOverrideFolderPath))
+		private void CopyFolderNoOverwrite(string logname, string sourcePath, string targetPath)
+		{
+			Directory.CreateDirectory(targetPath);
+
+			foreach (var file in Directory.EnumerateFiles(sourcePath))
+			{
+				var destFileName = Path.Combine(targetPath, Path.GetFileName(file));
+				Log.LogMessage($"Copy {logname} {file} to {destFileName}");
+
+				if (!File.Exists(destFileName))
 				{
-					var destFileName = Path.Combine(basePath, Path.GetFileName(file));
-					Log.LogMessage($"Copy cil-strip {file} to {destFileName}");
 					File.Copy(file, destFileName, true);
 				}
 			}
 		}
+
 		static readonly string[] BitCodeExtensions = new string[] { ".bc", ".a" };
 
 		private bool HasBitcodeAssets()
