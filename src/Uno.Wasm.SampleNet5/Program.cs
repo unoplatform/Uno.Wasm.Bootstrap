@@ -37,6 +37,8 @@ namespace Uno.Wasm.Sample
 
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
 
+			Console.WriteLine(typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger));
+
 			var t = new Timer(_ => {
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
