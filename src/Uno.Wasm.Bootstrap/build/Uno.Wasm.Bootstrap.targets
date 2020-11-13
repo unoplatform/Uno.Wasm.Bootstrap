@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v1234.dll</_packageBinaryPath>
+    <_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
 
     <WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
     <WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
@@ -97,8 +97,8 @@
     <UpToDateCheckInput Include="@(LinkerDescriptor)" />
   </ItemGroup>
 
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v1234.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v1234" />
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v1234.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v1234" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
 
   <Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
     <!-- 
@@ -136,7 +136,7 @@
       <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
     </PropertyGroup>
 
-    <UnoInstallSDKTask_v1234
+    <UnoInstallSDKTask_v0
         MonoWasmSDKUri="$(MonoWasmSDKUri)"
         MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
 		NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
@@ -155,9 +155,9 @@
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
 	  <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
 	  <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
-    </UnoInstallSDKTask_v1234>
+    </UnoInstallSDKTask_v0>
 
-	<ShellTask_v1234
+	<ShellTask_v0
         CurrentProjectPath="$(MSBuildProjectDirectory)"
         BuildTaskBasePath="$(MSBuildThisFileDirectory)"
         Assembly="$(IntermediateOutputPath)$(TargetFileName)"
@@ -199,7 +199,7 @@
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)">
         <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
         <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
-	</ShellTask_v1234>
+	</ShellTask_v0>
   </Target>
 
   <Target Name="_CleanDist" BeforeTargets="Clean">

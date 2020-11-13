@@ -1694,7 +1694,7 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				File.WriteAllText(PWAManifestFile, manifestDocument.ToString());
+				File.WriteAllText(Path.Combine(_distPath, Path.GetFileName(PWAManifestFile)), manifestDocument.ToString());
 			}
 		}
 
