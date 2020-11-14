@@ -13,7 +13,6 @@
 		<LangVersion>8.0</LangVersion>
 		<Nullable>enable</Nullable>
 	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<GitVersion_Sha>1234</GitVersion_Sha>
 	</PropertyGroup>
 	
 	<PropertyGroup Condition="'$(GitVersion_Sha)'!=''">
@@ -150,6 +149,10 @@
 		</ProjectReference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="build\packager\" />
+	</ItemGroup>
+
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>
 			<Content Include="./tools/support/Uno.Wasm.TimezoneData.*">
@@ -225,9 +228,7 @@
 		<ReplaceSHAVersion FilePath="%(_Sha1Replace.Identity)" SHAVersion="$(_CurrentVersion)" />
 	</Target>
 
-	<UsingTask TaskName="ReplaceSHAVersion"
-						 TaskFactory="RoslynCodeTaskFactory"
-						 AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+	<UsingTask TaskName="ReplaceSHAVersion" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
 		<ParameterGroup>
 			<FilePath ParameterType="System.String" Required="True" Output="False" />
 			<SHAVersion ParameterType="System.String" Required="True" Output="False" />
