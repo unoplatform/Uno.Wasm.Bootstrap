@@ -1,15 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
-		<MonoWasmRuntimeConfiguration>threads-release</MonoWasmRuntimeConfiguration>
-		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
-	</PropertyGroup>
+		
+		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
+		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
+		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
+			<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
+</PropertyGroup>
 
 	<ItemGroup>
 	  <Compile Remove="Content\**" />
@@ -21,24 +23,28 @@
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
-		<PackageReference Include="System.Reactive" Version="4.3.2" />
 	</ItemGroup>
+      
+	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
-
-	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
-	<Import Project="..\Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems" Label="Shared" />
-
+	
+	<!--
 	<ItemGroup>
-		<None Remove="side.wasm" />
-		<None Remove="side.bc" />
+		<WasmShellExtraEmccFlags Include="-fsanitize=address" />
 	</ItemGroup>
+	-->
 
 	<ItemGroup>
 		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
 		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
-		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -58,3 +64,4 @@
 		</ProjectReference>
 	</ItemGroup>
 </Project>
+<!---->

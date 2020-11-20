@@ -1,24 +1,55 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
+		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+		
 		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
-		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
-		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
+		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 	</PropertyGroup>
 
-	<Import Project="..\Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems" Label="Shared" />
+	<ItemGroup>
+	  <Compile Remove="Content\**" />
+	  <Content Remove="Content\**" />
+	  <EmbeddedResource Remove="Content\**" />
+	  <None Remove="Content\**" />
+	</ItemGroup>
 
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellEnableAotProfile Include="aot.profile" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
+	</ItemGroup>
+      
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
+	
+	<!--
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-fsanitize=address" />
+	</ItemGroup>
+	-->
+
+	<ItemGroup>
+		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
@@ -36,27 +67,5 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(UseAOT)'=='true'">
-		<WasmShellEnableAotProfile Include="aot.profile" />
-	</ItemGroup>
-
-	<ProjectExtensions>
-		<VisualStudio>
-			<UserProperties manifest_1json__JsonSchema="http://json.schemastore.org/grunt-task" />
-		</VisualStudio>
-	</ProjectExtensions>
-
-	<Target Name="AfterBuildValidation" AfterTargets="Build">
-		<ItemGroup>
-			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
-			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />
-		</ItemGroup>
-
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(WasmShellOutputPackagePath)" />
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(WasmShellOutputDistPath)" />
-
-		<Message Importance="high" Text="Output dist validated" />
-	</Target>
-
 </Project>
+<!---->

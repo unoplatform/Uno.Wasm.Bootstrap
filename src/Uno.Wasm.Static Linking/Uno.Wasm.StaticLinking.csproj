@@ -13,24 +13,15 @@
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
+      
+	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
 
 	<ItemGroup>
-		<EmbeddedResource Include="WasmScripts\**\*.js" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!--
-		This file is placed outside the current folder to validate external inclusion.
-		This scenario is used when including files from nuget packages.
-		-->
-		<Content Condition="'$(UseAOT)'=='true'" Include="..\Uno.Wasm.StaticLinking.Aot\side.bc" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -40,7 +31,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
 	</ItemGroup>
 
 	<ItemGroup>

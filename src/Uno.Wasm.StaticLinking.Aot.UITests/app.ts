@@ -12,7 +12,7 @@ const path = require("path");
 		console.log('BROWSER LOG:', msg.text());
 	});
 	page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err))
-	await page.goto("http://localhost:8001/");
+	await page.goto("http://localhost:8000/");
 
 	let value = null;
 
@@ -42,7 +42,7 @@ const path = require("path");
 		console.log(`Results: ${value}`);
 	}
 
-    const expected = "FullAOT;42;42.3;42.7;e42;True;true;True";
+    const expected = "FullAOT;42;42.30;42.7;e42;True;true;True";
 
 	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);

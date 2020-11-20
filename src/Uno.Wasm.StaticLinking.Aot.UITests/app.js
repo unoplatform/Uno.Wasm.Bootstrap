@@ -20,7 +20,7 @@ const path = require("path");
         console.log('BROWSER LOG:', msg.text());
     });
     page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err));
-    yield page.goto("http://localhost:8001/");
+    yield page.goto("http://localhost:8000/");
     let value = null;
     console.log(`Init puppeteer`);
     let counter = 3;
@@ -43,7 +43,7 @@ const path = require("path");
     else {
         console.log(`Results: ${value}`);
     }
-    const expected = "FullAOT;42;42.3;42.7;e42;True;true;True";
+    const expected = "FullAOT;42;42.30;42.7;e42;True;true;True";
     if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);

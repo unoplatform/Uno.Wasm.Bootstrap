@@ -25,7 +25,7 @@ function delay(time) {
         console.log('BROWSER LOG:', msg.text());
     });
     page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err));
-    yield page.goto("http://localhost:50841/");
+    yield page.goto("http://localhost:8000/");
     let value = null;
     console.log(`Init puppeteer`);
     let counter = 10;
