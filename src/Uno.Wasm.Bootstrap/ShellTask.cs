@@ -825,27 +825,30 @@ namespace Uno.Wasm.Bootstrap
 
 			if (profilePath != null)
 			{
-				var span = File.ReadAllBytes(profilePath).AsSpan();
+				var fileContent = File.ReadAllBytes(profilePath);
 
 				var replacedMethods = new[] { "LoadIntoBufferAsync" };
 
 				foreach (var method in replacedMethods)
 				{
-					var searchSpan = Encoding.ASCII.GetBytes(method).AsSpan();
+					var searchContent = Encoding.ASCII.GetBytes(method);
+					var slice = new byte[searchContent.Length];
 
-					for (int i = 0; i < span.Length - searchSpan.Length; i++)
+					for (int i = 0; i < fileContent.Length - searchContent.Length; i++)
 					{
-						if (span[i] == searchSpan[0])
+						if (fileContent[i] == searchContent[0])
 						{
-							if (span.Slice(i, searchSpan.Length).SequenceEqual(searchSpan))
+							Buffer.BlockCopy(fileContent, i, slice, 0, searchContent.Length);
+
+							if (fileContent.SequenceEqual(searchContent))
 							{
-								span[i] = (byte)'_';
+								fileContent[i] = (byte)'_';
 							}
 						}
 					}
 				}
 
-				File.WriteAllBytes(profilePath, span.ToArray());
+				File.WriteAllBytes(profilePath, fileContent);
 			}
 		}
 
