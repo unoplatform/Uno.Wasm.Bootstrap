@@ -1277,7 +1277,15 @@ class Driver {
 				pinvoke_assemblies += $"{a.linkout_path} ";
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {pinvoke_assemblies}");
-			ninja.WriteLine ($"  pinvoke_libs=System.Native,{pinvoke_libs}");
+
+			if (is_netcore)
+			{
+				ninja.WriteLine($"  pinvoke_libs=libSystem.Native,libSystem.IO.Compression.Native,QCall,{pinvoke_libs}");
+			}
+			else
+			{
+				ninja.WriteLine($"  pinvoke_libs=System.Native,{pinvoke_libs}");
+			}
 		}
 		if (build_wasm) {
 			string zlibhelper = enable_zlib ? "$builddir/zlib-helper.o" : "";

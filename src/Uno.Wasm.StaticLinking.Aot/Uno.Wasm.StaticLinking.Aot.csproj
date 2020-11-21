@@ -11,38 +11,30 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Content\**" />
+	  <Content Remove="Content\**" />
+	  <EmbeddedResource Remove="Content\**" />
+	  <None Remove="Content\**" />
+	</ItemGroup>
       
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
+      
+	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
-
-	<ItemGroup>
-		<None Include="WasmScripts\**\*.js" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Include="WasmScripts\**\*.js" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Remove="side.bc" />
-		<None Remove="WasmScripts\test.js" />
-	</ItemGroup>
 	
 	<!--
 	<ItemGroup>
 		<WasmShellExtraEmccFlags Include="-fsanitize=address" />
 	</ItemGroup>
 	-->
-	
-	<ItemGroup>
-		<!-- Remove this so that the CI passes without validating for WSL support -->
-		<Content Condition="'$(UseAOT)'=='true'" Include="side.bc" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
@@ -51,7 +43,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1"/>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -69,10 +61,6 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Content\" />
 	</ItemGroup>
 </Project>
 <!---->

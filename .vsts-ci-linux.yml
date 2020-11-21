@@ -71,32 +71,48 @@ jobs:
     displayName: Cleanup Emscripten folder to run tests
 
   - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/WasmAot.UITests
-      npm install
-      node app
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist" \
+        "$(build.sourcesdirectory)/src/WasmAot.UITests"
 
-    displayName: Raytracer UI Tests 
-
-  - bash: |
-      sed -i "s/8000/8001/g" "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist/server.py"
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests
-      npm install
-      node app
-
-    displayName: StaticLinking.Aot Tests 
+    displayName: Raytracer UI Tests Mono
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - bash: |
-      sed -i "s/8000/8002/g" "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist/server.py"
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist
-      python server.py &
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests
-      npm install
-      node app
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/WasmAot.UITests"
 
+    displayName: Raytracer UI Tests Net5
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
+
+    displayName: StaticLinking.Aot Tests Mono
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
+
+    displayName: StaticLinking.Aot Tests Net5
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests"
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+  
     displayName: Threading Tests 
 
   - task: PublishBuildArtifacts@1

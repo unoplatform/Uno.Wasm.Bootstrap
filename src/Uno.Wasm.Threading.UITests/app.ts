@@ -20,7 +20,7 @@ function delay(time) {
 	});
 	page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err))
 
-	await page.goto("http://localhost:50841/");
+	await page.goto("http://localhost:8000/");
 
 	let value: string = null;
 

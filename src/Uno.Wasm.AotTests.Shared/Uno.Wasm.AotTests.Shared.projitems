@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>286b5778-da8b-4965-9fc6-bc6f4258e155</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Uno.Wasm.AotTests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Benchmark.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Program.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-144-144.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-192-192.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-48-48.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-512-512.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-72-72.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\android\android-launchericon-96-96.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\chrome\chrome-extensionmanagementpage-48-48.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\chrome\chrome-favicon-16-16.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\chrome\chrome-installprocess-128-128.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-128-128.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-16-16.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-256-256.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-32-32.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-48-48.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-64-64.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-general-90-90.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-marketplace-128-128.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\firefox\firefox-marketplace-512-512.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-appicon-1024-1024.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-appicon-120-120.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-appicon-152-152.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-appicon-180-180.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-appicon-76-76.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-1024-768.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-1242-2208.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-1334-750.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-1536-2048.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-2048-1536.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-2208-1242.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-640-1136.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-640-960.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-750-1334.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\ios\ios-launchimage-768-1024.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\SplashScreen.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\SplashScreen.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\SplashScreen.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\SplashScreen.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\SplashScreen.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square150x150Logo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square150x150Logo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square150x150Logo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square150x150Logo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square150x150Logo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square310x310Logo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square310x310Logo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square310x310Logo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square310x310Logo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square310x310Logo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-16.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-16_altform-unplated.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-24.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-256.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-256_altform-unplated.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-48.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square44x44Logo.targetsize-48_altform-unplated.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square71x71Logo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square71x71Logo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square71x71Logo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square71x71Logo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Square71x71Logo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\StoreLogo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Wide310x150Logo.scale-100.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Wide310x150Logo.scale-125.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Wide310x150Logo.scale-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Wide310x150Logo.scale-200.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows10\Wide310x150Logo.scale-400.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-smallsquare-24-24.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-smallsquare-30-30.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-smallsquare-42-42.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-smallsquare-54-54.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-splashscreen-1116-540.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-splashscreen-620-300.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-splashscreen-868-420.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-squarelogo-120-120.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-squarelogo-150-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-squarelogo-210-210.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-squarelogo-270-270.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-storelogo-50-50.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-storelogo-70-70.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windows-storelogo-90-90.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-appicon-106-106.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-appicon-44-44.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-appicon-62-62.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-mediumtile-150-150.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-mediumtile-210-210.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-mediumtile-360-360.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-smalltile-170-170.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-smalltile-71-71.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-smalltile-99-99.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-storelogo-120-120.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-storelogo-50-50.png" />
+    <Content Include="$(MSBuildThisFileDirectory)pwa-images\windows\windowsphone-storelogo-70-70.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)WasmScripts\image.js" />
+  </ItemGroup>
+</Project>
