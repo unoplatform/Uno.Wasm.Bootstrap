@@ -10,7 +10,7 @@ namespace Uno.Wasm.Bootstrap
 		public const string DefaultSdkUrl = @"https://unowasmbootstrap.azureedge.net/runtime/mono-wasm-35c322c0198.zip";
 		public const string DefaultAotSDKUrl = @"https://unowasmbootstrap.azureedge.net/runtime/wasm-release-Linux-35c322c0198f9ad2a0cc1c63e5612ad22af0ecd9.zip";
 
-		public const string DefaultMonoVMSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-dcef029-22072-Release.zip";
+		public const string DefaultMonoVMSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-1f465d7-22125-Release.zip";
 
 		/// <summary>
 		/// Min version of the emscripten SDK. Must be aligned with mono's SDK build in <see cref="DefaultAotSDKUrl"/>.
