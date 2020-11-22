@@ -77,6 +77,17 @@ jobs:
         cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
         .\Validate.ps1
 
+  - task: VisualStudioTestPlatformInstaller@1
+
+  - task: VSTest@2
+    inputs:
+      testAssemblyVer2: |
+        **\*UnitTests*.dll
+      vstestLocationMethod: version
+      vsTestVersion: latest
+      testRunTitle: $(Agent.JobName)
+      testSelector: testAssemblies
+
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)

@@ -23,25 +23,14 @@ namespace Uno.Wasm.Sample
 {
 	public static class Program
 	{
-		[DllImport("side")]
-		private static extern int test_add(int a, int b);
-		[DllImport("side", EntryPoint = "test_add_float")]
-		private static extern float test_add_float1(float a, float b);
-		[DllImport("side")]
-		private static extern double test_add_double(double a, double b);
-		[DllImport("side")]
-		private static extern int test_exception();
-		[DllImport("side")]
-		private static extern void test_png();
-
 		static void Main()
 		{
 			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
 			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
 
-			Console.WriteLine($"test_add:{test_add(21, 21)}");
-			Console.WriteLine($"test_float:{test_add_float1(21, 21)}");
-			Console.WriteLine($"test_add_double:{test_add_double(21, 21)}");
+			Console.WriteLine($"test_add:{SideModule1.test_add(21, 21)}");
+			Console.WriteLine($"test_float:{SideModule1.test_add_float1(21, 21)}");
+			Console.WriteLine($"test_add_double:{SideModule1.test_add_double(21, 21)}");
 
 			var now = DateTime.Now;
 			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
@@ -62,18 +51,52 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"Timezone: {jsTimeZone};{clrTimeZone}");
 
 			var res = $"{runtimeMode};" +
-				$"{test_add(21, 21)};" +
-				$"{test_add_float1(21.1f, 21.2f):.00};" +
-				$"{test_add_double(21.3, 21.4)};" +
-				$"e{test_exception()};" +
+				$"{SideModule1.test_add(21, 21)};" +
+				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
+				$"{SideModule1.test_add_double(21.3, 21.4)};" +
+				$"e{SideModule1.test_exception()};" +
 				$"{validateEmAddFunctionResult};" +
 				$"{idbFSValidation};" +
-				$"{timezoneValidation}";
+				$"{timezoneValidation};" +
+				$"{SideModule2.side2_getCustomVersion()};" +
+				$"{SideModule3.side3_getCustomVersion()};" +
+				$"{SideModule4.side4_getCustomVersion()};";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
 
-			test_png();
-
+			SideModule1.test_png();
 		}
+	}
+
+	class SideModule1
+	{
+		[DllImport("side")]
+		internal static extern int test_add(int a, int b);
+		[DllImport("side", EntryPoint = "test_add_float")]
+		internal static extern float test_add_float1(float a, float b);
+		[DllImport("side")]
+		internal static extern double test_add_double(double a, double b);
+		[DllImport("side")]
+		internal static extern int test_exception();
+		[DllImport("side")]
+		internal static extern void test_png();
+	}
+
+	class SideModule2
+	{
+		[DllImport("side2")]
+		internal static extern string side2_getCustomVersion();
+	}
+
+	class SideModule3
+	{
+		[DllImport("side3")]
+		internal static extern string side3_getCustomVersion();
+	}
+
+	class SideModule4
+	{
+		[DllImport("side4")]
+		internal static extern string side4_getCustomVersion();
 	}
 }

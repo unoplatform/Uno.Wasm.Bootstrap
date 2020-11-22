@@ -898,7 +898,7 @@ namespace Uno.Wasm.Bootstrap
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
 				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
-				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenMinVersion}";
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenVersion}";
 
 				if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
@@ -912,7 +912,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var result = RunProcess(
 					emscriptenSetupScript,
-					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenMinVersion}");
+					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenVersion}");
 
 				if (result.exitCode == 0)
 				{
@@ -933,14 +933,14 @@ namespace Uno.Wasm.Bootstrap
 				var home = Environment.GetEnvironmentVariable("HOME");
 				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? $"{home}/.uno/emsdk";
 				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
-				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenMinVersion}";
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenVersion}";
 
 				// Adjust line endings
 				AdjustFileLineEndings(emscriptenSetupScript);
 
 				var result = RunProcess(
 					"bash",
-					$"-c \"chmod +x {emscriptenSetupScript}; {emscriptenSetupScript} \\\"{emsdkHostFolder}\\\" {Constants.EmscriptenMinVersion}\"");
+					$"-c \"chmod +x {emscriptenSetupScript}; {emscriptenSetupScript} \\\"{emsdkHostFolder}\\\" {Constants.EmscriptenVersion}\"");
 
 				if (result.exitCode == 0)
 				{
@@ -963,12 +963,17 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			_bitcodeFilesCache ??= Assets
-				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
-				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
-				.Select(a => GetFilePaths(a).fullPath)
-				.ToArray()
-				?? new string[0];
+			if (_bitcodeFilesCache == null)
+			{
+				_bitcodeFilesCache = Assets
+					?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+					.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
+					.Select(a => GetFilePaths(a).fullPath)
+					.ToArray()
+					?? new string[0];
+
+				_bitcodeFilesCache = BitcodeFilesSelector.Filter(Constants.EmscriptenVersion, _bitcodeFilesCache);
+			}
 
 			return _bitcodeFilesCache;
 		}

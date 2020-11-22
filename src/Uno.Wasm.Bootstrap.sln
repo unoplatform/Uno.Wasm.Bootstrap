@@ -90,6 +90,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Threading", "Threading", "{
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Threads.Shared", "Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.shproj", "{B474457D-DBCD-4795-A2AB-EC3F09E53198}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Bootstrap.UnitTests", "Uno.Wasm.Bootstrap.UnitTests\Uno.Wasm.Bootstrap.UnitTests.csproj", "{E1458920-4A5A-4D54-882D-304A46359BEC}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
@@ -234,6 +236,10 @@ Global
 		{97E9B56A-BE43-4590-A009-9AC135B371BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97E9B56A-BE43-4590-A009-9AC135B371BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97E9B56A-BE43-4590-A009-9AC135B371BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1458920-4A5A-4D54-882D-304A46359BEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1458920-4A5A-4D54-882D-304A46359BEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1458920-4A5A-4D54-882D-304A46359BEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1458920-4A5A-4D54-882D-304A46359BEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

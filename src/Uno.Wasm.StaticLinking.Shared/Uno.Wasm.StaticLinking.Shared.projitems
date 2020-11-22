@@ -23,12 +23,16 @@
     <None Include="$(MSBuildThisFileDirectory)side_module\hello.wast" />
     <None Include="$(MSBuildThisFileDirectory)side_module\main.cpp" />
     <None Include="$(MSBuildThisFileDirectory)side_module\main.wasm" />
+    <None Include="$(MSBuildThisFileDirectory)side_module\version_test.cpp" />
     <None Include="$(MSBuildThisFileDirectory)side_module\mysideModule.cpp" />
     <None Include="$(MSBuildThisFileDirectory)side_module\pre.js" />
     <None Include="$(MSBuildThisFileDirectory)side_module\server.py" />
     <None Include="$(MSBuildThisFileDirectory)side_module\side.wasm" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseAOT)'=='true'">
-    <Content Include="$(MSBuildThisFileDirectory)side.bc" />
+    <Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
   </ItemGroup>
 </Project>
