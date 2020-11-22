@@ -880,11 +880,16 @@ namespace Uno.Wasm.Bootstrap
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
-			var bitcodeFiles = new[] { "*.bc", "*.a" };
+			if (_bitcodeFilesCache == null)
+			{
+				_bitcodeFilesCache = Assets
+					?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+					.Select(a => GetFilePaths(a).fullPath)
+					.ToArray()
+					?? new string[0];
 
-			_bitcodeFilesCache = _bitcodeFilesCache ?? bitcodeFiles
-				.SelectMany(b => Directory.EnumerateFiles(_workDistPath, b, SearchOption.TopDirectoryOnly))
-				.ToArray();
+				_bitcodeFilesCache = BitcodeFilesSelector.Filter(Constants.EmscriptenMinVersion, _bitcodeFilesCache);
+			}
 
 			return _bitcodeFilesCache;
 		}
@@ -1067,37 +1072,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					(string fullPath, string relativePath) GetFilePaths()
-					{
-						// This is for project-local defined content
-						var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
-
-						if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
-						{
-							// This case is mainly for shared projects
-							return (sourceFile.ItemSpec, link);
-						}
-						else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
-						{
-							var sourceFilePath = sourceFile.ToString();
-
-							if (sourceFilePath.StartsWith(CurrentProjectPath))
-							{
-								// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-								return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
-							}
-							else
-							{
-								return (fullPath, sourceFilePath);
-							}
-						}
-						else
-						{
-							return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
-						}
-					}
-
-					(var fullSourcePath, var relativePath) = GetFilePaths();
+					(var fullSourcePath, var relativePath) = GetFilePaths(sourceFile);
 
 					relativePath = FixupPath(relativePath).Replace("wwwroot" + Path.DirectorySeparatorChar, "");
 
@@ -1124,6 +1099,36 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			File.WriteAllLines(Path.Combine(_workDistPath, "uno-assets.txt"), assets);
+		}
+
+		private (string fullPath, string relativePath) GetFilePaths(ITaskItem sourceFile)
+		{
+			// This is for project-local defined content
+			var baseSourceFile = sourceFile.GetMetadata("DefiningProjectDirectory");
+
+			if (sourceFile.GetMetadata("Link") is string link && !string.IsNullOrEmpty(link))
+			{
+				// This case is mainly for shared projects
+				return (sourceFile.ItemSpec, link);
+			}
+			else if (sourceFile.GetMetadata("FullPath") is string fullPath && File.Exists(fullPath))
+			{
+				var sourceFilePath = sourceFile.ToString();
+
+				if (sourceFilePath.StartsWith(CurrentProjectPath))
+				{
+					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
+				}
+				else
+				{
+					return (fullPath, sourceFilePath);
+				}
+			}
+			else
+			{
+				return (Path.Combine(baseSourceFile, sourceFile.ItemSpec), sourceFile.ToString());
+			}
 		}
 
 		private void ExtractAdditionalJS()
