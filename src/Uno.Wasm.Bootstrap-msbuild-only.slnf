@@ -6,6 +6,7 @@
       "Uno.Wasm.AotTests\\Uno.Wasm.AotTests.csproj",
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
+      "Uno.Wasm.Bootstrap.UnitTests\\Uno.Wasm.Bootstrap.UnitTests.csproj",
       "Uno.Wasm.Bootstrap\\Uno.Wasm.Bootstrap.csproj",
       "Uno.Wasm.MixedModeRoslynSample\\Uno.Wasm.MixedModeRoslynSample.csproj",
       "Uno.Wasm.MixedModeSample\\Uno.Wasm.MixedModeSample.csproj",
