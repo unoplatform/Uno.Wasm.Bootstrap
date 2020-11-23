@@ -83,7 +83,8 @@ jobs:
     inputs:
       testAssemblyVer2: |
         **\*UnitTests*.dll
-        !**\ref\*
+        !**\ref\**
+        !**\obj\**
       vstestLocationMethod: version
       vsTestVersion: latest
       testRunTitle: $(Agent.JobName)
