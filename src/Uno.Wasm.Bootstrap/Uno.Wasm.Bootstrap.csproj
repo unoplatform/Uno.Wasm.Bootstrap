@@ -26,6 +26,7 @@
 		<RepositoryUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</RepositoryUrl>
 		<Description>This package provides a Wasm bootstrap for netstandard 2.0 projects.</Description>
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
+		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 	

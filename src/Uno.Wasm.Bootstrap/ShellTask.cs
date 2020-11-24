@@ -757,7 +757,11 @@ namespace Uno.Wasm.Bootstrap
 
 					var frameworkBindings = new List<string>();
 
-					if (!IsNetCoreWasm)
+					if (IsNetCoreWasm)
+					{
+						frameworkBindings.Add("System.Private.Runtime.InteropServices.JavaScript.dll");
+					}
+					else
 					{
 						frameworkBindings.Add("WebAssembly.Bindings.dll");
 						frameworkBindings.Add("System.Net.Http.WebAssemblyHttpHandler.dll");

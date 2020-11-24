@@ -60,7 +60,8 @@ class Driver {
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
 
-	const string BINDINGS_ASM_NAME = "WebAssembly.Bindings";
+	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
+	const string BINDINGS_ASM_NAME_NETCORE = "System.Private.Runtime.InteropServices.JavaScript";
 	const string BINDINGS_RUNTIME_CLASS_NAME = "WebAssembly.Runtime";
 	const string HTTP_ASM_NAME = "System.Net.Http.WebAssemblyHttpHandler";
 	const string WEBSOCKETS_ASM_NAME = "WebAssembly.Net.WebSockets";
@@ -688,7 +689,7 @@ class Driver {
 			Import (resolved, kind);
 		}
 		if (add_binding) {
-			var bindings = ResolveFramework (BINDINGS_ASM_NAME + ".dll");
+			var bindings = ResolveFramework (is_netcore ? BINDINGS_ASM_NAME_NETCORE : BINDINGS_ASM_NAME_MONO + ".dll");
 			Import (bindings, AssemblyKind.Framework);
 			var http = ResolveFramework (HTTP_ASM_NAME + ".dll");
 			Import (http, AssemblyKind.Framework);
@@ -1027,7 +1028,7 @@ class Driver {
 			ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
 		ninja.WriteLine ("emcc = source $emsdk_env && PYTHONUTF8=1 LC_ALL=C.UTF-8 emcc");
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = -Oz -g {emcc_flags}-s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"");
+		ninja.WriteLine ($"emcc_flags = -Oz -g -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'___cxa_is_pointer_type\', \'___cxa_can_catch\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,{aot_args}");
 
 		// Rules
