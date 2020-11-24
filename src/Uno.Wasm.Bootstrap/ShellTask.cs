@@ -962,8 +962,17 @@ namespace Uno.Wasm.Bootstrap
 		private static void AdjustFileLineEndings(string emscriptenSetupScript)
 			=> File.WriteAllText(emscriptenSetupScript, File.ReadAllText(emscriptenSetupScript).Replace("\r\n", "\n"));
 
-		private IEnumerable<string> GetDynamicLibrariesParams() =>
-			GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension);
+		private IEnumerable<string> GetDynamicLibrariesParams()
+		{
+			foreach(var file in GetBitcodeFilesParams().Select(Path.GetFileNameWithoutExtension))
+			{
+				yield return file;
+			}
+
+			// For now, use this until __Internal is properly supported:
+			// https://github.com/dotnet/runtime/blob/dbe6447aa29b14150b7c6dd43072cc75f0cdf013/src/mono/mono/metadata/native-library.c#L781
+			yield return "__Native";
+		}
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
