@@ -60,7 +60,8 @@ class Driver {
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
 
-	const string BINDINGS_ASM_NAME = "WebAssembly.Bindings";
+	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
+	const string BINDINGS_ASM_NAME_NETCORE = "System.Private.Runtime.InteropServices.JavaScript";
 	const string BINDINGS_RUNTIME_CLASS_NAME = "WebAssembly.Runtime";
 	const string HTTP_ASM_NAME = "System.Net.Http.WebAssemblyHttpHandler";
 	const string WEBSOCKETS_ASM_NAME = "WebAssembly.Net.WebSockets";
@@ -688,7 +689,7 @@ class Driver {
 			Import (resolved, kind);
 		}
 		if (add_binding) {
-			var bindings = ResolveFramework (BINDINGS_ASM_NAME + ".dll");
+			var bindings = ResolveFramework (is_netcore ? BINDINGS_ASM_NAME_NETCORE : BINDINGS_ASM_NAME_MONO + ".dll");
 			Import (bindings, AssemblyKind.Framework);
 			var http = ResolveFramework (HTTP_ASM_NAME + ".dll");
 			Import (http, AssemblyKind.Framework);
