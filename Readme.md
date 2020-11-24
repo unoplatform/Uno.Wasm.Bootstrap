@@ -403,6 +403,27 @@ Static linking may also require some additional emscripten flags, for instance w
 
 For more information, see the `Uno.Wasm.StaticLinking.Aot` sample side module build script.
 
+#### Invoking emscripten and Mono/.NET 5 native functions
+
+In order to invoke emscripten and mono native functions, the bootstrapper exposes the special library name `__Native`. 
+
+For instance, the following enables the mono internal tracing:
+
+```
+static class MonoInternals
+{
+	[DllImport("__Native")]
+	internal static extern void mono_trace_enable(int enable);
+}
+```
+
+Or use emscripten functions:
+
+```
+[DllImport("__Internal_emscripten")]
+public static extern void emscripten_console_log(string str);
+```
+
 ### Threads support
 
 Mono now supports the ability to create threads, in browsers that support it (Chrome 79+, Edge 81+).  Threads are backed by [`atomics` and WebWorkers](https://emscripten.org/docs/porting/pthreads.html).
@@ -629,7 +650,7 @@ Once the app start, the content will be updated to show the custom logo. The log
 - The msbuild property `MonoRuntimeDebuggerEnabled` can be set to `true` to allow for mono to output additional debugging details, and have the debugger enabled (not supported yet by the mono tooling).
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 
-### Overriding the .NET WebAssembly sdk build
+### Overriding the .NET WebAssembly SDK build
 The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` (for `netstandard2.0 projects), and `NetCoreWasmSDKUri` (for `net5` projects) allow the override of the default SDK paths. Paths can be local files or remote files.
 
 To select a different sdk build:

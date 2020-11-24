@@ -17,6 +17,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Threading;
 using WebAssembly;
 
 namespace Uno.Wasm.Sample
@@ -25,6 +27,9 @@ namespace Uno.Wasm.Sample
 	{
 		static void Main()
 		{
+			// Validate mono tracing with __Native special pinvoke library name
+			InternalImportTest.mono_trace_enable(1);
+
 			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
 			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
 
@@ -66,6 +71,12 @@ namespace Uno.Wasm.Sample
 
 			SideModule1.test_png();
 		}
+	}
+
+	static class InternalImportTest
+	{
+		[DllImport("__Native")]
+		internal static extern void mono_trace_enable(int enable);
 	}
 
 	class SideModule1
