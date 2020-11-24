@@ -282,6 +282,32 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
 
+### AOT Debugging and mono tracing (.NET 5 only)
+
+When running with PG-AOT/FullAOT, exceptions generally do not provide stack traces, as WebAssembly as of the MVP does not yet support stack walking.
+
+For the time being, it's still possible view browser stack traces in the log by enabling mono tracing.
+
+First, you'll need to add the following class to your app:
+
+```csharp
+static class MonoInternals
+{
+	[DllImport("__Native")]
+	internal static extern void mono_trace_enable(int enable);
+	[DllImport("__Native")]
+	internal static extern int mono_trace_set_options(string options);
+}
+```
+
+Then in the `Main` of your application, add the following:
+```csharp
+MonoInternals.mono_trace_set_options("E:all");
+```
+
+This will enable the tracing of all application exceptions (caught or not), along with the associated native host stack traces.
+
+You can find the documentation for [`mono_trace_set_options` parameter here](https://www.mono-project.com/docs/debug+profile/debug/#tracing-program-execution).
 
 ## Required configuration for AOT Compilation on Linux
 - A Linux 18.04 or later machine or [container](https://hub.docker.com/r/unoplatform/wasm-build)
