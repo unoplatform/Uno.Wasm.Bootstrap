@@ -829,7 +829,7 @@ class Driver {
 			{
 				foreach (var icudat in Directory.EnumerateFiles(wasm_runtime_dir))
 				{
-					if (Path.GetFileName(icudat).StartsWith("icudt"))
+					if (Path.GetFileName(icudat).StartsWith("icudt.dat"))
 					{
 						file_list.Add(icudat);
 					}
