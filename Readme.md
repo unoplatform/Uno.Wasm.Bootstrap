@@ -317,6 +317,7 @@ static class MonoInternals
 
 Then in the `Main` of your application, add the following:
 ```csharp
+MonoInternals.mono_trace_enable(1);
 MonoInternals.mono_trace_set_options("E:all");
 ```
 
