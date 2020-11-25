@@ -240,8 +240,12 @@
 			<Code Type="Fragment" Language="cs">
 				<![CDATA[
 					Log.LogMessage("Updating : " + FilePath);
-					var output = File.ReadAllText(FilePath).Replace("v0", SHAVersion);
-					File.WriteAllText(FilePath, output);
+					var output = File.ReadAllText(FilePath);
+
+					if(!output.Contains(SHAVersion))
+					{
+						File.WriteAllText(FilePath, output.Replace("v0", SHAVersion));
+					}
 				]]>
 			</Code>
 		</Task>
