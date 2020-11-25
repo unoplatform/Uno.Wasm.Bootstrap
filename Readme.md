@@ -98,6 +98,21 @@ The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescri
 
 The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/src/linker#syntax-of-xml-descriptor).
 
+The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to false. This property has no effect when building with AOT enabled.
+
+### .NET 5 Feature Linker Configuration
+The bootstrapper supports the [feature switches configuration](https://github.com/dotnet/runtime/blob/master/docs/workflow/trimming/feature-switches.md) provided by .NET 5.
+
+By default, some features are linked out as those are not likely to be used in a WebAssembly context:
+- `EventSourceSupport`
+- `EnableUnsafeUTF7Encoding`
+- `HttpActivityPropagationSupport`
+
+If you need to enable any of those features, you can set the following in your csproj first `PropertyGroup`:
+```xml
+<EventSourceSupport>true</EventSourceSupport>
+```
+
 ## Publishing the build results
 The easiest way to publish the build results is to use the Visual Studio publish menu on your project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).
 
@@ -564,13 +579,6 @@ PWA manifest. Not providing this image will make iOS generate a scaled-down scre
 
 You can validate your PWA in the [chrome audits tab](https://developers.google.com/web/updates/2017/05/devtools-release-notes#lighthouse). If your 
 PWA has all the appropriate metadata, the PWA installer will prompt to install your app.
-
-### Linker configuration
-The linker may be configured via the inclusion of `LinkerDescriptor` msbuild item files.
-
-The file format of the descriptor can [be found here](https://github.com/mono/linker/tree/master/linker#syntax-of-xml-descriptor).
-
-The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to false. This property has no effect when building with AOT enabled.
 
 ### Support for Subresource Integrity
 By default, the _msbuild task_ will calculate a hash for binary files in your project and will use the [Subresource Integrity](https://www.w3.org/TR/SRI/)

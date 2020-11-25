@@ -140,6 +140,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? RuntimeHostConfigurationOption { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public bool ForceUseWSL { get; set; }
@@ -654,6 +656,8 @@ namespace Uno.Wasm.Bootstrap
 			if (useFullPackager)
 			{
 				var extraEmccFlags = (ExtraEmccFlags?.Select(f => f.ItemSpec) ?? new string[0]).ToList();
+				var extraLinkerFlags = GetLinkerFeatureConfiguration();
+
 				var packagerParams = new List<string>();
 
 				var mixedModeExcluded = MixedModeExcludedAssembly
@@ -703,6 +707,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
 				packagerParams.Add("-lidbfs.js\" ");
+				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
 				packagerParams.Add(appDirParm);
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
@@ -777,8 +782,13 @@ namespace Uno.Wasm.Bootstrap
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
 					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
 
-					if (!IsNetCoreWasm) {
+					if (!IsNetCoreWasm)
+					{
 						packagerLinkerOpts += "--exclude-feature com --exclude-feature remoting --exclude-feature etw  -l none ";
+					}
+					else
+					{
+						packagerLinkerOpts += GetLinkerFeatureConfiguration();
 					}
 
 					var linkerResults = RunProcess(
@@ -820,6 +830,31 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private string GetLinkerFeatureConfiguration()
+		{
+			if (IsNetCoreWasm && RuntimeHostConfigurationOption != null)
+			{
+				var builder = new StringBuilder();
+
+				foreach (var featureSetting in RuntimeHostConfigurationOption)
+				{
+					var feature = featureSetting.ItemSpec;
+					var featureValue = featureSetting.GetMetadata("Value");
+					if (String.IsNullOrEmpty(featureValue))
+					{
+						throw new ArgumentException("feature settings require \"Value\" metadata");
+					}
+
+					builder.Append($"--feature {feature} {featureValue} ");
+				}
+
+				return builder.ToString();
+			}
+			else
+			{
+				return "";
+			}
+		}
 		/// <summary>
 		/// Applies a temporary workaround for https://github.com/mono/mono/issues/19824
 		/// </summary>

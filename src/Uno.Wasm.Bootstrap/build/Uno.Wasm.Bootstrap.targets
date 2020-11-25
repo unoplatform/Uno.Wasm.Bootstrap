@@ -56,8 +56,14 @@
 
     <!-- Compatibility with previous version of the task using WasmShellEnableAOT -->
     <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellEnableAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
-  </PropertyGroup>
 
+    <!-- Runtime feature defaults to trim unnecessary code -->
+    <EventSourceSupport Condition="'$(EventSourceSupport)' == ''">false</EventSourceSupport>
+    <UseSystemResourceKeys Condition="'$(UseSystemResourceKeys)' == ''">true</UseSystemResourceKeys>
+    <EnableUnsafeUTF7Encoding Condition="'$(EnableUnsafeUTF7Encoding)' == ''">false</EnableUnsafeUTF7Encoding>
+    <HttpActivityPropagationSupport Condition="'$(HttpActivityPropagationSupport)' == ''">false</HttpActivityPropagationSupport>
+    <DebuggerSupport Condition="'$(DebuggerSupport)'==''">$(MonoRuntimeDebuggerEnabled)</DebuggerSupport>
+  </PropertyGroup>
 
   <!--
     ============================================================
@@ -188,15 +194,16 @@
         CompressedExtensions="@(WasmShellCompressedExtension)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
-		EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
+        EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
         ForceUseWSL="$(WasmShellForceUseWSL)"
-		ForceDisableWSL="$(WasmShellForceDisableWSL)"
+        ForceDisableWSL="$(WasmShellForceDisableWSL)"
         EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
-        ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)">
+        ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
+        RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)">
         <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
         <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
 	</ShellTask_v0>
