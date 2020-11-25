@@ -150,6 +150,7 @@ class Driver {
 		Console.WriteLine ("\t--preload-file=x Preloads the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--embed-file=x  Embeds the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--extra-emccflags=\"x\"  Additional emscripten arguments (e.g. -s USE_LIBPNG=1).");
+		Console.WriteLine ("\t--extra-linkerflags=\"x\"  Additional linker arguments.");
 
 		Console.WriteLine ("foo.dll         Include foo.dll as one of the root assemblies");
 		Console.WriteLine ();
@@ -445,6 +446,7 @@ class Driver {
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		string extra_emccflags = "";
+		string extra_linkerflags = "";
 
 		var opts = new WasmOptions () {
 				AddBinding = true,
@@ -494,6 +496,7 @@ class Driver {
 				{ "embed-file=", s => embed_files.Add (s) },
 				{ "framework=", s => framework = s },
 				{ "extra-emccflags=", s => extra_emccflags = s },
+				{ "extra-linkerflags=", s => extra_linkerflags = s },
 				{ "help", s => print_usage = true },
 			};
 
@@ -1059,7 +1062,7 @@ class Driver {
 
 		var linkerBin = is_netcore ? "dotnet $tools_dir/illink.dll" : "mono $tools_dir/monolinker.exe";
 		var linkerSearchPaths = string.Join(" ", root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" "));
-		var linkerOptions = is_netcore ? $"{linkerSearchPaths}" : "-l none --exclude-feature com,remoting,etw";
+		var linkerOptions = is_netcore ? $"{linkerSearchPaths} {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
 
 		ninja.WriteLine ($"  command = {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args || exit 1; mono $tools_dir/wasm-tuner.exe --gen-empty-assemblies $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
