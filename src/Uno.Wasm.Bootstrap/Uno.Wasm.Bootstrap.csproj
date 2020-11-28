@@ -46,7 +46,6 @@
 
 	<ItemGroup>
 		<None Include="images\icon.png" Pack="true" PackagePath="\" />
-		<None Include="wasm-tuner\wasm-tuner.proj" />
 		<Content Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
@@ -118,16 +117,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- This file is built as part of the UnoInstallSDKTask_v0 task -->
-		<Compile Remove="Packager\*.cs" />
-		<Compile Remove="wasm-tuner\*.cs" />
-
-		<!-- But make it visible in VS -->
-		<None Include="Packager\*.*" />
-		<None Include="wasm-tuner\*.*" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<EmbeddedResource Include="WasmCSS\*.css" />
 		<EmbeddedResource Include="WasmScripts/*.js" />
 	</ItemGroup>
@@ -148,10 +137,16 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="build\packager\" />
+		<ProjectReference Include="..\Uno.Wasm.Tuner\Uno.Wasm.Tuner.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.Packager\Uno.Wasm.Packager.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
 	</ItemGroup>
 
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
@@ -167,49 +162,32 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="BuildPackager" BeforeTargets="Build">
-		<PropertyGroup>
-			<_packagerIntermediatePath>$(IntermediateOutputPath)packager_build/</_packagerIntermediatePath>
-		</PropertyGroup>
+	<Target Name="_BootstrapperUpdateExternalTools" BeforeTargets="CoreCompile">
 		<ItemGroup>
-			<_PackagerSource Include="Packager/*.*" />
+			<_PackagerNet5Files Include="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/packager.*" />
+			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/wasm-tuner.*" />
+			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Json.dll" />
+			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Reflection.MetadataLoadContext.dll" />
 		</ItemGroup>
-		<Message Text="Building custom packager.exe" />
-		<MakeDir Directories="$(_packagerIntermediatePath)" />
-		<Copy SourceFiles="@(_PackagerSource)" DestinationFolder="$(_packagerIntermediatePath)" />
-		<Move SourceFiles="$(_packagerIntermediatePath)packager.proj" DestinationFiles="$(_packagerIntermediatePath)packager.csproj" />
-		<MSBuild Projects="$(_packagerIntermediatePath)packager.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
-		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/packager.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/packager/packager2.exe" />
-		<Copy SourceFiles="$(_packagerIntermediatePath)bin/$(Configuration)/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager" />
+		
+		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net462/packager.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/packager/net462/packager2.exe" />
+		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net462/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net462" />
+
+		<Copy SourceFiles="@(_PackagerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
+		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
+
+		<Copy SourceFiles="../Uno.Wasm.Tuner/bin/$(Configuration)/net462/wasm-tuner.exe" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net462" />
+		<Copy SourceFiles="@(_TunerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net5.0" />
 
 		<!-- Update the item group with generated files -->
 		<ItemGroup>
-			<Content Include="build/packager/**">
+			<Content Include="./build/packager/**">
 				<Pack>true</Pack>
 				<PackagePath>build/packager</PackagePath>
 			</Content>
-		</ItemGroup>
-	</Target>
-
-	<Target Name="BuildWasmTuner" BeforeTargets="Build">
-		<PropertyGroup>
-			<_wasmTunerIntermediatePath>$(IntermediateOutputPath)wasmtuner_build/</_wasmTunerIntermediatePath>
-		</PropertyGroup>
-		<ItemGroup>
-			<_WasmTunerSource Include="wasm-tuner/*.*" />
-		</ItemGroup>
-		<Message Text="Building custom wasm-tuner.exe $(_wasmTunerIntermediatePath)" Importance="high" />
-		<MakeDir Directories="$(_packagerIntermediatePath)" />
-		<Copy SourceFiles="@(_WasmTunerSource)" DestinationFolder="$(_wasmTunerIntermediatePath)" />
-		<Move SourceFiles="$(_wasmTunerIntermediatePath)wasm-tuner.proj" DestinationFiles="$(_wasmTunerIntermediatePath)wasm-tuner.csproj" />
-		<MSBuild Projects="$(_wasmTunerIntermediatePath)wasm-tuner.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
-		<Copy SourceFiles="$(_wasmTunerIntermediatePath)bin/$(Configuration)/wasm-tuner.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/wasm-tuner/wasm-tuner.exe" />
-
-		<!-- Update the item group with generated files -->
-		<ItemGroup>
-			<Content Include="build/wasm-tuner/**">
+			<Content Include="./build/tuner/**">
 				<Pack>true</Pack>
-				<PackagePath>build/wasm-tuner</PackagePath>
+				<PackagePath>build/tuner</PackagePath>
 			</Content>
 		</ItemGroup>
 	</Target>

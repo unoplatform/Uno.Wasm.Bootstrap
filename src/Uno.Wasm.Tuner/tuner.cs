@@ -102,8 +102,6 @@ public class WasmTuner
 			return GenPinvokeTable (args);
 		} else if (cmd == "--gen-empty-assemblies") {
 			return GenEmptyAssemblies (args);
-		} else if (cmd == "--gen-interp-to-native") {
-			return GenInterpToNative (args);
 		} else {
 			Usage ();
 			return 1;
@@ -131,12 +129,22 @@ public class WasmTuner
 			modules [module] = module;
 
 		args = args.Skip (2).ToArray ();
+
+#if NETFRAMEWORK
 		var assemblies = new List<AssemblyDefinition> ();
 		foreach (var fname in args)
 			assemblies.Add (AssemblyDefinition.ReadAssembly (fname));
 
 		var generator = new PInvokeTableGenerator ();
 		generator.Run (assemblies, modules);
+#else
+		var generator = new PInvokeTableGenerator();
+
+		generator.OutputPath = Path.GetTempFileName();
+		generator.GenPInvokeTable(modules.Keys.ToArray(), args.ToArray());
+
+		Console.WriteLine(File.ReadAllText(generator.OutputPath));
+#endif
 
 		return 0;
 	}
@@ -358,32 +366,6 @@ public class WasmTuner
 			var basename = Path.GetFileName (fname).Replace (".exe", "").Replace (".dll", "");
 			var assembly = AssemblyDefinition.CreateAssembly (new AssemblyNameDefinition (basename, new Version (0, 0, 0, 0)), basename, ModuleKind.Dll);
 			assembly.Write (fname);
-		}
-		return 0;
-	}
-
-	int GenInterpToNative (String[] args) {
-		if (args.Length < 2) {
-			Usage ();
-			return 1;
-		}
-		string outfileName = args [1];
-		args = args.Skip (2).ToArray ();
-
-		var assemblies = new List<AssemblyDefinition> ();
-		foreach (var fname in args)
-			assemblies.Add (AssemblyDefinition.ReadAssembly (fname));
-
-		List<Pinvoke> pinvokes;
-		List<PinvokeCallback> callbacks;
-
-		PInvokeTableGenerator.CollectPInvokes (assemblies, out pinvokes, out callbacks);
-
-		var gen = new InterpToNativeGenerator ();
-		foreach (var pinvoke in pinvokes)
-			gen.AddSignature (pinvoke.Method);
-		using (var w = File.CreateText (outfileName)) {
-			gen.Emit (w);
 		}
 		return 0;
 	}

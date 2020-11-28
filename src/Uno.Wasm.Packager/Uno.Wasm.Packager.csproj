@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0;net462</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<AssemblyName>packager</AssemblyName>
+  </PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='net462'">
+		<!-- Enable cross targeting, in case net462 is not installed on the current machine -->
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
+	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="Mono.Cecil" />
+	</ItemGroup>
+
+	<Target Name="GetTargetPath" />
+	<Target Name="GetCopyToPublishDirectoryItems" />
+</Project>

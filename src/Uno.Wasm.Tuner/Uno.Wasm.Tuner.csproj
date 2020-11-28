@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net5.0;net462</TargetFrameworks>
+		<LangVersion>9.0</LangVersion>
+		<AssemblyName>wasm-tuner</AssemblyName>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='net462'">
+		<!-- Enable cross targeting, in case net462 is not installed on the current machine -->
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
+	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="Mono.Cecil" />
+		<PackageReference Include="System.Json" Version="4.7.1" />
+		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="5.0.0" />
+	</ItemGroup>
+	
+	<Target Name="GetTargetPath" />
+	<Target Name="GetCopyToPublishDirectoryItems" />
+</Project>

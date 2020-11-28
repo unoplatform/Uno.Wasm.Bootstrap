@@ -140,7 +140,12 @@
     <PropertyGroup>
       <!-- Defined here because OutputPath is defined late -->
       <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
-    </PropertyGroup>
+      <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
+
+	  <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
+	  <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'=='true'">net5.0</_WasmShellToolSuffix>
+
+	</PropertyGroup>
 
     <UnoInstallSDKTask_v0
         MonoWasmSDKUri="$(MonoWasmSDKUri)"
@@ -148,8 +153,8 @@
 		NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
-        PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager"
-        WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner"
+        PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager/$(_WasmShellToolSuffix)"
+        WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner/$(_WasmShellToolSuffix)"
         CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
 		DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
