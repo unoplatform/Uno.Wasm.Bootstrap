@@ -82,7 +82,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void InstallNetCoreWasmSdk()
 		{
-			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultMonoVMSdkUrl : NetCoreWasmSDKUri!;
+			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultDotnetRuntimeSdkUrl : NetCoreWasmSDKUri!;
 
 			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
 
