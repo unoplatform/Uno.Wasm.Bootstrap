@@ -185,9 +185,9 @@
 				<Pack>true</Pack>
 				<PackagePath>build/packager</PackagePath>
 			</Content>
-			<Content Include="./build/tuner/**">
+			<Content Include="./build/wasm-tuner/**">
 				<Pack>true</Pack>
-				<PackagePath>build/tuner</PackagePath>
+				<PackagePath>build/wasm-tuner</PackagePath>
 			</Content>
 		</ItemGroup>
 	</Target>
