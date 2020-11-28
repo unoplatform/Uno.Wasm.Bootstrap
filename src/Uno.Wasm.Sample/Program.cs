@@ -15,6 +15,7 @@
 //
 // ******************************************************************
 using System;
+using System.Globalization;
 using System.Threading;
 
 namespace Uno.Wasm.Sample
@@ -35,6 +36,8 @@ namespace Uno.Wasm.Sample
 
 			var idbFSEnabled = WebAssembly.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
+			Console.WriteLine($"CurrentCulture: {CultureInfo.CurrentCulture}");
+			Console.WriteLine($"CurrentUICulture: {CultureInfo.CurrentUICulture}");
 
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
 

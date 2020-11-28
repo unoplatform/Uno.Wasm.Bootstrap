@@ -1062,18 +1062,19 @@ class Driver {
 
 		var linkerBin = is_netcore ? "dotnet $tools_dir/illink.dll" : "mono $tools_dir/monolinker.exe";
 		var linkerSearchPaths = string.Join(" ", root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" "));
-		var linkerOptions = is_netcore ? $"{linkerSearchPaths} {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
+		var linkerOptions = is_netcore ? $"{linkerSearchPaths} --strip-link-attributes {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
+		var tunerCommand = is_netcore ? "dotnet $tools_dir/wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
 
-		ninja.WriteLine ($"  command = {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args || exit 1; mono $tools_dir/wasm-tuner.exe --gen-empty-assemblies $out");
+		ninja.WriteLine ($"  command = {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args || exit 1; {tunerCommand} --gen-empty-assemblies $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-instances-dll");
 		ninja.WriteLine ("  command = echo > aot-instances.cs; csc /deterministic /out:$out /target:library aot-instances.cs");
 		ninja.WriteLine ("rule gen-runtime-icall-table");
 		ninja.WriteLine ("  command = $cross --print-icall-table > $out");
 		ninja.WriteLine ("rule gen-icall-table");
-		ninja.WriteLine ("  command = mono $tools_dir/wasm-tuner.exe --gen-icall-table $runtime_table $in > $out");
+		ninja.WriteLine ($"  command = {tunerCommand} --gen-icall-table $runtime_table $in > $out");
 		ninja.WriteLine ("rule gen-pinvoke-table");
-		ninja.WriteLine ("  command = mono $tools_dir/wasm-tuner.exe --gen-pinvoke-table $pinvoke_libs $in > $out");
+		ninja.WriteLine ($"  command = {tunerCommand} --gen-pinvoke-table $pinvoke_libs $in > $out");
 		ninja.WriteLine ("rule ilstrip");
 		ninja.WriteLine ("  command = cp $in $out; mono $tools_dir/mono-cil-strip.exe -q $out");
 		ninja.WriteLine ("  description = [IL-STRIP]");
@@ -1279,6 +1280,7 @@ class Driver {
 			string pinvoke_assemblies = "";
 			foreach (var a in assemblies)
 				pinvoke_assemblies += $"{a.linkout_path} ";
+
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {pinvoke_assemblies}");
 

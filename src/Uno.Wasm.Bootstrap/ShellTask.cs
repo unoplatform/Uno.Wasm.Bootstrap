@@ -166,7 +166,7 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableEmccProfiling { get; set; } = false;
 
-		public bool EnableNetCoreICU { get; set; } = false;
+		public bool EnableNetCoreICU { get; set; } = true;
 
 		public bool GenerateAOTProfile { get; set; } = false;
 

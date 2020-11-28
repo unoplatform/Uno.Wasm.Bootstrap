@@ -82,7 +82,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void InstallNetCoreWasmSdk()
 		{
-			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultMonoVMSdkUrl : NetCoreWasmSDKUri!;
+			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultDotnetRuntimeSdkUrl : NetCoreWasmSDKUri!;
 
 			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
 
@@ -226,11 +226,14 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private string ToolPlatformSuffix => IsNetCore ? "net5.0" : "net462";
+
 		private void WritePackager()
 		{
 			if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
 			{
-				PackagerBinPath = Path.Combine(SdkPath, "packager2.exe");
+				var packagerName = IsNetCore ? "packager.dll" : "packager2.exe";
+				PackagerBinPath = Path.Combine(SdkPath, packagerName);
 
 				foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
 				{
