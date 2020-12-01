@@ -57,11 +57,14 @@ jobs:
   #     flattenFolders: false
 
   - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release
+    displayName: Build bootstrap
+
+  - bash: |
       source ~/emsdk/emsdk_env.sh
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet build || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
-      dotnet build || true # expected failure (nuget restore does not provide the iltrim a proper TargetFramework support)
-      dotnet build -m:1
+      dotnet build
 
     displayName: Build Mono Sample
 

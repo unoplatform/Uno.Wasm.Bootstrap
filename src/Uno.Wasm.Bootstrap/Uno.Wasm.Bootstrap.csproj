@@ -217,12 +217,16 @@
 			<Using Namespace="System.IO" />
 			<Code Type="Fragment" Language="cs">
 				<![CDATA[
-					Log.LogMessage("Updating : " + FilePath);
 					var output = File.ReadAllText(FilePath);
 
 					if(!output.Contains(SHAVersion))
 					{
+						Log.LogMessage("Updating : " + FilePath);
 						File.WriteAllText(FilePath, output.Replace("v0", SHAVersion));
+					}
+					else
+					{
+						Log.LogMessage("Skipping : " + FilePath);
 					}
 				]]>
 			</Code>

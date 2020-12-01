@@ -47,10 +47,13 @@ jobs:
       checkLatest: false
 
   - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release
+    displayName: Build bootstrap
+
+  - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet msbuild /r /p:Configuration=Release || true # expected failure (nuget restore does not provide the packager a proper TargetFramework support)
-      dotnet msbuild /r /p:Configuration=Release || true # expected failure (nuget restore does not provide the iltrim a proper TargetFramework support)
-      dotnet msbuild /r /p:Configuration=Release -m:1
+      dotnet msbuild /r /p:Configuration=Release
     displayName: Build Mono Sample
 
   - bash: |
