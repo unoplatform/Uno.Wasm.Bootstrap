@@ -1,20 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
-	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task
+	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task, ICancelableTask
 	{
+		private static readonly TimeSpan _SDKFolderLockTimeout = TimeSpan.FromMinutes(2);
+		private static readonly TimeSpan _SDKLockRetryDelay = TimeSpan.FromSeconds(10);
+
 		public string? MonoWasmSDKUri { get; set; }
 
 		public string? MonoWasmAOTSDKUri { get; set; }
@@ -65,22 +72,28 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public string? PackagerProjectFile { get; private set; }
 
+		private CancellationTokenSource _cts = new CancellationTokenSource();
+
 		public override bool Execute()
+			=> ExecuteAsync(_cts.Token).Result;
+
+		private async Task<bool> ExecuteAsync(CancellationToken ct)
 		{
 			if (IsNetCore)
 			{
-				InstallNetCoreWasmSdk();
+				await InstallNetCoreWasmSdk(ct);
 			}
 			else
 			{
-				InstallMonoSdk();
+				await InstallMonoSdk(ct);
 			}
 
 			return true;
 		}
+
 		private Version ActualTargetFrameworkVersion => Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
 
-		private void InstallNetCoreWasmSdk()
+		private async Task InstallNetCoreWasmSdk(CancellationToken ct)
 		{
 			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultDotnetRuntimeSdkUrl : NetCoreWasmSDKUri!;
 
@@ -90,38 +103,80 @@ namespace Uno.Wasm.Bootstrap
 			SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 			Log.LogMessage("NetCore-Wasm SDK Path: " + SdkPath);
 
+			SetupPackagerOutput();
+
 			var writeChecksum = false;
 
-			ValidateSDKCheckSum("NetCore-Wasm", SdkPath);
-
-			if (!Directory.Exists(SdkPath))
+			try
 			{
-				var zipPath = SdkPath + ".zip";
-				Log.LogMessage($"Using NetCore-Wasm SDK {sdkUri}");
+				LockSDKPath(SdkPath);
 
-				zipPath = RetreiveSDKFile(sdkName, sdkUri, zipPath);
+				await ValidateSDKCheckSum(ct, "NetCore-Wasm", SdkPath);
 
-				ZipFile.ExtractToDirectory(zipPath, SdkPath);
-				Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+				if (!Directory.Exists(SdkPath))
+				{
+					var zipPath = SdkPath + ".zip";
+					Log.LogMessage($"Using NetCore-Wasm SDK {sdkUri}");
 
-				MarkSDKExecutable();
+					zipPath = await RetreiveSDKFile(ct, sdkName, sdkUri, zipPath);
 
-				writeChecksum = true;
+					ZipFile.ExtractToDirectory(zipPath, SdkPath);
+					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+
+					MarkSDKExecutable();
+
+					WritePackager();
+					WriteWasmTuner();
+					WriteCilStrip();
+
+					writeChecksum = true;
+				}
+
+				if (writeChecksum)
+				{
+					WriteChecksum(SdkPath);
+					Log.LogMessage($"Wrote checksum to {SdkPath}");
+				}
 			}
-
-			WritePackager();
-			WriteWasmTuner();
-			WriteCilStrip();
-
-			if (writeChecksum)
+			finally
 			{
-				WriteChecksum(SdkPath);
-				Log.LogMessage($"Wrote checksum to {SdkPath}");
+				UnlockSDKPath(SdkPath);
 			}
 		}
 
-		private void ValidateSDKCheckSum(string sdkName, string sdkPath)
+		private void SetupPackagerOutput()
 		{
+			var packagerName = IsNetCore ? "packager.dll" : "packager2.exe";
+			PackagerBinPath = Path.Combine(SdkPath, packagerName);
+		}
+
+		private void UnlockSDKPath(string sdkPath)
+		{
+			try
+			{
+				File.Delete(Path.Combine(sdkPath, ".lock"));
+			}
+			catch (Exception ex)
+			{
+				Log.LogMessage($"Failed to delete SDK lock file ({ex.Message})");
+			}
+			finally
+			{
+				Log.LogMessage(MessageImportance.Low, "Released SDK Folder lock");
+			}
+		}
+
+		private static void LockSDKPath(string sdkPath)
+		{
+			var lockFilePath = Path.Combine(sdkPath, ".lock");
+			Directory.CreateDirectory(sdkPath);
+			File.WriteAllText(path: lockFilePath, Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture));
+		}
+
+		private async Task ValidateSDKCheckSum(CancellationToken ct, string sdkName, string sdkPath)
+		{
+			await WaitForLockFile(sdkPath, ct);
+
 			if (!DisableSDKCheckSumValidation && Directory.Exists(sdkPath) && !VerifyChecksum(sdkPath))
 			{
 				// SDK folder was tampered with (e.g. StorageSense, User, etc.)
@@ -135,10 +190,35 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private async Task WaitForLockFile(string sdkPath, CancellationToken ct)
+		{
+			var lockFilePath = Path.Combine(sdkPath, ".lock");
+			var sw = Stopwatch.StartNew();
+
+			while (sw.Elapsed < _SDKFolderLockTimeout)
+			{
+				if (File.Exists(lockFilePath))
+				{
+					if (int.TryParse(File.ReadAllText(lockFilePath), NumberStyles.Integer, CultureInfo.CurrentCulture, out var pid) && Process.GetCurrentProcess().Id == pid)
+					{
+						break;
+					}
+					else
+					{
+						Log.LogMessage(MessageImportance.Low, "SDK Folder is locked, waiting...");
+
+						await Task.Delay(_SDKLockRetryDelay, ct);
+					}
+				}
+			}
+
+			Log.LogMessage(MessageImportance.Low, "Got SDK Folder lock");
+		}
+
 		private bool IsNetCore =>
 			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
 
-		private void InstallMonoSdk()
+		private async Task InstallMonoSdk(CancellationToken ct)
 		{
 			var runtimeExecutionMode = ParseRuntimeExecutionMode();
 
@@ -162,16 +242,18 @@ namespace Uno.Wasm.Bootstrap
 				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 				Log.LogMessage("SDK Path: " + SdkPath);
 
+				SetupPackagerOutput();
+
 				var writeChecksum = false;
 
-				ValidateSDKCheckSum("mono-wasm", SdkPath);
+				await ValidateSDKCheckSum(ct, "mono-wasm", SdkPath);
 
 				if (!Directory.Exists(SdkPath))
 				{
 					var zipPath = SdkPath + ".zip";
 					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
 
-					zipPath = RetreiveSDKFile(sdkName, sdkUri, zipPath);
+					zipPath = await RetreiveSDKFile(ct, sdkName, sdkUri, zipPath);
 
 					ZipFile.ExtractToDirectory(zipPath, SdkPath);
 					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
@@ -191,7 +273,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					var aotZipPath = SdkPath + ".aot.zip";
 					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-					aotZipPath = RetreiveSDKFile(sdkName, aotUri, aotZipPath);
+					aotZipPath = await RetreiveSDKFile(ct, sdkName, aotUri, aotZipPath);
 
 					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
 					{
@@ -232,9 +314,6 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
 			{
-				var packagerName = IsNetCore ? "packager.dll" : "packager2.exe";
-				PackagerBinPath = Path.Combine(SdkPath, packagerName);
-
 				foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
 				{
 					var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
@@ -280,7 +359,7 @@ namespace Uno.Wasm.Bootstrap
 		private bool HasBitcodeAssets()
 			=> Assets.Any(asset => BitCodeExtensions.Any(ext => asset.ItemSpec.EndsWith(ext, StringComparison.OrdinalIgnoreCase)));
 
-		private string RetreiveSDKFile(string sdkName, string sdkUri, string zipPath)
+		private async Task<string> RetreiveSDKFile(CancellationToken ct, string sdkName, string sdkUri, string zipPath)
 		{
 			var tries = 3;
 
@@ -298,7 +377,11 @@ namespace Uno.Wasm.Bootstrap
 						client.Proxy = wp;
 
 						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {sdkName} to {zipPath}");
-						client.DownloadFile(sdkUri, zipPath);
+
+						using (ct.Register(() => client.CancelAsync()))
+						{
+							await client.DownloadFileTaskAsync(sdkUri, zipPath);
+						}
 
 						return zipPath;
 					}
@@ -322,6 +405,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var exclusions = new[]
 			{
+				Path.Combine(path, ".lock"),
 				Path.Combine(path, ChecksumFilename),
 				Path.Combine(path, Path.Combine("wasm-bcl", "wasm_tools", "monolinker.exe.config"))
 			};
@@ -382,5 +466,7 @@ namespace Uno.Wasm.Bootstrap
 
 			return runtimeExecutionMode;
 		}
+
+		public void Cancel() => throw new NotImplementedException();
 	}
 }
