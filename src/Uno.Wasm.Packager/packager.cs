@@ -825,7 +825,7 @@ class Driver {
 
 		if (is_netcore)
 		{
-			if (!enable_aot && opts.EnableICU)
+			if (opts.EnableICU)
 			{
 				foreach (var icudat in Directory.EnumerateFiles(wasm_runtime_dir))
 				{
