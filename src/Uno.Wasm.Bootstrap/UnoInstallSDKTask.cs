@@ -109,11 +109,7 @@ namespace Uno.Wasm.Bootstrap
 
 			try
 			{
-				LockSDKPath(SdkPath);
-
-				await ValidateSDKCheckSum(ct, "NetCore-Wasm", SdkPath);
-
-				if (!Directory.Exists(SdkPath))
+				if (!await ValidateSDKCheckSum(ct, "NetCore-Wasm", SdkPath))
 				{
 					var zipPath = SdkPath + ".zip";
 					Log.LogMessage($"Using NetCore-Wasm SDK {sdkUri}");
@@ -173,8 +169,10 @@ namespace Uno.Wasm.Bootstrap
 			File.WriteAllText(path: lockFilePath, Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture));
 		}
 
-		private async Task ValidateSDKCheckSum(CancellationToken ct, string sdkName, string sdkPath)
+		private async Task<bool> ValidateSDKCheckSum(CancellationToken ct, string sdkName, string sdkPath)
 		{
+			var result = Directory.Exists(sdkPath);
+
 			await WaitForLockFile(sdkPath, ct);
 
 			if (!DisableSDKCheckSumValidation && Directory.Exists(sdkPath) && !VerifyChecksum(sdkPath))
@@ -185,9 +183,14 @@ namespace Uno.Wasm.Bootstrap
 				var destination = $"{sdkPath}.{Guid.NewGuid():N}";
 
 				Directory.Move(sdkPath, destination);
-
 				Directory.Delete(destination, true);
+
+				result = false;
 			}
+
+			LockSDKPath(sdkPath);
+
+			return result;
 		}
 
 		private async Task WaitForLockFile(string sdkPath, CancellationToken ct)
@@ -205,14 +208,18 @@ namespace Uno.Wasm.Bootstrap
 					}
 					else
 					{
-						Log.LogMessage(MessageImportance.Low, "SDK Folder is locked, waiting...");
+						Log.LogMessage(/*MessageImportance.Low, */"SDK Folder is locked, waiting...");
 
 						await Task.Delay(_SDKLockRetryDelay, ct);
 					}
 				}
+				else
+				{
+					break;
+				}
 			}
 
-			Log.LogMessage(MessageImportance.Low, "Got SDK Folder lock");
+			Log.LogMessage(/*MessageImportance.Low, */"Got SDK Folder lock");
 		}
 
 		private bool IsNetCore =>
@@ -246,52 +253,57 @@ namespace Uno.Wasm.Bootstrap
 
 				var writeChecksum = false;
 
-				await ValidateSDKCheckSum(ct, "mono-wasm", SdkPath);
-
-				if (!Directory.Exists(SdkPath))
+				try
 				{
-					var zipPath = SdkPath + ".zip";
-					Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
-
-					zipPath = await RetreiveSDKFile(ct, sdkName, sdkUri, zipPath);
-
-					ZipFile.ExtractToDirectory(zipPath, SdkPath);
-					Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
-
-					writeChecksum = true;
-				}
-
-				if (
-					(
-					runtimeExecutionMode == RuntimeExecutionMode.FullAOT
-					|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
-					|| HasBitcodeAssets()
-					|| GenerateAOTProfile
-					)
-					&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
-				)
-				{
-					var aotZipPath = SdkPath + ".aot.zip";
-					Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-					aotZipPath = await RetreiveSDKFile(ct, sdkName, aotUri, aotZipPath);
-
-					foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+					if (!await ValidateSDKCheckSum(ct, "mono-wasm", SdkPath))
 					{
-						entry.ExtractRelativeToDirectory(SdkPath, true);
+						var zipPath = SdkPath + ".zip";
+						Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
+
+						zipPath = await RetreiveSDKFile(ct, sdkName, sdkUri, zipPath);
+
+						ZipFile.ExtractToDirectory(zipPath, SdkPath);
+						Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
+
+						WritePackager();
+
+						writeChecksum = true;
 					}
 
-					Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
-					MarkSDKExecutable();
+					if (
+						(
+						runtimeExecutionMode == RuntimeExecutionMode.FullAOT
+						|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
+						|| HasBitcodeAssets()
+						|| GenerateAOTProfile
+						)
+						&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
+					)
+					{
+						var aotZipPath = SdkPath + ".aot.zip";
+						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
+						aotZipPath = await RetreiveSDKFile(ct, sdkName, aotUri, aotZipPath);
 
-					writeChecksum = true;
+						foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
+						{
+							entry.ExtractRelativeToDirectory(SdkPath, true);
+						}
+
+						Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
+						MarkSDKExecutable();
+
+						writeChecksum = true;
+					}
+
+					if (writeChecksum)
+					{
+						WriteChecksum(SdkPath);
+						Log.LogMessage($"Wrote checksum to {SdkPath}");
+					}
 				}
-
-				WritePackager();
-
-				if (writeChecksum)
+				finally
 				{
-					WriteChecksum(SdkPath);
-					Log.LogMessage($"Wrote checksum to {SdkPath}");
+					UnlockSDKPath(SdkPath);
 				}
 			}
 			catch (Exception e)
@@ -467,6 +479,7 @@ namespace Uno.Wasm.Bootstrap
 			return runtimeExecutionMode;
 		}
 
-		public void Cancel() => throw new NotImplementedException();
+		public void Cancel()
+			=> _cts.Cancel();
 	}
 }
