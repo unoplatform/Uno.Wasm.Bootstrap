@@ -445,6 +445,11 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool HasAotProfile => AotProfile?.Any() ?? false;
 
+		public Version CurrentEmscriptenVersion
+			=> IsNetCoreWasm
+			? Constants.DotnetRuntimeEmscriptenVersion
+			: Constants.MonoRuntimeEmscriptenVersion;
+
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
 			if (IsWSLRequired && !ForceDisableWSL)
@@ -937,7 +942,7 @@ namespace Uno.Wasm.Bootstrap
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
 				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
-				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenVersion}";
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
 
 				if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
 				{
@@ -951,7 +956,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var result = RunProcess(
 					emscriptenSetupScript,
-					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {Constants.EmscriptenVersion}");
+					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {CurrentEmscriptenVersion}");
 
 				if (result.exitCode == 0)
 				{
@@ -972,14 +977,14 @@ namespace Uno.Wasm.Bootstrap
 				var home = Environment.GetEnvironmentVariable("HOME");
 				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? $"{home}/.uno/emsdk";
 				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
-				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{Constants.EmscriptenVersion}";
+				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
 
 				// Adjust line endings
 				AdjustFileLineEndings(emscriptenSetupScript);
 
 				var result = RunProcess(
 					"bash",
-					$"-c \"chmod +x {emscriptenSetupScript}; {emscriptenSetupScript} \\\"{emsdkHostFolder}\\\" {Constants.EmscriptenVersion}\"");
+					$"-c \"chmod +x {emscriptenSetupScript}; {emscriptenSetupScript} \\\"{emsdkHostFolder}\\\" {CurrentEmscriptenVersion}\"");
 
 				if (result.exitCode == 0)
 				{
@@ -1020,7 +1025,7 @@ namespace Uno.Wasm.Bootstrap
 					.ToArray()
 					?? new string[0];
 
-				_bitcodeFilesCache = BitcodeFilesSelector.Filter(Constants.EmscriptenVersion, _bitcodeFilesCache);
+				_bitcodeFilesCache = BitcodeFilesSelector.Filter(CurrentEmscriptenVersion, _bitcodeFilesCache);
 			}
 
 			return _bitcodeFilesCache;
