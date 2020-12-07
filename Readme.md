@@ -340,7 +340,7 @@ Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/em
 
 Instead, use Static Linking below.
 
-#### Static Linking
+#### Static Linking overview
 Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
 This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_
@@ -350,6 +350,17 @@ Any `.bc` or `.a` file placed as content in the built project will be statically
 the currently running application, allowing for p/invoke to be functional when resolving methods
 from the loaded module.
 
+#### Static Linking multi-version support
+As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM.
+In order to enable this scenario, the Uno Bootstrapper supports adding .bc files by convention.
+
+If the bitcode file to be added is named `libTest.bc`, the following structure can be used in your project:
+- `libTest.bc/2.0.6/libTest.bc`
+- `libTest.bc/2.0.9/libTest.bc`
+
+In this case, based on the emscripten version used by the mono runtime, the bootstrapper will choose the closest matching version.
+
+#### Static Linking additional emcc flags
 Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
 
 ```xml
