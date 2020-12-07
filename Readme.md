@@ -325,18 +325,33 @@ This will enable the tracing of all application exceptions (caught or not), alon
 
 You can find the documentation for [`mono_trace_set_options` parameter here](https://www.mono-project.com/docs/debug+profile/debug/#tracing-program-execution).
 
-## Required configuration for AOT Compilation on Linux
-- A Linux 18.04 or later machine or [container](https://hub.docker.com/r/unoplatform/wasm-build)
-- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
-- A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 3.1
+## Required configuration for static linking on macOS
+- macOS 10.15 or later
+- [Homebrew](https://brew.sh)
+- [.NET SDK 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1) for netstandard2.0 builds or [.NET SDK 5.0](https://dotnet.microsoft.com/download/dotnet/5.0) for net5 builds
+- A recent build of [Mono MDK - Stable](https://www.mono-project.com/download/stable/#download-mac)
+- ninja: `brew install ninja`
 
-The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build), and install the appropriate Emscripten in the container.
+We recommend that you install newer versions of Uno.Wasm.Bootstrap as it provides a better out-of-the-box experience(e.g. Emscripten is automatically installed).
 
-## Required configuration for AOT, Mixed Mode or external bitcode support Compilation on Windows 10
+Please note that `AOT` and `Mixed Mode` are not supported yet.
+
+## Required configuration for AOT, Mixed Mode or static linking on Linux
+- Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
+- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 3.1
+- ninja: `apt-get install ninja-build`
+
+We recommend that you install newer versions of Uno.Wasm.Bootstrap as it provides a better out-of-the-box experience(e.g. Emscripten is automatically installed).
+
+The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build).
+
+## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
 
 - A Windows 10 machine with [WSL 1 or 2 with Ubuntu 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed
-- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin) with msbuild (`apt install msbuild`) >= 5.16
-- A [dotnet core installation](https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x) above 2.2
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
+- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 3.1
+- ninja: `apt-get install ninja-build` in WSL
 
 During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](/src/Uno.Wasm.Bootstrap/build/scripts/dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
 
