@@ -205,6 +205,7 @@
         EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
+        AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"

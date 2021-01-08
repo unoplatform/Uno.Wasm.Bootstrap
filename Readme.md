@@ -283,6 +283,23 @@ To create a profiled build:
 
 Note that the AOT profile is a snapshot of the current set of assemblies and methods in your application. If that set changes significantly, you'll need to re-create the AOT profile to get optimal results.
 
+### AOT Profile method exclusion
+
+The generated profile contains all the methods found to be executed during the profiling session, but some methods may still need to be manually excluded for some reasons (e.g. runtime or compile time errors).
+
+The `WasmShellAOTProfileExcludedMethods` property specifies a semi-colon separated list of regular expressions to exclude methods from the profile:
+
+```xml
+<PropertyGroup>
+    <WasmShellAOTProfileExcludedMethods>Class1\.Method1;Class2\.OtherMethod</WasmShellAOTProfileExcludedMethods>
+
+    <!-- use this syntax to separate the list on multiple lines -->
+    <WasmShellAOTProfileExcludedMethods>$(WasmShellAOTProfileExcludedMethods);Class3.*</WasmShellAOTProfileExcludedMethods>
+</PropertyGroup>
+```
+
+The `MixedModeExcludedAssembly` is also used to filter the profile for assemblies, see below for more information.
+
 ### Mixed AOT/Interpreter Mode
 This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
 

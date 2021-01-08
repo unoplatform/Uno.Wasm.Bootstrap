@@ -136,6 +136,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
 
+		public string AOTProfileExcludedMethods { get; set; } = "";
+
 		public Microsoft.Build.Framework.ITaskItem[]? CompressedExtensions { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
@@ -670,11 +672,10 @@ namespace Uno.Wasm.Bootstrap
 					.ToArray() ?? Array.Empty<string>();
 
 				var hasAotProfile = !GenerateAOTProfile && HasAotProfile;
+				var aotProfileFilePath = TransformAOTProfile();
 
 				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
-				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(AotProfile.First().GetMetadata("FullPath"))}\"" : "";
-
-				TryAdjustAOTProfile();
+				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(aotProfileFilePath!)}\"" : "";
 
 				var dynamicLibraries = GetDynamicLibrariesParams();
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
@@ -863,37 +864,50 @@ namespace Uno.Wasm.Bootstrap
 		/// <summary>
 		/// Applies a temporary workaround for https://github.com/mono/mono/issues/19824
 		/// </summary>
-		private void TryAdjustAOTProfile()
+		private string? TransformAOTProfile()
 		{
 			var profilePath = AotProfile?.FirstOrDefault()?.GetMetadata("FullPath");
 
 			if (profilePath != null)
 			{
-				var fileContent = File.ReadAllBytes(profilePath);
-
-				var replacedMethods = new[] { "LoadIntoBufferAsync" };
-
-				foreach (var method in replacedMethods)
+				var reader = new Mono.Profiler.Aot.ProfileReader();
+				Mono.Profiler.Aot.ProfileData profile;
+				using (FileStream stream = File.OpenRead(profilePath))
 				{
-					var searchContent = Encoding.ASCII.GetBytes(method);
-					var slice = new byte[searchContent.Length];
-
-					for (int i = 0; i < fileContent.Length - searchContent.Length; i++)
-					{
-						if (fileContent[i] == searchContent[0])
-						{
-							Buffer.BlockCopy(fileContent, i, slice, 0, searchContent.Length);
-
-							if (fileContent.SequenceEqual(searchContent))
-							{
-								fileContent[i] = (byte)'_';
-							}
-						}
-					}
+					profile = reader.ReadAllData(stream);
 				}
 
-				File.WriteAllBytes(profilePath, fileContent);
+				var excludedMethodsList = AOTProfileExcludedMethods
+					.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+					.ToList();
+
+				var excludedAssemblies = MixedModeExcludedAssembly?.ToDictionary(i => i.ItemSpec, i => i.ItemSpec)
+					?? new Dictionary<string, string>();
+
+				// LoadIntoBufferAsync uses exception filtering
+				excludedMethodsList.Add(@"HttpContent\.LoadIntoBufferAsync");
+
+				var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
+
+				var q = from m in profile.Methods
+						where !excludedMethods.Any(e => e.Match(m.Name).Success)
+							&& !excludedAssemblies.ContainsKey(m.Type.Module.Name)
+						select m;
+
+				profile.Methods = q.ToArray();
+
+				var writer = new Mono.Profiler.Aot.ProfileWriter();
+
+				var outputFile = Path.Combine(IntermediateOutputPath, "aot-filtered.profile");
+				using (var outStream = File.Create(outputFile))
+				{
+					writer.WriteAllData(outStream, profile);
+				}
+
+				return outputFile;
 			}
+
+			return profilePath;
 		}
 
 		private void LinkerSetup()
