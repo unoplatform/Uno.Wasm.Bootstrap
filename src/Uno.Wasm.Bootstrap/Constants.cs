@@ -20,7 +20,7 @@ namespace Uno.Wasm.Bootstrap
 		public static Version MonoRuntimeEmscriptenVersion { get; } = new Version("2.0.6");
 
 		// NOTE: The SDK version may be overriden by an installation of the https://www.nuget.org/packages/Uno.Wasm.MonoRuntime nuget package
-		public const string DefaultDotnetRuntimeSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-acced89-23262-Release.zip";
+		public const string DefaultDotnetRuntimeSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-6c530cf-23391-Release.zip";
 
 		/// <summary>
 		/// Min version of the emscripten SDK. Must be aligned with dotnet/runtime SDK build in <see cref="NetCoreWasmSDKUri"/>.
