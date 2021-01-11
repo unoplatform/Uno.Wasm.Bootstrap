@@ -85,7 +85,7 @@
 	  items added explicitly by the building project.
 	  -->
 	  <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
-	  <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0-rc.2.20475.5" />
+	  <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" />
 	</ItemGroup>
   </Target>
 
