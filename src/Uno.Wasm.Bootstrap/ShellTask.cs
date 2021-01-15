@@ -557,53 +557,50 @@ namespace Uno.Wasm.Bootstrap
 
 		private void TryDeployDebuggerProxy()
 		{
-			if (RuntimeDebuggerEnabled)
+			var sdkName = Path.GetFileName(MonoWasmSDKPath);
+
+			var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
+			DirectoryCreateDirectory(wasmDebuggerRootPath);
+
+			if (!string.IsNullOrEmpty(CustomDebuggerPath))
 			{
-				var sdkName = Path.GetFileName(MonoWasmSDKPath);
+				CustomDebuggerPath = FixupPath(CustomDebuggerPath!);
+			}
 
-				var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
-				DirectoryCreateDirectory(wasmDebuggerRootPath);
+			var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
 
-				if (!string.IsNullOrEmpty(CustomDebuggerPath))
+			Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+
+			if (!Directory.Exists(debuggerLocalPath))
+			{
+				foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
 				{
-					CustomDebuggerPath = FixupPath(CustomDebuggerPath!);
+					Directory.Delete(debugger, recursive: true);
 				}
 
-				var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
+				DirectoryCreateDirectory(debuggerLocalPath);
 
-				Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
+				var proxyBasePath = IsNetCoreWasm
+					? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release")
+					: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
 
-				if (!Directory.Exists(debuggerLocalPath))
+				var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
+
+				foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
 				{
-					foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
+					var debuggerFile = Path.GetFileName(debuggerFilePath);
+
+					string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
+					string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
+
+					if (File.Exists(sourceFileName))
 					{
-						Directory.Delete(debugger, recursive: true);
+						Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
+						FileCopy(sourceFileName, destFileName);
 					}
-
-					DirectoryCreateDirectory(debuggerLocalPath);
-
-					var proxyBasePath = IsNetCoreWasm
-						? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release")
-						: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
-
-					var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
-
-					foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
+					else
 					{
-						var debuggerFile = Path.GetFileName(debuggerFilePath);
-
-						string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
-						string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
-
-						if (File.Exists(sourceFileName))
-						{
-							Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
-							FileCopy(sourceFileName, destFileName);
-						}
-						else
-						{
-							Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
-						}
+						Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
 					}
 				}
 			}
