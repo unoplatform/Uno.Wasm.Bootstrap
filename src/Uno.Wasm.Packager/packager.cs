@@ -1026,7 +1026,7 @@ class Driver {
 			ninja.WriteLine ("wasm_core_support_library =");
 		}
 		if (is_netcore)
-			ninja.WriteLine ("cross = $runtimepack_dir/native/cross/mono-aot-cross");
+			ninja.WriteLine ("cross = $runtimepack_dir/native/cross/browser-wasm/mono-aot-cross");
 		else
 			ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
 		ninja.WriteLine ("emcc = source $emsdk_env && PYTHONUTF8=1 LC_ALL=C.UTF-8 emcc");
