@@ -499,6 +499,7 @@ public static extern void emscripten_console_log(string str);
 ```
 
 ### Threads support
+> .NET 5/6 for WebAssembly does not support Threading (as of 2021-01-01), enabling this option will result in build errors (missing `dotnet.worker.js` file)
 
 Mono now supports the ability to create threads, in browsers that support it (Chrome 79+, Edge 81+).  Threads are backed by [`atomics` and WebWorkers](https://emscripten.org/docs/porting/pthreads.html).
 
