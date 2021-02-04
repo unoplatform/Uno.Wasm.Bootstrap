@@ -84,7 +84,7 @@ To upgrade a project from 1.0 to 1.1:
 ## Linker configuration
 The .NET tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.
 
-The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`. See examples below.
+The Bootstrapper searches for a file placed in an ItemGroup named `LinkerDescriptor`. See examples below.
 
 ### Configuration file (commonly named `LinkerConfig.xml`)
 
@@ -102,8 +102,10 @@ The documentation for this file [can be found here](https://github.com/mono/link
 
 ### Reference in project file
 
+It is also possible to provide the linker file as an embedded resource, which is useful when creating libraries. The linker step will discover those files and apply the configuration.
+
 ``` xml
-<!-- Include this in the .csproj file of your Wasm project -->
+<!-- For application projects, include this in the .csproj file of your Wasm project -->
 <ItemGroup>
     <LinkerDescriptor Include="LinkerConfig.xml" />
 </ItemGroup>
