@@ -84,11 +84,13 @@ To upgrade a project from 1.0 to 1.1:
 ## Linker configuration
 The .NET tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.
 
-The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`, with the following sample content:
+The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescriptor`. See examples below.
+
+### Configuration file (commonly named `LinkerConfig.xml`)
 
 ```xml
 <linker>
-    <assembly fullname="Uno.Wasm.Sample">
+    <assembly fullname="Uno.Wasm.Sample"> <!-- Replace names to reflect your needs -->
         <namespace fullname="Uno.Wasm.Sample" />
     </assembly>
 
@@ -96,7 +98,23 @@ The Bootstrapper searches for an file placed in an ItemGroup named `LinkerDescri
 </linker>
 ```
 
-The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/src/linker#syntax-of-xml-descriptor).
+The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/docs/data-formats.md#xml-examples).
+
+### Reference in project file
+
+``` xml
+<!-- Include this in the .csproj file of your Wasm project -->
+<ItemGroup>
+    <LinkerDescriptor Include="LinkerConfig.xml" />
+</ItemGroup>
+
+<!-- For libraries, you should use this syntax instead -->
+<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+	<EmbeddedResource Include="LinkerConfig.xml">
+		<LogicalName>$(AssemblyName).xml</LogicalName>
+	</EmbeddedResource>
+</ItemGroup>
+```
 
 The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to false. This property has no effect when building with AOT enabled.
 
