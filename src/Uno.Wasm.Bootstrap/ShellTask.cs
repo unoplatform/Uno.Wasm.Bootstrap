@@ -138,6 +138,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string AOTProfileExcludedMethods { get; set; } = "";
 
+		public bool GenerateAOTProfileDebugList { get; set; } = false;
+
 		public Microsoft.Build.Framework.ITaskItem[]? CompressedExtensions { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
@@ -884,14 +886,18 @@ namespace Uno.Wasm.Bootstrap
 				// LoadIntoBufferAsync uses exception filtering
 				excludedMethodsList.Add(@"HttpContent\.LoadIntoBufferAsync");
 
+				TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
+
 				var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
 
 				var q = from m in profile.Methods
-						where !excludedMethods.Any(e => e.Match(m.Name).Success)
+						where !excludedMethods.Any(e => e.Match(m.Type.FullName + '.' + m.Name).Success)
 							&& !excludedAssemblies.ContainsKey(m.Type.Module.Name)
 						select m;
 
 				profile.Methods = q.ToArray();
+
+				TryDumpProfileMethods(profile, "AOTProfileDump.Filtered.txt");
 
 				var writer = new Mono.Profiler.Aot.ProfileWriter();
 
@@ -905,6 +911,21 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			return profilePath;
+		}
+
+		private void TryDumpProfileMethods(Mono.Profiler.Aot.ProfileData profile, string filePath)
+		{
+			if (GenerateAOTProfileDebugList)
+			{
+				var sb = new StringBuilder();
+
+				foreach (var method in profile.Methods)
+				{
+					sb.AppendLine($"{method.Type.Module.Name};{method.Type.FullName}.{method.Name}");
+				}
+
+				File.WriteAllText(Path.Combine(IntermediateOutputPath, filePath), sb.ToString());
+			}
 		}
 
 		private void LinkerSetup()
