@@ -320,6 +320,14 @@ The `WasmShellAOTProfileExcludedMethods` property specifies a semi-colon separat
 
 The `MixedModeExcludedAssembly` is also used to filter the profile for assemblies, see below for more information.
 
+Dumping the whole list of original and filtered list is possible by adding:
+```xml
+<PropertyGroup>
+    <WasmShellGenerateAOTProfileDebugList>true</WasmShellGenerateAOTProfileDebugList>
+</PropertyGroup>
+```
+This will generate files named `AOTProfileDump.*.txt` in the `obj` folder for inspection.
+
 ### Mixed AOT/Interpreter Mode
 This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
 

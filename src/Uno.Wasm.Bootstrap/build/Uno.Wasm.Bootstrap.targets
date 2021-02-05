@@ -206,6 +206,7 @@
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
         AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
+		GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
