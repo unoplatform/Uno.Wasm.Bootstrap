@@ -460,20 +460,32 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var unixPath = AlignPath(executable, escape: true);
 				var dotnetRuntimePath = Path.GetExtension(executable).ToLowerInvariant()
-					switch {
+					switch
+					{
 						".exe" => "mono",
 						".dll" => "dotnet",
 						_ => ""
 					};
+
 				var cwd = workingDirectory != null ? $"cd \\\"{AlignPath(workingDirectory, escape: true)}\\\" && " : "";
 
 				parameters = $"-c \" {cwd} {dotnetRuntimePath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-				executable = Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative", "bash.exe");
 
-				if (!File.Exists(executable))
+				var basePaths = new[] {
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative"),	// 32 bits process
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR")),					// 64 bits process
+				};
+
+				var fullPaths = basePaths.Select(p => Path.Combine(p, "bash.exe"));
+
+				executable = fullPaths.FirstOrDefault(f => File.Exists(f));
+
+				if (string.IsNullOrEmpty(executable))
 				{
+					var allPaths = string.Join(";", fullPaths);
+
 					throw new InvalidOperationException(
-						$"WSL is required for this build but could not be found (Searched for [{executable}]). " +
+						$"WSL is required for this build but could not be found (Searched for [{allPaths}]). " +
 						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: https://github.com/unoplatform/Uno.Wasm.Bootstrap#special-considerations-for-ci-servers-github-actions-azure-devops");
 				}
 			}
@@ -485,13 +497,13 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "mono";
 				}
 
 				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "dotnet";
 				}
 			}
@@ -499,7 +511,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "dotnet";
 				}
 			}
