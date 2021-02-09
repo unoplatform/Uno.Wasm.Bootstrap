@@ -485,13 +485,13 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "mono";
 				}
 
 				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "dotnet";
 				}
 			}
@@ -499,7 +499,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
 				{
-					parameters = $"{executable} {parameters}";
+					parameters = $"\"{executable}\" {parameters}";
 					executable = "dotnet";
 				}
 			}
