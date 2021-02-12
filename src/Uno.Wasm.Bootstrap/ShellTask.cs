@@ -445,9 +445,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
-			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || HasAotProfile);
+			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || UseAotProfile);
 
-		private bool HasAotProfile => AotProfile?.Any() ?? false;
+		private bool UseAotProfile => (AotProfile?.Any() ?? false) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
 		public Version CurrentEmscriptenVersion
 			=> IsNetCoreWasm
@@ -682,11 +682,11 @@ namespace Uno.Wasm.Bootstrap
 					?.Select(a => a.ItemSpec)
 					.ToArray() ?? Array.Empty<string>();
 
-				var hasAotProfile = !GenerateAOTProfile && HasAotProfile;
+				var useAotProfile = !GenerateAOTProfile && UseAotProfile;
 				var aotProfileFilePath = TransformAOTProfile();
 
-				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !hasAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
-				var aotProfile = hasAotProfile ? $"\"--aot-profile={AlignPath(aotProfileFilePath!)}\"" : "";
+				var mixedModeAotAssembliesParam = mixedModeExcluded.Any() && !useAotProfile ? "--skip-aot-assemblies=" + string.Join(",", mixedModeExcluded) : "";
+				var aotProfile = useAotProfile ? $"\"--aot-profile={AlignPath(aotProfileFilePath!)}\"" : "";
 
 				var dynamicLibraries = GetDynamicLibrariesParams();
 				var dynamicLibraryParams = dynamicLibraries.Any() ? "--pinvoke-libs=" + string.Join(",", dynamicLibraries) : "";
@@ -1522,7 +1522,7 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				var isProfiledAOT = HasAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+				var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
