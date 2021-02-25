@@ -1286,7 +1286,7 @@ class Driver {
 
 			if (is_netcore)
 			{
-				ninja.WriteLine($"  pinvoke_libs=libSystem.Native,libSystem.IO.Compression.Native,QCall,{pinvoke_libs}");
+				ninja.WriteLine($"  pinvoke_libs=libSystem.Native,libSystem.IO.Compression.Native,libSystem.Globalization.Native,QCall,{pinvoke_libs}");
 			}
 			else
 			{
