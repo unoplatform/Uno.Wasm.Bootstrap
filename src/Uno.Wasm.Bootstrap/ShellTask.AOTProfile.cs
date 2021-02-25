@@ -124,7 +124,9 @@ namespace Uno.Wasm.Bootstrap
 
 				foreach (var method in profile.Methods)
 				{
-					sb.AppendLine($"{method.Type.Module.Name};{method.Type.FullName}.{method.Name}");
+					var genericParameters = string.Join("|", method.GenericInst?.Types.Select(t => t.ToString()) ?? new string[0]);
+
+					sb.AppendLine($"{method.Type.Module.Name};{method.Type.FullName}.{method.Name};{method.GenericInst?.Id};{genericParameters}");
 				}
 
 				File.WriteAllText(Path.Combine(IntermediateOutputPath, filePath), sb.ToString());
