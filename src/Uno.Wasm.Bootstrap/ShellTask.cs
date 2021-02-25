@@ -865,6 +865,11 @@ namespace Uno.Wasm.Bootstrap
 					builder.Append($"--feature {feature} {featureValue} ");
 				}
 
+				if (ActualTargetFrameworkVersion < new Version("6.0"))
+				{
+					builder.Append($"--feature System.Globalization.Invariant false ");
+				}
+
 				return builder.ToString();
 			}
 			else
