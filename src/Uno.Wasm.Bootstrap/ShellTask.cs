@@ -865,8 +865,14 @@ namespace Uno.Wasm.Bootstrap
 					builder.Append($"--feature {feature} {featureValue} ");
 				}
 
-				if (ActualTargetFrameworkVersion < new Version("6.0"))
+				if (
+					ActualTargetFrameworkVersion < new Version("6.0")
+					&& !RuntimeHostConfigurationOption.Any(c => c.ItemSpec == "System.Globalization.Invariant")
+				)
 				{
+					// When using .NET 5, the System.Globalization.Invariant feature is not
+					// defined, so we assume that it's enabled.
+
 					builder.Append($"--feature System.Globalization.Invariant false ");
 				}
 
