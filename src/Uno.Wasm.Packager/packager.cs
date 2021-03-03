@@ -59,6 +59,7 @@ class Driver {
 	static List<string>  file_list = new List<string> ();
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
+	static CapturingAssemblyResolver resolver;
 
 	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
 	const string BINDINGS_ASM_NAME_NETCORE = "System.Private.Runtime.InteropServices.JavaScript";
@@ -253,6 +254,7 @@ class Driver {
 
 		if (!asm_map.Add (Path.GetFullPath (ra)))
 			return;
+		Console.WriteLine($"Resolving {ra}");
 		ReaderParameters rp = new ReaderParameters();
 		bool add_pdb = enable_debug && File.Exists (Path.ChangeExtension (ra, "pdb"));
 		if (add_pdb) {
@@ -262,12 +264,16 @@ class Driver {
 			rp.SymbolReaderProvider = new DefaultSymbolReaderProvider(false);
 		}
 
-		var resolver = new DefaultAssemblyResolver();
-		root_search_paths.ForEach(resolver.AddSearchDirectory);
-		foreach (var prefix in bcl_prefixes)
-			resolver.AddSearchDirectory (prefix);
-		resolver.AddSearchDirectory(bcl_facades_prefix);
-		resolver.AddSearchDirectory(framework_prefix);
+		if (resolver == null)
+		{
+			resolver = new CapturingAssemblyResolver();
+			root_search_paths.ForEach(resolver.AddSearchDirectory);
+			foreach (var prefix in bcl_prefixes)
+				resolver.AddSearchDirectory(prefix);
+			resolver.AddSearchDirectory(bcl_facades_prefix);
+			resolver.AddSearchDirectory(framework_prefix);
+		}
+
 		rp.AssemblyResolver = resolver;
 
 		rp.InMemory = true;
@@ -312,6 +318,8 @@ class Driver {
 				}
 			}
 		}
+
+		Console.WriteLine($"Resolved {ra}");
 	}
 
 	void GenDriver (string builddir, List<string> profilers, ExecMode ee_mode, bool link_icalls) {
@@ -691,6 +699,7 @@ class Driver {
 			bcl_prefixes.Add (bcl_prefix);
 		}
 
+		Console.WriteLine("Resolving assemblies");
 		foreach (var ra in root_assemblies) {
 			AssemblyKind kind;
 			var resolved = Resolve (ra, out kind);
@@ -704,6 +713,7 @@ class Driver {
 			var websockets = ResolveFramework (WEBSOCKETS_ASM_NAME + ".dll");
 			Import (websockets, AssemblyKind.Framework);
 		}
+		Console.WriteLine("Done resolving assemblies");
 
 		if (enable_aot) {
 			var to_aot = new Dictionary<string, bool> (StringComparer.OrdinalIgnoreCase);
