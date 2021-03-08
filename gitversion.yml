@@ -3,9 +3,9 @@ mode: Mainline
 next-version: 2.0
 
 branches:
-  master:
+  main:
     mode: ContinuousDeployment
-    regex: master
+    regex: main
     tag: dev
     increment: Minor
 
@@ -19,7 +19,7 @@ branches:
     regex: release/stable/.*
     tag: ''
     increment: Patch
-    source-branches: ['master']
+    source-branches: ['main']
     is-mainline: true
 
   beta:
@@ -27,25 +27,25 @@ branches:
     regex: release/beta/.*
     tag: 'beta'
     increment: inherit
-    source-branches: ['master']
+    source-branches: ['main']
 
   dev:
     mode: ContinuousDeployment
     regex: dev/.*?/(.*?)
     tag: dev.{BranchName}
-    source-branches: ['master', 'release', 'projects', 'feature']
+    source-branches: ['main', 'release', 'projects', 'feature']
     increment: inherit
 
   projects:
     tag: proj-{BranchName}
     regex: projects/(.*?)
-    source-branches: ['master']
+    source-branches: ['main']
     increment: inherit
 
   feature:
     tag: feature.{BranchName}
     regex: feature/(.*?)
-    source-branches: ['master']
+    source-branches: ['main']
     increment: inherit
 
 ignore:
