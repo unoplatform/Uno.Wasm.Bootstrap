@@ -12,8 +12,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.11.5-develop.3" />
-		<PackageReference Include="BenchmarkDotNet.Annotations" Version="0.11.5-develop.3" />
+		<PackageReference Include="Uno.BenchmarkDotNet" Version="0.11.7-develop" />
+		<PackageReference Include="Uno.BenchmarkDotNet.Annotations" Version="0.11.7-develop" />
 		<PackageReference Include="System.Text.Json" Version="5.0.0-rc.2.20475.5" />
 		<PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0-rc.2.20475.5" />
 	</ItemGroup>
