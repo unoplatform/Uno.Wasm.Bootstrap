@@ -1370,7 +1370,11 @@ class Driver {
 			if (linker_verbose) {
 				linker_args += "--verbose ";
 			}
-			linker_args += $"-d linker-in -d $bcl_dir -d $bcl_facades_dir -d $framework_dir -c {coremode} -u {usermode} ";
+			linker_args += $"-d linker-in -d $bcl_dir -d $bcl_facades_dir -d $framework_dir ";
+
+			if (!is_netcore) {
+				linker_args += $" -c {coremode} -u {usermode} ";
+			}
 
 			ninja.WriteLine ("build $builddir/linker-out: mkdir");
 			ninja.WriteLine ($"build {linker_ofiles}: linker {linker_infiles}");
