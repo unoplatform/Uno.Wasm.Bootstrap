@@ -403,7 +403,7 @@ class Driver {
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
 		public bool EnableICU;
-		public bool EnableDedup;
+		public bool EnableDedup = true;
 	}
 
 	int Run (string[] args) {

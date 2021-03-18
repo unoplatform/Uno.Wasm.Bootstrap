@@ -172,6 +172,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableNetCoreICU { get; set; } = true;
 
+		public bool EnableAOTDeduplication { get; set; } = true;
+
 		public bool GenerateAOTProfile { get; set; } = false;
 
 		[Output]
@@ -708,7 +710,9 @@ namespace Uno.Wasm.Bootstrap
 					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
 				};
 
-				var aotOptions = $"{aotMode} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var dedupOption = !EnableAOTDeduplication ? "--no-dedup" : "";
+
+				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
