@@ -812,9 +812,14 @@ namespace Uno.Wasm.Bootstrap
 						packagerLinkerOpts += GetLinkerFeatureConfiguration();
 					}
 
+					if (!IsNetCoreWasm)
+					{
+						packagerLinkerOpts += "-c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" ";
+					}
+
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" -d \"{_managedPath}\" {fullSDKFolder}",
+						$"-out \"{_managedPath}\" --verbose -b true {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -d \"{_managedPath}\" {fullSDKFolder}",
 						_managedPath
 					);
 
