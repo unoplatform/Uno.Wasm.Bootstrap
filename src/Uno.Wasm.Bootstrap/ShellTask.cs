@@ -119,6 +119,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool MonoILLinker { get; set; }
 
+		public bool EmccLinkOptimization { get; set; }
+
 		/// <summary>
 		/// Path override for the mono-wasm SDK folder
 		/// </summary>
@@ -733,6 +735,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
+				packagerParams.Add(EmccLinkOptimization ? "--emcc-link-optimization" : "");
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");

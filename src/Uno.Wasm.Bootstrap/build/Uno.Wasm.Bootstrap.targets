@@ -9,7 +9,7 @@
     <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
     <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
-	<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
+    <WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
     <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
@@ -18,6 +18,7 @@
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'=='' and '$(Configuration)'=='Debug'">false</WasmShellGenerateCompressedFiles>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'==''">true</WasmShellGenerateCompressedFiles>
     <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
+    <WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
@@ -58,8 +59,8 @@
     <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellEnableAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
 
     <!-- Runtime feature defaults to trim unnecessary code -->
-	<InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">false</InvariantGlobalization>
-	<EventSourceSupport Condition="'$(EventSourceSupport)' == ''">false</EventSourceSupport>
+    <InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">false</InvariantGlobalization>
+    <EventSourceSupport Condition="'$(EventSourceSupport)' == ''">false</EventSourceSupport>
     <UseSystemResourceKeys Condition="'$(UseSystemResourceKeys)' == ''">true</UseSystemResourceKeys>
     <EnableUnsafeUTF7Encoding Condition="'$(EnableUnsafeUTF7Encoding)' == ''">false</EnableUnsafeUTF7Encoding>
     <HttpActivityPropagationSupport Condition="'$(HttpActivityPropagationSupport)' == ''">false</HttpActivityPropagationSupport>
@@ -75,19 +76,19 @@
     ============================================================
   -->
   <Target Name="WasmBootstrapAdjustFrameworkReference" BeforeTargets="ProcessFrameworkReferences">
-	<PropertyGroup>
-	  <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
-	</PropertyGroup>
+    <PropertyGroup>
+      <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
+    </PropertyGroup>
 
-	<ItemGroup Condition="'$(_WasmShellIsNetCore)'=='true'">
-	  <!--
-	  Remove all the AspNetCore references so we can use actual package references
-	  ASP.NET automatically references (and removes the associated PackageReference
-	  items added explicitly by the building project.
-	  -->
-	  <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
-	  <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(_WasmShellIsNetCore)'=='true'">
+      <!--
+      Remove all the AspNetCore references so we can use actual package references
+      ASP.NET automatically references (and removes the associated PackageReference
+      items added explicitly by the building project.
+      -->
+      <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
+      <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" />
+    </ItemGroup>
   </Target>
 
   <ItemGroup>
@@ -134,8 +135,8 @@
     <ItemGroup>
       <!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
       <_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths 
-		Include="@(ReferenceCopyLocalPaths)"
-		Condition="'%(Extension)' == '.dll'" />
+        Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(Extension)' == '.dll'" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -143,21 +144,21 @@
       <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
       <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
 
-	  <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
-	  <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'=='true'">net5.0</_WasmShellToolSuffix>
+      <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
+      <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'=='true'">net5.0</_WasmShellToolSuffix>
 
-	</PropertyGroup>
+    </PropertyGroup>
 
     <UnoInstallSDKTask_v0
         MonoWasmSDKUri="$(MonoWasmSDKUri)"
         MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
-		NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
+        NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
         PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager/$(_WasmShellToolSuffix)"
         WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner/$(_WasmShellToolSuffix)"
         CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
-		DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
+        DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
@@ -165,11 +166,11 @@
         TargetFrameworkVersion="$(TargetFrameworkVersion)"
         Assets="@(Content)">
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
-	  <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
-	  <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
+      <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
+      <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
     </UnoInstallSDKTask_v0>
 
-	<ShellTask_v0
+    <ShellTask_v0
         CurrentProjectPath="$(MSBuildProjectDirectory)"
         BuildTaskBasePath="$(MSBuildThisFileDirectory)"
         Assembly="$(IntermediateOutputPath)$(TargetFileName)"
@@ -207,30 +208,31 @@
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
         AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
-		GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
-		EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
+        GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
+        EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
+        EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
         RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)">
         <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
         <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
-	</ShellTask_v0>
+    </ShellTask_v0>
   </Target>
 
   <Target Name="_CleanDist" BeforeTargets="Clean">
-	<PropertyGroup>
-	  <!-- Defined here because OutputPath is defined late -->
-	  <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
-	</PropertyGroup>
+    <PropertyGroup>
+      <!-- Defined here because OutputPath is defined late -->
+      <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
+    </PropertyGroup>
 
-	<ItemGroup>
+    <ItemGroup>
       <_DistFilesToDelete Include="$(OutputPath)dist\**" />
-	  <_DistDirToDelete Include="$([System.IO.Directory]::GetDirectories(&quot;$(WasmShellDistPath)&quot;))" Condition="exists('$(WasmShellDistPath)')" />
-	</ItemGroup>
+      <_DistDirToDelete Include="$([System.IO.Directory]::GetDirectories(&quot;$(WasmShellDistPath)&quot;))" Condition="exists('$(WasmShellDistPath)')" />
+    </ItemGroup>
 
-	<Delete Files="@(_DistFilesToDelete)" />
-	<RemoveDir Directories="@(_DistDirToDelete)" />
+    <Delete Files="@(_DistFilesToDelete)" />
+    <RemoveDir Directories="@(_DistDirToDelete)" />
   </Target>
 
   <Target Name="_ValidateLegacyCLIPackage" BeforeTargets="CoreCompile">

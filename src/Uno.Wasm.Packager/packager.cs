@@ -404,6 +404,7 @@ class Driver {
 		public bool EnableCollation;
 		public bool EnableICU;
 		public bool EnableDedup = true;
+		public bool EmccLinkOptimizations = false;
 	}
 
 	int Run (string[] args) {
@@ -526,6 +527,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
 		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
+		AddFlag (p, new BoolFlag ("emcc-link-optimization", "enable emcc link-time optimizations", opts.EmccLinkOptimizations, b => opts.EmccLinkOptimizations = b));
 
 		var new_args = p.Parse (args).ToArray ();
 		foreach (var a in new_args) {
@@ -993,8 +995,10 @@ class Driver {
 		foreach (var f in embed_files)
 			emcc_flags += "--embed-file " + f + " ";
 		string emcc_link_flags = "";
-		if (enable_debug)
+		if (enable_debug || !opts.EmccLinkOptimizations)
 			emcc_link_flags += "-O0 ";
+		else
+			emcc_link_flags += "-Oz ";
 		string strip_cmd = "";
 		if (opts.NativeStrip)
 			strip_cmd = " && \"$wasm_opt\" --strip-dwarf \"$out_wasm\" -o \"$out_wasm\"";
@@ -1046,7 +1050,7 @@ class Driver {
 			ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
 		ninja.WriteLine ("emcc = source $emsdk_env && PYTHONUTF8=1 LC_ALL=C.UTF-8 emcc");
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = -Oz --llvm-opts 2 -emit-llvm -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
+		ninja.WriteLine ($"emcc_flags = --llvm-opts 2 -emit-llvm -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
 		// Rules
@@ -1068,7 +1072,7 @@ class Driver {
 		ninja.WriteLine ("rule create-emsdk-env");
 		ninja.WriteLine ("  command = \"$emscripten_sdkdir/emsdk\" construct_env > $out");
 		ninja.WriteLine ("rule emcc");
-		ninja.WriteLine ("  command = bash -c \"$emcc $emcc_flags $flags -c -o $out $in\"");
+		ninja.WriteLine ("  command = bash -c \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
 		ninja.WriteLine ($"  command = bash -c \"$emcc $emcc_flags {emcc_link_flags} -o \\\"$out_js\\\" --js-library {src_prefix}/library_mono.js --js-library {src_prefix}/dotnet_support.js {wasm_core_support_library} $in\" {strip_cmd}");

@@ -508,6 +508,21 @@ Static linking may also require some additional emscripten flags, for instance w
 
 For more information, see the `Uno.Wasm.StaticLinking.Aot` sample side module build script.
 
+#### Emscripten Linker optimizations flags
+
+When building with AOT or using static linking of bitcode files, the emscripten linker step is enabled and runs optimizations on the generated code.
+
+These steps can be very expensive depending on the final binary size, and disabling those optimizations can be useful to improve the development loop.
+
+To control those optimizations, use the following msbuild property:
+```xml
+<PropertyGroup>
+    <WasmShellEmccLinkOptimization>false</WasmShellEmccLinkOptimization>
+</PropertyGroup>
+```
+
+This flag is automatically set to `false` when running in a configuration named `Debug`.
+
 #### Invoking emscripten and Mono/.NET 5 native functions
 
 In order to invoke emscripten and mono native functions, the bootstrapper exposes the special library name `__Native`. 
