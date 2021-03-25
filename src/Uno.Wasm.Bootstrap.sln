@@ -92,7 +92,7 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Threads.Shared", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.UnitTests", "Uno.Wasm.Bootstrap.UnitTests\Uno.Wasm.Bootstrap.UnitTests.csproj", "{E1458920-4A5A-4D54-882D-304A46359BEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Packager", "Uno.Wasm.Packager\Uno.Wasm.Packager.csproj", "{5A0392DE-9D69-4183-9BD9-84D5723AFB76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Packager", "Uno.Wasm.Packager\Uno.Wasm.Packager.csproj", "{5A0392DE-9D69-4183-9BD9-84D5723AFB76}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tuner", "Uno.Wasm.Tuner\Uno.Wasm.Tuner.csproj", "{13C116EE-6907-45D4-9CB2-F1E905C71387}"
 EndProject
