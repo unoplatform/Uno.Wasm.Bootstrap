@@ -198,6 +198,7 @@
         MonoILLinker="$(WasmShellILLinkerEnabled)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
+        DistCompressionLayoutMode="$(WasmShellCompressionLayoutMode)"
         CompressedExtensions="@(WasmShellCompressedExtension)"
         BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
