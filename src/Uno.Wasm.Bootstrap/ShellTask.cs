@@ -61,6 +61,7 @@ namespace Uno.Wasm.Bootstrap
 		private List<AssemblyDefinition>? _resourceSearchList;
 		private RuntimeExecutionMode _runtimeExecutionMode;
 		private ShellMode _shellMode;
+		private CompressionLayoutMode _compressionLayoutMode;
 		private string _linkerBinPath = "";
 		private string _finalPackagePath = "";
 		private string _remoteBasePackagePath = "";
@@ -149,6 +150,8 @@ namespace Uno.Wasm.Bootstrap
 		public Microsoft.Build.Framework.ITaskItem[]? RuntimeHostConfigurationOption { get; set; }
 
 		public bool GenerateCompressedFiles { get; set; }
+
+		public string? DistCompressionLayoutMode { get; set; }
 
 		public bool ForceUseWSL { get; set; }
 
@@ -367,6 +370,8 @@ namespace Uno.Wasm.Bootstrap
 				&& hasCompressedExtensions
 			)
 			{
+				TryParseDistCompressionLayoutMode();
+
 				var compressibleExtensions = CompressedExtensions
 					.Select(e => e.ItemSpec);
 
@@ -378,7 +383,11 @@ namespace Uno.Wasm.Bootstrap
 					.Distinct()
 					.ToArray();
 
-				CompressFiles(filesToCompress, "gz", GzipCompress);
+				if (_compressionLayoutMode == CompressionLayoutMode.Legacy)
+				{
+					CompressFiles(filesToCompress, "gz", GzipCompress);
+				}
+
 				CompressFiles(filesToCompress, "br", BrotliCompress);
 			}
 			else
@@ -390,15 +399,49 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private void TryParseDistCompressionLayoutMode()
+		{
+			Debugger.Launch();
+
+			if (string.IsNullOrEmpty(DistCompressionLayoutMode))
+			{
+				var webConfigPath = Directory.GetFiles(_distPath, "web.config").FirstOrDefault();
+
+				if (!string.IsNullOrEmpty(webConfigPath)
+					&& File.ReadAllText(webConfigPath).Contains("_compressed_br"))
+				{
+					_compressionLayoutMode = CompressionLayoutMode.Legacy;
+				}
+				else
+				{
+					_compressionLayoutMode = CompressionLayoutMode.InPlace;
+				}
+			}
+			else
+			{
+				ParseEnumProperty(nameof(CompressionLayoutMode), DistCompressionLayoutMode!, out _compressionLayoutMode);
+			}
+		}
+
 		private void CompressFiles(string[] filesToCompress, string method, Action<string, string> compressHandler)
 			=> filesToCompress
 				.AsParallel()
 				.Select(fileName =>
 				{
-					var compressedPathBase = Path.Combine(_distPath, "_compressed_" + method);
+					var compressedPathBase = _compressionLayoutMode switch
+					{
+						CompressionLayoutMode.InPlace => _distPath,
+						CompressionLayoutMode.Legacy => Path.Combine(_distPath, "_compressed_" + method),
+						_ => throw new NotSupportedException($"CompressionLayoutMode {_compressionLayoutMode} is not supported")
+					};
 
 					var compressedFileName = fileName;
 					compressedFileName = compressedFileName.Replace(_distPath, compressedPathBase);
+
+					if (_compressionLayoutMode == CompressionLayoutMode.InPlace)
+					{
+						compressedFileName += "." + method;
+					}
 
 					DirectoryCreateDirectory(Path.GetDirectoryName(compressedFileName));
 
