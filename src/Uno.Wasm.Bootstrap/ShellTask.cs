@@ -401,8 +401,6 @@ namespace Uno.Wasm.Bootstrap
 
 		private void TryParseDistCompressionLayoutMode()
 		{
-			Debugger.Launch();
-
 			if (string.IsNullOrEmpty(DistCompressionLayoutMode))
 			{
 				var webConfigPath = Directory.GetFiles(_distPath, "web.config").FirstOrDefault();
