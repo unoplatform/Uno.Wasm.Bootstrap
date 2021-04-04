@@ -503,6 +503,9 @@ namespace Uno.Wasm.Bootstrap
 			? Constants.DotnetRuntimeEmscriptenVersion
 			: Constants.MonoRuntimeEmscriptenVersion;
 
+		public bool HasAdditionalPInvokeLibraries => AdditionalPInvokeLibraries is { } libs && libs.Length != 0;
+		public bool HasNativeCompile => NativeCompile is { } nativeCompile && nativeCompile.Length != 0;
+
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
 			if (IsWSLRequired && !ForceDisableWSL)
@@ -713,8 +716,8 @@ namespace Uno.Wasm.Bootstrap
 				&& (IsRuntimeAOT()
 					|| GetBitcodeFilesParams().Any()
 					|| IsWSLRequired
-					|| AdditionalPInvokeLibraries?.Length != 0
-					|| NativeCompile?.Length != 0);
+					|| HasAdditionalPInvokeLibraries
+					|| HasNativeCompile);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -754,7 +757,7 @@ namespace Uno.Wasm.Bootstrap
 				var bitcodeFiles = GetBitcodeFilesParams();
 				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={AlignPath(f)}\"")) : "";
 
-				var additionalNativeCompile = NativeCompile?.Length != 0
+				var additionalNativeCompile = HasNativeCompile
 					? string.Join(" ", NativeCompile.Select(f => $"\"--native-compile={AlignPath(GetFilePaths(f).fullPath)}\""))
 					: "";
 
