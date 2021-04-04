@@ -55,6 +55,9 @@ namespace Uno.Wasm.Sample
 
 			Console.WriteLine($"Timezone: {jsTimeZone};{clrTimeZone}");
 
+			File.WriteAllText("/tmp/test.txt", "test.txt");
+			var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);
+
 			var res = $"{runtimeMode};" +
 				$"{SideModule1.test_add(21, 21)};" +
 				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
@@ -65,7 +68,8 @@ namespace Uno.Wasm.Sample
 				$"{timezoneValidation};" +
 				$"{SideModule2.side2_getCustomVersion()};" +
 				$"{SideModule3.side3_getCustomVersion()};" +
-				$"{SideModule4.side4_getCustomVersion()};";
+				$"{SideModule4.side4_getCustomVersion()};" +
+				$"{chmodRes};";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
 
@@ -77,6 +81,14 @@ namespace Uno.Wasm.Sample
 	{
 		[DllImport("__Native")]
 		internal static extern void mono_trace_enable(int enable);
+	}
+
+	static class AdditionalImportTest
+	{
+		public const int UGO_RWX = 0x1ff; // 0777
+
+		[DllImport("libc", SetLastError = true)]
+		internal static extern int chmod(string pathname, int mode);
 	}
 
 	class SideModule1

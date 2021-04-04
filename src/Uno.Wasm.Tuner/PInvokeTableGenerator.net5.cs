@@ -137,12 +137,14 @@ public class PInvokeTableGenerator : Task
         {
             string symbol = module.Replace(".", "_") + "_imports";
             w.Write(symbol + ",");
+            w.Write(symbol + ","); // .so
         }
         w.WriteLine("};");
         w.Write("static char *pinvoke_names[] = { ");
         foreach (var module in modules.Keys)
         {
-            w.Write("\"" + module + "\"" + ",");
+			w.Write("\"" + module + "\"" + ",");
+			w.Write("\"" + module + ".so\"" + ",");
         }
         w.WriteLine("};");
     }

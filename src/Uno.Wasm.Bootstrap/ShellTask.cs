@@ -149,6 +149,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? RuntimeHostConfigurationOption { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? AdditionalPInvokeLibraries { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public string? DistCompressionLayoutMode { get; set; }
@@ -704,7 +706,12 @@ namespace Uno.Wasm.Bootstrap
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
 
 			// Determines if the packager needs to be used.
-			var useFullPackager = !ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired);
+			var useFullPackager =
+				!ForceDisableWSL
+				&& (IsRuntimeAOT()
+					|| GetBitcodeFilesParams().Any()
+					|| IsWSLRequired
+					|| AdditionalPInvokeLibraries?.Length != 0);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -1058,6 +1065,14 @@ namespace Uno.Wasm.Bootstrap
 			// For now, use this until __Internal is properly supported:
 			// https://github.com/dotnet/runtime/blob/dbe6447aa29b14150b7c6dd43072cc75f0cdf013/src/mono/mono/metadata/native-library.c#L781
 			yield return "__Native";
+
+			if (AdditionalPInvokeLibraries != null)
+			{
+				foreach (var pInvokeLibrary in AdditionalPInvokeLibraries)
+				{
+					yield return pInvokeLibrary.ItemSpec;
+				}
+			}
 		}
 
 		private IEnumerable<string> GetBitcodeFilesParams()

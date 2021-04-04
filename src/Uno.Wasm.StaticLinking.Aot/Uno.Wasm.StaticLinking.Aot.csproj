@@ -46,6 +46,10 @@
 		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellAdditionalPInvokeLibrary Include="libc" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
 	</ItemGroup>

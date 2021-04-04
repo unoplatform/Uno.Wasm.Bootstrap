@@ -508,6 +508,22 @@ Static linking may also require some additional emscripten flags, for instance w
 
 For more information, see the `Uno.Wasm.StaticLinking.Aot` sample side module build script.
 
+### Static linking additional P/Invoke libraries
+
+When building applications, in some cases, NuGet provided libraries may use native dependencies that are emscripten provided libraries, such as `libc`.
+
+In such cases, the boostrapper allows for providing a set of known P/Invoke libraries as follows:
+
+```xml
+<ItemGroup>
+    <WasmShellAdditionalPInvokeLibrary Include="libc" />
+</ItemGroup>
+```
+
+It's important to note that providing additional libraries this way implies that all the imported functions will have to be available during emcc link operation.
+
+Any missing function will result in a missing symbol error.
+
 #### Emscripten Linker optimizations flags
 
 When building with AOT or using static linking of bitcode files, the emscripten linker step is enabled and runs optimizations on the generated code.

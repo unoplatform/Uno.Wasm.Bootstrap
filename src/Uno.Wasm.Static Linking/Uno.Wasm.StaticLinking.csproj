@@ -34,6 +34,10 @@
 		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellAdditionalPInvokeLibrary Include="libc" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>

@@ -215,7 +215,8 @@
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
-        RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)">
+        RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
+		AdditionalPInvokeLibraries="@(WasmShellAdditionalPInvokeLibrary)">
         <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
         <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
     </ShellTask_v0>
