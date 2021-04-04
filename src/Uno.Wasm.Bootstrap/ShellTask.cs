@@ -151,6 +151,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? AdditionalPInvokeLibraries { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? NativeCompile { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public string? DistCompressionLayoutMode { get; set; }
@@ -711,7 +713,8 @@ namespace Uno.Wasm.Bootstrap
 				&& (IsRuntimeAOT()
 					|| GetBitcodeFilesParams().Any()
 					|| IsWSLRequired
-					|| AdditionalPInvokeLibraries?.Length != 0);
+					|| AdditionalPInvokeLibraries?.Length != 0
+					|| NativeCompile?.Length != 0);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -751,7 +754,11 @@ namespace Uno.Wasm.Bootstrap
 				var bitcodeFiles = GetBitcodeFilesParams();
 				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={AlignPath(f)}\"")) : "";
 
-				if(_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
+				var additionalNativeCompile = NativeCompile?.Length != 0
+					? string.Join(" ", NativeCompile.Select(f => $"\"--native-compile={AlignPath(GetFilePaths(f).fullPath)}\""))
+					: "";
+
+				if (_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
 				{
 					Log.LogMessage($"Forcing Interpreter mode because GenerateAOTProfile is set");
 					_runtimeExecutionMode = RuntimeExecutionMode.Interpreter;
@@ -767,7 +774,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var dedupOption = !EnableAOTDeduplication ? "--no-dedup" : "";
 
-				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} {additionalNativeCompile} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{

@@ -28,9 +28,11 @@
     <None Include="$(MSBuildThisFileDirectory)side_module\pre.js" />
     <None Include="$(MSBuildThisFileDirectory)side_module\server.py" />
     <None Include="$(MSBuildThisFileDirectory)side_module\side.wasm" />
+    <None Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseAOT)'=='true'">
     <Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
+    <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)native/**/*.bc" />

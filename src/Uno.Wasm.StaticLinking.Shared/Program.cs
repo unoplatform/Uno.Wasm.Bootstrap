@@ -58,6 +58,8 @@ namespace Uno.Wasm.Sample
 			File.WriteAllText("/tmp/test.txt", "test.txt");
 			var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);
 
+			var additionalNativeAdd = AdditionalImportTest.additional_native_add(21, 21);
+
 			var res = $"{runtimeMode};" +
 				$"{SideModule1.test_add(21, 21)};" +
 				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
@@ -69,7 +71,8 @@ namespace Uno.Wasm.Sample
 				$"{SideModule2.side2_getCustomVersion()};" +
 				$"{SideModule3.side3_getCustomVersion()};" +
 				$"{SideModule4.side4_getCustomVersion()};" +
-				$"{chmodRes};";
+				$"{chmodRes};" +
+				$"{additionalNativeAdd};";
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
 
@@ -89,6 +92,8 @@ namespace Uno.Wasm.Sample
 
 		[DllImport("libc", SetLastError = true)]
 		internal static extern int chmod(string pathname, int mode);
+		[DllImport("__Native")]
+		internal static extern int additional_native_add(int left, int right);
 	}
 
 	class SideModule1
