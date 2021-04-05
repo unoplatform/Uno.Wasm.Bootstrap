@@ -999,7 +999,7 @@ class Driver {
 			emcc_flags += "--embed-file " + f + " ";
 		string emcc_link_flags = "";
 		if (enable_debug || !opts.EmccLinkOptimizations)
-			emcc_link_flags += "-O0 ";
+			emcc_link_flags += "-O0 -flto=thin";
 		else
 			emcc_link_flags += "-Oz ";
 		string strip_cmd = "";
