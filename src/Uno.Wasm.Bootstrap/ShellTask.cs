@@ -594,8 +594,13 @@ namespace Uno.Wasm.Bootstrap
 
 				DirectoryCreateDirectory(debuggerLocalPath);
 
+				var net5BasePaths = new[] {
+					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
+					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
+				};
+
 				var proxyBasePath = IsNetCoreWasm
-					? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release")
+					? net5BasePaths.First(Directory.Exists)
 					: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
 
 				var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
