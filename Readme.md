@@ -244,8 +244,10 @@ The execution mode can be set as follows:
 ```
 The possible values are:
 - `Interpreter` (the default mode)
-- `FullAOT`
 - `InterpreterAndAOT`
+- `FullAOT`
+
+> The FullAOT mode currently fails at runtime using net5 or net6 because of [this issue](https://github.com/dotnet/runtime/issues/50609).
 
 ### Interpreter mode
 This modes is the slowest of all three, but allows for a large flexibility and debugging, as well as an efficient payload size. 
@@ -261,7 +263,7 @@ It is available on Windows 10 and Linux (18.04 and later, or similar).
 
 To ensure that AOT is only run under Linux, add the following to your project:
 ```xml
-<WasmShellMonoRuntimeExecutionMode>FullAOT</WasmShellMonoRuntimeExecutionMode>
+<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 ```
 
 ## Profile Guided AOT
