@@ -585,6 +585,14 @@ namespace Uno.Wasm.Bootstrap
 
 			Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
+			if (!IsNetCoreWasm && RuntimeDebuggerEnabled)
+			{
+				Log.LogWarning(
+					$"The WebAssembly debugger using the netstandard2.0 TargetFramework is not functional and prevents the application from starting.\n" +
+					$"Either upgrade your application to the net5.0 TargetFramework, or start the application without the debugger (e.g. Ctrl+F5)\n" +
+					$"To suppress this message, set the \"MonoRuntimeDebuggerEnabled\" MSBuild property to \"false\"");
+			}
+
 			if (!Directory.Exists(debuggerLocalPath))
 			{
 				foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
@@ -594,8 +602,13 @@ namespace Uno.Wasm.Bootstrap
 
 				DirectoryCreateDirectory(debuggerLocalPath);
 
+				var net5BasePaths = new[] {
+					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
+					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
+				};
+
 				var proxyBasePath = IsNetCoreWasm
-					? Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release")
+					? net5BasePaths.First(Directory.Exists)
 					: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
 
 				var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
