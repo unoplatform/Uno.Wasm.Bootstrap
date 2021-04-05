@@ -466,11 +466,6 @@ Click on the button below to try this out!
 ## Features
 ### WebAssembly Module Linking support
 
-#### Dynamic Linking
-Support for [Emscripten's dynamic linking](https://github.com/emscripten-core/emscripten/wiki/Linking) has been removed from the boostrapper as of version 1.1, as it has been too unstable to work with.
-
-Instead, use Static Linking below.
-
 #### Static Linking overview
 Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
@@ -523,6 +518,51 @@ In such cases, the boostrapper allows for providing a set of known P/Invoke libr
 It's important to note that providing additional libraries this way implies that all the imported functions will have to be available during emcc link operation.
 
 Any missing function will result in a missing symbol error.
+
+### Additional C/C++ files
+
+The bootstrapper provides the ability to include additional C/C++ files to the final package generation. 
+
+This feature can be used to include additional source files for native operations that may be more difficult to perform from managed C# code, but can also be used to override some weak aliases with [ASAN](https://emscripten.org/docs/debugging/Sanitizers.html).
+
+#### Usage
+```xml
+<ItemGroup>
+    <WasmShellNativeCompile Include="myfile.cpp" />
+</ItemGroup>
+```
+
+The file is provided as-is to `emcc` and its resulting object file is linked with the rest of the compilation.
+
+#### Example
+
+Here's an example of file:
+```cpp
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define WASM_EXPORT __attribute__((visibility("default")))
+
+extern "C" {
+	WASM_EXPORT int additional_native_add(int a, int b);
+}
+
+WASM_EXPORT int additional_native_add(int a, int b) {
+	printf("test_add(%d, %d)\r\n", a, b);
+	return a + b;
+}
+```
+
+which can be used in C# as follows:
+
+```csharp
+static class AdditionalImportTest
+{
+	[DllImport("__Native")]
+	internal static extern int additional_native_add(int left, int right);
+}
+```
 
 #### Emscripten Linker optimizations flags
 
@@ -902,3 +942,22 @@ This will allow for malloc/free and other related memory access features to vali
 Showing that mono is trying to free some memory pointer that was never returned by `malloc`.
 
 Note that the runtime performance is severely degraded when enabling this feature.
+
+### musl weak aliases override
+
+In some cases, the [musl library](https://github.com/emscripten-core/emscripten/tree/aa66f92b790c8d319d1599d44657a6305bf74a8a/system/lib/libc/musl) performs out-of-bounds reads which can be [detected as false positives](https://github.com/emscripten-core/emscripten/issues/7279#issuecomment-734934021) by ASAN's checkers.
+
+In such cases, providing alternate non-overflowing versions of [weak aliased MUSL functions](https://github.com/emscripten-core/emscripten/blob/aa66f92b790c8d319d1599d44657a6305bf74a8a/system/lib/libc/musl/src/string/stpncpy.c#L31) is possible through the `WasmShellNativeCompile` feature of the bootstrapper.
+
+For example, `strncpy` can be overriden by a custom implementation as follows:
+
+```c
+char *__stpncpy(char *restrict d, const char *restrict s, size_t n)
+{
+	for (; n && (*d=*s); n--, s++, d++);
+	memset(d, 0, n);
+	return d;
+}
+```
+
+in a C file defined in your project and imported through `WasmShellNativeCompile`.
