@@ -149,6 +149,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? RuntimeHostConfigurationOption { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? AdditionalPInvokeLibraries { get; set; }
+
+		public Microsoft.Build.Framework.ITaskItem[]? NativeCompile { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public string? DistCompressionLayoutMode { get; set; }
@@ -499,6 +503,9 @@ namespace Uno.Wasm.Bootstrap
 			? Constants.DotnetRuntimeEmscriptenVersion
 			: Constants.MonoRuntimeEmscriptenVersion;
 
+		public bool HasAdditionalPInvokeLibraries => AdditionalPInvokeLibraries is { } libs && libs.Length != 0;
+		public bool HasNativeCompile => NativeCompile is { } nativeCompile && nativeCompile.Length != 0;
+
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
 			if (IsWSLRequired && !ForceDisableWSL)
@@ -704,7 +711,13 @@ namespace Uno.Wasm.Bootstrap
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
 
 			// Determines if the packager needs to be used.
-			var useFullPackager = !ForceDisableWSL && (IsRuntimeAOT() || GetBitcodeFilesParams().Any() || IsWSLRequired);
+			var useFullPackager =
+				!ForceDisableWSL
+				&& (IsRuntimeAOT()
+					|| GetBitcodeFilesParams().Any()
+					|| IsWSLRequired
+					|| HasAdditionalPInvokeLibraries
+					|| HasNativeCompile);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -744,7 +757,11 @@ namespace Uno.Wasm.Bootstrap
 				var bitcodeFiles = GetBitcodeFilesParams();
 				var bitcodeFilesParams = dynamicLibraries.Any() ? string.Join(" ", bitcodeFiles.Select(f => $"\"--native-lib={AlignPath(f)}\"")) : "";
 
-				if(_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
+				var additionalNativeCompile = HasNativeCompile
+					? string.Join(" ", NativeCompile.Select(f => $"\"--native-compile={AlignPath(GetFilePaths(f).fullPath)}\""))
+					: "";
+
+				if (_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
 				{
 					Log.LogMessage($"Forcing Interpreter mode because GenerateAOTProfile is set");
 					_runtimeExecutionMode = RuntimeExecutionMode.Interpreter;
@@ -760,7 +777,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var dedupOption = !EnableAOTDeduplication ? "--no-dedup" : "";
 
-				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} {additionalNativeCompile} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
@@ -1058,6 +1075,14 @@ namespace Uno.Wasm.Bootstrap
 			// For now, use this until __Internal is properly supported:
 			// https://github.com/dotnet/runtime/blob/dbe6447aa29b14150b7c6dd43072cc75f0cdf013/src/mono/mono/metadata/native-library.c#L781
 			yield return "__Native";
+
+			if (AdditionalPInvokeLibraries != null)
+			{
+				foreach (var pInvokeLibrary in AdditionalPInvokeLibraries)
+				{
+					yield return pInvokeLibrary.ItemSpec;
+				}
+			}
 		}
 
 		private IEnumerable<string> GetBitcodeFilesParams()

@@ -148,6 +148,7 @@ class Driver {
 		Console.WriteLine ("\t\t              'all' link Core and User assemblies. (default)");
 		Console.WriteLine ("\t--pinvoke-libs=x DllImport libraries used.");
 		Console.WriteLine ("\t--native-lib=x  Link the native library 'x' into the final executable.");
+		Console.WriteLine ("\t--native-compile=x  Provide the file to emcc.");
 		Console.WriteLine ("\t--preload-file=x Preloads the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--embed-file=x  Embeds the file or directory 'x' into the virtual filesystem.");
 		Console.WriteLine ("\t--extra-emccflags=\"x\"  Additional emscripten arguments (e.g. -s USE_LIBPNG=1).");
@@ -442,6 +443,7 @@ class Driver {
 		var native_libs = new List<string> ();
 		var preload_files = new List<string> ();
 		var embed_files = new List<string> ();
+		var native_compile = new List<string> ();
 		var pinvoke_libs = "";
 		var copyTypeParm = "default";
 		var copyType = CopyType.Default;
@@ -501,6 +503,7 @@ class Driver {
 				{ "link-mode=", s => linkModeParm = s },
 				{ "link-descriptor=", s => linkDescriptor = s },
 				{ "pinvoke-libs=", s => pinvoke_libs = s },
+				{ "native-compile=", s => native_compile.Add(s) },
 				{ "native-lib=", s => native_libs.Add (s) },
 				{ "preload-file=", s => preload_files.Add (s) },
 				{ "embed-file=", s => embed_files.Add (s) },
@@ -616,7 +619,7 @@ class Driver {
 			link_icalls = true;
 		if (!enable_linker || !enable_aot)
 			enable_dedup = false;
-		if (enable_aot || link_icalls || gen_pinvoke || profilers.Count > 0 || native_libs.Count > 0 || preload_files.Count > 0 || embed_files.Count > 0) {
+		if (enable_aot || link_icalls || gen_pinvoke || profilers.Count > 0 || native_libs.Count > 0 || native_compile.Count > 0 || preload_files.Count > 0 || embed_files.Count > 0) {
 			build_wasm = true;
 			emit_ninja = true;
 		}
@@ -996,7 +999,7 @@ class Driver {
 			emcc_flags += "--embed-file " + f + " ";
 		string emcc_link_flags = "";
 		if (enable_debug || !opts.EmccLinkOptimizations)
-			emcc_link_flags += "-O0 ";
+			emcc_link_flags += "-O0 -flto=thin";
 		else
 			emcc_link_flags += "-Oz ";
 		string strip_cmd = "";
@@ -1104,13 +1107,13 @@ class Driver {
 		ninja.WriteLine ("build $appdir/runtime.js: cpifdiff $builddir/runtime.js");
 		ninja.WriteLine ("build $appdir/mono-config.js: cpifdiff $builddir/mono-config.js");
 		if (build_wasm) {
-			var source_file = Path.GetFullPath (Path.Combine (src_prefix, "driver.c"));
-			ninja.WriteLine ($"build $builddir/driver.c: cpifdiff {source_file}");
-			ninja.WriteLine ($"build $builddir/driver-gen.c: cpifdiff $builddir/driver-gen.c.in");
-			source_file = Path.GetFullPath (Path.Combine (src_prefix, "pinvoke.c"));
-			ninja.WriteLine ($"build $builddir/pinvoke.c: cpifdiff {source_file}");
-			source_file = Path.GetFullPath (Path.Combine (src_prefix, "pinvoke.h"));
-			ninja.WriteLine ($"build $builddir/pinvoke.h: cpifdiff {source_file}");
+			var source_file = Path.GetFullPath(Path.Combine(src_prefix, "driver.c"));
+			ninja.WriteLine($"build $builddir/driver.c: cpifdiff {source_file}");
+			ninja.WriteLine($"build $builddir/driver-gen.c: cpifdiff $builddir/driver-gen.c.in");
+			source_file = Path.GetFullPath(Path.Combine(src_prefix, "pinvoke.c"));
+			ninja.WriteLine($"build $builddir/pinvoke.c: cpifdiff {source_file}");
+			source_file = Path.GetFullPath(Path.Combine(src_prefix, "pinvoke.h"));
+			ninja.WriteLine($"build $builddir/pinvoke.h: cpifdiff {source_file}");
 
 			if (!is_netcore)
 			{
@@ -1140,6 +1143,16 @@ class Driver {
 			ninja.WriteLine ($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I{runtime_dir}/include/mono-2.0");
 			ninja.WriteLine ($"build $builddir/pinvoke.o: emcc $builddir/pinvoke.c | $emsdk_env {driver_deps}");
 			ninja.WriteLine ($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I{runtime_dir}/include/mono-2.0");
+
+			foreach (var nativeCompile in native_compile)
+			{
+				var fileName = Path.GetFileName(nativeCompile);
+				var fileNameWithoutExt = Path.GetFileNameWithoutExtension(nativeCompile);
+
+				ninja.WriteLine($"build $builddir/{fileName}: cpifdiff {source_file}");
+				ninja.WriteLine($"build $builddir/{fileNameWithoutExt}.o: emcc {nativeCompile} | $emsdk_env {driver_deps}");
+				ninja.WriteLine($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I{runtime_dir}/include/mono-2.0");
+			}
 
 			if (enable_zlib) {
 				var zlib_source_file = Path.GetFullPath (Path.Combine (src_prefix, "zlib-helper.c"));
@@ -1314,7 +1327,10 @@ class Driver {
 		}
 		if (build_wasm) {
 			string zlibhelper = enable_zlib ? "$builddir/zlib-helper.o" : "";
-			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {src_prefix}/library_mono.js {src_prefix}/dotnet_support.js {wasm_core_support} $emsdk_env");
+
+			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
+
+			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {src_prefix}/library_mono.js {src_prefix}/dotnet_support.js {wasm_core_support} $emsdk_env");
 			ninja.WriteLine ("  out_js=$appdir/dotnet.js");
 			ninja.WriteLine ("  out_wasm=$appdir/dotnet.wasm");
 		}

@@ -8,7 +8,7 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		
 		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
-		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">FullAOT</WasmShellMonoRuntimeExecutionMode>
+		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 	</PropertyGroup>
 
@@ -23,7 +23,7 @@
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
-      
+
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
@@ -44,6 +44,10 @@
 	
 	<ItemGroup>
 		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellAdditionalPInvokeLibrary Include="libc" />
 	</ItemGroup>
 
 	<ItemGroup>
