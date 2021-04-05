@@ -585,6 +585,14 @@ namespace Uno.Wasm.Bootstrap
 
 			Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
 
+			if (!IsNetCoreWasm && RuntimeDebuggerEnabled)
+			{
+				Log.LogWarning(
+					$"The WebAssembly debugger using the netstandard2.0 TargetFramework is not functional and prevents the application from starting.\n" +
+					$"Either upgrade your application to the net5.0 TargetFramework, or start the application without the debugger (e.g. Ctrl+F5)\n" +
+					$"To suppress this message, set the \"MonoRuntimeDebuggerEnabled\" MSBuild property to \"false\"");
+			}
+
 			if (!Directory.Exists(debuggerLocalPath))
 			{
 				foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
