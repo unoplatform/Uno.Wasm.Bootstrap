@@ -524,8 +524,8 @@ namespace Uno.Wasm.Bootstrap
 				parameters = $"-c \" {cwd} {dotnetRuntimePath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
 				var basePaths = new[] {
-					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative"),	// 32 bits process
-					Path.Combine(Environment.GetEnvironmentVariable("WINDIR")),					// 64 bits process
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative"),    // 32 bits process
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "System32"),     // 64 bits process
 				};
 
 				var fullPaths = basePaths.Select(p => Path.Combine(p, "bash.exe"));
