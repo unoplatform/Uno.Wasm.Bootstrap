@@ -11,11 +11,24 @@ namespace Uno.Wasm.TimezoneData
 	public class TimezoneHelper
 	{
 		private const string AssemblyPrefix = "Uno.Wasm.TimezoneData.zoneinfo.";
+		private static readonly string ZoneInfoBasePath;
+
+		static TimezoneHelper()
+		{
+			var isMono = RuntimeInformation.FrameworkDescription.StartsWith("Mono");
+
+			// Relies on the path defined in TimeZoneInfo:
+			ZoneInfoBasePath = isMono
+				// https://github.com/mono/mono/blob/eb468076a79982568e3bc66ae236fa1d2949ee1d/mcs/class/corlib/System/TimeZoneInfo.cs#L283
+				? "/zoneinfo"
+				// https://github.com/dotnet/runtime/blob/516db737cd41e27830698e538b36d12d70172630/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Unix.cs#L21
+				: "/usr/share/zoneinfo";
+		}
 
 		public static void Setup(string currentTimezone)
 		{
 #if DEBUG
-			Console.WriteLine($"currentTimezone: {currentTimezone}");
+			Console.WriteLine($"TimezoneHelper.CurrentTimezone: {currentTimezone} ZoneInfoBasePath:{ZoneInfoBasePath}");
 #endif
 
 			if (string.IsNullOrEmpty(currentTimezone))
@@ -41,9 +54,7 @@ namespace Uno.Wasm.TimezoneData
 				{
 					var baseZonePath = file.Replace(AssemblyPrefix, "").Replace(".", "/");
 
-					// Relies on the path defined in TimeZoneInfo:
-					// https://github.com/mono/mono/blob/eb468076a79982568e3bc66ae236fa1d2949ee1d/mcs/class/corlib/System/TimeZoneInfo.cs#L283
-					var path = Path.Combine("/zoneinfo", baseZonePath);
+					var path = Path.Combine(ZoneInfoBasePath, baseZonePath);
 
 					Directory.CreateDirectory(Path.GetDirectoryName(path));
 					File.WriteAllBytes(path, input.ReadBytes((int)input.BaseStream.Length));

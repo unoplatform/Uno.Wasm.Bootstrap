@@ -695,10 +695,7 @@ namespace Uno.Wasm.Bootstrap
 			// Timezone support
 			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
 
-			if (!IsNetCoreWasm)
-			{
-				referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
-			}
+			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
 
 			if (GenerateAOTProfile)
 			{

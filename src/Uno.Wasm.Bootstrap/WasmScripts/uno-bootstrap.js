@@ -178,7 +178,7 @@ var App = {
             App.attachProfilerHotKey();
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
-            // App.timezoneSetup();
+            App.timezoneSetup();
 
             var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
 
