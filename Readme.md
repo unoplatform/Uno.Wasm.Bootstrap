@@ -536,6 +536,8 @@ This feature can be used to include additional source files for native operation
 
 The file is provided as-is to `emcc` and its resulting object file is linked with the rest of the compilation.
 
+This feature is meant to be used for small additions of native code. If more is needed (e.g. adding header directories, defines, options, etc...) it is best to use the emcc tooling directly.
+
 #### Example
 
 Here's an example of file:
