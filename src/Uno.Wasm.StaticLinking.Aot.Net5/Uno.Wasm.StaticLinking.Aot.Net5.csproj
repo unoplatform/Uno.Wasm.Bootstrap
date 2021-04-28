@@ -6,20 +6,25 @@
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<!--<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>-->
-		
+		 
 		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
 		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
 		<!--<WasmShellEmccLinkOptimization>true</WasmShellEmccLinkOptimization>-->
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
-</PropertyGroup>
+		<WasmShellEnableAOTDeduplication>false</WasmShellEnableAOTDeduplication>
+	</PropertyGroup>
 
 	<ItemGroup>
 	  <Compile Remove="Content\**" />
+	  <Compile Remove="obj\**" />
 	  <Content Remove="Content\**" />
+	  <Content Remove="obj\**" />
 	  <EmbeddedResource Remove="Content\**" />
+	  <EmbeddedResource Remove="obj\**" />
 	  <None Remove="Content\**" />
+	  <None Remove="obj\**" />
 	</ItemGroup>
       
 	<ItemGroup>
