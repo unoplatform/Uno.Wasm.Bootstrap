@@ -33,8 +33,8 @@ if [ ! -f "$UNO_EMSDK_PATH_MARKER" ]; then
 
 	git clone --branch $UNO_EMSDK_VERSION https://github.com/emscripten-core/emsdk 2>&1
 	cd emsdk
-	./emsdk install $UNO_EMSDK_VERSION
-	./emsdk activate $UNO_EMSDK_VERSION
+	./emsdk install $UNO_EMSDK_VERSION 2>&1
+	./emsdk activate $UNO_EMSDK_VERSION 2>&1
 
     echo "Writing $UNO_EMSDK_PATH_MARKER"
 	touch "$UNO_EMSDK_PATH_MARKER"

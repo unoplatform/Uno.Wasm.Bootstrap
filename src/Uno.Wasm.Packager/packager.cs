@@ -434,6 +434,7 @@ class Driver {
 		bool enable_threads = false;
 		bool enable_dynamic_runtime = false;
 		bool is_netcore = false;
+		bool is_windows = Environment.OSVersion.Platform == PlatformID.Win32NT;
 		bool enable_simd = false;
 		var il_strip = false;
 		var linker_verbose = false;
@@ -465,7 +466,7 @@ class Driver {
 				Debug = false,
 				DebugRuntime = false,
 				Linker = false,
-				ILStrip = true,
+				ILStrip = false, // disabled because of https://github.com/dotnet/runtime/issues/50609
 				LinkerVerbose = false,
 				EnableZLib = false,
 				EnableFS = false,
@@ -787,12 +788,12 @@ class Driver {
 		var wasm_core_support = string.Empty;
 		var wasm_core_support_library = string.Empty;
 		if (add_binding) {
-			wasm_core_support = $"{src_prefix}/binding_support.js";
-			wasm_core_support_library = $"--js-library {src_prefix}/binding_support.js ";
+			wasm_core_support = Path.Combine(EscapePath(src_prefix), "binding_support.js");
+			wasm_core_support_library = $"--js-library " + Path.Combine(EscapePath(src_prefix), "binding_support.js") + " ";
 
 			if (is_netcore)
 			{
-				wasm_core_support_library += $"--js-library {src_prefix}/pal_random.js ";
+				wasm_core_support_library += $"--js-library " + Path.Combine(src_prefix, "pal_random.js") + " ";
 			}
 		}
 		var runtime_js = Path.Combine (emit_ninja ? builddir : out_prefix, "runtime.js");
@@ -818,10 +819,10 @@ class Driver {
 		if (enable_dedup) {
 			dedup_asm = new AssemblyData () { name = "aot-instances",
 					filename = "aot-instances.dll",
-					bc_path = "$builddir/aot-instances.dll.bc",
-					o_path = "$builddir/aot-instances.dll.o",
-					app_path = "$appdir/$deploy_prefix/aot-instances.dll",
-					linkout_path = "$builddir/linker-out/aot-instances.dll",
+					bc_path = Path.Combine("$builddir", "aot-instances.dll.bc"),
+					o_path = Path.Combine("$builddir", "aot-instances.dll.o"),
+					app_path = Path.Combine("$appdir", "$deploy_prefix", "aot-instances.dll"),
+					linkout_path = Path.Combine("$builddir", "linker-out", "aot-instances.dll"),
 					aot = true
 					};
 			assemblies.Add (dedup_asm);
@@ -1006,8 +1007,12 @@ class Driver {
 		else
 			emcc_link_flags += "-Oz ";
 		string strip_cmd = "";
+		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
-			strip_cmd = " && \"$wasm_opt\" --strip-dwarf \"$out_wasm\" -o \"$out_wasm\"";
+		{
+
+			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf \'$out_wasm\' -o \'$out_wasm\'";
+		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
 			emcc_flags += "-s SIMD=1 ";
@@ -1040,7 +1045,18 @@ class Driver {
 		ninja.WriteLine ($"bcl_facades_dir = {bcl_facades_prefix}");
 		ninja.WriteLine ($"framework_dir = {framework_prefix}");
 		ninja.WriteLine ($"tools_dir = {bcl_tools_prefix}");
-		ninja.WriteLine ($"emsdk_env = $builddir/emsdk_env.sh");
+
+		if (!is_windows)
+		{
+			// emsdk is setup from the bootstrapper to avoid concurrency issues
+			// in the emsdk environment setup tooling
+			ninja.WriteLine($"emsdk_env = $builddir/emsdk_env.sh");
+		}
+		else
+		{
+			ninja.WriteLine($"emsdk_env = cd");
+		}
+
 		if (add_binding) {
 			ninja.WriteLine ($"wasm_core_bindings = $builddir/{BINDINGS_MODULE}");
 			ninja.WriteLine ($"wasm_core_support = {wasm_core_support}");
@@ -1050,58 +1066,120 @@ class Driver {
 			ninja.WriteLine ("wasm_core_support =");
 			ninja.WriteLine ("wasm_core_support_library =");
 		}
+
 		if (is_netcore)
-			ninja.WriteLine ("cross = $runtimepack_dir/native/cross/browser-wasm/mono-aot-cross");
+		{
+			var ext = is_windows ? ".exe" : "";
+			ninja.WriteLine ($"cross = $runtimepack_dir/native/cross/browser-wasm/mono-aot-cross{ext}");
+		}
 		else
+		{
 			ninja.WriteLine ("cross = $mono_sdkdir/wasm-cross-release/bin/wasm32-unknown-none-mono-sgen");
-		ninja.WriteLine ("emcc = source $emsdk_env && PYTHONUTF8=1 LC_ALL=C.UTF-8 emcc");
+		}
+
+		if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+		{
+			ninja.WriteLine ("emcc = source $emsdk_env && PYTHONUTF8=1 LC_ALL=C.UTF-8 emcc");
+		}
+		else
+		{
+			ninja.WriteLine("emcc = $$env:PYTHONUTF8=1; emcc ");
+		}
+
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
 		ninja.WriteLine ($"emcc_flags = --llvm-opts 2 -emit-llvm -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
+		var aot_cross_prefix = is_windows
+			? $"cmd /c set \"MONO_PATH=$mono_path\" &&"
+			: "MONO_PATH=$mono_path";
+
 		// Rules
 		ninja.WriteLine ("rule aot");
-		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_args,$aot_base_args,depfile=$depfile,llvm-outfile=$outfile $src_file");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_args,$aot_base_args,depfile=$depfile,llvm-outfile=$outfile $src_file");
 		ninja.WriteLine ("  description = [AOT] $src_file -> $outfile");
 		ninja.WriteLine ("rule aot-instances");
-		ninja.WriteLine ($"  command = MONO_PATH=$mono_path $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
 		ninja.WriteLine ("  description = [AOT-INSTANCES] $outfile");
 		ninja.WriteLine ("rule mkdir");
-		ninja.WriteLine ("  command = mkdir -p $out");
-		ninja.WriteLine ("rule cp");
-		ninja.WriteLine ("  command = cp $in $out");
-		// Copy $in to $out only if it changed
-		ninja.WriteLine ("rule cpifdiff");
-		ninja.WriteLine ("  command = if cmp -s $in $out ; then : ; else cp $in $out ; fi");
+
+		if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+		{
+			ninja.WriteLine("  command = mkdir -p $out");
+		}
+		else
+		{
+			ninja.WriteLine("  command = powershell mkdir -Force -p '$out'");
+		}
+
+		var cpCommand = Environment.OSVersion.Platform == PlatformID.Win32NT ? "copy" : "cp";
+		var commandPrefix = Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell " : "";
+
+		if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+		{
+			ninja.WriteLine ("rule cp");
+			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} $in $out");
+			ninja.WriteLine ("rule cpifdiff");
+			// Copy $in to $out only if it changed
+			ninja.WriteLine($"  command = if cmp -s $in $out ; then : ; else {cpCommand} $in $out ; fi");
+		}
+		else
+		{
+			ninja.WriteLine ("rule cp");
+			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+			ninja.WriteLine ("rule cpifdiff");
+			ninja.WriteLine($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+		}
+
+		var emcc_shell_prefix = is_windows
+			? "powershell"
+			: "bash -c";
+
+		var tools_shell_prefix = is_windows
+			? "powershell"
+			: "";
+
 		ninja.WriteLine ("  restat = true");
 		ninja.WriteLine ("  description = [CPIFDIFF] $in -> $out");
 		ninja.WriteLine ("rule create-emsdk-env");
-		ninja.WriteLine ("  command = \"$emscripten_sdkdir/emsdk\" construct_env > $out");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
 		ninja.WriteLine ("rule emcc");
-		ninja.WriteLine ("  command = bash -c \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
+		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
-		ninja.WriteLine ($"  command = bash -c \"$emcc $emcc_flags {emcc_link_flags} -o \\\"$out_js\\\" --js-library {src_prefix}/library_mono.js --js-library {src_prefix}/dotnet_support.js {wasm_core_support_library} $in\" {strip_cmd}");
+		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {emcc_link_flags} -o \\\"$out_js\\\" --js-library {src_prefix}/library_mono.js --js-library {src_prefix}/dotnet_support.js {wasm_core_support_library} $in\" {strip_cmd}");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
 		var linkerBin = is_netcore ? "dotnet $tools_dir/illink.dll" : "mono $tools_dir/monolinker.exe";
-		var linkerSearchPaths = string.Join(" ", root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" "));
-		var linkerOptions = is_netcore ? $"{linkerSearchPaths} --strip-link-attributes {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
-		var tunerCommand = is_netcore ? "dotnet $tools_dir/wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
 
-		ninja.WriteLine ($"  command = {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args || exit 1; {tunerCommand} --gen-empty-assemblies $out");
+		var linkerSearchPaths = string.Join(" ", root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d '{p}' "));
+
+		var linkerOptions = is_netcore ? $"{linkerSearchPaths} --strip-link-attributes {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
+		var tunerCommand = is_netcore ? $"dotnet $tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
+		var exitCommand = is_windows ? "" : "|| exit 1";
+
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-instances-dll");
-		ninja.WriteLine ("  command = echo > aot-instances.cs; csc /deterministic /out:$out /target:library aot-instances.cs");
+
+		if (is_windows)
+		{
+			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:TargetFramework=net5.0 /p:OutputPath=..\\linker-out\"");
+		}
+		else
+		{
+			ninja.WriteLine("  command = echo > aot-instances.cs; csc /deterministic /out:$out /target:library aot-instances.cs");
+		}
+
 		ninja.WriteLine ("rule gen-runtime-icall-table");
 		ninja.WriteLine ("  command = $cross --print-icall-table > $out");
 		ninja.WriteLine ("rule gen-icall-table");
-		ninja.WriteLine ($"  command = {tunerCommand} --gen-icall-table $runtime_table $in > $out");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-icall-table $out $runtime_table $in");
 		ninja.WriteLine ("rule gen-pinvoke-table");
-		ninja.WriteLine ($"  command = {tunerCommand} --gen-pinvoke-table $pinvoke_libs $in > $out");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-pinvoke-table $out $pinvoke_libs $in");
 		ninja.WriteLine ("rule ilstrip");
-		ninja.WriteLine ("  command = cp $in $out; mono $tools_dir/mono-cil-strip.exe -q $out");
+		ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} $in $out; mono $tools_dir/mono-cil-strip.exe -q $out");
 		ninja.WriteLine ("  description = [IL-STRIP]");
 
 		// Targets
@@ -1111,18 +1189,18 @@ class Driver {
 		ninja.WriteLine ("build $appdir/mono-config.js: cpifdiff $builddir/mono-config.js");
 		if (build_wasm) {
 			var source_file = Path.GetFullPath(Path.Combine(src_prefix, "driver.c"));
-			ninja.WriteLine($"build $builddir/driver.c: cpifdiff {source_file}");
+			ninja.WriteLine($"build $builddir/driver.c: cpifdiff {EscapePath(source_file)}");
 			ninja.WriteLine($"build $builddir/driver-gen.c: cpifdiff $builddir/driver-gen.c.in");
 			source_file = Path.GetFullPath(Path.Combine(src_prefix, "pinvoke.c"));
-			ninja.WriteLine($"build $builddir/pinvoke.c: cpifdiff {source_file}");
+			ninja.WriteLine($"build $builddir/pinvoke.c: cpifdiff {EscapePath(source_file)}");
 			source_file = Path.GetFullPath(Path.Combine(src_prefix, "pinvoke.h"));
-			ninja.WriteLine($"build $builddir/pinvoke.h: cpifdiff {source_file}");
+			ninja.WriteLine($"build $builddir/pinvoke.h: cpifdiff {EscapePath(source_file)}");
 
 			if (!is_netcore)
 			{
 				var pinvoke_file_name = is_netcore ? "pinvoke-table.h" : "pinvoke-tables-default.h";
 				var pinvoke_file = Path.GetFullPath(Path.Combine(src_prefix, pinvoke_file_name));
-				ninja.WriteLine($"build $builddir/pinvoke-tables-default.h: cpifdiff {pinvoke_file}");
+				ninja.WriteLine($"build $builddir/pinvoke-tables-default.h: cpifdiff {EscapePath(pinvoke_file)}");
 				driver_deps += $" $builddir/pinvoke-tables-default.h";
 			}
 
@@ -1130,7 +1208,7 @@ class Driver {
 
 			if (add_binding) {
 				var bindings_source_file = Path.GetFullPath (Path.Combine (src_prefix, "corebindings.c"));
-				ninja.WriteLine ($"build $builddir/corebindings.c: cpifdiff {bindings_source_file}");
+				ninja.WriteLine ($"build $builddir/corebindings.c: cpifdiff {EscapePath(bindings_source_file)}");
 
 				ninja.WriteLine ($"build $builddir/corebindings.o: emcc $builddir/corebindings.c | $emsdk_env");
 				ninja.WriteLine ($"  flags = -I{runtime_dir}/include/mono-2.0");
@@ -1152,14 +1230,14 @@ class Driver {
 				var fileName = Path.GetFileName(nativeCompile);
 				var fileNameWithoutExt = Path.GetFileNameWithoutExtension(nativeCompile);
 
-				ninja.WriteLine($"build $builddir/{fileName}: cpifdiff {source_file}");
-				ninja.WriteLine($"build $builddir/{fileNameWithoutExt}.o: emcc {nativeCompile} | $emsdk_env {driver_deps}");
+				ninja.WriteLine($"build $builddir/{fileName}: cpifdiff {EscapePath(source_file)}");
+				ninja.WriteLine($"build $builddir/{fileNameWithoutExt}.o: emcc {EscapePath(nativeCompile)} | $emsdk_env {driver_deps}");
 				ninja.WriteLine($"  flags = {driver_cflags} -DDRIVER_GEN=1 -I{runtime_dir}/include/mono-2.0");
 			}
 
 			if (enable_zlib) {
 				var zlib_source_file = Path.GetFullPath (Path.Combine (src_prefix, "zlib-helper.c"));
-				ninja.WriteLine ($"build $builddir/zlib-helper.c: cpifdiff {zlib_source_file}");
+				ninja.WriteLine ($"build $builddir/zlib-helper.c: cpifdiff {EscapePath(zlib_source_file)}");
 
 				ninja.WriteLine ($"build $builddir/zlib-helper.o: emcc $builddir/zlib-helper.c | $emsdk_env");
 				ninja.WriteLine ($"  flags = -s USE_ZLIB=1 -I{runtime_dir}/include/mono-2.0");
@@ -1185,7 +1263,7 @@ class Driver {
 
 			foreach (var file in list) {
 				var source_file = Path.GetFullPath (Path.Combine (src_prefix, file));
-				ninja.WriteLine ($"build $builddir/{file}: cpifdiff {source_file}");
+				ninja.WriteLine ($"build $builddir/{file}: cpifdiff {EscapePath(source_file)}");
 			}
 		}
 		var ofiles = "";
@@ -1199,7 +1277,7 @@ class Driver {
 			if (!Directory.Exists (path))
 				Directory.CreateDirectory (path);
 		}
-		string aot_in_path = enable_linker ? "$builddir/linker-out" : "$builddir";
+		string aot_in_path = enable_linker ? Path.Combine("$builddir","linker-out") : "$builddir";
 		foreach (var a in assemblies) {
 			var assembly = a.src_path;
 			if (assembly == null)
@@ -1213,10 +1291,10 @@ class Driver {
 			string infile_pdb = "";
 			bool emit_pdb = assemblies_with_dbg_info.Contains (source_file_path_pdb);
 			if (enable_linker) {
-				a.linkin_path = $"$builddir/linker-in/{filename}";
-				a.linkin_pdb_path = $"$builddir/linker-in/{filename_pdb}";
-				a.linkout_path = $"$builddir/linker-out/{filename}";
-				a.linkout_pdb_path = $"$builddir/linker-out/{filename_pdb}";
+				a.linkin_path = Path.Combine("$builddir", "linker-in", filename);
+				a.linkin_pdb_path = Path.Combine("$builddir", "linker-in", filename_pdb);
+				a.linkout_path = Path.Combine("$builddir", "linker-out", filename);
+				a.linkout_pdb_path = Path.Combine("$builddir", "linker-out", filename_pdb);
 				linker_infiles += $"{a.linkin_path} ";
 				linker_ofiles += $" {a.linkout_path}";
 
@@ -1232,11 +1310,11 @@ class Driver {
 				a.aotin_path = a.linkout_path;
 				infile = $"{a.aotin_path}";
 			} else {
-				infile = $"$builddir/{filename}";
-				ninja.WriteLine ($"build $builddir/{filename}: cpifdiff {source_file_path}");
+				infile = Path.Combine("$builddir", filename);
+				ninja.WriteLine ($"build $builddir/{filename}: cpifdiff {EscapePath(source_file_path)}");
 				a.linkout_path = infile;
 				if (emit_pdb) {
-					ninja.WriteLine ($"build $builddir/{filename_pdb}: cpifdiff {source_file_path_pdb}");
+					ninja.WriteLine ($"build $builddir/{filename_pdb}: cpifdiff {EscapePath(source_file_path_pdb)}");
 					infile_pdb = $"$builddir/{filename_pdb}";
 				}
 			}
@@ -1247,9 +1325,9 @@ class Driver {
 				a.final_path = $"$builddir/ilstrip-out/{filename}";
 			}
 
-			ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename}: cpifdiff {a.final_path}");
+			ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename}: cpifdiff {EscapePath(a.final_path)}");
 			if (emit_pdb && infile_pdb != "")
-				ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename_pdb}: cpifdiff {infile_pdb}");
+				ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename_pdb}: cpifdiff {EscapePath(infile_pdb)}");
 			if (a.aot) {
 				a.bc_path = $"$builddir/{filename}.bc";
 				a.o_path = $"$builddir/{filename}.o";
@@ -1260,17 +1338,24 @@ class Driver {
 					// The other assemblies depend on their references
 					infile = "$builddir/aot-in/mscorlib.dll";
 					a.aotin_path = infile;
-					ninja.WriteLine ($"build {a.aotin_path}: cpifdiff {a.linkout_path}");
+					ninja.WriteLine ($"build {a.aotin_path}: cpifdiff {EscapePath(a.linkout_path)}");
 				}
 				ninja.WriteLine ($"build {a.bc_path}.tmp: aot {infile}");
 				ninja.WriteLine ($"  src_file={infile}");
 				ninja.WriteLine ($"  outfile={a.bc_path}.tmp");
-				ninja.WriteLine ($"  mono_path=$builddir/aot-in:{aot_in_path}");
+				if (is_windows)
+				{
+					ninja.WriteLine($"  mono_path={aot_in_path}");
+				}
+				else
+				{
+					ninja.WriteLine($"  mono_path=$builddir/aot-in:{aot_in_path}");
+				}
 				ninja.WriteLine ($"  depfile={a.aot_depfile_path}");
 				if (enable_dedup)
 					ninja.WriteLine ($"  aot_args=dedup-skip");
 
-				ninja.WriteLine ($"build {a.bc_path}: cpifdiff {a.bc_path}.tmp");
+				ninja.WriteLine ($"build {a.bc_path}: cpifdiff {EscapePath(a.bc_path)}.tmp");
 				ninja.WriteLine ($"build {a.o_path}: emcc {a.bc_path} | $emsdk_env");
 
 				ofiles += " " + $"{a.o_path}";
@@ -1293,11 +1378,20 @@ class Driver {
 			ninja.WriteLine ($"  dedup_image={a.filename}");
 			ninja.WriteLine ($"  src_files={dedup_infiles} {a.linkout_path}");
 			ninja.WriteLine ($"  outfile={a.bc_path}.tmp");
-			ninja.WriteLine ($"  mono_path=$builddir/aot-in:{aot_in_path}");
-			ninja.WriteLine ($"build {a.app_path}: cpifdiff {a.linkout_path}");
+
+			if (is_windows)
+			{
+				ninja.WriteLine($"  mono_path={aot_in_path}");
+			}
+			else
+			{
+				ninja.WriteLine($"  mono_path=$builddir/aot-in:{aot_in_path}");
+			}
+
+			ninja.WriteLine ($"build {a.app_path}: cpifdiff {EscapePath(a.linkout_path)}");
 			ninja.WriteLine ($"build {a.linkout_path}: aot-instances-dll");
 			// The dedup image might not have changed
-			ninja.WriteLine ($"build {a.bc_path}: cpifdiff {a.bc_path}.tmp");
+			ninja.WriteLine ($"build {a.bc_path}: cpifdiff {EscapePath(a.bc_path)}.tmp");
 			ninja.WriteLine ($"build {a.o_path}: emcc {a.bc_path} | $emsdk_env");
 			ofiles += $" {a.o_path}";
 		}
@@ -1333,7 +1427,7 @@ class Driver {
 
 			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
-			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {src_prefix}/library_mono.js {src_prefix}/dotnet_support.js {wasm_core_support} $emsdk_env");
+			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/library_mono.js {EscapePath(src_prefix)}/dotnet_support.js {wasm_core_support} $emsdk_env");
 			ninja.WriteLine ("  out_js=$appdir/dotnet.js");
 			ninja.WriteLine ("  out_wasm=$appdir/dotnet.wasm");
 		}
@@ -1448,5 +1542,6 @@ class Driver {
 
 	}
 
-	private string EscapePath(string path) => path.Replace(" ", "$ ");
+	private string EscapePath(string path)
+		=> path.Replace(" ", "$ ").Replace(":", "$:");
 }

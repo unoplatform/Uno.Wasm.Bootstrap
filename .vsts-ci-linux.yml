@@ -52,18 +52,13 @@ jobs:
     displayName: Build bootstrap
 
   - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet msbuild /r /p:Configuration=Release
-    displayName: Build Mono Sample
-
-  - bash: |
       cd $(build.sourcesdirectory)/src
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
     displayName: Build NetCore-Wasm Sample
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)
       CleanTargetFolder: false
@@ -72,15 +67,6 @@ jobs:
 
   - bash: rm -fr ~/emsdk
     displayName: Cleanup Emscripten folder to run tests
-
-  - bash: |
-      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist" \
-        "$(build.sourcesdirectory)/src/WasmAot.UITests"
-
-    displayName: Raytracer UI Tests Mono
-    env:
-      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
@@ -93,31 +79,13 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot/bin/Release/netstandard2.0/dist" \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
-
-    displayName: StaticLinking.Aot Tests Mono
-    env:
-      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
-
-  - bash: |
-      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
 
     displayName: StaticLinking.Aot Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
-
-  - bash: |
-      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/netstandard2.0/dist" \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests"
-    env:
-      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
   
-    displayName: Threading Tests 
-
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:

@@ -84,23 +84,6 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 					return $"{devToolsHost.Scheme}://{devToolsHost.Authority}{request.Path}{request.QueryString}";
 				}
 
-				async Task Copy(HttpContext context)
-				{
-					using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) })
-					{
-						var response = await httpClient.GetAsync(GetEndpoint(context));
-						context.Response.ContentType = response.Content.Headers.ContentType.ToString();
-						if ((response.Content.Headers.ContentLength ?? 0) > 0)
-						{
-							context.Response.ContentLength = response.Content.Headers.ContentLength;
-						}
-
-						var bytes = await response.Content.ReadAsByteArrayAsync();
-						await context.Response.Body.WriteAsync(bytes);
-
-					}
-				}
-
 				async Task RewriteSingle(HttpContext context)
 				{
 					var version = await ProxyGetJsonAsync<Dictionary<string, string>>(GetEndpoint(context));

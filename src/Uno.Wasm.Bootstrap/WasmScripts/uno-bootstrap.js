@@ -62,7 +62,7 @@ var Module = {
 
         if (ENVIRONMENT_IS_NODE) {
             return WebAssembly
-                .instantiate(getBinary(), imports)
+                .instantiate(getBinary(wasmUrl), imports)
                 .then(results => {
                     successCallback(results.instance, results.module);
                 });
@@ -626,4 +626,7 @@ if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
                 });
         }
     }
+}
+else if (typeof global === 'object') {
+    globalThis = global;
 }

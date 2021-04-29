@@ -1,8 +1,0 @@
-﻿<linker>
-	<assembly fullname="Uno.Wasm.Sample">
-		<namespace fullname="Uno.Wasm.Sample" />
-	</assembly>
-
-	<assembly fullname="WebAssembly.Bindings" />
-
-</linker>

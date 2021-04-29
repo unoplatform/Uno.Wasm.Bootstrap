@@ -3,7 +3,6 @@
     "path": "Uno.Wasm.Bootstrap.sln",
     "projects": [
       "LongPathTest\\Uno.Wasm.LongPath.csproj",
-      "Uno.Wasm.AotTests\\Uno.Wasm.AotTests.csproj",
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
       "Uno.Wasm.Bootstrap.UnitTests\\Uno.Wasm.Bootstrap.UnitTests.csproj",
@@ -12,10 +11,8 @@
       "Uno.Wasm.MixedModeSample\\Uno.Wasm.MixedModeSample.csproj",
       "Uno.Wasm.Node.Sample.Runner\\Uno.Wasm.Node.Sample.Runner.njsproj",
       "Uno.Wasm.Node.Sample\\Uno.Wasm.Node.Sample.csproj",
-      "Uno.Wasm.Sample\\Uno.Wasm.Sample.csproj",
       "Uno.Wasm.Static Linking\\Uno.Wasm.StaticLinking.csproj",
       "Uno.Wasm.StaticLinking.Aot.UITests\\Uno.Wasm.StaticLinking.Aot.UITests.njsproj",
-      "Uno.Wasm.StaticLinking.Aot\\Uno.Wasm.StaticLinking.Aot.csproj",
       "Uno.Wasm.StaticLinking.Interpreter\\Uno.Wasm.StaticLinking.Interpreter.csproj",
       "Uno.Wasm.Tests.Electron\\Uno.Wasm.Tests.Electron.csproj",
       "Uno.Wasm.Tests.Empty\\Uno.Wasm.Test.Empty.csproj",

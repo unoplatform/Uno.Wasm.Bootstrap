@@ -22,10 +22,6 @@ namespace Uno.Wasm.Bootstrap
 		private static readonly TimeSpan _SDKFolderLockTimeout = TimeSpan.FromMinutes(2);
 		private static readonly TimeSpan _SDKLockRetryDelay = TimeSpan.FromSeconds(10);
 
-		public string? MonoWasmSDKUri { get; set; }
-
-		public string? MonoWasmAOTSDKUri { get; set; }
-
 		public string? NetCoreWasmSDKUri { get; set; }
 
 		public string? MonoTempFolder { get; set; }
@@ -48,6 +44,8 @@ namespace Uno.Wasm.Bootstrap
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
+
+		public bool EnableEmscriptenWindows { get; set; } = true;
 
 		[Microsoft.Build.Framework.Required]
 		public string MonoRuntimeExecutionMode { get; set; } = "";
@@ -79,14 +77,18 @@ namespace Uno.Wasm.Bootstrap
 
 		private async Task<bool> ExecuteAsync(CancellationToken ct)
 		{
-			if (IsNetCore)
+			if(TargetFramework == "netstandard2.0")
 			{
-				await InstallNetCoreWasmSdk(ct);
+				Log.LogError($"netstandard2.0 is not supported by this version of the bootstrapper. Update to net5.0 or later.");
+				return false;
 			}
-			else
+
+			if (EnableEmscriptenWindows && Environment.OSVersion.Platform != PlatformID.Win32NT)
 			{
-				await InstallMonoSdk(ct);
+				EnableEmscriptenWindows = false;
 			}
+
+			await InstallNetCoreWasmSdk(ct);
 
 			return true;
 		}
@@ -97,8 +99,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var sdkUri = string.IsNullOrWhiteSpace(NetCoreWasmSDKUri) ? Constants.DefaultDotnetRuntimeSdkUrl : NetCoreWasmSDKUri!;
 
-			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
+			if (EnableEmscriptenWindows)
+			{
+				sdkUri = sdkUri.Replace("linux", "windows");
+			}
 
+			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
 			Log.LogMessage("NetCore-Wasm SDK: " + sdkName);
 			SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
 			Log.LogMessage("NetCore-Wasm SDK Path: " + SdkPath);
@@ -109,6 +115,13 @@ namespace Uno.Wasm.Bootstrap
 
 			try
 			{
+				void WriteTools()
+				{
+					WritePackager();
+					WriteWasmTuner();
+					WriteCilStrip();
+				}
+
 				if (!await ValidateSDKCheckSum(ct, "NetCore-Wasm", SdkPath))
 				{
 					var zipPath = SdkPath + ".zip";
@@ -121,12 +134,18 @@ namespace Uno.Wasm.Bootstrap
 
 					MarkSDKExecutable();
 
-					WritePackager();
-					WriteWasmTuner();
-					WriteCilStrip();
+					WriteTools();
 
 					writeChecksum = true;
 				}
+
+				if (DisableSDKCheckSumValidation)
+				{
+					// If the validation is disabled, it's generally for troubleshooting of tooling
+					// Overwrite the tools when checksum validation is disabled.
+					WriteTools();
+				}
+
 
 				if (writeChecksum)
 				{
@@ -225,93 +244,6 @@ namespace Uno.Wasm.Bootstrap
 		private bool IsNetCore =>
 			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
 
-		private async Task InstallMonoSdk(CancellationToken ct)
-		{
-			var runtimeExecutionMode = ParseRuntimeExecutionMode();
-
-			var sdkUri = string.IsNullOrWhiteSpace(MonoWasmSDKUri) ? Constants.DefaultSdkUrl : MonoWasmSDKUri!;
-			var aotUri = string.IsNullOrWhiteSpace(MonoWasmAOTSDKUri) ? Constants.DefaultAotSDKUrl : MonoWasmAOTSDKUri!;
-
-			var m = Regex.Match(sdkUri, @"(?!.*\-)(.*?)\.zip$");
-
-			if (!m.Success)
-			{
-				throw new InvalidDataException($"Unable to find SHA in {sdkUri}");
-			}
-
-			var buildHash = m.Groups[1].Value;
-
-			try
-			{
-				var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));
-
-				Log.LogMessage("SDK: " + sdkName);
-				SdkPath = Path.Combine(GetMonoTempPath(), sdkName);
-				Log.LogMessage("SDK Path: " + SdkPath);
-
-				SetupPackagerOutput();
-
-				var writeChecksum = false;
-
-				try
-				{
-					if (!await ValidateSDKCheckSum(ct, "mono-wasm", SdkPath))
-					{
-						var zipPath = SdkPath + ".zip";
-						Log.LogMessage($"Using mono-wasm SDK {sdkUri}");
-
-						zipPath = await RetreiveSDKFile(ct, sdkName, sdkUri, zipPath);
-
-						ZipFile.ExtractToDirectory(zipPath, SdkPath);
-						Log.LogMessage($"Extracted {sdkName} to {SdkPath}");
-
-						WritePackager();
-
-						writeChecksum = true;
-					}
-
-					if (
-						(
-						runtimeExecutionMode == RuntimeExecutionMode.FullAOT
-						|| runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT
-						|| HasBitcodeAssets()
-						|| GenerateAOTProfile
-						)
-						&& !Directory.Exists(Path.Combine(SdkPath, "wasm-cross-release"))
-					)
-					{
-						var aotZipPath = SdkPath + ".aot.zip";
-						Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, $"Downloading {aotUri} to {aotZipPath}");
-						aotZipPath = await RetreiveSDKFile(ct, sdkName, aotUri, aotZipPath);
-
-						foreach (var entry in ZipFile.OpenRead(aotZipPath).Entries)
-						{
-							entry.ExtractRelativeToDirectory(SdkPath, true);
-						}
-
-						Log.LogMessage($"Extracted AOT {sdkName} to {SdkPath}");
-						MarkSDKExecutable();
-
-						writeChecksum = true;
-					}
-
-					if (writeChecksum)
-					{
-						WriteChecksum(SdkPath);
-						Log.LogMessage($"Wrote checksum to {SdkPath}");
-					}
-				}
-				finally
-				{
-					UnlockSDKPath(SdkPath);
-				}
-			}
-			catch (Exception e)
-			{
-				throw new InvalidOperationException($"Failed to download the mono-wasm SDK at {sdkUri}, {e}");
-			}
-		}
-
 		private void MarkSDKExecutable()
 		{
 			if (IsOSUnixLike)
@@ -319,8 +251,6 @@ namespace Uno.Wasm.Bootstrap
 				Process.Start("chmod", $"-R +x {SdkPath}");
 			}
 		}
-
-		private string ToolPlatformSuffix => IsNetCore ? "net5.0" : "net462";
 
 		private void WritePackager()
 		{

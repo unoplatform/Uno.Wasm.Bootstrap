@@ -4,7 +4,7 @@
 		<TargetFramework>net5.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
+		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
