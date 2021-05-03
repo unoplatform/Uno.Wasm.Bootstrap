@@ -12,39 +12,20 @@ This package only provides the bootstrapping features to run a .NET assembly and
 
 This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
-## How to use the package with .NET 5
+## How to use the package with .NET 5 and later
 * Create a .NET 5 Console Application, and update it with the following basic definition:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.0.0-dev.69" />
-    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.0.0-dev.69" PrivateAssets="all" />
- </ItemGroup>
-
-</Project>
-```
-
-## How to use the package with .NET Standard 2.0
-* Create a .NET Standard 2.0 library, and update it with the following basic definition:
-```xml
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.0.0-dev.69" />
-    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.0.0-dev.69" PrivateAssets="all" />
+    <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.1.0" />
+    <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.1.0" PrivateAssets="all" />
  </ItemGroup>
 
 </Project>
@@ -60,15 +41,34 @@ class Program
     }
 }
 ```
-* In visual studio, press `F5` or **Debug**, then **Start debugging**
+
+* In Visual Studio 2019, press `Ctrl+F5` to start without the debugger (this will create the `launchSettings.json` needed below for debugging)
 * A browser window will appear with your application
 * The output of the Console.WriteLine will appear in the javascript debugging console
 
-### Alternate deployment path using Linux (or Windows Subsystem for Linux)
-See below the instructions on how to install the **Windows Subsystem for Linux**.
-* Build the project, the WASM output will be located in `bin\Debug\netstandard2.0\dist`.
-* Run the `server.py`, which will open an HTTP server on http://localhost:8000. On Windows, use Python tools or the excellent Linux Subsystem.
-* The output of the `Console.WriteLine` will appear in the javascript debugging console
+### How to use the Visual Studio 2019 Debugger
+Starting from **Visual Studio 2019 16.6**, it is possible to debug a WebAssembly app.
+
+To enable the debugging, add the following line to your `launchSettings.json` file:
+```json
+"inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
+```
+
+in every profile section of the file, below each `"launchBrowser": true,` line.
+
+Press `F5` to start debugging.
+
+### Alternate deployment methods
+Install the `[dotnet serve](https://github.com/natemcmaster/dotnet-serve)` tool:
+```
+dotnet tool install -g dotnet-serve
+```
+Once installed, launch the server by using the following command:
+```bash
+cd MyApp.Wasm
+dotnet serve -d bin\Debug\net5.0\dist -p 8000
+```
+You application will be available `http://localhost:8000`.
 
 ### Upgrading from previous versions of the Uno.Wasm.Bootstrap package
 Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To enable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
@@ -111,7 +111,7 @@ It is also possible to provide the linker file as an embedded resource, which is
 </ItemGroup>
 
 <!-- For libraries, you should use this syntax instead -->
-<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
 	<EmbeddedResource Include="LinkerConfig.xml">
 		<LogicalName>$(AssemblyName).xml</LogicalName>
 	</EmbeddedResource>
@@ -198,22 +198,6 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 .NET for WebAssembly now has integrated **preliminary** support for in-browser debugging. Refer to
 [this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to set up the debugging.
 
-### How to use the Visual Studio 2019 Debugger
-Starting from **Visual Studio 2019 16.6 Preview 1**, it is possible to debug a WebAssembly app.
-
-> If you're updating from a previous version of the bootstrapper, make sure to manually update the `Uno.Wasm.Bootstrap.Cli` package to the same version as the `Uno.Wasm.Bootstrap` package in your `csproj` file.
-
-To enable the debugging, add the following line to your `launchSettings.json` file:
-```
-"inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
-```
-
-in every profile section of the file, below each `"launchBrowser": true,` line.
-
-Press `F5` to start debugging.
-
-Note that breakpoints in the main entry point of the executable are currently ignored.
-
 ### How to use the Browser debugger
 The boostrapper also supports debugging directly in the browser debugging tools.
 
@@ -236,7 +220,7 @@ by the debugger caching previously loaded files. Make sure to hit Ctrl+Shit+R to
 reload the debugged page.
 
 ## Runtime Execution Modes
-The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT and Mixed Mode Interpreter/AOT.
+The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT (Ahead of Time) and Mixed Mode Interpreter/AOT.
 
 The execution mode can be set as follows:
 ```xml
@@ -247,24 +231,22 @@ The possible values are:
 - `InterpreterAndAOT`
 - `FullAOT`
 
-> The FullAOT mode currently fails at runtime using net5 or net6 because of [this issue](https://github.com/dotnet/runtime/issues/50609).
+To setup your machine to use AOT modes on Windows, you will need to install [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
 ### Interpreter mode
-This modes is the slowest of all three, but allows for a large flexibility and debugging, as well as an efficient payload size. 
+This mode is the slowest of all three, but allows for great flexibility and debugging, as well as an efficient payload size. 
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
 
-### AOT Mode
+### Full AOT Mode
 This mode generates WebAssembly binary for all the referenced assemblies and provides the fastest code execution, but also generates the largest payload. This mode will not allow the execution of code that was not known at compile time (e.g. dynamically generated assemblies or loaded through `Assembly.LoadFrom`).
 
-It is available on Windows 10 and Linux (18.04 and later, or similar). 
+> The FullAOT mode currently fails at runtime using net5 or net6 because of [this issue](https://github.com/dotnet/runtime/issues/50609).
 
-> Note that this mode and the mixed mode below are not available on windows 2019 hosted agents. Use Linux agents instead.
+### Mixed Interpreter and AOT Mode
+This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609). 
 
-To ensure that AOT is only run under Linux, add the following to your project:
-```xml
-<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
-```
+This mode is generally prefered to FullAOT as it allows to load arbitrary assemblies and execute their code through the interpreter.
 
 ## Profile Guided AOT
 This mode allows for the AOT engine to selectively optimize methods to WebAssembly, and keep the rest as interpreted. This gives a very good balance when choosing between performance and payload size. It also has the advantage of reducing the build time, as less code needs to be compiled down to WebAssembly.
@@ -375,7 +357,7 @@ You can find the documentation for [`mono_trace_set_options` parameter here](htt
 ## Required configuration for static linking on macOS
 - macOS 10.15 or later
 - [Homebrew](https://brew.sh)
-- [.NET SDK 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1) for netstandard2.0 builds or [.NET SDK 5.0](https://dotnet.microsoft.com/download/dotnet/5.0) for net5 builds
+- [.NET SDK 5.0](https://dotnet.microsoft.com/download/dotnet/5.0) for net5 builds
 - A recent build of [Mono MDK - Stable](https://www.mono-project.com/download/stable/#download-mac)
 - ninja: `brew install ninja`
 
@@ -395,6 +377,20 @@ The easiest is to build using the environment provided by the [unoplatform/wasm-
 
 ## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
 
+### Native windows tooling
+This is the default mode on Windows. It requires installing [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
+
+This mode is compatible with CI servers which have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
+
+### Using Windows Subsystem for Linux
+This mode can be enabled by adding this property to the `csproj`:
+```xml
+<PropertyGroup>
+  <WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>
+</PropertyGroup>
+```
+
+Requirements:
 - A Windows 10 machine with [WSL 1 or 2 with Ubuntu 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed.
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
 - A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 3.1
@@ -409,7 +405,7 @@ The emscripten installation is automatically done as part of the build.
 
 The boostrapper uses its own installation of emscripten, installed by default in `$HOME/.uno/emsdk` in the WSL filesystem. This can be globally overriden by setting the `WASMSHELL_WSLEMSDK` environment variable.
 
-### Special considerations for CI servers (GitHub Actions, Azure Devops)
+#### Special considerations for CI servers (GitHub Actions, Azure Devops)
 When building an application on Windows based CI servers, WSL is generally not enabled in base images. This can cause builds to fail if they require the use of static linking and/or AOT.
 
 In order to work around this issue, the following property can be set:
@@ -456,7 +452,7 @@ Building and debugging samples is done through the command line.
    ```
 1. Start the web server to serve the sample on port 8000:
    ```
-   cd bin/Debug/netstandard2.0/dist
+   cd bin/Debug/net5.0/dist
    python3 server.py
    ```
 1. The GitPod IDE will open a preview window with the content of the site. You may need to open the browser debugger window to see the results of the sample's execution.
@@ -846,16 +842,9 @@ Once the app start, the content will be updated to show the custom logo. The log
 - The msbuild property `RuntimeConfiguration` allows for the selection of the debug runtime but is mainly used for debugging the runtime itself. The value can either be `release` or `debug`.
 
 ### Overriding the .NET WebAssembly SDK build
-The msbuild properties `MonoWasmSDKUri` and `MonoWasmAOTSDKUri` (for `netstandard2.0 projects), and `NetCoreWasmSDKUri` (for `net5` projects) allow the override of the default SDK paths. Paths can be local files or remote files.
+The msbuild property `NetCoreWasmSDKUri` allow the override of the default SDK path. The path can be a local file or remote file.
 
 To select a different sdk build:
-- For `netstandard2.0` projects:
-    - Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
-    - Select a build
-    - Click on the "default" configuration
-    - On the left click *Azure Artifacts*
-    - Copy the `mono-wasm-xxxx.zip` uri or local zip file path to the `MonoWasmSDKUri` property
-    - Copy the `wasm-release-Linux-xxx.zip` uri or local zip file to the `MonoWasmAOTSDKUri` property
 - For `net5` projects:
     - Generate a build from the `https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly` project
     - Copy the `dotnet-runtime-wasm-XX-XX-Release.zip` uri or local zip file path to the `NetCoreWasmSDKUri` property
@@ -869,16 +858,6 @@ The SDKs are installed under `Path.GetTempPath()` by default, you may change thi
 
 For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
 instead of `C:\Users\xxx\AppData\Local\Temp\mono-wasm-e351637985e`.
-
-### Updating the Uno.Wasm.Boostrapper default mono-wasm SDK
-The bootstrapper comes with a default mono-wasm SDK (which can be overridden per project with the msbuild properties
-`MonoWasmSDKUri` and `MonoWasmAOTSDKUri`), specified in the `Constants.cs` file.
-
-To update to a later mono-wasm SDK:
-- Navigate to the [Mono-wasm CI](https://jenkins.mono-project.com/job/test-mono-mainline-wasm/)
-- Copy the `mono-wasm-xxxx.zip` uri to the `DefaultSdkUrl` constant field
-- Copy the `wasm-release-Linux-xxx.zip` uri to the `DefaultAotSDKUrl` constant field
-- Open the `mono-wasm-xxxx.zip` and copy the `Mono.WebAssembly.DebuggerProxy.dll` and `.pdb` to the [CustomDebuggerProxy folder](src/Uno.Wasm.Bootstrap/build/CustomDebuggerProxy) folder.
 
 ### Windows Long Path support
 The bootstrapper supports Windows 10 long paths by default, but there may be cases where the 
