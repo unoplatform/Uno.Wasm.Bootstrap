@@ -62,7 +62,7 @@ public class PInvokeTableGenerator : Task
                 CollectPInvokes(pinvokes, callbacks, type);
         }
 
-        using (var w = File.CreateText(OutputPath!))
+        using (var w = new StreamWriter(OutputPath!, append: false, Encoding.ASCII))
         {
             EmitPInvokeTable(w, modules, pinvokes);
             EmitNativeToInterp(w, callbacks);

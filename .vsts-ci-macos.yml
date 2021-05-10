@@ -62,13 +62,6 @@ jobs:
     displayName: Build bootstrap
 
   - bash: |
-      source ~/emsdk/emsdk_env.sh
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample
-      dotnet build
-
-    displayName: Build Mono Sample
-
-  - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet5
       dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-mac.binlog
     displayName: Build NetCore-Wasm Sample

@@ -102,6 +102,12 @@ jobs:
     netcore_version: 3.1.201
     linux_container: unoplatform/wasm-build:3.0
 
+- template: .vsts-ci-windows-tests.yml
+  parameters:
+    jobName: Windows_netcore3_1
+    netcore_version: 3.1.201
+    linux_container: unoplatform/wasm-build:3.0
+
 - template: .vsts-ci-macos.yml
   parameters:
     jobName: macOS_netcore3_1

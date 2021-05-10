@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 
-		<UseAOT Condition="$([MSBuild]::IsOSUnixLike()) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
+		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode>Interpreter</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 	</PropertyGroup>

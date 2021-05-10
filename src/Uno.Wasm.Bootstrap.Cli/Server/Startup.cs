@@ -52,7 +52,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			var buildConfiguration = configuration.GetValue<string>("configuration");
 			var targetFramework = configuration.GetValue<string>("targetframework");
 
-			var env = app.ApplicationServices.GetRequiredService<IHostingEnvironment>();
+			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 			var contentRoot = env.ContentRootPath;
 
 			var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(typeof(Startup).Assembly);
@@ -99,7 +99,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 
 			app.UseDeveloperExceptionPage();
 			var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
-			var env = app.ApplicationServices.GetRequiredService<IHostingEnvironment>();
+			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 			var contentRoot = env.ContentRootPath;
 
 			app.UseStaticFiles(new StaticFileOptions

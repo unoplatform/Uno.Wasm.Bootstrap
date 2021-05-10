@@ -159,6 +159,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool ForceUseWSL { get; set; }
 
+		public bool EnableEmscriptenWindows { get; set; } = true;
+
 		public bool ForceDisableWSL { get; set; }
 
 		[Microsoft.Build.Framework.Required]
@@ -197,12 +199,6 @@ namespace Uno.Wasm.Bootstrap
 		{
 			try
 			{
-				//if (TargetFrameworkIdentifier != ".NETStandard" && TargetFrameworkIdentifier != ".NETCoreApp")
-				//{
-				//	Log.LogWarning($"The package Uno.Wasm.Bootstrap is not supported for the current project ({Assembly}), skipping dist generation.");
-				//	return true;
-				//}
-
 				if (string.IsNullOrEmpty(TargetFramework))
 				{
 					throw new InvalidOperationException($"The TargetFramework task parameter must be defined.");
@@ -216,6 +212,7 @@ namespace Uno.Wasm.Bootstrap
 				// Debugger.Launch();
 
 				PreloadAssemblies();
+				ValidateEmscriptenWindowsAvailability();
 				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
@@ -287,6 +284,14 @@ namespace Uno.Wasm.Bootstrap
 			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
 			MonoTempFolder = TryConvertLongPath(MonoTempFolder!);
 			CustomDebuggerPath = TryConvertLongPath(CustomDebuggerPath!);
+		}
+
+		private void ValidateEmscriptenWindowsAvailability()
+		{
+			if (EnableEmscriptenWindows && Environment.OSVersion.Platform != PlatformID.Win32NT)
+			{
+				EnableEmscriptenWindows = false;
+			}
 		}
 
 
@@ -494,6 +499,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool IsWSLRequired =>
 			Environment.OSVersion.Platform == PlatformID.Win32NT
+			&& !EnableEmscriptenWindows
 			&& (GetBitcodeFilesParams().Any() || _runtimeExecutionMode != RuntimeExecutionMode.Interpreter || ForceUseWSL || GenerateAOTProfile || UseAotProfile);
 
 		private bool UseAotProfile => (AotProfile?.Any() ?? false) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
@@ -789,7 +795,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add("--zlib");
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
-				packagerParams.Add("-lidbfs.js\" ");
+				packagerParams.Add("-l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
 				packagerParams.Add(appDirParm);
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
@@ -808,7 +814,11 @@ namespace Uno.Wasm.Bootstrap
 					throw new Exception("Failed to generate wasm layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 
-				var ninjaResult = RunProcess("ninja", "", workAotPath);
+				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
+
+				var ninjaResult = EnableEmscriptenWindows
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>nul && {ninjaPath}\"", workAotPath)
+					: RunProcess("ninja", "", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
 				{
@@ -993,6 +1003,7 @@ namespace Uno.Wasm.Bootstrap
 				&& !path.StartsWith(@"\\?\")
 				&& Path.IsPathRooted(path)
 				&& EnableLongPathSupport
+				&& !EnableEmscriptenWindows // ninja does not support "\\?\" normalized paths
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
@@ -1001,36 +1012,59 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 			{
-				var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
-				var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
-
-				if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
+				if (EnableEmscriptenWindows)
 				{
-					throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK")
+						?? Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), ".uno", "emsdk");
+
+					var emsdkBaseFolder = Path.Combine(emsdkHostFolder, $"emsdk-{CurrentEmscriptenVersion}");
+
+					var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.cmd");
+
+					var result = RunProcess(
+						emscriptenSetupScript,
+						$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {CurrentEmscriptenVersion}");
+
+					if (result.exitCode == 0)
+					{
+						return Path.Combine(emsdkBaseFolder, "emsdk");
+					}
+
+					throw new InvalidOperationException($"Failed to setup emscripten environment.");
 				}
-
-				var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
-
-				// Adjust line endings
-				AdjustFileLineEndings(emscriptenSetupScript);
-
-				var result = RunProcess(
-					emscriptenSetupScript,
-					$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {CurrentEmscriptenVersion}");
-
-				if (result.exitCode == 0)
+				else
 				{
-					return emsdkBaseFolder + $"/emsdk";
+					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
+					var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
+
+					if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
+					{
+						throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
+					}
+
+					var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
+
+					// Adjust line endings
+					AdjustFileLineEndings(emscriptenSetupScript);
+
+					var result = RunProcess(
+						emscriptenSetupScript,
+						$"\"{emsdkHostFolder.Replace("\\\\?\\", "").TrimEnd('\\')}\" {CurrentEmscriptenVersion}");
+
+					if (result.exitCode == 0)
+					{
+						return emsdkBaseFolder + $"/emsdk";
+					}
+
+					var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");
+					AdjustFileLineEndings(dotnetSetupScript);
+
+					Log.LogError(
+						$"The Windows Subsystem for Linux dotnet environment may not be properly setup, and you may need to run " +
+						$"the environment setup script. Open an Ubuntu WSL shell and run:\n\nbash -c `wslpath \"{dotnetSetupScript}\"`\n\n");
+
+					throw new InvalidOperationException($"Failed to setup WSL environment.");
 				}
-
-				var dotnetSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "dotnet-setup.sh");
-				AdjustFileLineEndings(dotnetSetupScript);
-
-				Log.LogError(
-					$"The Windows Subsystem for Linux dotnet environment may not be properly setup, and you may need to run " +
-					$"the environment setup script. Open an Ubuntu WSL shell and run:\n\nbash -c `wslpath \"{dotnetSetupScript}\"`\n\n");
-
-				throw new InvalidOperationException($"Failed to setup WSL environment.");
 			}
 			else if (Environment.OSVersion.Platform == PlatformID.Unix)
 			{
@@ -1178,7 +1212,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (_shellMode == ShellMode.Node)
 			{ 
-				_remoteBasePackagePath = "";
+				_remoteBasePackagePath = "app";
 				_finalPackagePath = _distPath;
 				OutputPackagePath = _distPath;
 			}
@@ -1567,7 +1601,8 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, new UTF8Encoding(false)))
 			{
-				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"./{_remoteBasePackagePath}/{Path.GetFileNameWithoutExtension(x)}\""));
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"./{_remoteBasePackagePath}/";
+				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{baseLookup}{Path.GetFileNameWithoutExtension(x)}\""));
 				var entryPoint = DiscoverEntryPoint();
 
 				var config = new StringBuilder();

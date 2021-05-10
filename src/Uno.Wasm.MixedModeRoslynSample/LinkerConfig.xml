@@ -1,6 +1,5 @@
 ﻿<linker>
   <assembly fullname="Uno.Wasm.MixedModeRoslynSample" />
-  <assembly fullname="WebAssembly.Bindings" />
 
   <!--<assembly fullname="Microsoft.CodeAnalysis"/>
   <assembly fullname="Microsoft.CodeAnalysis.CSharp" />-->

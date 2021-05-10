@@ -150,8 +150,6 @@
     </PropertyGroup>
 
     <UnoInstallSDKTask_v0
-        MonoWasmSDKUri="$(MonoWasmSDKUri)"
-        MonoWasmAOTSDKUri="$(MonoWasmAOTSDKUri)"
         NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
@@ -164,6 +162,7 @@
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         TargetFramework="$(TargetFramework)"
         TargetFrameworkVersion="$(TargetFrameworkVersion)"
+        EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
         Assets="@(Content)">
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
       <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
@@ -205,6 +204,7 @@
         EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
         ForceUseWSL="$(WasmShellForceUseWSL)"
         ForceDisableWSL="$(WasmShellForceDisableWSL)"
+        EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
         EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"

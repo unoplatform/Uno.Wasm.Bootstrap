@@ -64,25 +64,20 @@ public class WasmTuner
 
 	int GenPinvokeTable (String[] args) {
 		var modules = new Dictionary<string, string> ();
-		foreach (var module in args [1].Split (','))
+		foreach (var module in args [2].Split (','))
 			modules [module] = module;
 
-		args = args.Skip (2).ToArray ();
+		var files = args.Skip (3).ToArray ();
 
 #if NETFRAMEWORK
-		var assemblies = new List<AssemblyDefinition> ();
-		foreach (var fname in args)
-			assemblies.Add (AssemblyDefinition.ReadAssembly (fname));
-
-		var generator = new PInvokeTableGenerator ();
-		generator.Run (assemblies, modules);
+		throw new NotSupportedException($"pinvoke generation is not supported for netstandard2.0");
 #else
 		var generator = new PInvokeTableGenerator();
 
-		generator.OutputPath = Path.GetTempFileName();
-		generator.GenPInvokeTable(modules.Keys.ToArray(), args.ToArray());
+		Console.WriteLine($"Generating to {args[1]}");
 
-		Console.WriteLine(File.ReadAllText(generator.OutputPath));
+		generator.OutputPath = args[1];
+		generator.GenPInvokeTable(modules.Keys.ToArray(), files.ToArray());
 #endif
 
 		return 0;
@@ -99,16 +94,17 @@ public class WasmTuner
 	// a smaller linked icall table mapping tokens to C function names
 	//
 	int GenIcallTable(String[] args) {
-		var icall_table_filename = args [1];
-		var fileNames = args.Skip (2).ToArray ();
+		var icall_table_filename = args [2];
+		var fileNames = args.Skip (3).ToArray ();
 
 #if NETFRAMEWORK
 		throw new NotSupportedException($"icall table generation is not supported for netstandard2.0");
 #else
+		Console.WriteLine($"Generating to {args[1]}");
+
 		var generator = new IcallTableGenerator();
-		generator.OutputPath = Path.GetTempFileName();
+		generator.OutputPath = args[2];
 		generator.GenIcallTable(icall_table_filename, fileNames);
-		Console.WriteLine(File.ReadAllText(generator.OutputPath));
 #endif
 
 		return 0;

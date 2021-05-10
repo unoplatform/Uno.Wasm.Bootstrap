@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
-		<MonoWasmRuntimeConfiguration>threads-release</MonoWasmRuntimeConfiguration>
+		<!--<MonoWasmRuntimeConfiguration>threads-release</MonoWasmRuntimeConfiguration>-->
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 	</PropertyGroup>
 

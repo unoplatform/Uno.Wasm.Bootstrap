@@ -170,14 +170,10 @@
 			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Json.dll" />
 			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Reflection.MetadataLoadContext.dll" />
 		</ItemGroup>
-		
-		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net462/packager.exe" DestinationFiles="$(MSBuildThisFileDirectory)build/packager/net462/packager2.exe" />
-		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net462/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net462" />
 
 		<Copy SourceFiles="@(_PackagerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
 		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
 
-		<Copy SourceFiles="../Uno.Wasm.Tuner/bin/$(Configuration)/net462/wasm-tuner.exe" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net462" />
 		<Copy SourceFiles="@(_TunerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net5.0" />
 
 		<!-- Update the item group with generated files -->

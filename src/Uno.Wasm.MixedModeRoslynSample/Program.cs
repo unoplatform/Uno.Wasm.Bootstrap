@@ -113,7 +113,7 @@ namespace Uno.Wasm.Sample
 
 			private static MetadataReference LoadFromResources(Assembly assembly)
 			{
-				var searchAssembly = Path.GetFileName(assembly.CodeBase);
+				var searchAssembly = Path.GetFileName(assembly.Location);
 				Console.WriteLine($"Seaching for {searchAssembly} in SDK");
 				var name = typeof(CSharpLanguage).Assembly.GetManifestResourceNames().FirstOrDefault(f => f.EndsWith(searchAssembly));
 				return MetadataReference.CreateFromStream(typeof(CSharpLanguage).Assembly.GetManifestResourceStream(name));

@@ -1,23 +1,18 @@
 parameters:
   jobName: ''
-  linux_container: ''
-  linux_vmImage: 'ubuntu-latest'
   netcore_version: ''
 
 jobs:
 - job: ${{ parameters.jobName }}
 
-  container: ${{ parameters.linux_container }}
+  pool:
+    vmImage: 'windows-2019'
 
   workspace:
     clean: all
       
-  pool:
-    vmImage: ${{ parameters.linux_vmImage }}
-
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.40.0
     NETCORE_VERSION: ${{ parameters.netcore_version }}
 
   steps:
@@ -41,51 +36,34 @@ jobs:
       version: '5.0.100'
       installationPath: $(Agent.ToolsDirectory)/dotnet
 
-  - task: NuGetToolInstaller@0
-    inputs:
-      versionSpec: 4.9.1
-      checkLatest: false
-
-  - bash: |
+  - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
       dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
 
-  - bash: |
+  - pwsh: |
       cd $(build.sourcesdirectory)/src
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build NetCore-Wasm Sample
 
-  - task: CopyFiles@2
-    inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
-      Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)
-      CleanTargetFolder: false
-      OverWrite: false
-      flattenFolders: false
-
-  - bash: rm -fr ~/emsdk
-    displayName: Cleanup Emscripten folder to run tests
-
-  - bash: |
-      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
-        "$(build.sourcesdirectory)/src/WasmAot.UITests"
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.AotTests.net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\WasmAot.UITests"
 
     displayName: Raytracer UI Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
-  - bash: |
-      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests"
 
     displayName: StaticLinking.Aot Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
-  
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:

@@ -1,4 +1,3 @@
 ﻿<linker>
 	<assembly fullname="Uno.Wasm.MixedModeSample" />
-	<assembly fullname="WebAssembly.Bindings" />
 </linker>

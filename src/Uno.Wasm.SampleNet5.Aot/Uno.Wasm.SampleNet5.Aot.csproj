@@ -9,6 +9,8 @@
 		<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
+		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
+		<!--<WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>-->
 	</PropertyGroup>
 
 	<ItemGroup>
