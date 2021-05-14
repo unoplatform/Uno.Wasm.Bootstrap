@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
-		<TargetFrameworks>net5</TargetFrameworks>
+		<TargetFramework>net5</TargetFramework>
 		<AssemblyName>dotnet-unowasm</AssemblyName>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
