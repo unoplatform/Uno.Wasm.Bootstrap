@@ -16,10 +16,4 @@
 		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
 		<PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
 	</ItemGroup>
-
-
-	<Target Name="GetTargetPath" />
-	<Target Name="GetCopyToPublishDirectoryItems" />
-	<Target Name="Publish" />
-
 </Project>
