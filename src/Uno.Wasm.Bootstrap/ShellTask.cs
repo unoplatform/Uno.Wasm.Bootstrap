@@ -625,54 +625,23 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var sdkName = Path.GetFileName(MonoWasmSDKPath);
 
-			var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
-			DirectoryCreateDirectory(wasmDebuggerRootPath);
-
 			if (!string.IsNullOrEmpty(CustomDebuggerPath))
 			{
 				CustomDebuggerPath = FixupPath(CustomDebuggerPath!);
 			}
 
-			var debuggerLocalPath = Path.Combine(wasmDebuggerRootPath, sdkName);
+			var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
+			DirectoryCreateDirectory(wasmDebuggerRootPath);
 
-			Log.LogMessage($"Debugger CustomDebuggerPath:[{CustomDebuggerPath}], {wasmDebuggerRootPath}, {debuggerLocalPath}, {sdkName}");
-
-			if (!Directory.Exists(debuggerLocalPath))
-			{
-				foreach (var debugger in Directory.GetDirectories(wasmDebuggerRootPath))
-				{
-					Directory.Delete(debugger, recursive: true);
-				}
-
-				DirectoryCreateDirectory(debuggerLocalPath);
-
-				var net5BasePaths = new[] {
+			var net5BasePaths = new[] {
 					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
 					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
 				};
 
-				var proxyBasePath = net5BasePaths.First(Directory.Exists);
+			var proxyBasePath = net5BasePaths.First(Directory.Exists);
 
-				var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
-
-				foreach (var debuggerFilePath in Directory.EnumerateFiles(sourceBasePath))
-				{
-					var debuggerFile = Path.GetFileName(debuggerFilePath);
-
-					string sourceFileName = Path.Combine(sourceBasePath, debuggerFile);
-					string destFileName = Path.Combine(debuggerLocalPath, debuggerFile);
-
-					if (File.Exists(sourceFileName))
-					{
-						Log.LogMessage(MessageImportance.High, $"Copying {sourceFileName} -> {destFileName}");
-						FileCopy(sourceFileName, destFileName);
-					}
-					else
-					{
-						Log.LogMessage($"Skipping [{sourceFileName}] as it does not exist");
-					}
-				}
-			}
+			// Write down the debugger file path so the static file server can find it
+			File.WriteAllText(Path.Combine(wasmDebuggerRootPath, ".debuggerinfo"), proxyBasePath);
 		}
 
 		private void RunPackager()
