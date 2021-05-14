@@ -5,6 +5,7 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>
 		<!--<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>-->
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->

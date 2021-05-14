@@ -111,6 +111,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; } = "";
 
+		public string? WebAppBasePath { get; set; } = "./";
+
 		[Required]
 		public string WasmShellMode { get; set; } = "";
 
@@ -1474,8 +1476,8 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, new UTF8Encoding(false)))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"./{_remoteBasePackagePath}/";
-				var dependencies = string.Join(", ", _dependencies.Select(x => $"\"{baseLookup}{Path.GetFileNameWithoutExtension(x)}\""));
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{_remoteBasePackagePath}/";
+				var dependencies = string.Join(", ", _dependencies.Select(dep => BuildDependencyPath(dep, baseLookup)));
 				var entryPoint = DiscoverEntryPoint();
 
 				var config = new StringBuilder();
@@ -1492,7 +1494,7 @@ namespace Uno.Wasm.Bootstrap
 				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
-				config.AppendLine($"config.uno_app_base = \"{ _remoteBasePackagePath }\";");
+				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"[{entryPoint.DeclaringType.Module.Assembly.Name.Name}] {entryPoint.DeclaringType.FullName}:{entryPoint.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
@@ -1502,7 +1504,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.offline_files = ['./', {offlineFiles}];");
+				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 
 				if (GenerateAOTProfile)
 				{
@@ -1533,6 +1535,11 @@ namespace Uno.Wasm.Bootstrap
 				w.Write(config.ToString());
 			}
 		}
+
+		static string BuildDependencyPath(string dep, string baseLookup)
+			=> baseLookup.StartsWith("/")
+				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
+				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
 
 		private void MergeConfig()
 		{
@@ -1631,7 +1638,7 @@ namespace Uno.Wasm.Bootstrap
 				filesIntegrity = new (string fileName, string integrity)[0];
 			}
 
-			return ($"./{_remoteBasePackagePath}/" + monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
+			return ($"{WebAppBasePath}{_remoteBasePackagePath}/" + monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
 		}
 
 		private void GenerateHtml()
@@ -1649,7 +1656,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					var html = reader.ReadToEnd();
 
-					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"./{s}\" />"));
+					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{s}\" />"));
 					html = html.Replace("$(ADDITIONAL_CSS)", styles);
 
 					var extraBuilder = new StringBuilder();
@@ -1660,7 +1667,8 @@ namespace Uno.Wasm.Bootstrap
 
 					// Compatibility after the change from mono.js to dotnet.js
 					html = html.Replace("mono.js\"", "dotnet.js\"");
-					html = html.Replace("\"./", $"\"./{_remoteBasePackagePath}/");
+					html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+					html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 
 					w.Write(html);
 
@@ -1673,12 +1681,12 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
-				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./dotnet.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.wasm\" />");
 
 				var distName = Path.GetFileName(_managedPath);
 				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
 				{
-					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"./{distName}/{Path.GetFileName(file)}\" />");
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
 				}
 			}
 		}
@@ -1694,8 +1702,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"./{PWAManifestFile}\" />");
-				extraBuilder.AppendLine($"<link rel=\"script\" href=\"./service-worker.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{WebAppBasePath}{PWAManifestFile}\" />");
+				extraBuilder.AppendLine($"<link rel=\"script\" href=\"{WebAppBasePath}service-worker.js\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
@@ -1703,7 +1711,7 @@ namespace Uno.Wasm.Bootstrap
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
 				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"./{img["src"]}\" />");
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
 				}
 
 				if (manifestDocument["theme_color"]?.Value<string>() is string color)
@@ -1724,7 +1732,7 @@ namespace Uno.Wasm.Bootstrap
 
 						icon["src"] = originalSource switch
 						{
-							string s when s.StartsWith("./") => $"./{_remoteBasePackagePath}/" + s.Substring(2),
+							string s when s.StartsWith("./") => $"{WebAppBasePath}{_remoteBasePackagePath}/" + s.Substring(2),
 							string s => $"{_remoteBasePackagePath}/" + s,
 							_ => originalSource
 						};

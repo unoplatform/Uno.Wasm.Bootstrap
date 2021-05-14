@@ -186,6 +186,7 @@
         GeneratePrefetchHeaders="$(WashShellGeneratePrefetchHeaders)"
         PWAManifestFile="$(WasmPWAManifestFile)"
         IndexHtmlPath="$(WasmShellIndexHtmlPath)"
+        WebAppBasePath="$(WasmShellWebAppBasePath)"
         RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
         RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
         CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
