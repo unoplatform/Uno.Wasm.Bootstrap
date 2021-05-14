@@ -240,9 +240,6 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private bool IsNetCoreWasm =>
-			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
-
 		private void PreloadAssemblies()
 		{
 			// Under some circumstances, the assemblies bundled with the bootstrapper do not
@@ -504,10 +501,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private bool UseAotProfile => (AotProfile?.Any() ?? false) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
-		public Version CurrentEmscriptenVersion
-			=> IsNetCoreWasm
-			? Constants.DotnetRuntimeEmscriptenVersion
-			: Constants.MonoRuntimeEmscriptenVersion;
+		public Version CurrentEmscriptenVersion => Constants.DotnetRuntimeEmscriptenVersion;
 
 		public bool HasAdditionalPInvokeLibraries => AdditionalPInvokeLibraries is { } libs && libs.Length != 0;
 		public bool HasNativeCompile => NativeCompile is { } nativeCompile && nativeCompile.Length != 0;
@@ -657,9 +651,7 @@ namespace Uno.Wasm.Bootstrap
 					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
 				};
 
-				var proxyBasePath = IsNetCoreWasm
-					? net5BasePaths.First(Directory.Exists)
-					: Path.Combine(MonoWasmSDKPath, "dbg-proxy", "netcoreapp3.0");
+				var proxyBasePath = net5BasePaths.First(Directory.Exists);
 
 				var sourceBasePath = FixupPath(string.IsNullOrEmpty(CustomDebuggerPath) ? proxyBasePath : CustomDebuggerPath!);
 
@@ -725,7 +717,7 @@ namespace Uno.Wasm.Bootstrap
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
-			var monovmparams = IsNetCoreWasm ? $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} " : "";
+			var monovmparams = $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} ";
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
@@ -856,19 +848,10 @@ namespace Uno.Wasm.Bootstrap
 
 					var frameworkBindings = new List<string>();
 
-					if (IsNetCoreWasm)
-					{
-						frameworkBindings.Add("System.Private.Runtime.InteropServices.JavaScript.dll");
-					}
-					else
-					{
-						frameworkBindings.Add("WebAssembly.Bindings.dll");
-						frameworkBindings.Add("System.Net.Http.WebAssemblyHttpHandler.dll");
-						frameworkBindings.Add("WebAssembly.Net.WebSockets.dll");
-					}
+					frameworkBindings.Add("System.Private.Runtime.InteropServices.JavaScript.dll");
 
 					var linkerSearchPaths = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" "));
-					var fullSDKFolder = IsNetCoreWasm ? $"-d \"{_bclPath}\" {linkerSearchPaths}" : "";
+					var fullSDKFolder = $"-d \"{_bclPath}\" {linkerSearchPaths}";
 
 					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
 					bindingsPath += $" -a \"{releaseTimeZoneData}\"";
@@ -876,19 +859,7 @@ namespace Uno.Wasm.Bootstrap
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
 					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
 
-					if (!IsNetCoreWasm)
-					{
-						packagerLinkerOpts += "--exclude-feature com --exclude-feature remoting --exclude-feature etw  -l none ";
-					}
-					else
-					{
-						packagerLinkerOpts += GetLinkerFeatureConfiguration();
-					}
-
-					if (!IsNetCoreWasm)
-					{
-						packagerLinkerOpts += "-c link -p copy \"WebAssembly.Bindings\" -p copy \"Uno.Wasm.TimezoneData\" ";
-					}
+					packagerLinkerOpts += GetLinkerFeatureConfiguration();
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
@@ -931,7 +902,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private string GetLinkerFeatureConfiguration()
 		{
-			if (IsNetCoreWasm && RuntimeHostConfigurationOption != null)
+			if (RuntimeHostConfigurationOption != null)
 			{
 				var builder = new StringBuilder();
 
@@ -967,33 +938,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private void LinkerSetup()
-		{
-			if (IsNetCoreWasm)
-			{
-				_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools", "illink.dll");
-			}
-			else
-			{
-				_linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm_tools", "monolinker.exe");
-
-				var configFilePath = _linkerBinPath + ".config";
-
-				if (!File.Exists(configFilePath))
-				{
-					var content = @"
-<?xml version=""1.0"" encoding=""utf-16"" ?>
-<configuration>
-	<runtime>
-	<AppContextSwitchOverrides value=""Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false"" />
-	</runtime>
-</configuration>
-";
-					// Enable long path support for the linker. This is not needed for illink as it is runnning on .NET 5
-					// which supports long paths by default.
-					File.WriteAllText(configFilePath, content, Encoding.Unicode);
-				}
-			}
-		}
+			=> _linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools", "illink.dll");
 
 		private bool IsRuntimeAOT() => _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
@@ -1288,20 +1233,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GetBcl()
 		{
-			if (IsNetCoreWasm)
-			{
-				_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib", "net6.0");
-				var reals = Directory.GetFiles(_bclPath, "*.dll");
-				_bclAssemblies = reals.ToDictionary(x => Path.GetFileName(x));
-			}
-			else
-			{
-				_bclPath = Path.Combine(MonoWasmSDKPath, "wasm-bcl", "wasm");
-				var reals = Directory.GetFiles(_bclPath, "*.dll");
-				var facades = Directory.GetFiles(Path.Combine(_bclPath, "Facades"), "*.dll");
-				var allFiles = reals.Concat(facades);
-				_bclAssemblies = allFiles.ToDictionary(x => Path.GetFileName(x));
-			}
+			_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib", "net6.0");
+			var reals = Directory.GetFiles(_bclPath, "*.dll");
+			_bclAssemblies = reals.ToDictionary(x => Path.GetFileName(x));
 		}
 
 		private void CreateDist()
@@ -1332,43 +1266,13 @@ namespace Uno.Wasm.Bootstrap
 		{
 			DirectoryCreateDirectory(_workDistRootPath);
 
-			if (IsNetCoreWasm)
+			var runtimePath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "native");
+
+			foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
 			{
-				var runtimePath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "native");
-
-				foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
-				{
-					var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
-					Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
-					FileCopy(sourceFile, dest, true);
-				}
-			}
-			else
-			{
-				// Adjust for backward compatibility
-				RuntimeConfiguration = RuntimeConfiguration == "release-dynamic" ? "dynamic-release" : RuntimeConfiguration;
-
-				var runtimePath = Path.Combine(MonoWasmSDKPath, "builds", RuntimeConfiguration.ToLower());
-
-				foreach (var sourceFile in Directory.EnumerateFiles(runtimePath))
-				{
-					var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
-
-					var matchedExtension = _contentExtensionsToExclude
-						.FirstOrDefault(x => sourceFile.EndsWith(x, StringComparison.OrdinalIgnoreCase));
-
-					if (matchedExtension == null)
-					{
-						Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
-						FileCopy(sourceFile, dest, true);
-					}
-					else
-					{
-						Log.LogMessage($"Runtime: ignoring file {sourceFile} / matched with exclusion extension {matchedExtension}");
-					}
-				}
-
-				FileCopy(Path.Combine(MonoWasmSDKPath, "server.py"), Path.Combine(_workDistRootPath, "server.py"), true);
+				var dest = Path.Combine(_workDistPath, Path.GetFileName(sourceFile));
+				Log.LogMessage($"Runtime: {sourceFile} -> {dest}");
+				FileCopy(sourceFile, dest, true);
 			}
 		}
 
