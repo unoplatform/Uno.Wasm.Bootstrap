@@ -47,56 +47,8 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			});
 		}
 
-		private void RegisterDebuggerLookup(IApplicationBuilder app, IConfiguration configuration)
-		{
-			var buildConfiguration = configuration.GetValue<string>("configuration");
-			var targetFramework = configuration.GetValue<string>("targetframework");
-
-			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
-			var contentRoot = env.ContentRootPath;
-
-			var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(typeof(Startup).Assembly);
-			bool enumeratingDebuggerFiles = false;
-
-			Assembly contextResolve(object s, AssemblyName e)
-			{
-				//
-				// Resolve the debugger content from the files copied over from the Wasm SDK folder.
-				//
-				var isDebuggerFile = e.Name.StartsWith("Mono.Cecil")
-					|| e.Name.Contains("Mono.WebAssembly.DebuggerProxy")
-					|| e.Name.Contains("BrowserDebugProxy");
-
-				if (!enumeratingDebuggerFiles && isDebuggerFile)
-				{
-					try
-					{
-						enumeratingDebuggerFiles = true;
-
-						var debuggerRoot = Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework, "wasm-debugger");
-
-						if (Directory.Exists(debuggerRoot))
-						{
-							var debuggerLookupPath = Directory.GetDirectories(debuggerRoot).First();
-							return Assembly.LoadFrom(Path.Combine(debuggerLookupPath, e.Name + ".dll"));
-						}
-					}
-					finally
-					{
-						enumeratingDebuggerFiles = false;
-					}
-				}
-
-				return null;
-			}
-
-			ctx.Resolving += contextResolve;
-		}
-
 		public void Configure(IApplicationBuilder app, IConfiguration configuration)
 		{
-			RegisterDebuggerLookup(app, configuration);
-
 			app.UseDeveloperExceptionPage();
 			var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
 			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
@@ -109,8 +61,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 				OnPrepareResponse = SetCacheHeaders
 			});
 
-			app.UseDebugHost();
-			app.UseDebugProxy(new ProxyOptions());
+			app.UseWebAssemblyDebugging(configuration);
 
 			// Use SPA fallback routing (serve default page for anything else,
 			// excluding /_framework/*)
