@@ -1667,7 +1667,10 @@ namespace Uno.Wasm.Bootstrap
 
 					// Compatibility after the change from mono.js to dotnet.js
 					html = html.Replace("mono.js\"", "dotnet.js\"");
-					html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+					if (WebAppBasePath != "./")
+					{
+						html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+					}
 					html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 
 					w.Write(html);

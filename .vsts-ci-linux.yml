@@ -65,23 +65,43 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
-  - bash: rm -fr ~/emsdk
-    displayName: Cleanup Emscripten folder to run tests
-
+  ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
-        "$(build.sourcesdirectory)/src/WasmAot.UITests"
-
+        "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/"
     displayName: Raytracer UI Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  ## SWA sub-path validation
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /t:Publish /m:1 "/p:WasmShellWebAppBasePath=/"
+    displayName: Build RayTracer with sub-path
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
+      Contents: '**/*.*'
+      TargetFolder: $(build.artifactstagingdirectory)/subpath-override
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/test/inner"
+    displayName: Raytracer UI Tests Net5 (SWA)
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  ## Static linking validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests"
-
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"

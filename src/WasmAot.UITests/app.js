@@ -22,7 +22,7 @@ const path = require("path");
         console.log('BROWSER LOG:', msg.text());
     });
     page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err));
-    yield page.goto("http://localhost:8000/");
+    yield page.goto(process.env.BOOTSTRAP_TEST_RUNNER_URL);
     var value = null;
     console.log(`Init puppeteer`);
     var counter = 3;
