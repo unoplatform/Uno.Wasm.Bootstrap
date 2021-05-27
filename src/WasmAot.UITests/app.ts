@@ -14,7 +14,8 @@ const path = require("path");
 		console.log('BROWSER LOG:', msg.text());
 	});
 	page.on('requestfailed', err => console.error('BROWSER-REQUEST-FAILED:', err))
-	await page.goto("http://localhost:8000/");
+
+	await page.goto(process.env.BOOTSTRAP_TEST_RUNNER_URL);
 
 	var value = null;
 

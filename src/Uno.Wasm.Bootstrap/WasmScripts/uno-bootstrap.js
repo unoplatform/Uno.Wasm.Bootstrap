@@ -256,7 +256,8 @@ var App = {
         } else {
 
             for (var i = 0; i < config.uno_dependencies.length; i++) {
-                if (config.uno_dependencies[i].endsWith('AppManifest')) {
+                if (config.uno_dependencies[i].endsWith('AppManifest')
+                    || config.uno_dependencies[i].endsWith('AppManifest.js')) {
                     require([config.uno_dependencies[i]], function () {
                         manifest = window["UnoAppManifest"];
                         configLoader();

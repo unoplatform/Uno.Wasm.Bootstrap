@@ -49,7 +49,8 @@ jobs:
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
       "$(build.sourcesdirectory)\src\Uno.Wasm.AotTests.net5\bin\Release\net5.0\dist" `
-      "$(build.sourcesdirectory)\src\WasmAot.UITests"
+      "$(build.sourcesdirectory)\src\WasmAot.UITests" `
+      "http://localhost:8000/"
 
     displayName: Raytracer UI Tests Net5
     env:
@@ -58,7 +59,8 @@ jobs:
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests"
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
 
     displayName: StaticLinking.Aot Tests Net5
     env:
