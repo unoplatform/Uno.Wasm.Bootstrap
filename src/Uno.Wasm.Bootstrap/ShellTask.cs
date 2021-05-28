@@ -510,7 +510,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
-			if (IsWSLRequired && !ForceDisableWSL)
+			if (IsWSLRequired && !ForceDisableWSL && !EnableEmscriptenWindows)
 			{
 				var unixPath = AlignPath(executable, escape: true);
 				var dotnetRuntimePath = Path.GetExtension(executable).ToLowerInvariant()
