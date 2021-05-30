@@ -1489,6 +1489,9 @@ class Driver {
 			}
 			linker_args += $"-d linker-in -d $bcl_dir -d $bcl_facades_dir -d $framework_dir ";
 
+			// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
+			linker_args += $"--keep-metadata all ";
+
 			if (!is_netcore) {
 				linker_args += $" -c {coremode} -u {usermode} ";
 			}

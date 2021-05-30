@@ -830,6 +830,9 @@ namespace Uno.Wasm.Bootstrap
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
 					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
 
+					// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
+					packagerLinkerOpts += "--keep-metadata all ";
+
 					packagerLinkerOpts += GetLinkerFeatureConfiguration();
 
 					var linkerResults = RunProcess(
