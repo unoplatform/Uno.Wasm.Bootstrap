@@ -111,7 +111,7 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; } = "";
 
-		public string? WebAppBasePath { get; set; } = "./";
+		public string WebAppBasePath { get; set; } = "./";
 
 		[Required]
 		public string WasmShellMode { get; set; } = "";
@@ -1063,6 +1063,11 @@ namespace Uno.Wasm.Bootstrap
 				?? new string[0];
 
 			Log.LogMessage($"Ignoring content files with following extensions:\n\t{string.Join("\n\t", _contentExtensionsToExclude)}");
+
+			if (!WebAppBasePath.EndsWith("/"))
+			{
+				throw new InvalidOperationException($"The WasmShellWebAppBasePath property must end with a trailing \"/\" (got [{WebAppBasePath}] instead)");
+			}
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -1534,6 +1539,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
+				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
 				w.Write(config.ToString());
 			}
