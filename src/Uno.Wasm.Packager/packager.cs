@@ -1167,7 +1167,7 @@ class Driver {
 		linker_args.Add(extra_linkerflags);
 		linker_args.AddRange(linkerSearchPaths);
 
-		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \\\"@{linkerResponse}\\\" {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-instances-dll");
 

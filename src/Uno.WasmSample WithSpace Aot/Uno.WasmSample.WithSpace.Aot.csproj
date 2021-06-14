@@ -6,6 +6,7 @@
 		<IsPackable>false</IsPackable>
 		<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<!--<WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>-->
 	</PropertyGroup>
@@ -30,7 +31,20 @@
 
   <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
 	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
-	
+
+	<ItemGroup>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
