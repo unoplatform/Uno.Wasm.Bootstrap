@@ -1109,7 +1109,7 @@ class Driver {
 		}
 		else
 		{
-			ninja.WriteLine("  command = powershell mkdir -Force -p '$out'");
+			ninja.WriteLine("  command = powershell mkdir -Force -p '$out' | Out-Null");
 		}
 
 		var cpCommand = Environment.OSVersion.Platform == PlatformID.Win32NT ? "copy" : "cp";
