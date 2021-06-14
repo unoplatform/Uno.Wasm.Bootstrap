@@ -25,6 +25,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -689,11 +690,15 @@ namespace Uno.Wasm.Bootstrap
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} ";
+			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
+
+			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
+			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _workDistPath);
+			var packagerResults = RunProcess(packagerBinPath, $"\"@{packagerPass1ResponseFile}\"", _workDistPath);
 
 			if (packagerResults.exitCode != 0)
 			{
@@ -753,14 +758,13 @@ namespace Uno.Wasm.Bootstrap
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
 
+				packagerParams.Add(appDirParm);
 				packagerParams.Add(debugOption);
 				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
 				packagerParams.Add("--enable-fs ");
-				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
-				packagerParams.Add("-l idbfs.js\" ");
+				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
-				packagerParams.Add(appDirParm);
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
@@ -770,7 +774,10 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
-				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _workDistPath);
+				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
+				File.WriteAllLines(packagerResponseFile, packagerParams);
+
+				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{packagerResponseFile}\"", _workDistPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -806,7 +813,10 @@ namespace Uno.Wasm.Bootstrap
 				{
 					LinkerSetup();
 
-					string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+					var linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+					var linkerResponse = Path.Combine(linkerInput, "linker.rsp");
+					var linkerParams = new List<string>();
+
 					if (Directory.Exists(linkerInput))
 					{
 						Directory.Delete(linkerInput, true);
@@ -817,27 +827,34 @@ namespace Uno.Wasm.Bootstrap
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
-					var frameworkBindings = new List<string>();
+					var linkerSearchPaths = _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" ");
+					linkerParams.AddRange(linkerSearchPaths);
+					linkerParams.Add($"-d \"{_bclPath}\"");
 
-					frameworkBindings.Add("System.Private.Runtime.InteropServices.JavaScript.dll");
+					var frameworkBindings = new List<string>
+					{
+						"System.Private.Runtime.InteropServices.JavaScript.dll"
+					};
 
-					var linkerSearchPaths = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" "));
-					var fullSDKFolder = $"-d \"{_bclPath}\" {linkerSearchPaths}";
-
-					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
-					bindingsPath += $" -a \"{releaseTimeZoneData}\"";
+					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
+					linkerParams.AddRange(bindingsPath);
+					linkerParams.Add($" -a \"{releaseTimeZoneData}\"");
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
-					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
+					linkerParams.Add($"--deterministic --disable-opt unreachablebodies --used-attrs-only true ");
 
 					// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
-					packagerLinkerOpts += "--keep-metadata all ";
+					linkerParams.Add("--keep-metadata all ");
 
-					packagerLinkerOpts += GetLinkerFeatureConfiguration();
+					linkerParams.Add(GetLinkerFeatureConfiguration());
+					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
+					linkerParams.Add($"-out \"{_managedPath}\"");
+
+					File.WriteAllLines(linkerResponse, linkerParams);
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -d \"{_managedPath}\" {fullSDKFolder}",
+						$"\"@{linkerResponse}\"",
 						_managedPath
 					);
 
