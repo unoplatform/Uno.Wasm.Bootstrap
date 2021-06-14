@@ -780,7 +780,7 @@ namespace Uno.Wasm.Bootstrap
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>nul && {ninjaPath}\"", workAotPath)
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath}\"", workAotPath)
 					: RunProcess("ninja", "", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
