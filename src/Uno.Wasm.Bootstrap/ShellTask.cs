@@ -25,6 +25,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -510,38 +511,25 @@ namespace Uno.Wasm.Bootstrap
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
 		{
-			if (IsWSLRequired && !ForceDisableWSL && !EnableEmscriptenWindows)
+			if (IsWSLRequired
+				&& !ForceDisableWSL
+				&& !EnableEmscriptenWindows
+				&& !executable.EndsWith("bash.exe", StringComparison.OrdinalIgnoreCase))
 			{
 				var unixPath = AlignPath(executable, escape: true);
 				var dotnetRuntimePath = Path.GetExtension(executable).ToLowerInvariant()
 					switch
-					{
-						".exe" => "mono",
-						".dll" => "dotnet",
-						_ => ""
-					};
+				{
+					".exe" => "mono",
+					".dll" => "dotnet",
+					_ => ""
+				};
 
 				var cwd = workingDirectory != null ? $"cd \\\"{AlignPath(workingDirectory, escape: true)}\\\" && " : "";
 
 				parameters = $"-c \" {cwd} {dotnetRuntimePath} {unixPath} " + parameters.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
-				var basePaths = new[] {
-					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative"),    // 32 bits process
-					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "System32"),     // 64 bits process
-				};
-
-				var fullPaths = basePaths.Select(p => Path.Combine(p, "bash.exe"));
-
-				executable = fullPaths.FirstOrDefault(f => File.Exists(f));
-
-				if (string.IsNullOrEmpty(executable))
-				{
-					var allPaths = string.Join(";", fullPaths);
-
-					throw new InvalidOperationException(
-						$"WSL is required for this build but could not be found (Searched for [{allPaths}]). " +
-						$"WSL use may be explicitly disabled for CI Windows builds, see more details here: https://github.com/unoplatform/Uno.Wasm.Bootstrap#special-considerations-for-ci-servers-github-actions-azure-devops");
-				}
+				executable = GetWSLBashExecutable();
 			}
 			else if (RuntimeHelpers.IsNetCore
 				&& (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
@@ -611,9 +599,54 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private static string GetWSLBashExecutable()
+		{
+			string executable;
+			var basePaths = new[] {
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "sysnative"),    // 32 bits process
+					Path.Combine(Environment.GetEnvironmentVariable("WINDIR"), "System32"),     // 64 bits process
+				};
+
+			var fullPaths = basePaths.Select(p => Path.Combine(p, "bash.exe"));
+
+			executable = fullPaths.FirstOrDefault(f => File.Exists(f));
+
+			if (string.IsNullOrEmpty(executable))
+			{
+				var allPaths = string.Join(";", fullPaths);
+
+				throw new InvalidOperationException(
+					$"WSL is required for this build but could not be found (Searched for [{allPaths}]). " +
+					$"WSL use may be explicitly disabled for CI Windows builds, see more details here: https://github.com/unoplatform/Uno.Wasm.Bootstrap#special-considerations-for-ci-servers-github-actions-azure-devops");
+			}
+
+			return executable;
+		}
+
 		private string AlignPath(string path, bool escape = false)
 		{
-			var output = IsWSLRequired && !ForceDisableWSL ? $"`wslpath \"{path.Replace("\\\\?\\", "")}\"`" : path;
+			var trimmedPath = path.Replace("\\\\?\\", "");
+
+			string convertPath()
+			{
+				if(IsWSLRequired && !ForceDisableWSL && Path.IsPathRooted(path))
+				{
+
+					var drive = trimmedPath.Substring(0, 1).ToLowerInvariant();
+					var remainder = trimmedPath.Substring(3).Replace("\\", "/");
+
+					var r = $"/mnt/{drive}/{remainder}";
+
+					Log.LogMessage(MessageImportance.High, $"{path} -> {r}");
+					return r;
+				}
+				else
+				{
+					return trimmedPath;
+				}
+			}
+
+			var output = convertPath();
 
 			if (escape)
 			{
@@ -689,11 +722,15 @@ namespace Uno.Wasm.Bootstrap
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} ";
+			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
+
+			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
+			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
 
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
-			var packagerResults = RunProcess(packagerBinPath, $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"", _workDistPath);
+			var packagerResults = RunProcess(packagerBinPath, $"\"@{AlignPath(packagerPass1ResponseFile)}\"", _workDistPath);
 
 			if (packagerResults.exitCode != 0)
 			{
@@ -753,14 +790,13 @@ namespace Uno.Wasm.Bootstrap
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
 
+				packagerParams.Add(appDirParm);
 				packagerParams.Add(debugOption);
 				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
 				packagerParams.Add("--enable-fs ");
-				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} ");
-				packagerParams.Add("-l idbfs.js\" ");
+				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
-				packagerParams.Add(appDirParm);
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
@@ -770,7 +806,10 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
-				var aotPackagerResult = RunProcess(packagerBinPath, string.Join(" ", packagerParams), _workDistPath);
+				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
+				File.WriteAllLines(packagerResponseFile, packagerParams);
+
+				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -780,7 +819,7 @@ namespace Uno.Wasm.Bootstrap
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>nul && {ninjaPath}\"", workAotPath)
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath}\"", workAotPath)
 					: RunProcess("ninja", "", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
@@ -806,7 +845,10 @@ namespace Uno.Wasm.Bootstrap
 				{
 					LinkerSetup();
 
-					string linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+					var linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
+					var linkerResponse = Path.Combine(linkerInput, "linker.rsp");
+					var linkerParams = new List<string>();
+
 					if (Directory.Exists(linkerInput))
 					{
 						Directory.Delete(linkerInput, true);
@@ -817,27 +859,34 @@ namespace Uno.Wasm.Bootstrap
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
-					var frameworkBindings = new List<string>();
+					var linkerSearchPaths = _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" ");
+					linkerParams.AddRange(linkerSearchPaths);
+					linkerParams.Add($"-d \"{_bclPath}\"");
 
-					frameworkBindings.Add("System.Private.Runtime.InteropServices.JavaScript.dll");
+					var frameworkBindings = new List<string>
+					{
+						"System.Private.Runtime.InteropServices.JavaScript.dll"
+					};
 
-					var linkerSearchPaths = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" "));
-					var fullSDKFolder = $"-d \"{_bclPath}\" {linkerSearchPaths}";
-
-					var bindingsPath = string.Join(" ", frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\""));
-					bindingsPath += $" -a \"{releaseTimeZoneData}\"";
+					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
+					linkerParams.AddRange(bindingsPath);
+					linkerParams.Add($" -a \"{releaseTimeZoneData}\"");
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
-					var packagerLinkerOpts = $"--deterministic --disable-opt unreachablebodies --used-attrs-only true ";
+					linkerParams.Add($"--deterministic --disable-opt unreachablebodies --used-attrs-only true ");
 
 					// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
-					packagerLinkerOpts += "--keep-metadata all ";
+					linkerParams.Add("--keep-metadata all ");
 
-					packagerLinkerOpts += GetLinkerFeatureConfiguration();
+					linkerParams.Add(GetLinkerFeatureConfiguration());
+					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
+					linkerParams.Add($"-out \"{_managedPath}\"");
+
+					File.WriteAllLines(linkerResponse, linkerParams);
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
-						$"-out \"{_managedPath}\" --verbose -b true {packagerLinkerOpts} -a \"{assemblyPath}\" {bindingsPath} -d \"{_managedPath}\" {fullSDKFolder}",
+						$"\"@{linkerResponse}\"",
 						_managedPath
 					);
 
@@ -953,7 +1002,9 @@ namespace Uno.Wasm.Bootstrap
 				}
 				else
 				{
-					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? "$HOME/.uno/emsdk";
+					var homePath = GetWSLHomePath();
+
+					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? $"{homePath}/.uno/emsdk";
 					var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
 
 					if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
@@ -1012,6 +1063,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private object GetWSLHomePath()
+		{
+			var p = RunProcess(GetWSLBashExecutable(), "-c \"echo $HOME\"");
+
+			if(p.exitCode != 0)
+			{
+				throw new InvalidOperationException($"Failed to read WSL $HOME path");
+			}
+
+			return p.output;
+		}
 		private static void AdjustFileLineEndings(string emscriptenSetupScript)
 			=> File.WriteAllText(emscriptenSetupScript, File.ReadAllText(emscriptenSetupScript).Replace("\r\n", "\n"));
 

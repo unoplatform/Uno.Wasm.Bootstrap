@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Mono.Cecil;
 using Mono.Options;
 using Mono.Cecil.Cil;
+using System.Diagnostics;
 
 //
 // Google V8 style options:
@@ -460,6 +461,7 @@ class Driver {
 		var runtime_config = "release";
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
+		var linker_args = new List<string>();
 
 		var opts = new WasmOptions () {
 				AddBinding = true,
@@ -532,6 +534,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
 		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
 		AddFlag (p, new BoolFlag ("emcc-link-optimization", "enable emcc link-time optimizations", opts.EmccLinkOptimizations, b => opts.EmccLinkOptimizations = b));
+		p.Add(new ResponseFileSource());		
 
 		var new_args = p.Parse (args).ToArray ();
 		foreach (var a in new_args) {
@@ -1029,6 +1032,7 @@ class Driver {
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
+		var linkerResponse = Path.Combine (builddir, "linker.rsp");
 
 		// Defines
 		ninja.WriteLine ($"mono_sdkdir = {sdkdir}");
@@ -1109,7 +1113,7 @@ class Driver {
 		}
 		else
 		{
-			ninja.WriteLine("  command = powershell mkdir -Force -p '$out'");
+			ninja.WriteLine("  command = powershell mkdir -Force -p '$out' | Out-Null");
 		}
 
 		var cpCommand = Environment.OSVersion.Platform == PlatformID.Win32NT ? "copy" : "cp";
@@ -1151,15 +1155,19 @@ class Driver {
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
-		var linkerBin = is_netcore ? "dotnet $tools_dir/illink.dll" : "mono $tools_dir/monolinker.exe";
+		var linkerBin = "dotnet $tools_dir/illink.dll";
 
-		var linkerSearchPaths = string.Join(" ", root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d '{p}' "));
+		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
-		var linkerOptions = is_netcore ? $"{linkerSearchPaths} --strip-link-attributes {extra_linkerflags} " : "-l none --exclude-feature com,remoting,etw ";
 		var tunerCommand = is_netcore ? $"dotnet $tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
 		var exitCommand = is_windows ? "" : "|| exit 1";
 
-		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} -out $builddir/linker-out --deterministic --disable-opt unreachablebodies {linkerOptions} $linker_args {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
+		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
+		linker_args.Add($"--strip-link-attributes");
+		linker_args.Add(extra_linkerflags);
+		linker_args.AddRange(linkerSearchPaths);
+
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-instances-dll");
 
@@ -1447,58 +1455,58 @@ class Driver {
 				break;
 			}
 
-			string linker_args = "";
 			if (enable_aot)
 				// Only used by the AOT compiler
-				linker_args += "--explicit-reflection ";
-			linker_args += "--used-attrs-only true ";
+				linker_args.Add("--explicit-reflection ");
+			linker_args.Add("--used-attrs-only true ");
 
 			if (!is_netcore)
 			{
-				linker_args += "--substitutions linker-subs.xml ";
+				linker_args.Add("--substitutions linker-subs.xml ");
 				linker_infiles += "| linker-subs.xml ";
-				linker_args += "-x linker-preserves.xml ";
+				linker_args.Add("-x linker-preserves.xml ");
 				linker_infiles += "linker-preserves.xml ";
 			}
 
 			if (opts.LinkerExcludeDeserialization && !is_netcore)
-				linker_args += "--exclude-feature deserialization ";
+				linker_args.Add("--exclude-feature deserialization ");
 
 			if (!opts.EnableCollation && !is_netcore) {
-				linker_args += "--substitutions linker-disable-collation.xml ";
+				linker_args.Add("--substitutions linker-disable-collation.xml ");
 				linker_infiles += "linker-disable-collation.xml";
 			}
 			if (opts.Debug) {
-				linker_args += "-b true ";
+				linker_args.Add("-b true ");
 			}
 			if (!string.IsNullOrEmpty (linkDescriptor)) {
-				linker_args += $"-x {linkDescriptor} ";
+				linker_args.Add($"-x {linkDescriptor} ");
 				foreach (var assembly in root_assemblies) {
 					string filename = Path.GetFileName (assembly);
-					linker_args += $"-p {usermode} {filename} -r linker-in/{filename} ";
+					linker_args.Add($"-p {usermode} {filename} -r linker-in/{filename} ");
 				}
 			} else {
 				foreach (var assembly in root_assemblies) {
 					string filename = Path.GetFileName (assembly);
-					linker_args += $"-a linker-in/{filename} ";
+					linker_args.Add($"-a linker-in/{filename} ");
 				}
 			}
 
 			if (linker_verbose) {
-				linker_args += "--verbose ";
+				linker_args.Add("--verbose ");
 			}
-			linker_args += $"-d linker-in -d $bcl_dir -d $bcl_facades_dir -d $framework_dir ";
+			linker_args.Add($"-d linker-in -d {bcl_prefix} -d {bcl_facades_prefix} -d {bcl_facades_prefix} ");
 
 			// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
-			linker_args += $"--keep-metadata all ";
+			linker_args.Add($"--keep-metadata all ");
 
 			if (!is_netcore) {
-				linker_args += $" -c {coremode} -u {usermode} ";
+				linker_args.Add($" -c {coremode} -u {usermode} ");
 			}
 
 			ninja.WriteLine ("build $builddir/linker-out: mkdir");
 			ninja.WriteLine ($"build {linker_ofiles}: linker {linker_infiles}");
-			ninja.WriteLine ($"  linker_args={linker_args}");
+
+			File.WriteAllLines(linkerResponse, linker_args);
 		}
 		if (il_strip)
 			ninja.WriteLine ("build $builddir/ilstrip-out: mkdir");
