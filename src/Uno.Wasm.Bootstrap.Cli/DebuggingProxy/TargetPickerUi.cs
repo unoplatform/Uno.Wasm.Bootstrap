@@ -234,12 +234,12 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 
 		public class BrowserTab
 		{
-			public string Id;
-			public string Type;
-			public string Url;
-			public string Title;
-			public string DevtoolsFrontendUrl;
-			public string WebSocketDebuggerUrl;
+			public string Id { get; set; }
+			public string Type { get; set; }
+			public string Url { get; set; }
+			public string Title { get; set; }
+			public string DevtoolsFrontendUrl { get; set; }
+			public string WebSocketDebuggerUrl { get; set; }
 		};
 	}
 }
