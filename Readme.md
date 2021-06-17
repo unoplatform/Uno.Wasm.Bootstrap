@@ -747,7 +747,7 @@ dotnet build "/p:WasmShellWebAppBasePath=/"
 ### Support for PWA Manifest File
 A **Progressive Web App** manifest link definition can be added to the index.html file's head:
 - Use the `WasmPWAManifestFile` property to set the file name
-- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps/get-started#web-app-manifest).
+- Add a [Web App Manifest file](https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/get-started#step-2---create-a-web-app-manifest).
 - Ensure the build action is `Content` for this file so it gets copied to the output folder. The `UnoDeploy="Package"` mode (which is the default) must be used. This file must not be put in the `wwwroot` folder.
 - Create a set of icons using the [App Image Generator](https://www.pwabuilder.com/imageGenerator)
 
