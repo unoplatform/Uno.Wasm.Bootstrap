@@ -615,12 +615,14 @@ if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
         if (navigator.serviceWorker.controller) {
             console.debug("Active service worker found, skipping register");
         } else {
-            console.debug('Registering service worker now');
+            const webAppBasePath = config.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
+
+            console.debug(`Registering service worker for ${webAppBasePath}`);
 
             navigator.serviceWorker
                 .register(
-                    "./service-worker.js", {
-                    scope: "./"
+                    `${webAppBasePath}service-worker.js`, {
+                    scope: webAppBasePath
                 })
                 .then(function () {
                     console.debug('Service Worker Registered');
