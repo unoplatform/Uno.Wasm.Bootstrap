@@ -304,6 +304,7 @@ namespace Uno.Wasm.Bootstrap
 
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_remoteBasePackagePath));
 			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath + "/");
+			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
 
 			File.WriteAllText(workerFilePath, workerBody);
@@ -1777,7 +1778,6 @@ namespace Uno.Wasm.Bootstrap
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
 				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{WebAppBasePath}{PWAManifestFile}\" />");
-				extraBuilder.AppendLine($"<link rel=\"script\" href=\"{WebAppBasePath}service-worker.js\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
