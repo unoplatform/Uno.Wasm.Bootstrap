@@ -728,6 +728,8 @@ namespace Uno.Wasm.Bootstrap
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
 			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
 
+			Log.LogMessage(MessageImportance.Low, $"Response file: {pass1ResponseContent}");
+
 			//
 			// Run the packager to create the original layout. The AOT will optionally run over this pass.
 			//
@@ -810,6 +812,8 @@ namespace Uno.Wasm.Bootstrap
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
 				File.WriteAllLines(packagerResponseFile, packagerParams);
 
+				Log.LogMessage(MessageImportance.Low, $"Response file: {packagerResponseFile}");
+
 				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath);
 
 				if (aotPackagerResult.exitCode != 0)
@@ -884,6 +888,8 @@ namespace Uno.Wasm.Bootstrap
 					linkerParams.Add($"-out \"{_managedPath}\"");
 
 					File.WriteAllLines(linkerResponse, linkerParams);
+
+					Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(linkerResponse)}");
 
 					var linkerResults = RunProcess(
 						_linkerBinPath,
