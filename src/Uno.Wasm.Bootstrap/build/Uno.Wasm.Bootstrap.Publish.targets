@@ -13,7 +13,7 @@
         <TargetPath>$([System.String]::Copy(%(TargetPath)).Substring(8))</TargetPath>
       </ContentWithTargetPath>
 
-      <_UnoWasmDistFiles Include="$(OutputPath)dist\**"/>
+      <_UnoWasmDistFiles Include="$(OutputPath)dist/**"/>
       <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
         <TargetPath>$([System.String]::Copy('%(Identity)').Replace('$(OutputPath)dist$([System.IO.Path]::DirectorySeparatorChar)', ''))</TargetPath>
       </_UnoWasmDist>
