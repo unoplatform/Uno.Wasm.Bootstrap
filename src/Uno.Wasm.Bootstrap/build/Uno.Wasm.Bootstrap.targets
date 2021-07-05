@@ -50,7 +50,7 @@
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <IsWebConfigTransformDisabled>true</IsWebConfigTransformDisabled>
 
-    <UnoWasmPublishDistDir>$(AssemblyName)\dist\</UnoWasmPublishDistDir>
+    <UnoWasmPublishDistDir>$(AssemblyName)/dist/</UnoWasmPublishDistDir>
 
     <!-- Possible values: Interpreter, FullAOT, InterpreterAndAOT -->
     <WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellMonoRuntimeExecutionMode)'==''">Interpreter</WasmShellMonoRuntimeExecutionMode>
@@ -141,7 +141,7 @@
 
     <PropertyGroup>
       <!-- Defined here because OutputPath is defined late -->
-      <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
+      <WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$([System.IO.Path]::Combine('$(OutputPath)', 'dist'))</WasmShellDistPath>
       <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
 
       <_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
