@@ -4,6 +4,8 @@
 // Based on https://github.com/dotnet/aspnetcore/blob/db4ef86f34815a992d79f02109983c3d9d4bdbf1/src/Shared/CommandLineUtils/Utilities/DotNetMuxer.cs
 //
 
+#nullable enable
+
 using System;
 using System.Diagnostics;
 using System.IO;
