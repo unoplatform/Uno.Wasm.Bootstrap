@@ -23,8 +23,8 @@ jobs:
       packageType: sdk
       version: 3.1.403
 
-  - template: build/ci/dotnet-install.yml
   - template: build/ci/gitversion.yml
+  - template: build/ci/dotnet-install.yml
 
   - task: NuGetToolInstaller@0
     inputs:
