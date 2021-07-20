@@ -54,7 +54,7 @@ jobs:
 
   - bash: |
       cd $(build.sourcesdirectory)/src
-      dotnet msbuild /r /p:Configuration=Release /t:Publish /f:net5.0 /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
+      dotnet msbuild -f:net5.0 /p:Configuration=Release /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
     displayName: Build NetCore-Wasm Sample
 
   - task: CopyFiles@2
