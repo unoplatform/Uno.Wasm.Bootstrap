@@ -3,7 +3,8 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
-		<TargetFrameworks>net5;net6</TargetFrameworks>
+		<TargetFrameworks>net5</TargetFrameworks>
+		<TargetFrameworks Condition="'$(DISABLE_CLIHOST_NET6)'=='true'">$(TargetFrameworks);net6</TargetFrameworks>
 		<AssemblyName>dotnet-unowasm</AssemblyName>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
