@@ -3,10 +3,8 @@ parameters:
 
 steps:
 
-  - powershell: |
-      $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-      & .\dotnet-install.ps1 -Version ${{ parameters.DotNetVersion }} -InstallDir "$env:ProgramFiles\dotnet\" -Verbose
-      & dotnet --list-sdks
-    displayName: install .NET ${{ parameters.DotNetVersion }}
-    errorActionPreference: stop
+  - task: UseDotNet@2
+    displayName: 'Use .NET 6 SDK'
+    inputs:
+      version: ${{ parameters.DotNetVersion }}
+      includePreviewVersions: true
