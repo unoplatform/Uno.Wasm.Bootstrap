@@ -8,5 +8,5 @@ steps:
       Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
       & .\dotnet-install.ps1 -Version ${{ parameters.DotNetVersion }} -InstallDir "$env:ProgramFiles\dotnet\" -Verbose
       & dotnet --list-sdks
-    displayName: install .NET $(DotNetVersion)
+    displayName: install .NET ${{ parameters.DotNetVersion }}
     errorActionPreference: stop

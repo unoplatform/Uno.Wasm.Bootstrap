@@ -31,6 +31,10 @@
 			<PackagePath>tools\server\net5</PackagePath>
 			<Pack>true</Pack>
 		</Content>
+		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
+			<PackagePath>tools\server\net6</PackagePath>
+			<Pack>true</Pack>
+		</Content>
 	</ItemGroup>
 
 </Project>
