@@ -53,7 +53,7 @@ jobs:
 
   - bash: |
       cd $(build.sourcesdirectory)/src
-      dotnet msbuild /p:DISABLE_CLIHOST_NET6=true /p:Configuration=Release /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /t:Publish /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
     displayName: Build NetCore-Wasm Sample
 
   - task: CopyFiles@2
