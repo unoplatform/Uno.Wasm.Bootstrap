@@ -649,6 +649,9 @@ class Driver {
 			Console.Error.WriteLine ("The --link-icalls option requires the --linker option.");
 			return 1;
 		}
+
+		var tool_prefix = runtimepack_dir;
+
 		if (framework != "") {
 			if (framework.StartsWith ("net5")) {
 				is_netcore = true;
@@ -680,8 +683,6 @@ class Driver {
 			Console.Error.WriteLine ("--simd is only supported with netcore.");
 			return 1;
 		}
-
-		var tool_prefix = Path.GetDirectoryName (typeof (Driver).Assembly.Location);
 
 		//are we working from the tree?
 		if (sdkdir != null) {
@@ -947,8 +948,19 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
-			runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
-			runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
+
+			if (enable_debug)
+			{
+				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-debugger-static.a ";
+			}
+			else
+			{
+				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-debugger-stub-static.a ";
+			}
 		}
 		else
 			runtime_libs += $"$runtime_libdir/libmono-native.a ";
