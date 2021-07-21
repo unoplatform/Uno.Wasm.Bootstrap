@@ -117,7 +117,6 @@ namespace Uno.Wasm.Bootstrap
 			{
 				void WriteTools()
 				{
-					WritePackager();
 					WriteWasmTuner();
 					WriteCilStrip();
 				}
@@ -161,8 +160,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void SetupPackagerOutput()
 		{
-			var packagerName = IsNetCore ? "packager.dll" : "packager2.exe";
-			PackagerBinPath = Path.Combine(SdkPath, packagerName);
+			var packagerName = "packager.dll";
+			PackagerBinPath = Path.Combine(PackagerOverrideFolderPath, packagerName);
 		}
 
 		private void UnlockSDKPath(string sdkPath)
@@ -241,27 +240,11 @@ namespace Uno.Wasm.Bootstrap
 			Log.LogMessage(/*MessageImportance.Low, */"Got SDK Folder lock");
 		}
 
-		private bool IsNetCore =>
-			TargetFrameworkIdentifier == ".NETCoreApp" && ActualTargetFrameworkVersion >= new Version("5.0");
-
 		private void MarkSDKExecutable()
 		{
 			if (IsOSUnixLike)
 			{
 				Process.Start("chmod", $"-R +x {SdkPath}");
-			}
-		}
-
-		private void WritePackager()
-		{
-			if (!string.IsNullOrEmpty(PackagerOverrideFolderPath))
-			{
-				foreach (var file in Directory.EnumerateFiles(PackagerOverrideFolderPath))
-				{
-					var destFileName = Path.Combine(SdkPath, Path.GetFileName(file));
-					Log.LogMessage($"Copy packager override {file} to {destFileName}");
-					File.Copy(file, destFileName, true);
-				}
 			}
 		}
 

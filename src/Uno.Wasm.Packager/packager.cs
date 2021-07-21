@@ -649,6 +649,9 @@ class Driver {
 			Console.Error.WriteLine ("The --link-icalls option requires the --linker option.");
 			return 1;
 		}
+
+		var tool_prefix = runtimepack_dir;
+
 		if (framework != "") {
 			if (framework.StartsWith ("net5")) {
 				is_netcore = true;
@@ -680,8 +683,6 @@ class Driver {
 			Console.Error.WriteLine ("--simd is only supported with netcore.");
 			return 1;
 		}
-
-		var tool_prefix = Path.GetDirectoryName (typeof (Driver).Assembly.Location);
 
 		//are we working from the tree?
 		if (sdkdir != null) {
