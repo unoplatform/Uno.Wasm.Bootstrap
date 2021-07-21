@@ -1024,6 +1024,7 @@ class Driver {
 		}
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
+			emcc_flags += $"-emit-llvm ";
 		}
 		if (!use_release_runtime)
 			// -s ASSERTIONS=2 is very slow
