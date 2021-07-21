@@ -947,8 +947,19 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
-			runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
-			runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
+
+			if (enable_debug)
+			{
+				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-debugger-static.a ";
+			}
+			else
+			{
+				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
+				runtime_libs += $"$runtime_libdir/libmono-component-debugger-stub-static.a ";
+			}
 		}
 		else
 			runtime_libs += $"$runtime_libdir/libmono-native.a ";
