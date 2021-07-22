@@ -213,6 +213,7 @@
         GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
         EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
+        EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
