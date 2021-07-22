@@ -579,6 +579,23 @@ To control those optimizations, use the following msbuild property:
 
 This flag is automatically set to `false` when running in a configuration named `Debug`.
 
+The optimization level can be adjusted with the following:
+```xml
+<PropertyGroup>
+    <WasmShellEmccLinkOptimizationLevel>Level3</WasmShellEmccLinkOptimizationLevel>
+</PropertyGroup>
+```
+
+Allowed values are:
+- `None` (`-O0`)
+- `Level1` (`-O1`)
+- `Level2` (`-O2`)
+- `Level3` (`-O3`)
+- `Maximum` (`-Oz`)
+- Any other value will be passed onto emcripten without modifications
+
+The default value is `Level3`.
+
 #### Invoking emscripten and Mono/.NET 5 native functions
 
 In order to invoke emscripten and mono native functions, the bootstrapper exposes the special library name `__Native`. 

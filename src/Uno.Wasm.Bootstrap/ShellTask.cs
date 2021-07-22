@@ -125,6 +125,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EmccLinkOptimization { get; set; }
 
+		public string? EmccLinkOptimizationLevel { get; set; }
+
 		/// <summary>
 		/// Path override for the mono-wasm SDK folder
 		/// </summary>
@@ -807,6 +809,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
+				packagerParams.Add($"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
@@ -930,6 +933,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+
 		private string GetLinkerFeatureConfiguration()
 		{
 			if (RuntimeHostConfigurationOption != null)
@@ -964,6 +968,26 @@ namespace Uno.Wasm.Bootstrap
 			else
 			{
 				return "";
+			}
+		}
+
+		private string GetEmccLinkerOptimizationLevel()
+		{
+			if (Enum.TryParse<LinkOptimizationLevel>(EmccLinkOptimizationLevel, out var level))
+			{
+				return level switch
+				{
+					LinkOptimizationLevel.None => "-O0",
+					LinkOptimizationLevel.Level1 => "-O1",
+					LinkOptimizationLevel.Level2 => "-O2",
+					LinkOptimizationLevel.Level3 => "-O3",
+					LinkOptimizationLevel.Maximum => "-Oz",
+					_ => throw new ArgumentException("Unknown LinkOptimizationLevel")
+				};
+			}
+			else
+			{
+				return EmccLinkOptimizationLevel ?? "-O3";
 			}
 		}
 

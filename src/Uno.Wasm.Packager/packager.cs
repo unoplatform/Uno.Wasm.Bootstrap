@@ -461,6 +461,7 @@ class Driver {
 		var runtime_config = "release";
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
+		string linker_optimization_level = "";
 		var linker_args = new List<string>();
 
 		var opts = new WasmOptions () {
@@ -513,6 +514,7 @@ class Driver {
 				{ "framework=", s => framework = s },
 				{ "extra-emccflags=", s => extra_emccflags = s },
 				{ "extra-linkerflags=", s => extra_linkerflags = s },
+				{ "linker-optimization-level=", s => linker_optimization_level = s },
 				{ "help", s => print_usage = true },
 			};
 
@@ -1022,7 +1024,7 @@ class Driver {
 			emcc_flags += "-flto=thin ";
 		}
 		else
-			emcc_link_flags += "-Oz ";
+			emcc_link_flags += linker_optimization_level + " ";
 		string strip_cmd = "";
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
