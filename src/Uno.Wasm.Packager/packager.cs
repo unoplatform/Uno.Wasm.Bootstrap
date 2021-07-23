@@ -1108,7 +1108,7 @@ class Driver {
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = --llvm-opts 2 -emit-llvm -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
+		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
 		var aot_cross_prefix = is_windows
