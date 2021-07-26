@@ -809,7 +809,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
-				packagerParams.Add($"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}");
+				packagerParams.Add($"\"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}\"");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
