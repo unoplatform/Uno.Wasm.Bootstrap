@@ -214,6 +214,7 @@
         EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
+        NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
         Assets="@(Content)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"

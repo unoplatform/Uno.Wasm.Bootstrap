@@ -192,6 +192,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; } = false;
 
+		public string? NinjaAdditionalParameters { get; set; }
+
 		[Output]
 		public string? OutputPackagePath { get; private set; }
 
@@ -827,8 +829,8 @@ namespace Uno.Wasm.Bootstrap
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath}\"", workAotPath)
-					: RunProcess("ninja", "", workAotPath);
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\"", workAotPath)
+					: RunProcess("ninja", $"{NinjaAdditionalParameters}", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
 				{
@@ -1037,11 +1039,6 @@ namespace Uno.Wasm.Bootstrap
 
 					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK") ?? $"{homePath}/.uno/emsdk";
 					var emsdkBaseFolder = emsdkHostFolder + $"/emsdk-{CurrentEmscriptenVersion}";
-
-					if (!File.Exists(Environment.GetEnvironmentVariable("WINDIR") + "\\sysnative\\bash.exe"))
-					{
-						throw new InvalidCastException("The Windows Subsystem for Linux is not installed, please install Ubuntu 18.04 by visiting https://docs.microsoft.com/en-us/windows/wsl/install-win10.");
-					}
 
 					var emscriptenSetupScript = Path.Combine(BuildTaskBasePath, "scripts", "emscripten-setup.sh");
 
