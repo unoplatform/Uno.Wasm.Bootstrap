@@ -6,7 +6,7 @@ namespace Uno.Wasm.Bootstrap
 {
 	internal class Constants
 	{
-		public const string DefaultDotnetRuntimeSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-linux-0da4b75-6696065ab0f-1068828359-Release.zip";
+		public const string DefaultDotnetRuntimeSdkUrl = "https://unowasmbootstrap.azureedge.net/runtime/dotnet-runtime-wasm-linux-a3e433f-6696065ab0f-1076175932-Release.zip";
 
 		/// <summary>
 		/// Min version of the emscripten SDK. Must be aligned with dotnet/runtime SDK build in <see cref="NetCoreWasmSDKUri"/>.
