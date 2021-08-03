@@ -197,6 +197,9 @@ var App = {
 
                 MonoRuntime.call_method (mainMethod, null, [array]);
             }
+
+            this.initializePWA();
+
         } catch (e) {
             console.error(e);
         }
@@ -604,31 +607,36 @@ var App = {
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.click();
+    },
+
+    initializePWA: function () {
+
+        if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
+
+            if (config.enable_pwa && 'serviceWorker' in navigator) {
+                if (navigator.serviceWorker.controller) {
+                    console.debug("Active service worker found, skipping register");
+                } else {
+                    const webAppBasePath = config.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
+
+                    console.debug(`Registering service worker for ${webAppBasePath}`);
+
+                    navigator.serviceWorker
+                        .register(
+                            `${webAppBasePath}service-worker.js`, {
+                            scope: webAppBasePath
+                        })
+                        .then(function () {
+                            console.debug('Service Worker Registered');
+                        });
+                }
+            }
+        }
     }
 };
 
 if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
-
     document.addEventListener("DOMContentLoaded", () => App.preInit());
-
-    if (config.enable_pwa && 'serviceWorker' in navigator) {
-        if (navigator.serviceWorker.controller) {
-            console.debug("Active service worker found, skipping register");
-        } else {
-            const webAppBasePath = config.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
-
-            console.debug(`Registering service worker for ${webAppBasePath}`);
-
-            navigator.serviceWorker
-                .register(
-                    `${webAppBasePath}service-worker.js`, {
-                    scope: webAppBasePath
-                })
-                .then(function () {
-                    console.debug('Service Worker Registered');
-                });
-        }
-    }
 }
 else if (typeof global === 'object') {
     globalThis = global;
