@@ -4,6 +4,7 @@ parameters:
 
 jobs:
 - job: ${{ parameters.jobName }}
+  timeoutInMinutes: 90
 
   pool:
     vmImage: 'windows-2019'
