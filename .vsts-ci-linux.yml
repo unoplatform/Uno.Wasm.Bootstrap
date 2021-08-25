@@ -38,7 +38,7 @@ jobs:
     displayName: 'Install .NET 5 SDK'
     inputs:
       packageType: sdk
-      version: '5.0.100'
+      version: '5.0.400'
       installationPath: $(Agent.ToolsDirectory)/dotnet
 
   - task: NuGetToolInstaller@0
