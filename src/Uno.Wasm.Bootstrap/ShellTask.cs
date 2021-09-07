@@ -817,7 +817,7 @@ namespace Uno.Wasm.Bootstrap
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
 				File.WriteAllLines(packagerResponseFile, packagerParams);
 
-				Log.LogMessage(MessageImportance.Low, $"Response file: {packagerResponseFile}");
+				Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(packagerResponseFile)}");
 
 				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath);
 
