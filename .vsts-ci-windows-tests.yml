@@ -39,7 +39,7 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
     displayName: Build bootstrap
 
   - pwsh: |

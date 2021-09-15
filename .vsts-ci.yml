@@ -23,8 +23,8 @@ jobs:
       packageType: sdk
       version: 3.1.403
 
-
   - template: build/ci/gitversion.yml
+  - template: build/ci/dotnet-install.yml
 
   - task: NuGetToolInstaller@0
     inputs:
@@ -60,22 +60,14 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
-  - task: MSBuild@1
-    inputs:
-      solution: $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf
-      msbuildLocationMethod: version
-      msbuildVersion: latest
-      msbuildArchitecture: x86
-      msbuildArguments: /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
-      clean: false
-      maximumCpuCount: false
-      restoreNugetPackages: false
-      logProjectEvents: false
-      createLogFile: false
+  - script: |
+      dotnet msbuild /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf
+
+    displayName: Build Validation Binaries
 
   - powershell: |
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
-        .\Validate.ps1
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+      .\Validate.ps1
 
   - task: VisualStudioTestPlatformInstaller@1
 

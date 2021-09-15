@@ -9,6 +9,7 @@
 
 	<_UnoDevServerBasePath Condition="'$(TargetFramework)'=='netstandard2.0'">netcoreapp3.1</_UnoDevServerBasePath>
 	<_UnoDevServerBasePath Condition="'$(TargetFramework.substring(0,3))'=='net' and '$(TargetFramework)'!='netstandard2.0'">net5</_UnoDevServerBasePath>
+	<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 5">net6</_UnoDevServerBasePath>
 
 	<!-- Uno.Wasm.Bootstrap internal args -->
 	<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
