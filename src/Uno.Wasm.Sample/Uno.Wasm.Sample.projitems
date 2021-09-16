@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>adeff1c4-a1b5-4fe8-9eb0-a1d81b65b995</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Uno.Wasm.Sample</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)WasmCSS\test.css" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)WasmScripts\AppManifest.js" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)WasmScripts\test.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Content\LockScreenLogo.scale-200.png" />
+    <None Include="$(MSBuildThisFileDirectory)sample.common.props" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)libman.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)manifest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Program.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Add linked content first to validate directory creation from links -->
+    <Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)" />
+    <Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)" />
+    <Content Include="AdditionalContent\SomeContent01.txt">
+      <UnoDeploy>Package</UnoDeploy>
+    </Content>
+    <Content Include="AdditionalContent/SomeContent02.txt" />
+    <Content Include="AdditionalContent/SomeContent03.txt" UnoDeploy="Root" />
+    <Content Include="AdditionalContent/SomeContent04.txt" UnoDeploy="None" />
+  </ItemGroup>
+</Project>

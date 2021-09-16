@@ -3,9 +3,22 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
-		<TargetFramework>net5</TargetFramework>
 		<AssemblyName>dotnet-unowasm</AssemblyName>
 		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(DISABLE_CLIHOST_NET6)'!='true'">
+		<TargetFrameworks>net5;net6</TargetFrameworks>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(DISABLE_CLIHOST_NET6)'=='true'">
+
+		<!--
+		Ensure that we're using TargetFramework, not TargetFrameworks
+		so publish can work without specifying a TargetFramework from the CLI
+		when building tests in CI
+		-->
+		<TargetFramework>net5</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,4 +29,6 @@
 		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
 		<PackageReference Include="microsoft.aspnetcore.spaservices.extensions" Version="2.2.0" />
 	</ItemGroup>
+
+	<Target Name="GetTargetPath" />
 </Project>

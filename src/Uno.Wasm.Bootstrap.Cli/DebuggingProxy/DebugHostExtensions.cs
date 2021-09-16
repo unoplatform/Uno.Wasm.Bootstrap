@@ -11,7 +11,14 @@ using System;
 using System.Net;
 using System.Web;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+
+#if NET6_0_OR_GREATER
+using _RequestDelegate = Microsoft.AspNetCore.Http.RequestDelegate;
+#else
+using _RequestDelegate = System.Func<System.Threading.Tasks.Task>;
+#endif
 
 namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 {
@@ -24,7 +31,7 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 		public static void UseWebAssemblyDebugging(this IApplicationBuilder app, IConfiguration configuration)
 			=> app.Map("/_framework/debug", app =>
 			{
-				app.Use(async (context, next) =>
+				app.Use(async (HttpContext context, _RequestDelegate next) =>
 				{
 					var queryParams = HttpUtility.ParseQueryString(context.Request.QueryString.Value!);
 					var browserParam = queryParams.Get("browser");

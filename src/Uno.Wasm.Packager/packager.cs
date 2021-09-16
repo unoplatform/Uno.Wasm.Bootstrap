@@ -1190,7 +1190,7 @@ class Driver {
 
 		if (is_windows)
 		{
-			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:TargetFramework=net5.0 /p:OutputPath=..\\linker-out\"");
+			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 /p:OutputPath=..\\linker-out\"");
 		}
 		else
 		{

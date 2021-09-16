@@ -23,8 +23,8 @@ jobs:
       packageType: sdk
       version: 3.1.403
 
-
   - template: build/ci/gitversion.yml
+  - template: build/ci/dotnet-install.yml
 
   - task: NuGetToolInstaller@0
     inputs:
@@ -46,9 +46,9 @@ jobs:
 
   - script: |
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
+      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap.DevServer
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
+      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
     displayName: Build packages
 
   - task: CopyFiles@2
@@ -60,22 +60,14 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
-  - task: MSBuild@1
-    inputs:
-      solution: $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf
-      msbuildLocationMethod: version
-      msbuildVersion: latest
-      msbuildArchitecture: x86
-      msbuildArguments: /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget
-      clean: false
-      maximumCpuCount: false
-      restoreNugetPackages: false
-      logProjectEvents: false
-      createLogFile: false
+  - script: |
+      dotnet msbuild /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
+
+    displayName: Build Validation Binaries
 
   - powershell: |
-        cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
-        .\Validate.ps1
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+      .\Validate.ps1
 
   - task: VisualStudioTestPlatformInstaller@1
 
@@ -91,6 +83,7 @@ jobs:
       testSelector: testAssemblies
 
   - task: PublishBuildArtifacts@1
+    condition: always()
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)
       ArtifactName: uno-wasm-bootstrap-drop

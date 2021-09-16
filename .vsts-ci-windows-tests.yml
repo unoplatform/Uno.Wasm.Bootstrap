@@ -39,12 +39,12 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
     displayName: Build bootstrap
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build Raytracer Sample
 
   - pwsh: |
@@ -59,7 +59,7 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET5=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build StaticLinking.Aot Sample
 
   - pwsh: |
