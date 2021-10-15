@@ -16,8 +16,10 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -25,6 +27,7 @@ using System.Linq;
 using System.Net.Mime;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using Uno.Wasm.Bootstrap.Cli.DebuggingProxy;
 
 namespace Uno.Wasm.Bootstrap.Cli.Server
@@ -62,6 +65,45 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			});
 
 			app.UseWebAssemblyDebugging(configuration);
+
+			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+
+			// foreach(DictionaryEntry entry in Environment.GetEnvironmentVariables())
+			// {
+			// 	Console.WriteLine($"Env: {entry.Key}={entry.Value}");
+			// }
+
+			app.MapWhen(
+				ctx => ctx.Request.Path.StartsWithSegments("/_framework/unohotreload"),
+				subBuilder =>
+				{
+					subBuilder.Use(async (HttpContext context, Func<Task> next) =>
+					{
+						context.Response.Headers.Append("Uno-Environment", webHostEnvironment.EnvironmentName);
+
+						if (webHostEnvironment.IsDevelopment())
+						{
+							// DOTNET_MODIFIABLE_ASSEMBLIES is used by the runtime to initialize hot-reload specific environment variables and is configured
+							// by the launching process (dotnet-watch / Visual Studio).
+							// In Development, we'll transmit the environment variable to WebAssembly as a HTTP header. The bootstrapping code will read the header
+							// and configure it as env variable for the wasm app.
+							if (Environment.GetEnvironmentVariable("DOTNET_MODIFIABLE_ASSEMBLIES") is string dotnetModifiableAssemblies)
+							{
+								context.Response.Headers.Append("DOTNET-MODIFIABLE-ASSEMBLIES", dotnetModifiableAssemblies);
+							}
+
+							// See https://github.com/dotnet/aspnetcore/issues/37357#issuecomment-941237000
+							// Translate the _ASPNETCORE_BROWSER_TOOLS environment configured by the browser tools agent in to a HTTP response header.
+							if (Environment.GetEnvironmentVariable("__ASPNETCORE_BROWSER_TOOLS") is string browserTools)
+							{
+								context.Response.Headers.Append("ASPNETCORE-BROWSER-TOOLS", browserTools);
+							}
+						}
+
+						context.Response.StatusCode = 200;
+						await context.Response.WriteAsync("");
+					});
+				});
 
 			// Use SPA fallback routing (serve default page for anything else,
 			// excluding /_framework/*)

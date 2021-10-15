@@ -704,6 +704,13 @@ namespace Uno.Wasm.Bootstrap
 				referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
 			}
 
+			var metadataUpdaterPath = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.MetadataUpdater.dll");
+
+			if (RuntimeDebuggerEnabled)
+			{
+				referencePathsParameter += $" \"{AlignPath(metadataUpdaterPath)}\"";
+			}
+
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
@@ -875,6 +882,11 @@ namespace Uno.Wasm.Bootstrap
 					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
 					linkerParams.AddRange(bindingsPath);
 					linkerParams.Add($" -a \"{releaseTimeZoneData}\"");
+
+					if (RuntimeDebuggerEnabled)
+					{
+						linkerParams.Add($" -a \"{metadataUpdaterPath}\"");
+					}
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
 					linkerParams.Add($"--deterministic --disable-opt unreachablebodies --used-attrs-only true ");

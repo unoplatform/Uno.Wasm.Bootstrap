@@ -25,6 +25,7 @@ jobs:
     clean: true
 
   - template: build/ci/gitversion.yml
+  - template: build/ci/dotnet-install.yml
 
   - task: UseDotNet@2
     displayName: 'Use .NET Core sdk'

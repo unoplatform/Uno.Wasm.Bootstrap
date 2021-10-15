@@ -11,7 +11,7 @@
 		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->
 			<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
+		<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>

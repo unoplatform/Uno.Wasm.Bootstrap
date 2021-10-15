@@ -88,6 +88,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Sample", "Uno.Wasm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6", "Uno.Wasm.SampleNet6\Uno.Wasm.SampleNet6.csproj", "{2477F160-939B-4B9F-B9CD-9100FCD24E34}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MetadataUpdater", "Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj", "{0E0EF69E-4FE1-463E-9939-8147D122D50E}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
@@ -235,6 +237,10 @@ Global
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

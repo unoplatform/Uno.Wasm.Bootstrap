@@ -172,13 +172,14 @@ var App = {
         this.initializeRequire();
     },
 
-    mainInit: function () {
+    mainInit: async function () {
         try {
             App.attachDebuggerHotkey(config.file_list);
             App.attachProfilerHotKey();
             MonoRuntime.init();
             BINDING.bindings_lazy_init();
             App.timezoneSetup();
+            await App.initializeHotReload();
 
             var mainMethod = BINDING.resolve_method_fqn(config.uno_main);
 
@@ -631,6 +632,68 @@ var App = {
                         });
                 }
             }
+        }
+    },
+
+    initializeHotReload: async function () {
+
+        if (ENVIRONMENT_IS_WEB && App.hasDebuggingEnabled()) {
+
+            // Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
+            // from the "BrowserLink" feature.
+
+            (function (Blazor) {
+                Blazor._internal = {
+                    initialize: function() {
+                        if (!this.getApplyUpdateCapabilitiesMethod) {
+                            this.getApplyUpdateCapabilitiesMethod = Module.mono_bind_static_method("[Uno.Wasm.MetadataUpdater] Uno.Wasm.MetadataUpdate.WebAssemblyHotReload:GetApplyUpdateCapabilities");
+                            this.applyHotReloadDeltaMethod = Module.mono_bind_static_method("[Uno.Wasm.MetadataUpdater] Uno.Wasm.MetadataUpdate.WebAssemblyHotReload:ApplyHotReloadDelta");
+                            this.initializeMethod = Module.mono_bind_static_method("[Uno.Wasm.MetadataUpdater] Uno.Wasm.MetadataUpdate.WebAssemblyHotReload:Initialize");
+                        }
+
+                        this.initializeMethod();
+                    },
+
+                    applyExisting: async function () {
+                        const webAppBasePath = config.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
+
+                        var hotreloadConfigResponse = await fetch(`/_framework/unohotreload`);
+
+                        var modifiableAssemblies = hotreloadConfigResponse.headers.get('DOTNET-MODIFIABLE-ASSEMBLIES');
+                        var aspnetCoreBrowserTools = hotreloadConfigResponse.headers.get('ASPNETCORE-BROWSER-TOOLS');
+
+                        if (modifiableAssemblies) {
+                            MONO.mono_wasm_setenv('DOTNET_MODIFIABLE_ASSEMBLIES', modifiableAssemblies);
+                        }
+
+                        // To uncomment once https://github.com/dotnet/aspnetcore/issues/37357#issuecomment-941237000 is released
+                        // if (aspnetCoreBrowserTools == "true")
+                        {
+                            try {
+                                var m = await import(`/_framework/blazor-hotreload.js`);
+                                m.receiveHotReload();
+                            }
+                            catch(e) {
+                                console.error(`Failed to apply initial metadata delta ${e}`);
+                            }
+                        }
+                    },
+
+                    getApplyUpdateCapabilities: function () {
+                        this.initialize();
+                        return this.getApplyUpdateCapabilitiesMethod();
+                    },
+
+                    applyHotReload: function (moduleId, metadataDelta, ilDelta) {
+                        this.initialize();
+                        return this.applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta);
+                    }
+                };
+            })(window.Blazor || (window.Blazor = {}));
+
+            // Apply pending updates caused by a browser refresh
+            Blazor._internal.initialize();
+            await Blazor._internal.applyExisting();
         }
     }
 };

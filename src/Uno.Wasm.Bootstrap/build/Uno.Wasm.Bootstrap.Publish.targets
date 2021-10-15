@@ -15,12 +15,9 @@
     <ItemGroup>
       <!-- net5: Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
       <ResolvedAssembliesToPublish Remove="@(ResolvedAssembliesToPublish)" />
+    </ItemGroup>
 
-      <!-- Move wwwroot files to output root -->
-      <ContentWithTargetPath Update="@(ContentWithTargetPath)" Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot$([System.IO.Path]::DirectorySeparatorChar)'))">
-        <TargetPath>$([System.String]::Copy(%(TargetPath)).Substring(8))</TargetPath>
-      </ContentWithTargetPath>
-
+    <ItemGroup>
       <_UnoWasmDistFiles Include="$(OutputPath)dist/**"/>
       <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
         <TargetPath>$([System.String]::Copy('%(Identity)').Replace('$(OutputPath)dist$([System.IO.Path]::DirectorySeparatorChar)', ''))</TargetPath>
@@ -32,5 +29,5 @@
       </ContentWithTargetPath>
     </ItemGroup>
   </Target>
-  
+
 </Project>
