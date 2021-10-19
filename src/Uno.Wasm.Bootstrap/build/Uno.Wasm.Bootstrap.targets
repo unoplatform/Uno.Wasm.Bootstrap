@@ -196,7 +196,6 @@
         MixedModeExcludedAssembly="@(MonoRuntimeMixedModeExcludedAssembly)"
         ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
         MonoILLinker="$(WasmShellILLinkerEnabled)"
-        MonoTempFolder="$(WasmShellMonoTempFolder)"
         GenerateCompressedFiles="$(WasmShellGenerateCompressedFiles)"
         DistCompressionLayoutMode="$(WasmShellCompressionLayoutMode)"
         CompressedExtensions="@(WasmShellCompressedExtension)"

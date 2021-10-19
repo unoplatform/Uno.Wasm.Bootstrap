@@ -244,7 +244,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (IsOSUnixLike)
 			{
-				Process.Start("chmod", $"-R +x {SdkPath}");
+				Process.Start("chmod", $"-R +x \"{SdkPath}\"");
 			}
 		}
 
@@ -372,6 +372,12 @@ namespace Uno.Wasm.Bootstrap
 		private string GetMonoTempPath()
 		{
 			var path = string.IsNullOrWhiteSpace(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder!;
+
+			// Workaround for https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/418
+			if(EnableEmscriptenWindows && path.Contains(" "))
+			{
+				path = Path.Combine(Environment.GetEnvironmentVariable("ProgramData"), "UnoPlatform");
+			}
 
 			Directory.CreateDirectory(path);
 
