@@ -4,8 +4,16 @@
   <Target Name="_UnoWasmGetCopyToPublishDirectory"
       BeforeTargets="GetCopyToPublishDirectoryItems"
       Condition="'$(OutputType.ToLowerInvariant())'=='exe'">
+    
     <ItemGroup>
-      <!-- Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
+      <!-- net6+: Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
+      <_ResolvedCopyLocalPublishAssets Remove="@(_ResolvedCopyLocalPublishAssets)" />
+      <!-- Remove all wwwroot content as it is already included in the dist folder -->
+      <ContentWithTargetPath Remove="@(ContentWithTargetPath)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- net5: Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
       <ResolvedAssembliesToPublish Remove="@(ResolvedAssembliesToPublish)" />
 
       <!-- Move wwwroot files to output root -->

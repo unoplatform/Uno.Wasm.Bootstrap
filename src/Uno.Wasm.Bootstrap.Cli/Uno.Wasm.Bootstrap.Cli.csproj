@@ -31,4 +31,5 @@
 	</ItemGroup>
 
 	<Target Name="GetTargetPath" />
+	<Target Name="GetCopyToPublishDirectoryItems" />
 </Project>
