@@ -720,7 +720,7 @@ namespace Uno.Wasm.Bootstrap
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
-			var monovmparams = $"--framework=net5 --runtimepack-dir={AlignPath(MonoWasmSDKPath)} {enableICUParam} ";
+			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
 			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
