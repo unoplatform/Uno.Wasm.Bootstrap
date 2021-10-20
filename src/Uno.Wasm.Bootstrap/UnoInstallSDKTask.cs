@@ -374,9 +374,16 @@ namespace Uno.Wasm.Bootstrap
 			var path = string.IsNullOrWhiteSpace(MonoTempFolder) ? Path.GetTempPath() : MonoTempFolder!;
 
 			// Workaround for https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/418
-			if(EnableEmscriptenWindows && path.Contains(" "))
+			if(path.Trim().Contains(" "))
 			{
-				path = Path.Combine(Environment.GetEnvironmentVariable("ProgramData"), "UnoPlatform");
+				if (EnableEmscriptenWindows)
+				{
+					path = Path.Combine(Environment.GetEnvironmentVariable("ProgramData"), "UnoPlatform");
+				}
+				else
+				{
+					throw new InvalidOperationException("The MSBuild property WasmShellMonoTempFolder (MonoTempFolder task parameter) must not contain spaces");
+				}
 			}
 
 			Directory.CreateDirectory(path);

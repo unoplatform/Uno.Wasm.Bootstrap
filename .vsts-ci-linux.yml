@@ -65,20 +65,6 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
-  - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet5
-      $customMonoTempPath="/tmp/with a space/test"
-      mkdir $customMonoTempPath
-      dotnet msbuild /r /p:Configuration=Release "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win-temp-with-space.binlog
-    displayName: Build SampleNet5 Sample with Spaces
-
-  - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5
-      $customMonoTempPath="/tmp/with a space/test2"
-      mkdir $customMonoTempPath
-      dotnet msbuild /r /p:Configuration=Release "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
-    displayName: Build Raytracer Sample with Spaces
-
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
