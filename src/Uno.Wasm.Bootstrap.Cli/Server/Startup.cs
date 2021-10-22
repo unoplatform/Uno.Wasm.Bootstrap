@@ -57,6 +57,14 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 			var contentRoot = env.ContentRootPath;
 
+			app.Use(async (context, next) =>
+			{
+				context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+				context.Response.Headers.Add("Access-Control-Allow-Methods", "*");
+				context.Response.Headers.Add("Access-Control-Allow-Headers", "*");
+				await next();
+			});
+
 			app.UseStaticFiles(new StaticFileOptions
 			{
 				FileProvider = new PhysicalFileProvider(pathBase),
