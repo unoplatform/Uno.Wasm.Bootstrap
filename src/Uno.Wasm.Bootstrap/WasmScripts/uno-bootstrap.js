@@ -438,7 +438,7 @@ var App = {
 
         // Uno.Wasm.Bootstrap is using "requirejs" by default, which is an AMD implementation
         // But when run with NodeJS or Electron, it's using CommonJS instead of AMD
-        this.isUsingCommonJS = ENVIRONMENT_IS_NODE || Module.isElectron();
+        this.isUsingCommonJS = config.uno_shell_mode !== "BrowserEmbedded" && (ENVIRONMENT_IS_NODE || Module.isElectron());
 
         if (config.enable_debugging) console.log("Done loading the BCL");
 

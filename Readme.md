@@ -689,7 +689,45 @@ node app param1 param2
 
 An example of the node.js support is available in the `Uno.Wasm.Node.Sample` and `Uno.Wasm.Node.Sample.Runner.njsproj` projects.
 
+### Browser Embedded mode
+
+By default, the project is launched with a HTML page (`index.html`). That's great for SPAs (Single Page Applications), but it could become difficult to embed into an existing webpage or application.
+
+It is possible to use the Browser Embedded mode to allow the launching using JavaScript instead.
+
+1. Add this line in your project file:
+
+   ``` xml
+   <WasmShellMode>BrowserEmbedded</WasmShellMode>
+   ```
+
+   A `embedded.js` file will be generated instead of the usual `index.html`, containing the required code to launch the application.
+
+2. In the HTML where you want to host the application, add the following:
+   Using HTML:
+
+   ``` html
+   <div id="uno-body" />
+   <script src="https://path.to/your/wasm/app/embedded.js" />
+   ```
+
+   Using script:
+
+   ``` javascript
+   // you must ensure there's a <div id="uno-body" /> present in the DOM before calling this:
+   import("https://path.to/your/wasm/app/embedded.js");
+   ```
+
+   
+
+Important notes about Browser Embedded mode:
+
+* There is NO script isolation mechanisms. That means the running application will have access to the same context and global objects.
+* Loading more than one Uno bootstrapped application in the same page will conflict and produce unwanted results.
+* Important: it may be required to **add CORS headers** to the application hosting website to allow the download and execution of scripts from it. It's already allowed in the development server shipped with Uno Bootstrapper.
+
 ### Support for additional JS files
+
 Providing additional JS files is done through the inclusion of `EmbeddedResource`  msbuild item  files, in a project folder named `WasmScripts`.
 Files are processed as embedded resources to allow for libraries to provide javascript files.
 

@@ -230,7 +230,8 @@ namespace Uno.Wasm.Bootstrap
 				GenerateConfig();
 				TouchServiceWorker();
 				MergeConfig();
-				GenerateHtml();
+				GenerateIndexHtml();
+				GenerateEmbeddedJs();
 				TryCompressDist();
 
 				return true;
@@ -1578,7 +1579,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			var unoConfigJsPath = Path.Combine(_finalPackagePath, "uno-config.js");
 
-			using (var w = new StreamWriter(unoConfigJsPath, false, new UTF8Encoding(false)))
+			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
 				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{_remoteBasePackagePath}/";
 				var dependencies = string.Join(", ", _dependencies.Select(dep => BuildDependencyPath(dep, baseLookup)));
@@ -1609,6 +1610,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
+				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 
 				if (GenerateAOTProfile)
 				{
@@ -1639,6 +1641,27 @@ namespace Uno.Wasm.Bootstrap
 
 				w.Write(config.ToString());
 			}
+		}
+
+		private void GenerateAppInfo()
+		{
+			var unoAppInfoPath = Path.Combine(_distPath, "uno-appinfo.json");
+			using var w = new StreamWriter(unoAppInfoPath, append: false, encoding: _utf8Encoding);
+
+			var appInfo = new AppInfo(WebAppBasePath, _remoteBasePackagePath);
+		}
+
+		internal class AppInfo
+		{
+			public AppInfo(string basePath, string packagePath)
+			{
+				BasePath = basePath;
+				PackagePath = packagePath;
+			}
+
+			public string BasePath { get; }
+			public string PackagePath { get; }
+
 		}
 
 		static string BuildDependencyPath(string dep, string baseLookup)
@@ -1691,7 +1714,8 @@ namespace Uno.Wasm.Bootstrap
 			   select file.Replace(_distPath, "").Replace("\\", "/");
 
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
-		
+		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
+
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
 			const string monoWasmFileName = "dotnet.wasm";
@@ -1740,13 +1764,13 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
-				filesIntegrity = new (string fileName, string integrity)[0];
+				filesIntegrity = Array.Empty<(string fileName, string integrity)>();
 			}
 
 			return ($"{WebAppBasePath}{_remoteBasePackagePath}/" + monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity);
 		}
 
-		private void GenerateHtml()
+		private void GenerateIndexHtml()
 		{
 			if (_shellMode != ShellMode.Browser)
 			{
@@ -1755,34 +1779,118 @@ namespace Uno.Wasm.Bootstrap
 
 			var htmlPath = Path.Combine(_distPath, "index.html");
 
-			using (var w = new StreamWriter(htmlPath, false, new UTF8Encoding(false)))
+			using var w = new StreamWriter(htmlPath, false, _utf8Encoding);
+			using var reader = new StreamReader(IndexHtmlPath);
+			var html = reader.ReadToEnd();
+
+			var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{s}\" />"));
+			html = html.Replace("$(ADDITIONAL_CSS)", styles);
+
+			var extraBuilder = new StringBuilder();
+			GeneratePWAContent(extraBuilder);
+			GeneratePrefetchHeaderContent(extraBuilder);
+
+			html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
+
+			// Compatibility after the change from mono.js to dotnet.js
+			html = html.Replace("mono.js\"", "dotnet.js\"");
+			if (WebAppBasePath != "./")
 			{
-				using (var reader = new StreamReader(IndexHtmlPath))
-				{
-					var html = reader.ReadToEnd();
-
-					var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{s}\" />"));
-					html = html.Replace("$(ADDITIONAL_CSS)", styles);
-
-					var extraBuilder = new StringBuilder();
-					GeneratePWAContent(extraBuilder);
-					GeneratePrefetchHeaderContent(extraBuilder);
-
-					html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
-
-					// Compatibility after the change from mono.js to dotnet.js
-					html = html.Replace("mono.js\"", "dotnet.js\"");
-					if (WebAppBasePath != "./")
-					{
-						html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
-					}
-					html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
-
-					w.Write(html);
-
-					Log.LogMessage($"HTML {htmlPath}");
-				}
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 			}
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+
+			w.Write(html);
+
+			Log.LogMessage($"HTML {htmlPath}");
+		}
+
+		private void GenerateEmbeddedJs()
+		{
+			if (_shellMode != ShellMode.BrowserEmbedded)
+			{
+				return;
+			}
+
+			var scriptPath = Path.Combine(_distPath, "embedded.js");
+
+			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
+			const string javascriptTemplate = @"
+(async function () {
+
+	const executingScript = document.currentScript;
+	if(!executingScript) {
+		console.err(""embedded.js MUST be run using a <script> tag in the current version."");
+		return;
+	}
+
+	const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
+	
+	const package = ""$(PACKAGE_PATH)"";
+	const absolutePath = (new URL(package, executingScriptAbsolutePath)).href;
+
+	const preloadingScripts = [""require"",""mono-config"",""uno-config""];
+	const loadingScripts = [""uno-bootstrap"",""dotnet""];
+	const styles = [$(STYLES)];
+
+	styles.forEach(s => {
+		const scriptElement = document.createElement(""link"");
+		scriptElement.setAttribute(""href"", `${absolutePath}/${s}`);
+		scriptElement.setAttribute(""type"", ""text/css"");
+		document.head.appendChild(scriptElement);
+	});
+
+	const baseElement = document.createElement(""base"");
+	baseElement.setAttribute(""href"", absolutePath);
+	document.head.appendChild(baseElement);
+
+	const html = ""<div id='uno-body' class='container-fluid uno-body'><div class='uno-loader' loading-position='bottom' loading-alert='none'><img class='logo' src='' /><progress></progress><span class='alert'></span></div></div>"";
+
+	if(typeof unoRootElement !== 'undefined') {
+		unoRootElement.innerHTML = html;
+	} else {
+		var rootDiv = document.createElement(""div"");
+		rootDiv.innerHTML = html;
+		document.body.appendChild(rootDiv);
+	}
+
+	const loadScript = s => new Promise((ok, err) => {
+		const scriptElement = document.createElement(""script"");
+		scriptElement.setAttribute(""src"", `${absolutePath}/${s}.js`);
+		scriptElement.setAttribute(""type"", ""text/javascript"");
+		scriptElement.onload = () => ok();
+		scriptElement.onerror = () => err(""err loading "" + s);
+		document.head.appendChild(scriptElement);
+	});
+
+	await preloadingScripts.reduce(async (p, s) => {
+		await p;
+		await loadScript(s);
+	}, undefined);
+
+	config.uno_app_base = absolutePath;
+
+	await loadingScripts.reduce(async (p, s) => {
+		await p;
+		await loadScript(s);
+	}, undefined);
+})();
+";
+			var stylesString = string.Join(",", _additionalStyles?.Select(s=>$"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
+
+			var javascript = javascriptTemplate
+				.Replace("$(PACKAGE_PATH)", _remoteBasePackagePath)
+				.Replace("$(STYLES)", stylesString);
+			w.Write(javascript);
+			w.Flush();
+
+			// Write index.html loading the javascript as a helper
+			var htmlPath = Path.Combine(_distPath, "index.html");
+			using var w2 = new StreamWriter(htmlPath, append: false, _utf8Encoding);
+
+			const string html = "<html><body><script src=\"embedded.js\" type=\"text/javascript\"></script>\n";
+			w2.Write(html);
+			w2.Flush();
 		}
 
 		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
