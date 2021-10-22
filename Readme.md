@@ -723,7 +723,7 @@ It is possible to use the Browser Embedded mode to allow the launching using Jav
 Important notes about Browser Embedded mode:
 
 * There is NO script isolation mechanisms. That means the running application will have access to the same context and global objects.
-* Loading more than one Uno bootstrapped application in the same page will conflict and produce unwanted results.
+* Loading more than one Uno bootstrapped application in the same page will conflict and produce unwanted results. A workaround would be to use a `<iframe>`.
 * Important: it may be required to **add CORS headers** to the application hosting website to allow the download and execution of scripts from it. It's already allowed in the development server shipped with Uno Bootstrapper.
 
 ### Support for additional JS files

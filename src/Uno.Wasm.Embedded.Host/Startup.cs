@@ -27,10 +27,8 @@ namespace Uno.Wasm.Embedded.Host
 				app.UseDeveloperExceptionPage();
 			}
 
-			var staticOptions = new StaticFileOptions(new SharedOptions(){});
-
 			app.UseDefaultFiles();
-			app.UseStaticFiles(staticOptions);
+			app.UseStaticFiles();
 		}
 	}
 }
