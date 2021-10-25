@@ -61,7 +61,7 @@ jobs:
       flattenFolders: false
 
   - script: |
-      dotnet msbuild /r /bl /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
+      dotnet msbuild /r /bl /m:1 /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
 
     displayName: Build Validation Binaries
 

@@ -65,6 +65,9 @@
     <EnableUnsafeUTF7Encoding Condition="'$(EnableUnsafeUTF7Encoding)' == ''">false</EnableUnsafeUTF7Encoding>
     <HttpActivityPropagationSupport Condition="'$(HttpActivityPropagationSupport)' == ''">false</HttpActivityPropagationSupport>
     <DebuggerSupport Condition="'$(DebuggerSupport)'==''">$(MonoRuntimeDebuggerEnabled)</DebuggerSupport>
+
+    <!-- https://github.com/dotnet/sdk/issues/12114 -->
+      <_WasmBootstrapOriginalPublishDir>$(PublishDir)</_WasmBootstrapOriginalPublishDir>
   </PropertyGroup>
 
   <!--
@@ -247,6 +250,19 @@
 
     <Error Text="The current project is referencing the deprecated Uno.Wasm.Bootstrap.Cli package. Remove it manually in the project file and add a reference to Uno.Wasm.Bootstrap.DevServer instead. For more information visit: https://github.com/unoplatform/Uno.Wasm.Bootstrap#upgrading-from-previous-versions-of-the-unowasmbootstrap-package"
          Condition="$(_CliToolRefs.Contains('Uno.Wasm.Bootstrap.Cli'))"/>
+  </Target>
+
+  <Target Name="WasmBootstrapOverridePublishDir_12114"
+          BeforeTargets="Build"
+          Condition="'$(AppendRuntimeIdentifierToOutputPath)'=='false' and '$(_OriginalPublishDir)'=='' and $(PublishDir.Contains($(RuntimeIdentifier)))">
+
+    <!-- Override the PublishDir variable name to take AppendRuntimeIdentifierToOutputPath into account properly -->
+	  <CreateProperty
+          Value="$(OutputPath)$(PublishDirName)\">
+        <Output
+            TaskParameter="Value"
+            PropertyName="PublishDir" />
+      </CreateProperty>
   </Target>
 
   <Import Project="Uno.Wasm.Bootstrap.Publish.targets"/>

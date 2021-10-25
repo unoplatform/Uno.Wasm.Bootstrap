@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<EmbeddedResource Include="LinkerConfig.xml">
+			<LogicalName>$(AssemblyName).xml</LogicalName>
+		</EmbeddedResource>
+	</ItemGroup>
+	
+	<Target Name="CopyToBoostrapDev" AfterTargets="Build">
+		<ItemGroup>
+			<_MetadataUpdaterOutputFiles Include="$(TargetDir)\Uno.Wasm.MetadataUpdater.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_MetadataUpdaterOutputFiles)" DestinationFolder="..\Uno.Wasm.Bootstrap\tools\support" />
+	</Target>
+</Project>
