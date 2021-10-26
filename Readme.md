@@ -691,7 +691,7 @@ An example of the node.js support is available in the `Uno.Wasm.Node.Sample` and
 
 ### Browser Embedded mode
 
-By default, the project is launched with a HTML page (`index.html`). That's great for SPAs (Single Page Applications), but it could become difficult to embed into an existing webpage or application.
+By default, the project is launched with a HTML page (`index.html`). This mode is used for SPAs (Single Page Applications), but does not allow embedding into an existing webpage or application.
 
 It is possible to use the Browser Embedded mode to allow the launching using JavaScript instead.
 
@@ -701,7 +701,7 @@ It is possible to use the Browser Embedded mode to allow the launching using Jav
    <WasmShellMode>BrowserEmbedded</WasmShellMode>
    ```
 
-   A `embedded.js` file will be generated instead of the usual `index.html`, containing the required code to launch the application.
+   The `embedded.js` file will be generated instead of `index.html`, containing the required code to launch the application.
 
 2. In the HTML where you want to host the application, add the following:
    Using HTML:
@@ -711,7 +711,7 @@ It is possible to use the Browser Embedded mode to allow the launching using Jav
    <script src="https://path.to/your/wasm/app/embedded.js" />
    ```
 
-   Using script:
+   Using a script:
 
    ``` javascript
    // you must ensure there's a <div id="uno-body" /> present in the DOM before calling this:
@@ -720,11 +720,11 @@ It is possible to use the Browser Embedded mode to allow the launching using Jav
 
    
 
-Important notes about Browser Embedded mode:
+#### Important notes about Browser Embedded mode:
 
-* There is NO script isolation mechanisms. That means the running application will have access to the same context and global objects.
+* There is no script isolation mechanisms, meaning that the application will have access to the same context and global objects.
 * Loading more than one Uno bootstrapped application in the same page will conflict and produce unwanted results. A workaround would be to use a `<iframe>`.
-* Important: it may be required to **add CORS headers** to the application hosting website to allow the download and execution of scripts from it. It's already allowed in the development server shipped with Uno Bootstrapper.
+* It may be required to add **CORS headers** to the application hosting website to allow the download and execution of scripts from it. It's already allowed in the development server shipped with Uno Bootstrapper.
 
 ### Support for additional JS files
 
