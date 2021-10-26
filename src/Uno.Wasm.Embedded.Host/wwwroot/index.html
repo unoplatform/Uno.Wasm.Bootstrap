@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Hosted app</title>
+</head>
+<body>
+<h1>Hosted application</h1>
+<p>
+    This page is hosting a Uno application hosted on another site. To use it,
+    you must start the <code>Uno.Wasm.Embedded.App</code> project with
+    <kbd>CTRL</kbd>+<kbd>F5</kbd>.
+
+    The url of the hosted application should be <pre>http://localhost:44355/</pre>.
+</p>
+<p>
+    The application should appear below the following line...
+</p>
+<hr />
+<script type="text/javascript">
+    function loadError() {
+        debugger;
+        document.write("<b>ERROR: Unable to load script. Is the server running?</b>");
+    }
+
+</script>
+
+<script type="text/javascript" src="http://localhost:44355/embedded.js" onerror="loadError()"></script>
+
+</body>
+</html>

@@ -88,6 +88,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Sample", "Uno.Wasm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6", "Uno.Wasm.SampleNet6\Uno.Wasm.SampleNet6.csproj", "{2477F160-939B-4B9F-B9CD-9100FCD24E34}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Embedded", "Embedded", "{DF5C402A-5CB7-4692-BDB3-93F734E214FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Embedded.Host", "Uno.Wasm.Embedded.Host\Uno.Wasm.Embedded.Host.csproj", "{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Embedded.App", "Uno.Wasm.Embedded.App\Uno.Wasm.Embedded.App.csproj", "{B401928C-600E-4450-ADFF-20EADC7CE3EC}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MetadataUpdater", "Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj", "{0E0EF69E-4FE1-463E-9939-8147D122D50E}"
 EndProject
 Global
@@ -104,6 +110,7 @@ Global
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
 		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{adeff1c4-a1b5-4fe8-9eb0-a1d81b65b995}*SharedItemsImports = 13
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b401928c-600e-4450-adff-20eadc7ce3ec}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{b474457d-dbcd-4795-a2ab-ec3f09e53198}*SharedItemsImports = 13
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{b5571c08-f903-4f17-8346-36265f775b5f}*SharedItemsImports = 13
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b79f67e0-ac18-4b93-a3dd-f1bfe6f418e9}*SharedItemsImports = 5
@@ -237,6 +244,14 @@ Global
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B401928C-600E-4450-ADFF-20EADC7CE3EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B401928C-600E-4450-ADFF-20EADC7CE3EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B401928C-600E-4450-ADFF-20EADC7CE3EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B401928C-600E-4450-ADFF-20EADC7CE3EC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E0EF69E-4FE1-463E-9939-8147D122D50E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -277,6 +292,9 @@ Global
 		{B474457D-DBCD-4795-A2AB-EC3F09E53198} = {B27FC2DE-70CA-4287-9FC1-D108F115D8AA}
 		{ADEFF1C4-A1B5-4FE8-9EB0-A1D81B65B995} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{2477F160-939B-4B9F-B9CD-9100FCD24E34} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
+		{DF5C402A-5CB7-4692-BDB3-93F734E214FA} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389} = {DF5C402A-5CB7-4692-BDB3-93F734E214FA}
+		{B401928C-600E-4450-ADFF-20EADC7CE3EC} = {DF5C402A-5CB7-4692-BDB3-93F734E214FA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
