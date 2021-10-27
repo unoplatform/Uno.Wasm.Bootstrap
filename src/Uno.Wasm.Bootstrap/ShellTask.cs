@@ -1836,7 +1836,7 @@ namespace Uno.Wasm.Bootstrap
 	styles.forEach(s => {
 		const scriptElement = document.createElement(""link"");
 		scriptElement.setAttribute(""href"", `${absolutePath}/${s}`);
-		scriptElement.setAttribute(""type"", ""text/css"");
+		scriptElement.setAttribute(""rel"", ""stylesheet"");
 		document.head.appendChild(scriptElement);
 	});
 
