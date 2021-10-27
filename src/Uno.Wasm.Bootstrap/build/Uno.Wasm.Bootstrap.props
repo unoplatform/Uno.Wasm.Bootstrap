@@ -1,5 +1,5 @@
 <Project>
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(WasmShellEnableMetadataUpdates)'=='true'">
     <UseMonoRuntime>true</UseMonoRuntime>
 
     <!--
