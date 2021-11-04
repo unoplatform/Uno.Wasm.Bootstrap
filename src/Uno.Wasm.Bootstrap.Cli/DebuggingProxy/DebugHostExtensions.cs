@@ -43,7 +43,7 @@ namespace Uno.Wasm.Bootstrap.Cli.DebuggingProxy
 						devToolsHost = $"http://{browserUrl.Host}:{browserUrl.Port}";
 					}
 
-					var debugProxyBaseUrl = await DebugProxyLauncher.EnsureLaunchedAndGetUrl(context.RequestServices, configuration, devToolsHost);
+					var debugProxyBaseUrl = await DebugProxyLauncher.EnsureLaunchedAndGetUrl(context.RequestServices, configuration, devToolsHost, browserUrl);
 					var requestPath = context.Request.Path.ToString();
 					if (requestPath == string.Empty)
 					{
