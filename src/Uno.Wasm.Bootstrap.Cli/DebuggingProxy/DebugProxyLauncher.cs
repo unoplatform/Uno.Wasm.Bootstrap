@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.WebSockets;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -23,26 +25,63 @@ namespace Uno.Wasm.Bootstrap.Cli
 {
 	internal static class DebugProxyLauncher
 	{
-		private static readonly object LaunchLock = new object();
 		private static readonly TimeSpan DebugProxyLaunchTimeout = TimeSpan.FromSeconds(10);
 		private static Task<string>? LaunchedDebugProxyUrl;
+		private static SemaphoreSlim LaunchLock = new SemaphoreSlim(1);
 		private static readonly Regex NowListeningRegex = new Regex(@"^\s*Now listening on: (?<url>.*)$", RegexOptions.None, TimeSpan.FromSeconds(10));
 		private static readonly Regex ApplicationStartedRegex = new Regex(@"^\s*Application started\. Press Ctrl\+C to shut down\.$", RegexOptions.None, TimeSpan.FromSeconds(10));
 
-		public static Task<string> EnsureLaunchedAndGetUrl(IServiceProvider serviceProvider, IConfiguration configuration, string devToolsHost)
+		private static Process? _debugProxyProcess;
+		private static string? _devToolsHost;
+		private static readonly HttpClient _aliveCheckClient = new HttpClient()
 		{
-			lock (LaunchLock)
+			Timeout = TimeSpan.FromSeconds(.5)
+		};
+
+		public static async Task<string> EnsureLaunchedAndGetUrl(IServiceProvider serviceProvider, IConfiguration configuration, string devToolsHost, Uri? browserUrl)
+		{
+			try
 			{
-				if (LaunchedDebugProxyUrl == null)
+				await LaunchLock.WaitAsync();
+
+				if (LaunchedDebugProxyUrl == null
+					|| (_debugProxyProcess?.HasExited ?? false)
+					|| (!await IsAlive()))
 				{
-					LaunchedDebugProxyUrl = LaunchAndGetUrl(serviceProvider, configuration, devToolsHost);
+					LaunchedDebugProxyUrl = LaunchAndGetUrl(serviceProvider, configuration, devToolsHost, browserUrl);
 				}
 
-				return LaunchedDebugProxyUrl;
+				return await LaunchedDebugProxyUrl;
+			}
+			finally
+			{
+				LaunchLock.Release();
 			}
 		}
 
-		private static async Task<string> LaunchAndGetUrl(IServiceProvider serviceProvider, IConfiguration configuration, string devToolsHost)
+		/// <summary>
+		/// Determines if the target host is available.
+		/// </summary>
+		/// <returns></returns>
+		private static async Task<bool> IsAlive()
+		{
+			if (_devToolsHost == null)
+			{
+				return false;
+			}
+
+			try
+			{
+				_ = await _aliveCheckClient.GetByteArrayAsync($"{_devToolsHost}");
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		private static async Task<string> LaunchAndGetUrl(IServiceProvider serviceProvider, IConfiguration configuration, string devToolsHost, Uri? browserUrl)
 		{
 			var tcs = new TaskCompletionSource<string>();
 
@@ -60,15 +99,22 @@ namespace Uno.Wasm.Bootstrap.Cli
 			};
 			RemoveUnwantedEnvironmentVariables(processStartInfo.Environment);
 
-			var debugProxyProcess = Process.Start(processStartInfo);
-			if (debugProxyProcess is null)
+			_devToolsHost = devToolsHost;
+
+			if(_debugProxyProcess != null && !_debugProxyProcess.HasExited)
+			{
+				_debugProxyProcess.Kill();
+			}
+
+			_debugProxyProcess = Process.Start(processStartInfo);
+			if (_debugProxyProcess is null)
 			{
 				tcs.TrySetException(new InvalidOperationException("Unable to start debug proxy process."));
 			}
 			else
 			{
-				PassThroughConsoleOutput(debugProxyProcess);
-				CompleteTaskWhenServerIsReady(debugProxyProcess, tcs);
+				PassThroughConsoleOutput(_debugProxyProcess);
+				CompleteTaskWhenServerIsReady(_debugProxyProcess, tcs);
 
 				new CancellationTokenSource(DebugProxyLaunchTimeout).Token.Register(() =>
 				{
