@@ -5,6 +5,12 @@
 		<StartupObject>Uno.Wasm.Bootstrap.Cli.Program</StartupObject>
 		<AssemblyName>dotnet-unowasm</AssemblyName>
 		<IsPackable>false</IsPackable>
+
+		<!--
+		Enable implicit dotnet runtime forward rolling, as a net5
+		project may run with net6 only SDK installed
+		-->
+		<RollForward>Major</RollForward>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(DISABLE_CLIHOST_NET6)'!='true'">
