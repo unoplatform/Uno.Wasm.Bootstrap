@@ -704,12 +704,6 @@ namespace Uno.Wasm.Bootstrap
 
 			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
 
-			if (GenerateAOTProfile)
-			{
-				var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
-				referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
-			}
-
 			var debugOption = RuntimeDebuggerEnabled ? "--debug" : "";
 			string packagerBinPath = string.IsNullOrWhiteSpace(PackagerBinPath) ? Path.Combine(MonoWasmSDKPath, "packager.exe") : PackagerBinPath!;
 			var appDirParm = $"--appdir=\"{AlignPath(_workDistPath)}\" ";
@@ -721,7 +715,8 @@ namespace Uno.Wasm.Bootstrap
 					|| GetBitcodeFilesParams().Any()
 					|| IsWSLRequired
 					|| HasAdditionalPInvokeLibraries
-					|| HasNativeCompile);
+					|| HasNativeCompile
+					|| GenerateAOTProfile);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -793,6 +788,22 @@ namespace Uno.Wasm.Bootstrap
 				{
 					extraEmccFlags.Add("--profiling");
 					packagerParams.Add("--no-native-strip");
+				}
+
+				if (GenerateAOTProfile)
+				{
+					var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
+					referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
+
+					var profilerInitialize = new[] {
+						"#include <emscripten.h>",
+						"void mono_profiler_init_aot (const char *desc);",
+						"EMSCRIPTEN_KEEPALIVE void mono_wasm_load_profiler_aot (const char *desc) { mono_profiler_init_aot (desc); }"
+					};
+
+					var profilerBootstrap = Path.Combine(IntermediateOutputPath, "profiler-bootstrap.c");
+					File.WriteAllLines(profilerBootstrap, profilerInitialize);
+					packagerParams.Add($"\"--native-compile={AlignPath(profilerBootstrap)}\"");
 				}
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
