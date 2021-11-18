@@ -17,6 +17,7 @@
       "Uno.Wasm.StaticLinking.Aot.Net5\\Uno.Wasm.StaticLinking.Aot.Net5.csproj",
       "Uno.Wasm.StaticLinking.Interpreter\\Uno.Wasm.StaticLinking.Interpreter.csproj",
       "Uno.Wasm.StaticLinking.PgAot.Net5\\Uno.Wasm.StaticLinking.PgAot.Net5.csproj",
+      "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5\\Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5.csproj",
       "Uno.Wasm.StaticLinking.Shared\\Uno.Wasm.StaticLinking.Shared.shproj",
       "Uno.Wasm.Tests.Electron\\Uno.Wasm.Tests.Electron.csproj",
       "Uno.Wasm.Tests.Empty\\Uno.Wasm.Test.Empty.csproj",
