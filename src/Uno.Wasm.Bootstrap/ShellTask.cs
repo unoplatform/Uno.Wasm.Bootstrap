@@ -794,16 +794,6 @@ namespace Uno.Wasm.Bootstrap
 				{
 					var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
 					referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
-
-					var profilerInitialize = new[] {
-						"#include <emscripten.h>",
-						"void mono_profiler_init_aot (const char *desc);",
-						"EMSCRIPTEN_KEEPALIVE void mono_wasm_load_profiler_aot (const char *desc) { mono_profiler_init_aot (desc); }"
-					};
-
-					var profilerBootstrap = Path.Combine(IntermediateOutputPath, "profiler-bootstrap.c");
-					File.WriteAllLines(profilerBootstrap, profilerInitialize);
-					packagerParams.Add($"\"--native-compile={AlignPath(profilerBootstrap)}\"");
 				}
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
