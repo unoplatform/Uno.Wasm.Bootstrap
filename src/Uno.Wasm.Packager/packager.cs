@@ -870,7 +870,7 @@ class Driver {
 		}
 
 		var file_list_str = string.Join(",", file_list.Select(f => $"\"{Path.GetFileName(f)}\"").Distinct());
-		var config = String.Format("config = {{\n \tvfs_prefix: \"{0}\",\n \tdeploy_prefix: \"{1}\",\n \tenable_debugging: {2},\n \tfile_list: [ {3} ],\n", vfs_prefix, deploy_prefix, enable_debug ? "1" : "0", file_list_str);
+		var config = String.Format("config = {{\n \tvfs_prefix: \"{0}\",\n \tdeploy_prefix: \"{1}\",\n \tenable_debugging: {2},\n \tfile_list: [ {3} ],\n", vfs_prefix, deploy_prefix, enable_debug ? "-1" : "0", file_list_str);
 		config += "}\n";
 		var config_js = Path.Combine(emit_ninja ? builddir : out_prefix, "mono-config.js");
 		File.Delete(config_js);
