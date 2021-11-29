@@ -5,6 +5,12 @@
 		<LangVersion>9.0</LangVersion>
 		<AssemblyName>wasm-tuner</AssemblyName>
 		<OutputType>Exe</OutputType>
+		
+		<!--
+		Enable implicit dotnet runtime forward rolling, as a net5
+		project may run with net6 only SDK installed
+		-->
+		<RollForward>Major</RollForward>
 	</PropertyGroup>
 
 	<ItemGroup>
