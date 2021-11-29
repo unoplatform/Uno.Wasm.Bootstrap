@@ -4,7 +4,13 @@
     <TargetFrameworks>net5.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<AssemblyName>packager</AssemblyName>
-  </PropertyGroup>
+		
+		<!--
+		Enable implicit dotnet runtime forward rolling, as a net5
+		project may run with net6 only SDK installed
+		-->
+		<RollForward>Major</RollForward>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<Reference Include="Mono.Cecil" />
