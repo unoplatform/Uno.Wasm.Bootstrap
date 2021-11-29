@@ -1,9 +1,6 @@
 assembly-versioning-scheme: MajorMinorPatch
 mode: Mainline
 
-# Remove for next version change after 2.0
-next-version: 2.0
-
 branches:
   main:
     mode: ContinuousDeployment
