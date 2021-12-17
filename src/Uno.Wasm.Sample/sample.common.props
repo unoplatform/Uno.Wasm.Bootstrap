@@ -30,6 +30,7 @@
 
 	<Error Condition="!exists('$(WasmShellOutputPackagePath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) does not exist in $(WasmShellOutputPackagePath)" />
 	<Error Condition="exists('$(WasmShellOutputPackagePath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.tx should not exist in $(WasmShellOutputPackagePath)" />
+	<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />
 
 	<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) should not exist in $(WasmShellOutputDistPath)" />
 	<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />
