@@ -13,6 +13,7 @@
       "Uno.Wasm.Node.Sample\\Uno.Wasm.Node.Sample.csproj",
       "Uno.Wasm.SampleNet5.Aot\\Uno.Wasm.SampleNet5.Aot.csproj",
       "Uno.Wasm.SampleNet5\\Uno.Wasm.SampleNet5.csproj",
+      "Uno.Wasm.SampleNet6\\Uno.Wasm.SampleNet6.csproj",
       "Uno.Wasm.Static Linking\\Uno.Wasm.StaticLinking.csproj",
       "Uno.Wasm.StaticLinking.Aot.Net5\\Uno.Wasm.StaticLinking.Aot.Net5.csproj",
       "Uno.Wasm.StaticLinking.Interpreter\\Uno.Wasm.StaticLinking.Interpreter.csproj",
