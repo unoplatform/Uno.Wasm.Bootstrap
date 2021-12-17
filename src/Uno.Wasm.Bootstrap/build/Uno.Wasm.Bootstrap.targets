@@ -217,7 +217,7 @@
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
         NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
-        Assets="@(Content)"
+        Assets="@(Content);@(StaticWebAsset)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
         RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
