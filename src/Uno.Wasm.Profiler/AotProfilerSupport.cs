@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using WebAssembly;
 
 namespace Uno
 {
-	public static class ProfilerSupport
+	public static class AotProfilerSupport
 	{
 		public static void Initialize()
 			=> Console.WriteLine("Profiler support initialized");

@@ -127,6 +127,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public string? EmccLinkOptimizationLevel { get; set; }
 
+		public bool EnableLogProfiler { get; set; }
+
+		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd,zip";
+
 		public string AssembliesFileExtension { get; set; } = "clr";
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
@@ -718,7 +722,8 @@ namespace Uno.Wasm.Bootstrap
 					|| IsWSLRequired
 					|| HasAdditionalPInvokeLibraries
 					|| HasNativeCompile
-					|| GenerateAOTProfile);
+					|| GenerateAOTProfile
+					|| EnableLogProfiler);
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
@@ -792,7 +797,7 @@ namespace Uno.Wasm.Bootstrap
 					packagerParams.Add("--no-native-strip");
 				}
 
-				if (GenerateAOTProfile)
+				if (GenerateAOTProfile || EnableLogProfiler)
 				{
 					var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
 					referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
@@ -814,6 +819,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
+				packagerParams.Add(EnableLogProfiler ? "--profile=log" : "");
 				packagerParams.Add($"\"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}\"");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
@@ -1639,6 +1645,11 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
+
+				if (EnableLogProfiler)
+				{
+					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
+				}
 
 				w.Write(config.ToString());
 			}

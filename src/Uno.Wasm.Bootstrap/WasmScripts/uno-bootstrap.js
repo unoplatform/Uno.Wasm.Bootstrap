@@ -21,6 +21,10 @@ var Module = {
             });
         }
 
+        if (config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]) {
+            Module.init_log_profiler(config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]);
+        }
+
         MONO.mono_load_runtime_and_bcl(
             config.vfs_prefix,
             config.deploy_prefix,
@@ -108,9 +112,14 @@ var Module = {
 
         return {}; // Compiling asynchronously, no exports.
     },
+
     isElectron: function () {
         return navigator.userAgent.indexOf('Electron') !== -1;
-    }
+    },
+
+	init_log_profiler: function (options) {
+        Module.ccall('mono_wasm_load_profiler_log', null, ['string'], [options]);
+    },
 };
 
 var MonoRuntime = {
@@ -550,27 +559,79 @@ var App = {
 
     attachProfilerHotKey: function () {
 
-        if (ENVIRONMENT_IS_WEB && config.generate_aot_profile) {
+        if (ENVIRONMENT_IS_WEB) {
 
-            // Use the combination shift+alt+D because it isn't used by the major browsers
-            // for anything else by default
-            const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
+            if (config.generate_aot_profile) {
+                const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
-            console.info(`Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus), or Run App.saveProfile() from the browser debug console.`);
+                console.info(`AOT Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus), or Run App.saveAotProfile() from the browser debug console.`);
 
-            // Even if debugging isn't enabled, we register the hotkey so we can report why it's not enabled
-            document.addEventListener(
-                "keydown",
-                function (evt) {
-                    if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyP") {
-                        App.saveProfile();
-                  }
-            });
+                document.addEventListener(
+                    "keydown",
+                    function (evt) {
+                        if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyP") {
+                            App.saveAotProfile();
+                        }
+                    });
+            }
+
+            if (config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]) {
+                // Use the combination shift+alt+D because it isn't used by the major browsers
+                // for anything else by default
+                const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
+
+                console.info(`Log Profiler save hotkey: Shift+${altKeyName}+P (when application has focus), or Run App.saveLogProfile() from the browser debug console.`);
+                document.addEventListener(
+                    "keydown",
+                    function (evt) {
+                        if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyP") {
+                            App.saveLogProfile();
+                        }
+                    });
+
+                console.info(`Log Profiler take heap shot hotkey: Shift+${altKeyName}+H (when application has focus), or Run App.takeHeapShot() from the browser debug console.`);
+                document.addEventListener(
+                    "keydown",
+                    function (evt) {
+                        if (evt.shiftKey && (evt.metaKey || evt.altKey) && evt.code === "KeyH") {
+                            App.takeHeapShot();
+                        }
+                    });
+            }
+
         }
     },
 
-    saveProfile: function () {
-        var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.ProfilerSupport:StopProfile");
+    takeHeapShot: function () {
+       Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:TriggerHeapShot")();
+    },
+
+    saveLogProfile: function () {
+        Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:ReadProfileOutput")();
+        var size = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetLogLength")();
+        var pData = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetLogPointer")();
+
+        // copy data into buffer
+        var buffer = new Uint8ClampedArray(Module.HEAPU8.buffer, pData, size);
+
+        // Export the file
+        var a = window.document.createElement('a');
+        var blob = new Blob([buffer]);
+        a.href = window.URL.createObjectURL(blob);
+        a.download = "profile.mlpd";
+
+        // Append anchor to body.
+        document.body.appendChild(a);
+        a.click();
+
+        // Remove anchor from body
+        document.body.removeChild(a);
+
+        Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:ReleaseLog")();
+   },
+
+    saveAotProfile: function () {
+        var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.AotProfilerSupport:StopProfile");
         stopProfile();
 
         // Export the file

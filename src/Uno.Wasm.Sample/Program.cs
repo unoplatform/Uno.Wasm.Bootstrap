@@ -17,11 +17,14 @@
 using System;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Uno.Wasm.Sample
 { 
     public static class Program
-    { 
+    {
+		private static Timer _t;
+
 		static void Main(string[] args)  
 		{
 			Console.WriteLine($"RuntimeVersion: {RuntimeInformation.FrameworkDescription}");
@@ -39,7 +42,7 @@ namespace Uno.Wasm.Sample
 
 			Console.WriteLine(typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger));
 
-			var t = new Timer(_ => {
+			_t = new Timer(_ => {
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
 		}
