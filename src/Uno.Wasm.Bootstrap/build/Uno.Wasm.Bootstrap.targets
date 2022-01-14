@@ -213,6 +213,8 @@
         AotProfile="@(WasmShellEnableAotProfile)"
         AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
         GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
+        EnableLogProfiler="$(WasmShellEnableLogProfiler)"
+        LogProfilerOptions="$(WasmShellLogProfilerOptions)"
         EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
