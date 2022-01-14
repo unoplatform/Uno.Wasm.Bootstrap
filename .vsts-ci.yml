@@ -31,6 +31,11 @@ jobs:
       versionSpec: 4.9.1
       checkLatest: false
 
+  - bash: |
+      npm install -g conventional-changelog-cli@2.2.2
+      conventional-changelog -p angular -u -r 1 -o "build/CHANGELOG.md"
+    displayName: 'Generate CHANGELOG.MD'
+
   - powershell: |
         $ErrorActionPreference = 'SilentlyContinue'
         cd $(build.sourcesdirectory)/src/WasmAot.UITests
@@ -46,9 +51,9 @@ jobs:
 
   - script: |
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap.DevServer
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
+      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
     displayName: Build packages
 
   - task: CopyFiles@2
