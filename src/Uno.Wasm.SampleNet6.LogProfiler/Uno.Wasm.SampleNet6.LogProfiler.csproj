@@ -13,7 +13,6 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 		<WasmShellEnableLogProfiler>true</WasmShellEnableLogProfiler>
-		<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>
 	</PropertyGroup>
 
 	<ItemGroup>

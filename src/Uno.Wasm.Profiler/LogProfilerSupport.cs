@@ -10,8 +10,6 @@ namespace Uno
 	public static class LogProfilerSupport
 	{
 		private static readonly string ProfilerConfig = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS");
-		private static GCHandle _handle;
-		private static byte[]? _data;
 		private static readonly Dictionary<string, string> _config;
 
 		static LogProfilerSupport()
@@ -19,49 +17,30 @@ namespace Uno
 			_config = ParseConfig();
 		}
 
-		public static void ReadProfileOutput()
+		public static void FlushProfile()
 		{
+#if DEBUG
 			Console.WriteLine($"Flushing log profiler buffers (config: {ProfilerConfig})");
+#endif
 			mono_profiler_flush_log();
-
-			_data = File.ReadAllBytes(ProfilerProfileOutputFile);
-
-			Console.WriteLine($"Successfully read profile output file ({ProfilerProfileOutputFile}, size: {_data.Length/1024} KB)");
-
-			_handle = GCHandle.Alloc(_data, GCHandleType.Pinned);
 		}
 
-		private static string ProfilerProfileOutputFile
+		public static string GetProfilerProfileOutputFile()
 		{
-			get
+			if (!_config.TryGetValue("output", out var outputFile))
 			{
-				if (!_config.TryGetValue("output", out var outputFile))
-				{
-					outputFile = "output.mlpd";
-				}
-
-				return outputFile;
+				outputFile = "output.mlpd";
 			}
-		}
 
-		public static int GetLogLength()
-			=> _data?.Length ?? -1;
-
-		public static IntPtr GetLogPointer()
-			=> _handle.AddrOfPinnedObject();
-
-		public static void ReleaseLog()
-		{
-			_handle.Free();
-			_data = null;
+			return outputFile;
 		}
 
 		public static void TriggerHeapShot()
 		{
 			mono_profiler_flush_log();
 
-			var fileSize = File.Exists(ProfilerProfileOutputFile)
-				? new FileInfo(ProfilerProfileOutputFile).Length
+			var fileSize = File.Exists(GetProfilerProfileOutputFile())
+				? new FileInfo(GetProfilerProfileOutputFile()).Length
 				: -1;
 
 			Console.WriteLine($"Recording memory profiler heap shot (File size: {fileSize/1024} KB)");
