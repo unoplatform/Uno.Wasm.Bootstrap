@@ -979,8 +979,8 @@ Memory snapshots are supported to enable memory difference analysis and find mem
   ```
 
 Once the application is running:
-- Use the `Ctrl+Alt+H` hotkey to create memory snapshots 
-- Use the `Ctrl+Alt+P` hotkey to save the profile to a file
+- Use the `Shift+Alt+H` (`Shift+Cmd+H` on macOS) hotkey to create memory snapshots 
+- Use the `Shift+Alt+P` (`Shift+Cmd+P` on macOS) hotkey to save the profile to a file
 
 With the saved `mlpd` file, you can either:
 - Open it with the Xamarin Profiler (which needs to be explicitly installed in the VS 2022 installer)

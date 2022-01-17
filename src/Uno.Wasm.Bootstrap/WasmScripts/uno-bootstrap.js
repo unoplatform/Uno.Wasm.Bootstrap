@@ -21,9 +21,7 @@ var Module = {
             });
         }
 
-        if (config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]) {
-            Module.init_log_profiler(config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]);
-        }
+        App.initializeLogProfiler();
 
         MONO.mono_load_runtime_and_bcl(
             config.vfs_prefix,
@@ -115,10 +113,6 @@ var Module = {
 
     isElectron: function () {
         return navigator.userAgent.indexOf('Electron') !== -1;
-    },
-
-	init_log_profiler: function (options) {
-        Module.ccall('mono_wasm_load_profiler_log', null, ['string'], [options]);
     },
 };
 
@@ -575,7 +569,7 @@ var App = {
                     });
             }
 
-            if (config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"]) {
+            if (App.logProfilerEnabled) {
                 // Use the combination shift+alt+D because it isn't used by the major browsers
                 // for anything else by default
                 const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
@@ -602,22 +596,57 @@ var App = {
         }
     },
 
+    initializeLogProfiler: function () {
+        const options = config.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
+        if (options) {
+            Module.ccall('mono_wasm_load_profiler_log', null, ['string'], [options]);
+
+            App.logProfilerEnabled = true;
+
+            setInterval(() => {
+                App.ensureInitializeProfilerMethods();
+                App.flushLogProfile();
+            }, 5000);
+        }
+    },
+
+    ensureInitializeProfilerMethods: function () {
+        if (!App.flushLogProfile) {
+            App.flushLogProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:FlushProfile");
+            App.getLogProfilerProfileOutputFile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
+            App.triggerHeapShotLogProfiler = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:TriggerHeapShot");
+        }
+    },
+
     takeHeapShot: function () {
-       Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:TriggerHeapShot")();
+        App.ensureInitializeProfilerMethods();
+
+        App.triggerHeapShotLogProfiler();
+    },
+
+    readProfileFile: function () {
+        App.ensureInitializeProfilerMethods();
+
+        App.flushLogProfile();
+        var profileFilePath = App.getLogProfilerProfileOutputFile();
+
+        var stat = FS.stat(profileFilePath);
+
+        if (stat && stat.size > 0) {
+            return FS.readFile(profileFilePath);
+        }
+        else {
+            return null;
+        }
     },
 
     saveLogProfile: function () {
-        Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:ReadProfileOutput")();
-        var size = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetLogLength")();
-        var pData = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetLogPointer")();
+        App.ensureInitializeProfilerMethods();
 
-        // copy data into buffer
-        var buffer = new Uint8ClampedArray(Module.HEAPU8.buffer, pData, size);
+        var profileArray = App.readProfileFile();
 
-        // Export the file
         var a = window.document.createElement('a');
-        var blob = new Blob([buffer]);
-        a.href = window.URL.createObjectURL(blob);
+        a.href = window.URL.createObjectURL(new Blob([profileArray]));
         a.download = "profile.mlpd";
 
         // Append anchor to body.
@@ -626,9 +655,7 @@ var App = {
 
         // Remove anchor from body
         document.body.removeChild(a);
-
-        Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:ReleaseLog")();
-   },
+    },
 
     saveAotProfile: function () {
         var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.AotProfilerSupport:StopProfile");
