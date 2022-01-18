@@ -38,6 +38,8 @@ var Module = {
                 }
 
                 App.init();
+
+                App.postInitializeLogProfiler();
             },
             config.fetch_file_cb
         );
@@ -602,7 +604,11 @@ var App = {
             Module.ccall('mono_wasm_load_profiler_log', null, ['string'], [options]);
 
             App.logProfilerEnabled = true;
+        }
+    },
 
+    postInitializeLogProfiler: function () {
+        if (App.logProfilerEnabled) {
             setInterval(() => {
                 App.ensureInitializeProfilerMethods();
                 App.flushLogProfile();
@@ -611,7 +617,7 @@ var App = {
     },
 
     ensureInitializeProfilerMethods: function () {
-        if (!App.flushLogProfile) {
+        if (App.logProfilerEnabled && !App.flushLogProfile) {
             App.flushLogProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:FlushProfile");
             App.getLogProfilerProfileOutputFile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
             App.triggerHeapShotLogProfiler = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:TriggerHeapShot");
