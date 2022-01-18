@@ -22,6 +22,10 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.1.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s MAXIMUM_MEMORY=4GB"/>
+	</ItemGroup>
+
 	<Import Project="..\Uno.Wasm.Sample\Uno.Wasm.Sample.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Sample\sample.common.props" />

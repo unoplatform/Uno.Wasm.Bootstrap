@@ -857,8 +857,21 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_MONO_PROFILED_AOT`, which specifies if the package was built using a PG-AOT profile.
 - `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base. Useful to reach assets deployed using the `UnoDeploy="Package"` mode.
 - `UNO_BOOTSTRAP_WEBAPP_BASE_PATH`, which specifies the base location of the webapp. This parameter is used in the context of deep-linking (through the `WasmShellWebAppBasePath` property). This property must contain a trailing `/` and its default is `./`.
+- `UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY`, which optionally specifies the maximum memory available to the WebAssembly module. 
 
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
+
+### 4GB memory support
+
+The support for 4GB memory space is available by adding the following configuration:
+```xml
+<ItemGroup>
+	<WasmShellExtraEmccFlags Include="-s MAXIMUM_MEMORY=4GB"/>
+</ItemGroup>
+```
+The configuration can also be detected at runtime using the `UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY` environment variable, which will be set to `4GB` once set.
+
+See this [blog post from the v8 team](https://v8.dev/blog/4gb-wasm-memory) for more information.
 
 ### Dependency management
 The Uno Bootstrapper uses RequireJS for dependency management, allowing for dependencies to be resolved in a stable manner. 
