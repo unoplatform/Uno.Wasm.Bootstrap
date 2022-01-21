@@ -797,10 +797,16 @@ namespace Uno.Wasm.Bootstrap
 					packagerParams.Add("--no-native-strip");
 				}
 
-				if (GenerateAOTProfile || EnableLogProfiler)
+				if (GenerateAOTProfile)
 				{
-					var profilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.Profiler.dll");
-					referencePathsParameter += $" \"{AlignPath(profilerSupport)}\"";
+					var aotProfilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.AotProfiler.dll");
+					referencePathsParameter += $" \"{AlignPath(aotProfilerSupport)}\"";
+				}
+
+				if (EnableLogProfiler)
+				{
+					var logProfilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.LogProfiler.dll");
+					referencePathsParameter += $" \"{AlignPath(logProfilerSupport)}\"";
 				}
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");

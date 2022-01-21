@@ -13,9 +13,9 @@
 	
 	<Target Name="CopyToBoostrapDev" AfterTargets="Build">
 		<ItemGroup>
-			<_TimeZoneOutputFiles Include="$(TargetDir)\Uno.Wasm.Profiler.*" />
+			<_BinaryOutputFiles Include="$(TargetDir)\Uno.Wasm.LogProfiler.*" />
 		</ItemGroup>
-		<Copy SourceFiles="@(_TimeZoneOutputFiles)" DestinationFolder="..\Uno.Wasm.Bootstrap\tools\support" />
+		<Copy SourceFiles="@(_BinaryOutputFiles)" DestinationFolder="..\Uno.Wasm.Bootstrap\tools\support" />
 	</Target>
 
 	<ItemGroup>

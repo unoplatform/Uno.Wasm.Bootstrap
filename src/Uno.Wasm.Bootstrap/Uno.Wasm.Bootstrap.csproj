@@ -142,7 +142,12 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.Profiler\Uno.Wasm.Profiler.csproj">
+		<ProjectReference Include="..\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
@@ -165,7 +170,11 @@
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
 			</Content>
-			<Content Include="./tools/support/Uno.Wasm.Profiler.*">
+			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
+			<Content Include="./tools/support/Uno.Wasm.LogProfiler.*">
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
 			</Content>
