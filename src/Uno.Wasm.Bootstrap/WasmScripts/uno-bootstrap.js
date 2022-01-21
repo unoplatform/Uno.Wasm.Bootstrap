@@ -31,7 +31,7 @@ var Module = {
             function () {
 
                 if (config.generate_aot_profile) {
-                    var initializeProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.ProfilerSupport:Initialize");
+                    var initializeProfile = Module.mono_bind_static_method("[Uno.Wasm.AotProfiler] Uno.ProfilerSupport:Initialize");
                     if (initializeProfile) {
                         initializeProfile();
                     }
@@ -618,9 +618,9 @@ var App = {
 
     ensureInitializeProfilerMethods: function () {
         if (App.logProfilerEnabled && !App.flushLogProfile) {
-            App.flushLogProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:FlushProfile");
-            App.getLogProfilerProfileOutputFile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
-            App.triggerHeapShotLogProfiler = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.LogProfilerSupport:TriggerHeapShot");
+            App.flushLogProfile = Module.mono_bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
+            App.getLogProfilerProfileOutputFile = Module.mono_bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
+            App.triggerHeapShotLogProfiler = Module.mono_bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:TriggerHeapShot");
         }
     },
 
@@ -664,7 +664,7 @@ var App = {
     },
 
     saveAotProfile: function () {
-        var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.Profiler] Uno.AotProfilerSupport:StopProfile");
+        var stopProfile = Module.mono_bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:StopProfile");
         stopProfile();
 
         // Export the file

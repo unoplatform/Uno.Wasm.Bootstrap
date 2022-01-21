@@ -54,7 +54,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet5", "Uno.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet5.Aot", "Uno.Wasm.SampleNet5.Aot\Uno.Wasm.SampleNet5.Aot.csproj", "{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Profiler", "Uno.Wasm.Profiler\Uno.Wasm.Profiler.csproj", "{435054BA-2B64-4E17-86F3-7D18F629FE80}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotProfiler", "Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj", "{435054BA-2B64-4E17-86F3-7D18F629FE80}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.AotTests.Shared", "Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.shproj", "{286B5778-DA8B-4965-9FC6-BC6F4258E155}"
 EndProject
@@ -99,6 +99,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5", "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5\Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5.csproj", "{2DF55561-12DD-4325-BDBF-F42AC72FC284}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6.LogProfiler", "Uno.Wasm.SampleNet6.LogProfiler\Uno.Wasm.SampleNet6.LogProfiler.csproj", "{92B22005-5A7B-4B38-8D09-68D7240EBE8C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.LogProfiler", "Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj", "{3C2B9F04-972E-4A9F-AA08-545A67C7C455}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -271,6 +273,10 @@ Global
 		{92B22005-5A7B-4B38-8D09-68D7240EBE8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92B22005-5A7B-4B38-8D09-68D7240EBE8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{92B22005-5A7B-4B38-8D09-68D7240EBE8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

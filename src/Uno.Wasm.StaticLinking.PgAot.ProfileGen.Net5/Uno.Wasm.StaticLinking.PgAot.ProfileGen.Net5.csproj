@@ -66,6 +66,6 @@
 	</ItemGroup>
 
 	<Target Name="_validateProfileGenerationFlags" BeforeTargets="BeforeBuild">
-		<Error Condition="'$(WasmShellGenerateAOTProfile)'!=''" Text="WasmShellGenerateAOTProfile must be set to true for this sample" />
+		<Error Condition="'$(WasmShellGenerateAOTProfile)'!='true'" Text="WasmShellGenerateAOTProfile must be set to true for this sample (Current is: $(WasmShellGenerateAOTProfile))" />
 	</Target>
 </Project>

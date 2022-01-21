@@ -30,7 +30,7 @@
     <None Include="$(MSBuildThisFileDirectory)side_module\side.wasm" />
     <None Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(UseAOT)'=='true'">
+  <ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true'">
     <Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
     <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
