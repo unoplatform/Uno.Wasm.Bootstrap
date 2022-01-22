@@ -10,7 +10,7 @@
 		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
-		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
+		<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
 	</PropertyGroup>
 
 	<ItemGroup>

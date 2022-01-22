@@ -16,8 +16,8 @@ var Module = {
 
         if (config.generate_aot_profile) {
             MONO.mono_wasm_init_aot_profiler({
-                write_at: "Uno.ProfilerSupport::StopProfile",
-                send_to: "Uno.ProfilerSupport::DumpAotProfileData"
+                write_at: "Uno.AotProfilerSupport::StopProfile",
+                send_to: "Uno.AotProfilerSupport::DumpAotProfileData"
             });
         }
 
@@ -31,7 +31,7 @@ var Module = {
             function () {
 
                 if (config.generate_aot_profile) {
-                    var initializeProfile = Module.mono_bind_static_method("[Uno.Wasm.AotProfiler] Uno.ProfilerSupport:Initialize");
+                    var initializeProfile = Module.mono_bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:Initialize");
                     if (initializeProfile) {
                         initializeProfile();
                     }
