@@ -38,6 +38,9 @@ namespace Uno.Wasm.Sample
 			var idbFSEnabled = Interop.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
 
+			var requireAvailable = Interop.Runtime.InvokeJS($"typeof require.config !== 'undefined'", out var _);
+			Console.WriteLine($"requireJSAvailable: {requireAvailable}");
+
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
 
 			Console.WriteLine(typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger));

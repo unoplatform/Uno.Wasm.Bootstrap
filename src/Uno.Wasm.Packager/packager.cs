@@ -419,7 +419,7 @@ class Driver {
 		var aot_assemblies = "";
 		var skip_aot_assemblies = "";
 		app_prefix = Environment.CurrentDirectory;
-		var deploy_prefix = "managed";
+		var assembly_root = "managed";
 		var vfs_prefix = "managed";
 		var use_release_runtime = true;
 		var enable_aot = false;
@@ -491,7 +491,7 @@ class Driver {
 				{ "runtimepack-dir=", s => runtimepack_dir = s },
 				{ "prefix=", s => app_prefix = s },
 				{ "wasm-runtime-path=", s => wasm_runtime_path = s },
-				{ "deploy=", s => deploy_prefix = s },
+				{ "deploy=", s => assembly_root = s },
 				{ "vfs=", s => vfs_prefix = s },
 				{ "aot", s => ee_mode = ExecMode.Aot },
 				{ "aot-interp", s => ee_mode = ExecMode.AotInterp },
@@ -705,7 +705,7 @@ class Driver {
 			/* corelib */
 			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "native"));
 			/* .net runtime */
-			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "lib", "net6.0"));
+			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "lib", "net7.0"));
 		} else {
 			bcl_tools_prefix = Path.Combine (bcl_root, "wasm_tools");
 			bcl_prefixes.Add (bcl_prefix);
@@ -769,7 +769,7 @@ class Driver {
 		if (!emit_ninja) {
 			if (!Directory.Exists (out_prefix))
 				Directory.CreateDirectory (out_prefix);
-			var bcl_dir = Path.Combine (out_prefix, deploy_prefix);
+			var bcl_dir = Path.Combine (out_prefix, assembly_root);
 			if (Directory.Exists (bcl_dir))
 				Directory.Delete (bcl_dir, true);
 			Directory.CreateDirectory (bcl_dir);
@@ -778,8 +778,8 @@ class Driver {
 			}
 		}
 
-		if (deploy_prefix.EndsWith ("/"))
-			deploy_prefix = deploy_prefix.Substring (0, deploy_prefix.Length - 1);
+		if (assembly_root.EndsWith ("/"))
+			assembly_root = assembly_root.Substring (0, assembly_root.Length - 1);
 		if (vfs_prefix.EndsWith ("/"))
 			vfs_prefix = vfs_prefix.Substring (0, vfs_prefix.Length - 1);
 
@@ -794,12 +794,10 @@ class Driver {
 		var wasm_core_support = string.Empty;
 		var wasm_core_support_library = string.Empty;
 		if (add_binding) {
-			wasm_core_support = Path.Combine(EscapePath(src_prefix), "binding_support.js");
-			wasm_core_support_library = $"--js-library " + Path.Combine(EscapePath(src_prefix), "binding_support.js") + " ";
 
 			if (is_netcore)
 			{
-				wasm_core_support_library += $"--js-library " + Path.Combine(src_prefix, "pal_random.js") + " ";
+				wasm_core_support_library += $"--js-library " + Path.Combine(src_prefix, "pal_random.lib.js") + " ";
 			}
 		}
 		var runtime_js = Path.Combine (emit_ninja ? builddir : out_prefix, "runtime.js");
@@ -869,12 +867,29 @@ class Driver {
 			}
 		}
 
-		var file_list_str = string.Join(",", file_list.Select(f => $"\"{Path.GetFileName(f)}\"").Distinct());
-		var config = String.Format("config = {{\n \tvfs_prefix: \"{0}\",\n \tdeploy_prefix: \"{1}\",\n \tenable_debugging: {2},\n \tfile_list: [ {3} ],\n", vfs_prefix, deploy_prefix, enable_debug ? "-1" : "0", file_list_str);
-		config += "}\n";
-		var config_js = Path.Combine(emit_ninja ? builddir : out_prefix, "mono-config.js");
-		File.Delete(config_js);
-		File.WriteAllText(config_js, config);
+		var file_list_str = string.Join(",\n", file_list.Distinct().Select(f =>
+		{
+			var assetType = Path.GetExtension(f).ToLowerInvariant() switch
+			{
+				".dll" => "assembly",
+				".pdb" => "assembly",
+				".dat" => "icu",
+				_ => throw new Exception($"Unsupported asset type")
+			};
+
+			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\" }}";
+		}));
+		var enableDebug = enable_debug ? " -1" : "0";
+		var config = $"{{" +
+			$"\n \t\"vfs_prefix\": \"{vfs_prefix}\"," +
+			$"\n \t\"assembly_root\": \"{assembly_root}\"," +
+			$"\n \t\"enable_debugging\": {enableDebug}," +
+			$"\n \t\"assets\": [ " + file_list_str + "]\n" +
+			$"}}";
+
+		var config_json = Path.Combine(emit_ninja ? builddir : out_prefix, "mono-config.json");
+		File.Delete(config_json);
+		File.WriteAllText(config_json, config);
 
 		if (!emit_ninja) {
 			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
@@ -1017,14 +1032,37 @@ class Driver {
 			emcc_flags += "--preload-file " + pf + " ";
 		foreach (var f in embed_files)
 			emcc_flags += "--embed-file " + f + " ";
-		string emcc_link_flags = "";
+
+		var emcc_link_flags = new List<string>();
 		if (enable_debug || !opts.EmccLinkOptimizations)
 		{
-			emcc_link_flags += "-O0 -flto=thin ";
+			emcc_link_flags.Add("-O0 -flto=thin");
 			emcc_flags += "-flto=thin ";
 		}
 		else
-			emcc_link_flags += linker_optimization_level + " ";
+		{
+			emcc_link_flags.Add(linker_optimization_level);
+		}
+
+		// Align with https://github.com/dotnet/runtime/blob/b0e16a18025287e746b0418fbedda27dbaf3922d/src/mono/wasm/wasm.proj#L67
+		emcc_link_flags.Add("-s EXPORT_ES6=1");
+		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
+		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
+		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\']\\\"");
+		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_free,_malloc,_htons,_ntohs,__get_daylight,__get_timezone,__get_tzname,_putchar");
+		emcc_link_flags.Add("--source-map-base http://example.com");
+		emcc_link_flags.Add("-s STRICT_JS=1");
+		emcc_link_flags.Add("-s EXPORT_NAME=\"'createDotnetRuntime'\"");
+		emcc_link_flags.Add("-s MODULARIZE=1");
+		emcc_link_flags.Add("-s ENVIRONMENT=\"web,webview,worker,node,shell\"");
+
+		// Additional flags
+		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
+		emcc_link_flags.Add("-s TOTAL_MEMORY=134217728");
+		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
+		emcc_link_flags.Add("-s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"");
+
 		string strip_cmd = "";
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
@@ -1061,7 +1099,7 @@ class Driver {
 			ninja.WriteLine ($"runtimepack_dir = {runtimepack_dir}");
 		ninja.WriteLine ($"wasm_runtime_dir = {wasm_runtime_dir}");
 		ninja.WriteLine ($"runtime_libdir = {runtime_libdir}");
-		ninja.WriteLine ($"deploy_prefix = {deploy_prefix}");
+		ninja.WriteLine ($"deploy_prefix = {assembly_root}");
 		ninja.WriteLine ($"bcl_dir = {bcl_prefix}");
 		ninja.WriteLine ($"bcl_facades_dir = {bcl_facades_prefix}");
 		ninja.WriteLine ($"framework_dir = {framework_prefix}");
@@ -1108,7 +1146,7 @@ class Driver {
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_TABLE_GROWTH=1 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=134217728 -s NO_EXIT_RUNTIME=1 -s ERROR_ON_UNDEFINED_SYMBOLS=1 -s \\\"EXTRA_EXPORTED_RUNTIME_METHODS=[\'ccall\', \'FS_createPath\', \'FS_createDataFile\', \'cwrap\', \'setValue\', \'getValue\', \'UTF8ToString\', \'UTF8ArrayToString\', \'addFunction\']\\\" -s \\\"EXPORTED_FUNCTIONS=[\'_putchar\']\\\" -s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"  {emcc_flags} ");
+		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
 		var aot_cross_prefix = is_windows
@@ -1168,7 +1206,9 @@ class Driver {
 		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
-		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {emcc_link_flags} -o \\\"$out_js\\\" --js-library {src_prefix}/library_mono.js --js-library {src_prefix}/dotnet_support.js {wasm_core_support_library} $in\" {strip_cmd}");
+
+		//  --extern-post-js {src_prefix}/es6/dotnet.es6.extpost.js
+		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {strip_cmd}");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
@@ -1211,7 +1251,7 @@ class Driver {
 		ninja.WriteLine ("build $appdir: mkdir");
 		ninja.WriteLine ("build $appdir/$deploy_prefix: mkdir");
 		ninja.WriteLine ("build $appdir/runtime.js: cpifdiff $builddir/runtime.js");
-		ninja.WriteLine ("build $appdir/mono-config.js: cpifdiff $builddir/mono-config.js");
+		ninja.WriteLine ("build $appdir/mono-config.json: cpifdiff $builddir/mono-config.json");
 		if (build_wasm) {
 			var source_file = Path.GetFullPath(Path.Combine(src_prefix, "driver.c"));
 			ninja.WriteLine($"build $builddir/driver.c: cpifdiff {EscapePath(source_file)}");
@@ -1452,7 +1492,7 @@ class Driver {
 
 			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
-			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/library_mono.js {EscapePath(src_prefix)}/dotnet_support.js {wasm_core_support} $emsdk_env");
+			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
 			ninja.WriteLine ("  out_js=$appdir/dotnet.js");
 			ninja.WriteLine ("  out_wasm=$appdir/dotnet.wasm");
 		}
@@ -1472,9 +1512,11 @@ class Driver {
 				break;
 			}
 
-			if (enable_aot)
-				// Only used by the AOT compiler
-				linker_args.Add("--explicit-reflection ");
+			// Removed because of https://github.com/dotnet/runtime/issues/65325
+			//if (enable_aot)
+			//	// Only used by the AOT compiler
+			//	linker_args.Add("--explicit-reflection ");
+
 			linker_args.Add("--used-attrs-only true ");
 
 			if (!is_netcore)

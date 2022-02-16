@@ -43,6 +43,7 @@
 		<PackageReference Include="Mono.Options" Version="5.3.0.1" PrivateAssets="All" />
 		<PackageReference Include="MSBuildTasks" Version="1.5.0.235" PrivateAssets="All" />
 		<PackageReference Include="System.Text.Json" Version="5.0.0" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.TypeScript.MSBuild" Version="4.5.3" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -123,7 +124,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="build\Uno.Wasm.Bootstrap.props" />
+		<ConfigFiles Include="tsconfig.json" />
+		<UpToDateCheckInput Include="ts\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <TypeScriptCompile Remove="obj\**\*.ts" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -163,6 +169,26 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 	</ItemGroup>
+
+	<!-- Run the typescript compiler before resources resolution -->
+	<Target Name="GenerateJavascriptBeforeCompile"
+					BeforeTargets="ResolveProjectReferences"
+					DependsOnTargets="CompileTypeScriptWithTSConfig">
+
+		 <!--Delete the log files to avoid the TSC clean target to erase the output files before-->
+		<ItemGroup>
+			<TSOutputLogsToDelete Include="$(TSCompilerOutputLogDirectory)Tsc*.out" />
+		</ItemGroup>
+
+		<Delete Files="@(TSOutputLogsToDelete)" /> 
+	</Target>
+
+	<!-- Include generated javascript as EmbeddedResource -->
+	<Target Name="IncludeGeneratedJavascript" AfterTargets="CompileTypeScriptWithTSConfig">
+		<ItemGroup>
+			<EmbeddedResource Include="@(GeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
+		</ItemGroup>
+	</Target>
 
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>

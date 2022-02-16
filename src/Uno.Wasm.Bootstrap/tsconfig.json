@@ -1,0 +1,17 @@
+﻿{
+  "compilerOptions": {
+    "module": "none",
+    "declaration": true,
+    "diagnostics": true,
+    "noImplicitAny": true,
+    "outFile": "obj/uno-bootstrap.js",
+    "removeComments": true,
+    "locale": "en-US",
+    "target": "ES2020",
+    "lib": [ "ES2020", "DOM", "ES2015" ]
+  },
+  "compileOnSave": false,
+  "include": [
+    "ts/**/*"
+  ]
+}
