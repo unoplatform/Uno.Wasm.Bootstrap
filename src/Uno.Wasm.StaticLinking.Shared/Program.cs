@@ -43,6 +43,7 @@ namespace Uno.Wasm.Sample
 			var validateEmAddFunctionResult = int.Parse(Runtime.InvokeJS($"Validation.validateEmAddFunction()")) != 0;
 
 			var idbFSValidation = Runtime.InvokeJS($"typeof IDBFS !== 'undefined'");
+			Console.WriteLine($"idbFSValidation: {idbFSValidation}");
 
 			var requireAvailable = Runtime.InvokeJS($"typeof require.config !== 'undefined'");
 			Console.WriteLine($"requireAvailable: {idbFSValidation}");
