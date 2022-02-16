@@ -78,9 +78,10 @@ jobs:
 
     displayName: Build Validation Binaries
 
-  - powershell: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
-      .\Validate.ps1
+  # - powershell: |
+  #     cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+  #     .\Validate.ps1
+  #   displayName: Build Validation Binaries
 
   - task: VisualStudioTestPlatformInstaller@1
 
