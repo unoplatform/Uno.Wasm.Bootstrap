@@ -1063,12 +1063,15 @@ class Driver {
 		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
 		emcc_link_flags.Add("-s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"");
 
+		var failOnError = is_windows
+			? "; if ($$LastExitCode -ne 0) { return 1; }"
+			: "";
+
 		string strip_cmd = "";
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
 		{
-
-			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf \'$out_wasm\' -o \'$out_wasm\'";
+			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
 		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
@@ -1207,8 +1210,7 @@ class Driver {
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
 
-		//  --extern-post-js {src_prefix}/es6/dotnet.es6.extpost.js
-		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {strip_cmd}");
+		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {failOnError} {strip_cmd}");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
