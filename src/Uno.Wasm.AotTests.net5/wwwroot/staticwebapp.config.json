@@ -6,5 +6,8 @@
       "*.{png}",
       "*.{c,h,wasm,clr,pdb,dat,txt}"
     ]
+  },
+  "mimeTypes": {
+    ".json": "text/json"
   }
 }
