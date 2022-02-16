@@ -4,7 +4,7 @@
     "exclude": [
       "*.{css,js}",
       "*.{png}",
-      "*.{c,h,wasm,clr,pdb,dat,txt}"
+      "*.{c,h,wasm,clr,pdb,dat,txt,json}"
     ]
   },
   "mimeTypes": {
