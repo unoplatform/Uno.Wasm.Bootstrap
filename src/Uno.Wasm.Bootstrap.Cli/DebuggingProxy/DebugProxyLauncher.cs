@@ -25,7 +25,7 @@ namespace Uno.Wasm.Bootstrap.Cli
 {
 	internal static class DebugProxyLauncher
 	{
-		private static readonly TimeSpan DebugProxyLaunchTimeout = TimeSpan.FromSeconds(10);
+		private static readonly TimeSpan DebugProxyLaunchTimeout;
 		private static Task<string>? LaunchedDebugProxyUrl;
 		private static SemaphoreSlim LaunchLock = new SemaphoreSlim(1);
 		private static readonly Regex NowListeningRegex = new Regex(@"^\s*Now listening on: (?<url>.*)$", RegexOptions.None, TimeSpan.FromSeconds(10));
@@ -33,10 +33,25 @@ namespace Uno.Wasm.Bootstrap.Cli
 
 		private static Process? _debugProxyProcess;
 		private static string? _devToolsHost;
-		private static readonly HttpClient _aliveCheckClient = new HttpClient()
+		private static readonly HttpClient _aliveCheckClient;
+
+		static DebugProxyLauncher()
 		{
-			Timeout = TimeSpan.FromSeconds(.5)
-		};
+			if(!TimeSpan.TryParse(Environment.GetEnvironmentVariable("WASMSHELL_DEBUG_KEEPALIVE_TIMEOUT"), out var timespan))
+			{
+				timespan = TimeSpan.FromSeconds(10);
+			}
+
+			_aliveCheckClient = new HttpClient()
+			{
+				Timeout = timespan
+			};
+
+			if (!TimeSpan.TryParse(Environment.GetEnvironmentVariable("WASMSHELL_DEBUG_KEEPALIVE_TIMEOUT"), out DebugProxyLaunchTimeout))
+			{
+				DebugProxyLaunchTimeout = TimeSpan.FromSeconds(10);
+			}
+		}
 
 		public static async Task<string> EnsureLaunchedAndGetUrl(IServiceProvider serviceProvider, IConfiguration configuration, string devToolsHost, Uri? browserUrl)
 		{
