@@ -640,7 +640,7 @@ Pre-compression has two modes:
 
 The parameters for the pre-compression are as follows:
 - `WasmShellGenerateCompressedFiles` which can be `true` or `false`. This property is ignored when building `MonoRuntimeDebuggerEnabled` is set to `true`, and `true` by default when the `Configuration` property is set to `Release`
-- `WasmShellCompressedExtension` is an item group which specifies which files to compress. By default `wasm`, `clr`, `js`, `css` and `html files are pre-compressed. More files can be added as follows:
+- `WasmShellCompressedExtension` is an item group which specifies which files to compress. By default `wasm`, `clr`, `js`, `css` and `html` files are pre-compressed. More files can be added as follows:
 ```xml
   <ItemGroup>
     <WasmShellCompressedExtension Include=".db"/>
