@@ -934,6 +934,11 @@ var UnoAppManifest = {
 }
 ```
 
+These properties are supported in the manifest:
+- `lightThemeBackgroundColor` (optional) to change the light theme background color
+- `darkThemeBackgroundColor` (optional)to change the dark theme background color
+- `splashScreenColor` to change the background color regardless of the theme. When set to `transparent`, `lightThemeBackgroundColor` and `darkThemeBackgroundColor` will be used, otherwise the default browser background color will be used.
+
 Once the app start, the content will be updated to show the custom logo. The logo must be of size 630x300 (or same ratio).
 
 ### Configuration of the runtime
