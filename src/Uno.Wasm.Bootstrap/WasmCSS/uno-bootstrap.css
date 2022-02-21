@@ -1,11 +1,20 @@
 ﻿.uno-loader {
+    background-color: var(--light-theme-bg-color, #F3F3F3);
+}
+
+@media (prefers-color-scheme: dark) {
+    .uno-loader {
+        background-color: var(--dark-theme-bg-color, #202020);
+    }
+}
+
+.uno-loader {
     /* Main container of the loader */
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
-    right: 0;
-    background-color: var(--bg-color, white);
+    right: 0;    
 }
 
     .uno-loader .logo {
