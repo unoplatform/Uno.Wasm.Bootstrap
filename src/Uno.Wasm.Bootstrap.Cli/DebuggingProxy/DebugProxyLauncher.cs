@@ -113,7 +113,7 @@ namespace Uno.Wasm.Bootstrap.Cli
 			}
 			else
 			{
-				PassThroughConsoleOutput(_debugProxyProcess);
+				PassThroughConsoleOutputAndError(_debugProxyProcess);
 				CompleteTaskWhenServerIsReady(_debugProxyProcess, tcs);
 
 				new CancellationTokenSource(DebugProxyLaunchTimeout).Token.Register(() =>
@@ -168,11 +168,14 @@ namespace Uno.Wasm.Bootstrap.Cli
 			return debugProxyPath;
 		}
 
-		private static void PassThroughConsoleOutput(Process process)
-			=> process.OutputDataReceived += (sender, eventArgs) =>
-			{
-				Console.WriteLine(eventArgs.Data);
-			};
+		private static void PassThroughConsoleOutputAndError(Process process)
+		{
+			process.OutputDataReceived +=
+				(sender, eventArgs) => Console.WriteLine(eventArgs.Data);
+
+			process.ErrorDataReceived +=
+				(sender, eventArgs) => Console.WriteLine("[DebuggerHost-ERROR] " + eventArgs.Data);
+		}
 
 		private static void CompleteTaskWhenServerIsReady(Process aspNetProcess, TaskCompletionSource<string> taskCompletionSource)
 		{
