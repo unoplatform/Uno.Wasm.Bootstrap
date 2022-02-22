@@ -55,6 +55,7 @@ jobs:
       dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap.DevServer
       dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
+      cp $(Build.SourcesDirectory)/build/CHANGELOG.md $(build.artifactstagingdirectory)
     displayName: Build packages
 
   - task: CopyFiles@2
