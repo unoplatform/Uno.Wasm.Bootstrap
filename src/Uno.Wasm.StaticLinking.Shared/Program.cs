@@ -43,6 +43,10 @@ namespace Uno.Wasm.Sample
 			var validateEmAddFunctionResult = int.Parse(Runtime.InvokeJS($"Validation.validateEmAddFunction()")) != 0;
 
 			var idbFSValidation = Runtime.InvokeJS($"typeof IDBFS !== 'undefined'");
+			Console.WriteLine($"idbFSValidation: {idbFSValidation}");
+
+			var requireAvailable = Runtime.InvokeJS($"typeof require.config !== 'undefined'");
+			Console.WriteLine($"requireAvailable: {idbFSValidation}");
 
 			var jsTimeZone = Runtime.InvokeJS($"Intl.DateTimeFormat().resolvedOptions().timeZone");
 			var clrTimeZone = TimeZoneInfo.Local.DisplayName;
@@ -72,7 +76,9 @@ namespace Uno.Wasm.Sample
 				$"{SideModule3.side3_getCustomVersion()};" +
 				$"{SideModule4.side4_getCustomVersion()};" +
 				$"{chmodRes};" +
-				$"{additionalNativeAdd};";
+				$"{additionalNativeAdd};" +
+				$"requireJs:{requireAvailable};"
+				;
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
 

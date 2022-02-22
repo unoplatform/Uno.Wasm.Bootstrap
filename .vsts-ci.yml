@@ -55,6 +55,7 @@ jobs:
       dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
       cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap.DevServer
       dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
+      cp $(Build.SourcesDirectory)/build/CHANGELOG.md $(build.artifactstagingdirectory)
     displayName: Build packages
 
   - task: CopyFiles@2
@@ -66,14 +67,22 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-drop
+      ArtifactType: Container
+
   - script: |
       dotnet msbuild /r /bl /m:1 /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
 
     displayName: Build Validation Binaries
 
-  - powershell: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
-      .\Validate.ps1
+  # - powershell: |
+  #     cd $(build.sourcesdirectory)/src/Uno.Wasm.Node.Sample.Runner
+  #     .\Validate.ps1
+  #   displayName: Build Validation Binaries
 
   - task: VisualStudioTestPlatformInstaller@1
 
