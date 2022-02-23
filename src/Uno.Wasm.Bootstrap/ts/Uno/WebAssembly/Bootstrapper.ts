@@ -76,7 +76,8 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				);
 
-				(<any>globalThis).IDBFS = IDBFS;
+				// IDBFS is disabled until https://github.com/dotnet/runtime/issues/65436 is fixed
+				// (<any>globalThis).IDBFS = IDBFS;
 			}
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
