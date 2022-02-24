@@ -23,6 +23,7 @@ IF NOT EXIST "%UNO_EMSDK_PATH_MARKER%" (
 
 	IF ERRORLEVEL 1 ( 
 		echo Python is not installed. You can install it from the store https://www.microsoft.com/store/productId/9P7QFQMJRFP7  1>&2
+		EXIT /B 1
 	) ELSE (
 		echo "Installing emscripten %UNO_EMSDK_VERSION% in %UNO_EMSDK_PATH%"
 
