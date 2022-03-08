@@ -240,9 +240,16 @@ var App = {
         }
 
         const configLoader = () => {
-            if (manifest && manifest.splashScreenColor) {
-                this.loader.style.setProperty("--bg-color", manifest.splashScreenColor);
+            if (manifest && manifest.lightThemeBackgroundColor) {
+                this.loader.style.setProperty("--light-theme-bg-color", manifest.lightThemeBackgroundColor);
             }
+            if (manifest && manifest.darkThemeBackgroundColor) {
+                this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
+            }
+            if (manifest && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
+                this.loader.style.setProperty("background-color", manifest.splashScreenColor);
+            }
+
             if (manifest && manifest.accentColor) {
                 this.loader.style.setProperty("--accent-color", manifest.accentColor);
             }
