@@ -56,6 +56,14 @@ declare interface EmscriptenModule {
 	instantiateWasm: (imports: any, successCallback: Function) => any;
 	ENVIRONMENT_IS_NODE: boolean;
 	ENVIRONMENT_IS_WEB: boolean;
+
+	/**
+	 * BEGIN UNO CUSTOM
+	 */
+	aot_profile_data: any;
+	/**
+	 * END UNO CUSTOM
+	 */
 }
 declare type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array;
 
