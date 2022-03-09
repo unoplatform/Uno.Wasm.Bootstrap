@@ -81,6 +81,7 @@
   <Target Name="WasmBootstrapAdjustFrameworkReference" BeforeTargets="ProcessFrameworkReferences">
     <PropertyGroup>
       <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
+      <WasmShellIncludeWindowsCompatibility Condition="'$(WasmShellIncludeWindowsCompatibility)'==''">true</WasmShellIncludeWindowsCompatibility>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(_WasmShellIsNetCore)'=='true'">
@@ -90,7 +91,7 @@
       items added explicitly by the building project.
       -->
       <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
-      <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" />
+      <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" Condition="$(WasmShellIncludeWindowsCompatibility)" />
     </ItemGroup>
   </Target>
 
