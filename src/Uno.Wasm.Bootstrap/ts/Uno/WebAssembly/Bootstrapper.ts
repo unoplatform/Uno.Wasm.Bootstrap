@@ -31,6 +31,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _currentBrowserIsChrome: boolean;
 		private _hasReferencedPdbs: boolean;
 
+        static ENVIRONMENT_IS_WEB: boolean;
+        static ENVIRONMENT_IS_WORKER: boolean;
+        static ENVIRONMENT_IS_NODE: boolean;
+        static ENVIRONMENT_IS_SHELL: boolean;
+
 		constructor(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._unoConfig = unoConfig;
 
@@ -47,6 +52,16 @@ namespace Uno.WebAssembly.Bootstrap {
 		public static async bootstrap(): Promise<void> {
 
 			try {
+
+				// Extract of https://github.com/emscripten-core/emscripten/blob/2.0.23/src/shell.js#L99-L104
+				Bootstrapper.ENVIRONMENT_IS_WEB = typeof window === 'object';
+				Bootstrapper.ENVIRONMENT_IS_WORKER = typeof (<any>globalThis).importScripts === 'function';
+				// N.b. Electron.js environment is simultaneously a NODE-environment, but
+				// also a web environment.
+				Bootstrapper.ENVIRONMENT_IS_NODE = typeof (<any>globalThis).process === 'object' && typeof (<any>globalThis).process.versions === 'object' && typeof (<any>globalThis).process.versions.node === 'string';
+				Bootstrapper.ENVIRONMENT_IS_SHELL = !Bootstrapper.ENVIRONMENT_IS_WEB && !Bootstrapper.ENVIRONMENT_IS_NODE && !Bootstrapper.ENVIRONMENT_IS_WORKER;
+
+
 				let runtime: Bootstrapper = null;
 				let DOMContentLoaded = false;
 
@@ -97,6 +112,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		public configure(context: DotnetPublicAPI) {
 			this._context = context;
 
+			this._context.Module.ENVIRONMENT_IS_WEB = Bootstrapper.ENVIRONMENT_IS_WEB;
+			this._context.Module.ENVIRONMENT_IS_NODE = Bootstrapper.ENVIRONMENT_IS_NODE;
+
 			this.setupRequire();
 			this.setupEmscriptenPreRun();
 			this.setupHotReload();
@@ -141,13 +159,6 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			}
 
-			if (this._unoConfig.generate_aot_profile) {
-				this._context.MONO.mono_wasm_init_aot_profiler({
-					write_at: "Uno.AotProfilerSupport::StopProfile",
-					send_to: "Uno.AotProfilerSupport::DumpAotProfileData"
-				});
-			}
-
 			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
 				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
 			}
@@ -183,6 +194,13 @@ namespace Uno.WebAssembly.Bootstrap {
 		// This is called during emscripten `preInit` event, after we fetched config.
 		private configLoaded() {
 			this._monoConfig = this._context.MONO.config as MonoConfig;
+
+			if (this._unoConfig.generate_aot_profile) {
+				this._monoConfig.aot_profiler_options = <AOTProfilerOptions>{
+					write_at: "Uno.AotProfilerSupport::StopProfile",
+					send_to: "Uno.AotProfilerSupport::DumpAotProfileData"
+				};
+			}
 
 			if (this._monoConfig != null) {
 				this._monoConfig.fetch_file_cb = (asset: string) => this.fetchFile(asset);

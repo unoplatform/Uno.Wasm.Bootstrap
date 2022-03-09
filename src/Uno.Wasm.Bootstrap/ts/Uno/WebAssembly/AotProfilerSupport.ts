@@ -48,7 +48,7 @@
 
 			// Export the file
 			var a = window.document.createElement('a');
-			var blob = new Blob([this._context.INTERNAL.aot_profile_data]);
+			var blob = new Blob([(<any>this._context.Module).aot_profile_data]);
 			a.href = window.URL.createObjectURL(blob);
 			a.download = "aot.profile";
 
