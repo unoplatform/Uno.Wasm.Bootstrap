@@ -61,7 +61,7 @@ jobs:
     inputs:
       SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
       Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)
+      TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.AotTests.net5
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
