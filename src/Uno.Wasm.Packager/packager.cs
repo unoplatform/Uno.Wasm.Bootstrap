@@ -965,6 +965,8 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
+			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-js.a ";
+			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-wasm.a ";
 
 			if (enable_debug)
 			{
