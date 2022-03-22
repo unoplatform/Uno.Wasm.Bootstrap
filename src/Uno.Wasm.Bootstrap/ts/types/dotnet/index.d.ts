@@ -209,7 +209,8 @@ declare type DotnetModuleConfig = {
     scriptDirectory?: string;
     onConfigLoaded?: () => void;
     onDotnetReady?: () => void;
-    imports?: DotnetModuleConfigImports;
+	imports?: DotnetModuleConfigImports;
+	exports?: string[];
 } & EmscriptenModule;
 declare type DotnetModuleConfigImports = {
     require?: (name: string) => any;
