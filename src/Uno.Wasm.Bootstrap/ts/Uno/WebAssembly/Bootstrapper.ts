@@ -84,15 +84,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await eval("import(`./dotnet.js`)");
 
-				const { MONO, BINDING, IDBFS } = await m.default(
+				const { MONO, BINDING } = await m.default(
 					(context: DotnetPublicAPI) => {
 						runtime.configure(context);
 						return runtime.asDotnetConfig();
 					}
 				);
-
-				// IDBFS is disabled until https://github.com/dotnet/runtime/issues/65436 is fixed
-				// (<any>globalThis).IDBFS = IDBFS;
 			}
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`

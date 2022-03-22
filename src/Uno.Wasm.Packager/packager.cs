@@ -1051,7 +1051,7 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
 		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
 		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
-		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\']\\\"");
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\\\"");
 		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_free,_malloc,_htons,_ntohs,__get_daylight,__get_timezone,__get_tzname,_putchar");
 		emcc_link_flags.Add("--source-map-base http://example.com");
 		emcc_link_flags.Add("-s STRICT_JS=1");
