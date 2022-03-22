@@ -105,7 +105,8 @@ namespace Uno.WebAssembly.Bootstrap {
 				configSrc: this.configSrc,
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
-				onAbort: this.onAbort
+				onAbort: this.onAbort,
+				exports: ["IDBFS", "FS"]
 			};
 		}
 
