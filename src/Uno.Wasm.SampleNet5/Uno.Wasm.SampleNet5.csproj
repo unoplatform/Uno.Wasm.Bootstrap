@@ -10,8 +10,8 @@
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->
 			<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
-		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>
+		<!--<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>-->
+		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -9,6 +9,7 @@ using System.Text;
 using System.Json;
 using System.Collections.Generic;
 using Mono.Cecil;
+using System.Diagnostics;
 
 public class WasmTuner
 {
@@ -25,7 +26,8 @@ public class WasmTuner
 		Console.WriteLine ("--gen-empty-assemblies <filenames>.");
 	}
 
-	int Run (String[] args) {
+	int Run (String[] args)
+	{
 		if (args.Length < 1) {
 			Usage ();
 			return 1;
@@ -111,13 +113,20 @@ public class WasmTuner
 	}
 
 	// Generate empty assemblies for the filenames in ARGS if they don't exist
-	int GenEmptyAssemblies (String[] args) {
-		foreach (var fname in args) {
-			if (File.Exists (fname))
+	int GenEmptyAssemblies (string[] args) {
+		foreach (var fname in args.Skip(1)) {
+			if (File.Exists (fname) || !Path.GetExtension(fname).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+			{
 				continue;
+			}
+
 			var basename = Path.GetFileName (fname).Replace (".exe", "").Replace (".dll", "");
 			var assembly = AssemblyDefinition.CreateAssembly (new AssemblyNameDefinition (basename, new Version (0, 0, 0, 0)), basename, ModuleKind.Dll);
 			assembly.Write (fname);
+
+			var fileName = Path.ChangeExtension(fname, ".aot-only");
+
+			File.WriteAllText(fileName, "");
 		}
 		return 0;
 	}

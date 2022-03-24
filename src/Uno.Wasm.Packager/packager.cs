@@ -1562,9 +1562,7 @@ class Driver {
 			// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
 			linker_args.Add($"--keep-metadata all ");
 
-			if (!is_netcore) {
-				linker_args.Add($" -c {coremode} -u {usermode} ");
-			}
+			linker_args.Add($" --verbose ");
 
 			ninja.WriteLine ("build $builddir/linker-out: mkdir");
 			ninja.WriteLine ($"build {linker_ofiles}: linker {linker_infiles}");

@@ -857,6 +857,20 @@ namespace Uno.Wasm.Bootstrap
 				{
 					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
+
+				//
+				// Additional assemblies are created as part of the packager processing
+				// remove those files so they're not part of the final payload.
+				//
+				var temporaryFilesToDelete = Directory
+					.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
+					.Select(f => Path.ChangeExtension(Path.GetFileName(f), ".dll"))
+					.ToList();
+
+				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.ChangeExtension(Path.Combine(_workDistPath, "managed", f), ".dll")));
 			}
 			else
 			{
@@ -944,19 +958,28 @@ namespace Uno.Wasm.Bootstrap
 							.GetFiles(_managedPath)
 							.Select(Path.GetFileName)
 						);
-					string monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
-					var monoConfig = File.ReadAllText(monoConfigFilePath);
 
-					foreach (var deletedFile in deletedFiles)
-					{
-						Log.LogMessage($"Removing linker deleted file [{deletedFile}] from mono-config.json");
-						monoConfig = monoConfig
-							.Replace($"{{ \"name\": \"{deletedFile}\", \"behavior\":\"assembly\"  }},", "")
-							.Replace($"{{ \"name\": \"{deletedFile}\", \"behavior\":\"assembly\"  }}", "");
-					}
-
-					File.WriteAllText(monoConfigFilePath, monoConfig);
+					RemoveMonoConfigJsonFiles(deletedFiles);
 				}
+			}
+		}
+
+		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
+		{
+			var monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
+
+			if (JsonConvert.DeserializeObject(File.ReadAllText(monoConfigFilePath)) is JObject monoConfig)
+			{
+				if (monoConfig["assets"] is JArray assetsArray)
+				{
+					var assetsDoDelete = assetsArray
+						.Where(asset => deletedFiles.Contains(asset["name"]?.Value<string>()))
+						.ToList();
+
+					assetsDoDelete.ForEach(a => assetsArray.Remove(a));
+				}
+
+				File.WriteAllText(monoConfigFilePath, JsonConvert.SerializeObject(monoConfig, Formatting.Indented));
 			}
 		}
 
