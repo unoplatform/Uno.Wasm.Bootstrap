@@ -10,6 +10,7 @@
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>
 		<!--<WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>-->
+		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>

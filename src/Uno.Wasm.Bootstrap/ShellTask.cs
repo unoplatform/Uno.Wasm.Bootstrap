@@ -36,6 +36,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Win32.SafeHandles;
 using Mono.Cecil;
 using Mono.CompilerServices.SymbolWriter;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Uno.Wasm.Bootstrap.Extensions;
 
@@ -67,6 +68,9 @@ namespace Uno.Wasm.Bootstrap
 		private string _finalPackagePath = "";
 		private string _remoteBasePackagePath = "";
 		private string[]? _contentExtensionsToExclude;
+
+		private static readonly SHA384Managed _sha384 = new SHA384Managed();
+		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -199,7 +203,8 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public string? OutputDistPath { get; private set; }
 
-		private Version ActualTargetFrameworkVersion => Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
+		private Version ActualTargetFrameworkVersion
+			=> Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
 
 		public override bool Execute()
 		{
@@ -511,6 +516,7 @@ namespace Uno.Wasm.Bootstrap
 		public Version CurrentEmscriptenVersion => Constants.DotnetRuntimeEmscriptenVersion;
 
 		public bool HasAdditionalPInvokeLibraries => AdditionalPInvokeLibraries is { } libs && libs.Length != 0;
+
 		public bool HasNativeCompile => NativeCompile is { } nativeCompile && nativeCompile.Length != 0;
 
 		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
@@ -851,6 +857,20 @@ namespace Uno.Wasm.Bootstrap
 				{
 					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
+
+				//
+				// Additional assemblies are created as part of the packager processing
+				// remove those files so they're not part of the final payload.
+				//
+				var temporaryFilesToDelete = Directory
+					.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
+					.Select(f => Path.ChangeExtension(Path.GetFileName(f), ".dll"))
+					.ToList();
+
+				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.ChangeExtension(Path.Combine(_workDistPath, "managed", f), ".dll")));
 			}
 			else
 			{
@@ -939,22 +959,29 @@ namespace Uno.Wasm.Bootstrap
 							.Select(Path.GetFileName)
 						);
 
-					string monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
-					var monoConfig = File.ReadAllText(monoConfigFilePath);
-
-					foreach (var deletedFile in deletedFiles)
-					{
-						Log.LogMessage($"Removing linker deleted file [{deletedFile}] from mono-config.json");
-						monoConfig = monoConfig
-							.Replace($"{{ \"name\": \"{deletedFile}\", \"behavior\":\"assembly\"  }},", "")
-							.Replace($"{{ \"name\": \"{deletedFile}\", \"behavior\":\"assembly\"  }}", "");
-					}
-
-					File.WriteAllText(monoConfigFilePath, monoConfig);
+					RemoveMonoConfigJsonFiles(deletedFiles);
 				}
 			}
 		}
 
+		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
+		{
+			var monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
+
+			if (JsonConvert.DeserializeObject(File.ReadAllText(monoConfigFilePath)) is JObject monoConfig)
+			{
+				if (monoConfig["assets"] is JArray assetsArray)
+				{
+					var assetsDoDelete = assetsArray
+						.Where(asset => deletedFiles.Contains(asset["name"]?.Value<string>()))
+						.ToList();
+
+					assetsDoDelete.ForEach(a => assetsArray.Remove(a));
+				}
+
+				File.WriteAllText(monoConfigFilePath, JsonConvert.SerializeObject(monoConfig, Formatting.Indented));
+			}
+		}
 
 		private string GetLinkerFeatureConfiguration()
 		{
@@ -1016,7 +1043,8 @@ namespace Uno.Wasm.Bootstrap
 		private void LinkerSetup()
 			=> _linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools", "illink.dll");
 
-		private bool IsRuntimeAOT() => _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+		private bool IsRuntimeAOT()
+			=> _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
 		private string TryConvertLongPath (string path)
 			=> Environment.OSVersion.Platform == PlatformID.Win32NT
@@ -1122,6 +1150,7 @@ namespace Uno.Wasm.Bootstrap
 
 			return p.output;
 		}
+
 		private static void AdjustFileLineEndings(string emscriptenSetupScript)
 			=> File.WriteAllText(emscriptenSetupScript, File.ReadAllText(emscriptenSetupScript).Replace("\r\n", "\n"));
 
@@ -1302,7 +1331,6 @@ namespace Uno.Wasm.Bootstrap
 				File.Move(source, target);
 			}
 		}
-
 
 		/// <summary>
 		/// Renames the files to avoid quarantine by antivirus software such as Symantec, 
@@ -1678,19 +1706,6 @@ namespace Uno.Wasm.Bootstrap
 			var appInfo = new AppInfo(WebAppBasePath, _remoteBasePackagePath);
 		}
 
-		internal class AppInfo
-		{
-			public AppInfo(string basePath, string packagePath)
-			{
-				BasePath = basePath;
-				PackagePath = packagePath;
-			}
-
-			public string BasePath { get; }
-			public string PackagePath { get; }
-
-		}
-
 		static string BuildDependencyPath(string dep, string baseLookup)
 			=> baseLookup.StartsWith("/")
 				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
@@ -1739,9 +1754,6 @@ namespace Uno.Wasm.Bootstrap
 			=> from file in Directory.EnumerateFiles(_finalPackagePath, "*.*", SearchOption.AllDirectories)
 			   where !file.EndsWith("web.config", StringComparison.OrdinalIgnoreCase)
 			   select file.Replace(_distPath, "").Replace("\\", "/");
-
-		private static readonly SHA384Managed _sha384 = new SHA384Managed();
-		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
 
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
@@ -1996,5 +2008,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new NotSupportedException($"The {name} {value} is not supported");
 			}
 		}
+
+		internal record AppInfo(string BasePath, string PackagePath);
 	}
 }
