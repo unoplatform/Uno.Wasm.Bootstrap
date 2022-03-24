@@ -781,7 +781,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var aotMode = _runtimeExecutionMode switch
 				{
-					RuntimeExecutionMode.FullAOT => "--aot",
+					RuntimeExecutionMode.FullAOT => throw new NotSupportedException("FullAOT mode is not supported by this version of the .NET Runtime"), // "--aot",
 					RuntimeExecutionMode.InterpreterAndAOT => $"--aot-interp {mixedModeAotAssembliesParam}",
 					RuntimeExecutionMode.Interpreter => "",
 					_ => throw new NotSupportedException($"Mode {_runtimeExecutionMode} is not supported"),
