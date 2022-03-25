@@ -733,6 +733,8 @@ namespace Uno.Wasm.Bootstrap
 
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
+			ValidateDotnet();
+
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
 			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
@@ -1056,6 +1058,40 @@ namespace Uno.Wasm.Bootstrap
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
+
+		private void ValidateDotnet()
+		{
+			int GetDotnetMajorVersion()
+			{
+				var (exitCode, output, error) = RunProcess("dotnet", "--version");
+
+				if (exitCode != 0)
+				{
+					throw new InvalidOperationException($"Unable to read the .NET SDK version");
+				}
+				else
+				{
+					if (Regex.Match(output, @"(\d+)\.\d+") is { Success: true, Groups.Count: > 0 } match
+						&& int.TryParse(match.Groups[1].Value, out var majorVersion))
+					{
+						return majorVersion;
+					}
+					else
+					{
+						throw new InvalidOperationException($"Unable to parse the .NET SDK version (Got {output})");
+					}
+				}
+			}
+
+			var majorVersion = GetDotnetMajorVersion();
+
+			if (majorVersion < 6)
+			{
+				throw new InvalidOperationException($".NET SDK Version must be 6.0 or greater");
+			}
+
+			Log.LogMessage($"Found .NET SDK {majorVersion}");
+		}
 
 		private string ValidateEmscripten()
 		{

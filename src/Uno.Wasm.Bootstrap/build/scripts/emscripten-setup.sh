@@ -9,12 +9,6 @@ set
 echo "UNO_INTERMEDIATE_PATH: $UNO_INTERMEDIATE_PATH"
 echo "UNO_EMSDK_VERSION: $UNO_EMSDK_VERSION"
 
-echo Validating Mono Version
-mono --version
-
-echo Validating MSBuild Version
-msbuild /version
-
 export UNO_EMSDK_PATH="$UNO_INTERMEDIATE_PATH/emsdk-$UNO_EMSDK_VERSION"
 export UNO_EMSDK_PATH_MARKER="$UNO_EMSDK_PATH/.uno-install-done"
 
