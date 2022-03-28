@@ -860,19 +860,7 @@ namespace Uno.Wasm.Bootstrap
 					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
 				}
 
-				//
-				// Additional assemblies are created as part of the packager processing
-				// remove those files so they're not part of the final payload.
-				//
-				var temporaryFilesToDelete = Directory
-					.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
-					.Select(f => Path.ChangeExtension(Path.GetFileName(f), ".dll"))
-					.ToList();
-
-				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
-
-				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
-				temporaryFilesToDelete.ForEach(f => File.Delete(Path.ChangeExtension(Path.Combine(_workDistPath, "managed", f), ".dll")));
+				CleanupLinkerRemovedFiles(workAotPath);
 			}
 			else
 			{
@@ -962,6 +950,33 @@ namespace Uno.Wasm.Bootstrap
 						);
 
 					RemoveMonoConfigJsonFiles(deletedFiles);
+				}
+			}
+		}
+
+		private void CleanupLinkerRemovedFiles(string workAotPath)
+		{
+			//
+			// Additional assemblies are created as part of the packager processing
+			// remove those files so they're not part of the final payload.
+			//
+			var temporaryFilesToDelete = Directory
+				.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
+				.Select(f => Path.ChangeExtension(Path.GetFileName(f), ".dll"))
+				.ToList();
+
+			RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+
+			temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+
+			foreach (var f in temporaryFilesToDelete)
+			{
+				var fullPath = Path.Combine(_workDistPath, "managed", f);
+				var pdbFullPath = Path.ChangeExtension(fullPath, ".pdb");
+
+				if (File.Exists(pdbFullPath))
+				{
+					File.Delete(pdbFullPath);
 				}
 			}
 		}

@@ -124,9 +124,8 @@ public class WasmTuner
 			var assembly = AssemblyDefinition.CreateAssembly (new AssemblyNameDefinition (basename, new Version (0, 0, 0, 0)), basename, ModuleKind.Dll);
 			assembly.Write (fname);
 
-			var fileName = Path.ChangeExtension(fname, ".aot-only");
-
-			File.WriteAllText(fileName, "");
+			File.WriteAllText(Path.ChangeExtension(fname, ".aot-only"), "");
+			File.WriteAllText(Path.ChangeExtension(fname, ".pdb"), "");
 		}
 		return 0;
 	}
