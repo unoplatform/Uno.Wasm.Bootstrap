@@ -193,6 +193,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableAOTDeduplication { get; set; } = true;
 
+		public bool EnableAotGSharedVT { get; set; } = false;
+
+		public string? AotCompilerOptions { get; set; }
+
 		public bool GenerateAOTProfile { get; set; } = false;
 
 		public string? NinjaAdditionalParameters { get; set; }
@@ -811,6 +815,11 @@ namespace Uno.Wasm.Bootstrap
 					referencePathsParameter += $" \"{AlignPath(aotProfilerSupport)}\"";
 				}
 
+				if(string.IsNullOrEmpty(AotCompilerOptions) && EnableAotGSharedVT)
+				{
+					AotCompilerOptions = $"-O=gsharedvt";
+				}
+
 				if (EnableLogProfiler)
 				{
 					var logProfilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.LogProfiler.dll");
@@ -829,6 +838,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
+				packagerParams.Add($"--aot-compiler-opts=\"{AotCompilerOptions}\"");
 				packagerParams.Add(EmccLinkOptimization ? "--emcc-link-optimization" : "");
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
