@@ -142,6 +142,7 @@ class Driver {
 		Console.WriteLine ("\t--runtime-config=x  sets the mono runtime to use (defaults to release).");
 		Console.WriteLine ("\t--aot-assemblies=x List of assemblies to AOT in AOT+INTERP mode.");
 		Console.WriteLine ("\t--skip-aot-assemblies=x List of assemblies to skip AOT in AOT+INTERP mode.");
+		Console.WriteLine ("\t--aot-compiler-opts=x Adjust aot compiler options.");
 		Console.WriteLine ("\t--aot-profile=x Use 'x' as the AOT profile.");
 		Console.WriteLine ("\t--link-mode=sdkonly|all        Set the link type used for AOT. (EXPERIMENTAL)");
 		Console.WriteLine ("\t--pinvoke-libs=x DllImport libraries used.");
@@ -457,6 +458,7 @@ class Driver {
 		var runtimepack_dir = "";
 		string coremode, usermode;
 		string aot_profile = null;
+		string aot_compiler_options = "";
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		string extra_emccflags = "";
@@ -504,6 +506,7 @@ class Driver {
 				{ "aot-profile=", s => aot_profile = s },
 				{ "runtime-config=", s => runtime_config = s },
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
+				{ "aot-compiler-opts=", s => aot_compiler_options = s },
 				{ "link-mode=", s => linkModeParm = s },
 				{ "link-descriptor=", s => linkDescriptor = s },
 				{ "pinvoke-libs=", s => pinvoke_libs = s },
@@ -1160,10 +1163,10 @@ class Driver {
 
 		// Rules
 		ninja.WriteLine ("rule aot");
-		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_args,$aot_base_args,depfile=$depfile,llvm-outfile=$outfile $src_file");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} {aot_compiler_options} --aot=$aot_args,$aot_base_args,depfile=$depfile,llvm-outfile=$outfile $src_file");
 		ninja.WriteLine ("  description = [AOT] $src_file -> $outfile");
 		ninja.WriteLine ("rule aot-instances");
-		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} -O=gsharedvt --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} {aot_compiler_options} --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
 		ninja.WriteLine ("  description = [AOT-INSTANCES] $outfile");
 		ninja.WriteLine ("rule mkdir");
 

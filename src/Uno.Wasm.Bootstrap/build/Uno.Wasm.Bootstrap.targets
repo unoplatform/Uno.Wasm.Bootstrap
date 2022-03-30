@@ -213,6 +213,8 @@
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         AotProfile="@(WasmShellEnableAotProfile)"
         AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
+		EnableAotGSharedVT="$(WasmShellEnableAotGSharedVT)"
+        AotCompilerOptions="$(WasmShellAotCompilerOptions)"
         GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
         EnableLogProfiler="$(WasmShellEnableLogProfiler)"
         LogProfilerOptions="$(WasmShellLogProfilerOptions)"
