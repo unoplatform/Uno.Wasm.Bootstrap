@@ -105,6 +105,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Exclude System.Text.Json from runtime copy if it exists in the nuget packages -->
+    <WasmShellRuntimeCopyExclude Include="System.Text.Json.dll"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <UpToDateCheckInput Include="@(LinkerDescriptors)" />
     <UpToDateCheckInput Include="@(LinkerDescriptor)" />
   </ItemGroup>
@@ -225,6 +230,7 @@
         Assets="@(Content);@(StaticWebAsset)"
         ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
+		RuntimeCopyExclude="@(WasmShellRuntimeCopyExclude)"
         RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
         AdditionalPInvokeLibraries="@(WasmShellAdditionalPInvokeLibrary)"
         NativeCompile="@(WasmShellNativeCompile)">
