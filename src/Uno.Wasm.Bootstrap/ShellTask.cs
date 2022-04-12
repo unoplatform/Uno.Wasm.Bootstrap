@@ -106,6 +106,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? MonoEnvironment { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? RuntimeCopyExclude { get; set; }
+
 		[Microsoft.Build.Framework.Required]
 		public string TargetFrameworkIdentifier { get; set; } = "";
 
@@ -1276,6 +1278,11 @@ namespace Uno.Wasm.Bootstrap
 			{
 				_bclAssemblies = _bclAssemblies ?? throw new Exception("_bclAssemblies is not yet defined");
 
+				var runtimeCopyExclusions = RuntimeCopyExclude
+					?.Select(e => e.ItemSpec.ToLowerInvariant())
+					.ToArray()
+					?? Array.Empty<string>();
+
 				foreach (var referencePath in ReferencePath)
 				{
 					var isReferenceAssembly = referencePath.GetMetadata("PathInPackage")?.StartsWith("ref/", StringComparison.OrdinalIgnoreCase) ?? false;
@@ -1292,12 +1299,9 @@ namespace Uno.Wasm.Bootstrap
 					if (
 						_bclAssemblies.ContainsKey(name)
 
-						// NUnitLite is a particular case, as it is distributed
-						// as part of the mono runtime BCL, which prevents the nuget
-						// package from overriding it. We exclude it here, and cache the
-						// proper assembly in the resolver farther below, so that it gets 
-						// picked up first.
-						&& name != "nunitlite.dll"
+						// Potential manual exclusions for packages provided explicitly
+						// by the user (e.g. System.Text.Json) which is also included in the runtime.
+						&& !runtimeCopyExclusions.Contains(name)
 					)
 					{
 						_referencedAssemblies.Add(_bclAssemblies[name]);
