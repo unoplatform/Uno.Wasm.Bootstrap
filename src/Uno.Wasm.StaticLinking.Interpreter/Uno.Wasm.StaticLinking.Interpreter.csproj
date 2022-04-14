@@ -10,6 +10,7 @@
 		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode>Interpreter</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
+		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>

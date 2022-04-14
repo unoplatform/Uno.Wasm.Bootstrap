@@ -1186,16 +1186,31 @@ class Driver {
 		{
 			ninja.WriteLine ("rule cp");
 			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} $in $out");
-			ninja.WriteLine ("rule cpifdiff");
+			ninja.WriteLine ($"  description = [CP] $in -> $out");
+			ninja.WriteLine("rule cpifdiff");
 			// Copy $in to $out only if it changed
-			ninja.WriteLine($"  command = if cmp -s $in $out ; then : ; else {cpCommand} $in $out ; fi");
+			ninja.WriteLine ($"  command = if cmp -s $in $out ; then : ; else {cpCommand} $in $out ; fi");
+
+			ninja.WriteLine ("rule cpifdiffex");
+			ninja.WriteLine ($"  command = if [[ -f $in && cmp -s $in $out ]] ; then : ; else {cpCommand} $in $out ; fi");
+
+			ninja.WriteLine ("  restat = true");
+			ninja.WriteLine ("  description = [CPIFDIFFEX] $in -> $out");
 		}
 		else
 		{
 			ninja.WriteLine ("rule cp");
 			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+			ninja.WriteLine ($"  description = [CP] $in -> $out");
+
 			ninja.WriteLine ("rule cpifdiff");
-			ninja.WriteLine($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+
+			ninja.WriteLine ("rule cpifdiffex");
+			ninja.WriteLine ($"  command = {commandPrefix} if(Test-Path '$in') {{ {cpCommand} '$in' '$out' }}");
+
+			ninja.WriteLine ("  restat = true");
+			ninja.WriteLine ("  description = [CPIFDIFFEX] $in -> $out");
 		}
 
 		var emcc_shell_prefix = is_windows
@@ -1206,8 +1221,6 @@ class Driver {
 			? "powershell"
 			: "";
 
-		ninja.WriteLine ("  restat = true");
-		ninja.WriteLine ("  description = [CPIFDIFF] $in -> $out");
 		ninja.WriteLine ("rule create-emsdk-env");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
 		ninja.WriteLine ("rule emcc");
@@ -1386,7 +1399,7 @@ class Driver {
 				ninja.WriteLine ($"build $builddir/{filename}: cpifdiff {EscapePath(source_file_path)}");
 				a.linkout_path = infile;
 				if (emit_pdb) {
-					ninja.WriteLine ($"build $builddir/{filename_pdb}: cpifdiff {EscapePath(source_file_path_pdb)}");
+					ninja.WriteLine ($"build $builddir/{filename_pdb}: cpifdiffex {EscapePath(source_file_path_pdb)}");
 					infile_pdb = $"$builddir/{filename_pdb}";
 				}
 			}
@@ -1399,7 +1412,7 @@ class Driver {
 
 			ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename}: cpifdiff {EscapePath(a.final_path)}");
 			if (emit_pdb && infile_pdb != "")
-				ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename_pdb}: cpifdiff {EscapePath(infile_pdb)}");
+				ninja.WriteLine ($"build $appdir/$deploy_prefix/{filename_pdb}: cpifdiffex {EscapePath(infile_pdb)}");
 			if (a.aot) {
 				a.bc_path = $"$builddir/{filename}.bc";
 				a.o_path = $"$builddir/{filename}.o";
