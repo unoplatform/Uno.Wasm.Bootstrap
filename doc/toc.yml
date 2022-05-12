@@ -1,0 +1,51 @@
+items:
+- name: Using the bootstrapper
+  href: using-the-bootstrapper.md
+- name: Debugger support
+  href: debugger-support.md
+- name: Deploy and publish
+  href: deploy-and-publish.md
+- name: Linker configuration
+  href: linker-configuration.md
+- name: Runtime Exection Modes
+  href: runtime-execution-modes.md
+- name: Troubleshooting
+  href: troubleshooting.md
+
+- name: Features
+  items:
+    - name: Using additional files
+      href: features-additional-files.md
+    - name: Javascript Dependency management
+      href: features-dependency-management.md
+    - name: Deep linking
+      href: features-deep-linking.md
+    - name: Splash screen
+      href: features-splash-screen.md
+    - name: Environment Variables
+      href: features-environment-variables.md
+    - name: Pre-compression
+      href: features-pre-compression.md
+    - name: Embedded mode
+      href: features-embedded.mode.md
+    - name: Native Linker Optimization
+      href: features-linker-opts.md
+    - name: Memory troubleshooting
+      href: features-memory-corruption-troubleshooting.md
+    - name: Module Linking
+      href: features-module-linking.md
+    - name: Profiling
+      href: features-profiling.md
+    - name: Node JS
+      href: features-node-js.md
+    - name: Nuget package overrides
+      href: features-nuget-package-overrides.md
+    - name: Prefechting
+      href: features-prefetch.md
+    - name: PWA Support
+      href: features-pwa.md
+    - name: 4GB Support
+      href: features-4gb.md
+
+- name: Contributing
+  href: contributing.md
