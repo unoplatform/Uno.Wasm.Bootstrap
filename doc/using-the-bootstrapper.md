@@ -42,7 +42,7 @@ class Program
 * A browser window will appear with your application
 * The output of the Console.WriteLine will appear in the javascript debugging console
 
-### How to use the Visual Studio 2019 Debugger
+### How to use the Visual Studio 2019/2022 Debugger
 Starting from **Visual Studio 2019 16.6**, it is possible to debug a WebAssembly app.
 
 To enable the debugging, add the following line to your `launchSettings.json` file:
@@ -81,3 +81,12 @@ To upgrade a project from 1.0 to 1.1:
 The SDKs are installed under `Path.GetTempPath()` by default, you may change this by setting the following msbuild property(or environment variable): `WasmShellMonoTempFolder`.
 
 For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
+
+### Bootstrapper versios and .NET runtimes
+Each major version of the bootstrapper targets a different version of the .NET Runtime.
+
+- 2.x: Mono runtime (https://github.com/mono/mono)
+- 3.x: .NET 6 (https://github.com/dotnet/runtime)
+- 4.x-dev: .NET 7 (https://github.com/dotnet/runtime)
+
+Starting from version 3.x, the bootstrapper uses a custom build of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly

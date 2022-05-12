@@ -1,5 +1,3 @@
-
-
 ## Runtime Execution Modes
 The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT (Ahead of Time) and Mixed Mode Interpreter/AOT.
 
@@ -14,7 +12,7 @@ The possible values are:
 To setup your machine to use AOT modes on Windows, you will need to install [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
 ### Interpreter mode
-This mode is the slowest of all three, but allows for great flexibility and debugging, as well as an efficient payload size. 
+This mode is the slowest, but allows for great flexibility and debugging, as well as an efficient payload size. 
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
 
