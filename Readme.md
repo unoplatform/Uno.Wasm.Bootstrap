@@ -6,7 +6,7 @@ Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it fro
 
 It is a standalone .NET Web Assembly (Wasm) sdk bootstrapper taking the form of a nuget package.
 
-Installing it on a .NET 5 or 6 project or .NET Standard 2.0 library with an entry point allows to publish it as part of a WASM distribution folder, along with CSS, Javascript and content files.
+Installing it on a .NET project (5, 6 or .NET Standard 2.0) with an entry point allows to publish it as part of a Wasm distribution folder, along with CSS, Javascript and content files.
 
 This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`.
 

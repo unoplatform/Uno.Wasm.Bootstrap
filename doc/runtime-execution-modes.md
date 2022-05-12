@@ -10,7 +10,6 @@ The execution mode can be set as follows:
 The possible values are:
 - `Interpreter` (the default mode)
 - `InterpreterAndAOT`
-- `FullAOT`
 
 To setup your machine to use AOT modes on Windows, you will need to install [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
@@ -18,11 +17,6 @@ To setup your machine to use AOT modes on Windows, you will need to install [Pyt
 This mode is the slowest of all three, but allows for great flexibility and debugging, as well as an efficient payload size. 
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
-
-### Full AOT Mode
-This mode generates WebAssembly binary for all the referenced assemblies and provides the fastest code execution, but also generates the largest payload. This mode will not allow the execution of code that was not known at compile time (e.g. dynamically generated assemblies or loaded through `Assembly.LoadFrom`).
-
-> The FullAOT mode currently fails at runtime using net5 or net6 because of [this issue](https://github.com/dotnet/runtime/issues/50609).
 
 ### Mixed Interpreter and AOT Mode
 This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609). 
