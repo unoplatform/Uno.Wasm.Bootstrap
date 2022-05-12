@@ -1,6 +1,6 @@
 # Uno.Wasm.Bootstrap
 
-[![Open in Gitpod]((https://gitpod.io/button/open-in-gitpod.svg)]((https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap) 
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap) 
 
 Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
 
