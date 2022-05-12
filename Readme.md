@@ -10,7 +10,7 @@ Installing it on a .NET 5 project or .NET Standard 2.0 library with an entry poi
 
 This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`.
 
-This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task]((https://github.com/praeclarum/Ooui).
+This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
 ## Documentation
 - [Using the bootstrapper](doc/using-the-bootstrapper.md)
