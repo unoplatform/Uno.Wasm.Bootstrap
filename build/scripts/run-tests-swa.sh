@@ -6,6 +6,7 @@ cleanup() {
 }
 trap cleanup 0
 
+sudo chown -R 65534:1001 "/root/.npm"
 sudo npm install -g @azure/static-web-apps-cli
 
 export BOOTSTRAP_APP_PATH=$1
