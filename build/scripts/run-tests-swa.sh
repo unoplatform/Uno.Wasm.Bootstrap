@@ -7,6 +7,7 @@ cleanup() {
 trap cleanup 0
 
 npm install @azure/static-web-apps-cli
+SWA_PATH=`pwd`/node_modules/.bin/swa
 
 export BOOTSTRAP_APP_PATH=$1
 export BOOTSTRAP_TEST_RUNNER_PATH=$2
@@ -17,7 +18,7 @@ echo "BOOTSTRAP_TEST_RUNNER_PATH=$BOOTSTRAP_TEST_RUNNER_PATH"
 echo "BOOTSTRAP_TEST_RUNNER_URL=$BOOTSTRAP_TEST_RUNNER_URL"
 
 cd $BOOTSTRAP_APP_PATH
-~/node_modules/.bin/swa start --port 8000 --app-location "$BOOTSTRAP_APP_PATH" &
+$SWA_PATH start --port 8000 --app-location "$BOOTSTRAP_APP_PATH" &
 
 cd $BOOTSTRAP_TEST_RUNNER_PATH
 npm install
