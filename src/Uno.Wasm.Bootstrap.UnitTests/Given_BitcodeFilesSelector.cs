@@ -25,6 +25,10 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		[DataRow("3.0.0", new[] { @"myBitcode.bc\1.2.3\myBitcode.bc", @"myBitcode.bc\3.0.0\myBitcode.bc", @"myBitcode2.bc\1.2.3\myBitcode2.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" }, new[] { @"myBitcode.bc\3.0.0\myBitcode.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" })]
 		[DataRow("4.0.0", new[] { @"myBitcode.bc\1.2.3\myBitcode.bc", @"myBitcode.bc\3.0.0\myBitcode.bc", @"myBitcode2.bc\1.2.3\myBitcode2.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" }, new[] { @"myBitcode.bc\3.0.0\myBitcode.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" })]
 
+		[DataRow("3.1.7", new[] { @"myBitcode.bc\1.3\myBitcode.bc", @"myBitcode.bc\2.0\myBitcode.bc", @"myBitcode.bc\3.1\myBitcode.bc", @"myBitcode.bc\5.0\myBitcode.bc" }, new[] { @"myBitcode.bc\3.1\myBitcode.bc" })]
+		[DataRow("5.0.0", new[] { @"myBitcode.bc\1.3\myBitcode.bc", @"myBitcode.bc\2.0\myBitcode.bc", @"myBitcode.bc\3.1\myBitcode.bc", @"myBitcode.bc\5.0\myBitcode.bc" }, new[] { @"myBitcode.bc\5.0\myBitcode.bc" })]
+		[DataRow("5.0.1", new[] { @"myBitcode.bc\1.3\myBitcode.bc", @"myBitcode.bc\2.0\myBitcode.bc", @"myBitcode.bc\3.1\myBitcode.bc", @"myBitcode.bc\5.0\myBitcode.bc" }, new[] { @"myBitcode.bc\5.0\myBitcode.bc" })]
+
 		[DataRow("4.0.0", new[] { @"myBitcode.bc\1.2.3\myBitcode.bc", @"myBitcode.bc\4.0.0\myBitcode.bc", @"myBitcode2.bc\1.2.3\myBitcode2.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" }, new[] { @"myBitcode.bc\4.0.0\myBitcode.bc", @"myBitcode2.bc\3.0.0\myBitcode2.bc" })]
 		public void When_NormalList(string version, string[] input, string[] expected)
 		{

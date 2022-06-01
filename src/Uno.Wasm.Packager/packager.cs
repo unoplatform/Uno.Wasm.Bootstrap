@@ -968,6 +968,7 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
+			runtime_libs += $"$runtime_libdir/libicudata.a ";
 			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-js.a ";
 			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-wasm.a ";
 
@@ -1049,13 +1050,15 @@ class Driver {
 			emcc_link_flags.Add(linker_optimization_level);
 		}
 
-		// Align with https://github.com/dotnet/runtime/blob/b0e16a18025287e746b0418fbedda27dbaf3922d/src/mono/wasm/wasm.proj#L67
+		// Align with https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L143
 		emcc_link_flags.Add("-s EXPORT_ES6=1");
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
 		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
 		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
 		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\\\"");
-		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_free,_malloc,_htons,_ntohs,__get_daylight,__get_timezone,__get_tzname,_putchar");
+
+		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
+		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs");
 		emcc_link_flags.Add("--source-map-base http://example.com");
 		emcc_link_flags.Add("-s STRICT_JS=1");
 		emcc_link_flags.Add("-s EXPORT_NAME=\"'createDotnetRuntime'\"");
