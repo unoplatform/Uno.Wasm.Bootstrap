@@ -6,7 +6,7 @@ cleanup() {
 }
 trap cleanup 0
 
-npm install @azure/static-web-apps-cli
+npm install @azure/static-web-apps-cli@0.8.3
 SWA_PATH=`pwd`/node_modules/.bin/swa
 
 export BOOTSTRAP_APP_PATH=$1
