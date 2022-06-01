@@ -37,7 +37,7 @@ namespace Uno.Wasm.Bootstrap
 				var versions = group
 					.AsEnumerable()
 					.Select(ParsePackageSpec)
-					.OrderBy(v => v.version)
+					.OrderByDescending(v => v.version)
 					.ToList();
 
 				if(versions.Count == 1)
@@ -47,7 +47,7 @@ namespace Uno.Wasm.Bootstrap
 				else
 				{
 					var validVersions = versions
-						.Where(v => v.version >= emscriptenVersion)
+						.Where(v => v.version <= emscriptenVersion)
 						.Select(v => v.fullPath)
 						.ToArray();
 
