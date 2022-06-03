@@ -408,6 +408,7 @@ class Driver {
 		public bool EnableICU;
 		public bool EnableDedup = true;
 		public bool EmccLinkOptimizations = false;
+		public bool EnableWasmExceptions = false;
 	}
 
 	int Run (string[] args) {
@@ -535,6 +536,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
 		AddFlag (p, new BoolFlag ("native-strip", "strip final executable", opts.NativeStrip, b => opts.NativeStrip = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
+		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
 		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
@@ -969,8 +971,10 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
 			runtime_libs += $"$runtime_libdir/libicudata.a ";
-			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-js.a ";
-			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-wasm.a ";
+
+			runtime_libs += opts.EnableWasmExceptions
+				? $"$runtime_libdir/libmono-wasm-eh-wasm.a "
+				: $"$runtime_libdir/libmono-wasm-eh-js.a ";
 
 			if (enable_debug)
 			{
@@ -1048,6 +1052,17 @@ class Driver {
 		else
 		{
 			emcc_link_flags.Add(linker_optimization_level);
+		}
+
+		if (opts.EnableWasmExceptions)
+		{
+			emcc_link_flags.Add("-fwasm-exceptions");
+			emcc_flags += " -fwasm-exceptions ";
+			aot_compiler_options += " --wasm-exceptions ";
+		}
+		else
+		{
+			emcc_flags += " -s DISABLE_EXCEPTION_CATCHING=0 ";
 		}
 
 		// Align with https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L143
@@ -1157,7 +1172,7 @@ class Driver {
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 {emcc_flags} ");
+		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
 		var aot_cross_prefix = is_windows
