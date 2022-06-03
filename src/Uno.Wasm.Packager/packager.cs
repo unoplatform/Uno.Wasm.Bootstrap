@@ -1059,6 +1059,7 @@ class Driver {
 			emcc_link_flags.Add("-fwasm-exceptions");
 			emcc_flags += " -fwasm-exceptions ";
 			aot_compiler_options += " --wasm-exceptions ";
+			emcc_link_flags.Add("-s DISABLE_EXCEPTION_CATCHING=0");
 		}
 		else
 		{
