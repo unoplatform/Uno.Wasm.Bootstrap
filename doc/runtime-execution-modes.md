@@ -21,6 +21,14 @@ This mode enable AOT compilation for most of the assemblies, with [some specific
 
 This mode is generally prefered to FullAOT as it allows to load arbitrary assemblies and execute their code through the interpreter.
 
+## Required configuration for AOT, Mixed Mode or static linking on Linux
+- Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
+- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
+- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 5.0
+- ninja: `apt-get install ninja-build`
+
+The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build).
+
 ## Profile Guided AOT
 This mode allows for the AOT engine to selectively optimize methods to WebAssembly, and keep the rest as interpreted. This gives a very good balance when choosing between performance and payload size. It also has the advantage of reducing the build time, as less code needs to be compiled down to WebAssembly.
 
@@ -98,15 +106,6 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 </ItemGroup>
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
-
-## Required configuration for AOT, Mixed Mode or static linking on Linux
-- Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
-- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 5.0
-- ninja: `apt-get install ninja-build`
-
-We recommend that you install newer versions of Uno.Wasm.Bootstrap as it provides a better out-of-the-box experience (e.g. Emscripten is automatically installed).
-
-The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build).
 
 ## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
 
