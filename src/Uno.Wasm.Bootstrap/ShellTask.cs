@@ -811,6 +811,8 @@ namespace Uno.Wasm.Bootstrap
 					packagerParams.Add("--no-native-strip");
 				}
 
+				packagerParams.Add("--wasm-exceptions");
+
 				if (GenerateAOTProfile)
 				{
 					var aotProfilerSupport = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.AotProfiler.dll");

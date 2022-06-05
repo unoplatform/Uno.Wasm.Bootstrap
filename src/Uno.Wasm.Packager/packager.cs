@@ -408,6 +408,7 @@ class Driver {
 		public bool EnableICU;
 		public bool EnableDedup = true;
 		public bool EmccLinkOptimizations = false;
+		public bool EnableWasmExceptions = false;
 	}
 
 	int Run (string[] args) {
@@ -535,6 +536,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
 		AddFlag (p, new BoolFlag ("native-strip", "strip final executable", opts.NativeStrip, b => opts.NativeStrip = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
+		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
 		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
@@ -969,8 +971,10 @@ class Driver {
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
 			runtime_libs += $"$runtime_libdir/libicudata.a ";
-			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-js.a ";
-			runtime_libs += $"$runtime_libdir/libmono-wasm-eh-wasm.a ";
+
+			runtime_libs += opts.EnableWasmExceptions
+				? $"$runtime_libdir/libmono-wasm-eh-wasm.a "
+				: $"$runtime_libdir/libmono-wasm-eh-js.a ";
 
 			if (enable_debug)
 			{
@@ -1050,6 +1054,17 @@ class Driver {
 			emcc_link_flags.Add(linker_optimization_level);
 		}
 
+		if (opts.EnableWasmExceptions)
+		{
+			emcc_link_flags.Add("-fwasm-exceptions");
+			emcc_flags += " -fwasm-exceptions ";
+			aot_compiler_options += " --wasm-exceptions ";
+		}
+		else
+		{
+			emcc_flags += " -s DISABLE_EXCEPTION_CATCHING=0 ";
+		}
+
 		// Align with https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L143
 		emcc_link_flags.Add("-s EXPORT_ES6=1");
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
@@ -1058,7 +1073,7 @@ class Driver {
 		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\\\"");
 
 		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
-		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs");
+		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
 		emcc_link_flags.Add("--source-map-base http://example.com");
 		emcc_link_flags.Add("-s STRICT_JS=1");
 		emcc_link_flags.Add("-s EXPORT_NAME=\"'createDotnetRuntime'\"");
@@ -1079,7 +1094,7 @@ class Driver {
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
 		{
-			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
+			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf --mvp-features --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
 		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
@@ -1157,7 +1172,7 @@ class Driver {
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
-		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 -s DISABLE_EXCEPTION_CATCHING=0 {emcc_flags} ");
+		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
 		var aot_cross_prefix = is_windows
@@ -1231,7 +1246,7 @@ class Driver {
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
 
-		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {failOnError} {strip_cmd}");
+		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {failOnError} {strip_cmd}");
 		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
