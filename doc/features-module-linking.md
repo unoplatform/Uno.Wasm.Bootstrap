@@ -59,9 +59,12 @@ In such cases, the boostrapper allows for providing a set of known P/Invoke libr
 
 ```xml
 <ItemGroup>
-    <WasmShellAdditionalPInvokeLibrary Include="libc" />
+    <WasmShellAdditionalPInvokeLibrary Include="libc.so" />
 </ItemGroup>
 ```
+
+> [!NOTE]
+> Starting with .NET 7, the libc DllImport is special and needs to be called `libc.so`. This is not needed for other library names.
 
 It's important to note that providing additional libraries this way implies that all the imported functions will have to be available during emcc link operation.
 

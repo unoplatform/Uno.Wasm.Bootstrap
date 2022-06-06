@@ -71,16 +71,16 @@ public class WasmTuner
 
 		var files = args.Skip (3).ToArray ();
 
-#if NETFRAMEWORK
-		throw new NotSupportedException($"pinvoke generation is not supported for netstandard2.0");
-#else
 		var generator = new PInvokeTableGenerator();
 
 		Console.WriteLine($"Generating to {args[1]}");
+		var PInvokeOutputFile = args[1];
+		var cookiesList = generator.GenPInvokeTable(modules.Keys.ToArray(), files.ToArray(), PInvokeOutputFile);
 
-		generator.OutputPath = args[1];
-		generator.GenPInvokeTable(modules.Keys.ToArray(), files.ToArray());
-#endif
+		var m2nInvoke = Path.Combine(Path.GetDirectoryName(PInvokeOutputFile), "wasm_m2n_invoke.g.h");
+		Console.WriteLine($"Generating interp to native to {m2nInvoke}");
+		var interpNativeGenerator = new InterpToNativeGenerator();
+		interpNativeGenerator.Generate(cookiesList, m2nInvoke);
 
 		return 0;
 	}
@@ -95,7 +95,7 @@ public class WasmTuner
 	// Given the runtime generated icall table, and a set of assemblies, generate
 	// a smaller linked icall table mapping tokens to C function names
 	//
-	int GenIcallTable(String[] args) {
+	int GenIcallTable(string[] args) {
 		var icall_table_filename = args [2];
 		var fileNames = args.Skip (3).ToArray ();
 
@@ -105,8 +105,7 @@ public class WasmTuner
 		Console.WriteLine($"Generating to {args[1]}");
 
 		var generator = new IcallTableGenerator();
-		generator.OutputPath = args[2];
-		generator.GenIcallTable(icall_table_filename, fileNames);
+		generator.GenIcallTable(icall_table_filename, fileNames, args[2]);
 #endif
 
 		return 0;
