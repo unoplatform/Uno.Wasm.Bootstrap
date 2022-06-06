@@ -65,22 +65,28 @@ public class WasmTuner
 	}
 
 	int GenPinvokeTable (String[] args) {
+		var outputFile = args[1];
+		var icallTable = args[3];
+
 		var modules = new Dictionary<string, string> ();
 		foreach (var module in args [2].Split (','))
 			modules [module] = module;
 
-		var files = args.Skip (3).ToArray ();
+		var files = args.Skip (4).ToArray ();
 
 		var generator = new PInvokeTableGenerator();
 
-		Console.WriteLine($"Generating to {args[1]}");
-		var PInvokeOutputFile = args[1];
-		var cookiesList = generator.GenPInvokeTable(modules.Keys.ToArray(), files.ToArray(), PInvokeOutputFile);
+		Console.WriteLine($"Generating to {outputFile}");
+		var PInvokeOutputFile = outputFile;
+		var pInvokeCookiesList = generator.GenPInvokeTable(modules.Keys.ToArray(), files.ToArray(), PInvokeOutputFile);
+
+		var icallGenerator = new IcallTableGenerator();
+		var iCallCookiesList = icallGenerator.GenIcallTable(icallTable, files, Path.GetTempFileName());
 
 		var m2nInvoke = Path.Combine(Path.GetDirectoryName(PInvokeOutputFile), "wasm_m2n_invoke.g.h");
 		Console.WriteLine($"Generating interp to native to {m2nInvoke}");
 		var interpNativeGenerator = new InterpToNativeGenerator();
-		interpNativeGenerator.Generate(cookiesList, m2nInvoke);
+		interpNativeGenerator.Generate(pInvokeCookiesList.Concat(iCallCookiesList), m2nInvoke);
 
 		return 0;
 	}

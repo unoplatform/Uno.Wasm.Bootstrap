@@ -1276,7 +1276,7 @@ class Driver {
 		}
 
 		ninja.WriteLine ("rule gen-runtime-icall-table");
-		ninja.WriteLine ("  command = $cross --print-icall-table > $out");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --print-icall-table > $out");
 		ninja.WriteLine ("rule gen-icall-table");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-icall-table $out $runtime_table $in");
 		ninja.WriteLine ("rule gen-pinvoke-table");
@@ -1498,13 +1498,15 @@ class Driver {
 			ninja.WriteLine ($"build {a.o_path}: emcc {a.bc_path} | $emsdk_env");
 			ofiles += $" {a.o_path}";
 		}
+
+		ninja.WriteLine ("build $builddir/icall-table.json: gen-runtime-icall-table");
+
 		if (link_icalls) {
 			string icall_assemblies = "";
 			foreach (var a in assemblies) {
 				if (a.name == "mscorlib" || a.name == "System")
 					icall_assemblies += $"{a.linkout_path} ";
 			}
-			ninja.WriteLine ("build $builddir/icall-table.json: gen-runtime-icall-table");
 			ninja.WriteLine ($"build $builddir/icall-table.h: gen-icall-table {icall_assemblies}");
 			ninja.WriteLine ($"  runtime_table=$builddir/icall-table.json");
 		}
@@ -1514,7 +1516,7 @@ class Driver {
 				pinvoke_assemblies += $"{a.linkout_path} ";
 
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
-			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {pinvoke_assemblies}");
+			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table $builddir/icall-table.json {pinvoke_assemblies}");
 
 			if (is_netcore)
 			{
