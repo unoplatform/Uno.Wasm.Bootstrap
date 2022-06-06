@@ -16,6 +16,20 @@ This allowing for p/invoke to be functional when resolving methods from the load
 </ItemGroup>
 ```
 
+#### WebAssembly Exceptions support 
+As of version 4.0 and later, WebAssembly Exceptions support is now required. 
+
+If you're building C++ files with exceptions support, you'll need to add the [emcc `-fwasm-exceptions` option](https://emscripten.org/docs/porting/exceptions.html#webassembly-exception-handling-proposal) and remove the `-s DISABLE_EXCEPTION_CATCHING=0` if you specified it.
+
+If you try building with a mix of options, you'll get emcc messages like this one:
+```
+error: DISABLE_EXCEPTION_THROWING was set (likely due to -fno-exceptions), which means no C++ exception throwing 
+	   support code is linked in, but exception catching code appears. Either do not set DISABLE_EXCEPTION_THROWING
+	   (if you do want exception throwing) or compile all source files with -fno-except (so that no exceptions support
+	   code is required); also make sure DISABLE_EXCEPTION_CATCHING is set to the right value - if you want exceptions, 
+	   it should be off, and vice versa.
+```
+
 #### Static Linking multi-version support
 As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM.
 In order to enable this scenario, the Uno Bootstrapper supports adding .bc files by convention.
