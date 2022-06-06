@@ -55,7 +55,7 @@ in every profile section of the file, below each `"launchBrowser": true,` line.
 Press `F5` to start debugging.
 
 ### Alternate deployment methods
-Install the `[dotnet serve](https://github.com/natemcmaster/dotnet-serve)` tool:
+Install the [`dotnet serve`](https://github.com/natemcmaster/dotnet-serve) tool:
 ```
 dotnet tool install -g dotnet-serve
 ```
@@ -82,7 +82,7 @@ The SDKs are installed under `Path.GetTempPath()` by default, you may change thi
 
 For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
 
-### Bootstrapper versios and .NET runtimes
+### Bootstrapper versioms and .NET runtimes
 Each major version of the bootstrapper targets a different version of the .NET Runtime.
 
 - 2.x: Mono runtime (https://github.com/mono/mono)
