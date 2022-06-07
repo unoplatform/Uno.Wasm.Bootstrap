@@ -10,7 +10,7 @@
 		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
-		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
+		<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>
 		<!--<WasmShellEmccLinkOptimization>true</WasmShellEmccLinkOptimization>-->
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<WasmShellEnableAOTDeduplication>false</WasmShellEnableAOTDeduplication>
@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(UseAOT)'=='true'">
-		<WasmShellAdditionalPInvokeLibrary Include="libc" />
+		<WasmShellAdditionalPInvokeLibrary Include="libc.so" />
 	</ItemGroup>
 
 	<ItemGroup>
