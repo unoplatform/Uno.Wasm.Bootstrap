@@ -206,6 +206,7 @@
         EnableLogProfiler="$(WasmShellEnableLogProfiler)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
         EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
+        EnableThreads="$(WasmShellEnableThreads)"
         ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
         ForceDisableWSL="$(WasmShellForceDisableWSL)"
         ForceUseWSL="$(WasmShellForceUseWSL)"

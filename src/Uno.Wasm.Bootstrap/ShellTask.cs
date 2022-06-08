@@ -177,6 +177,9 @@ namespace Uno.Wasm.Bootstrap
 		public string RuntimeConfiguration { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
+		public bool EnableThreads { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public int BrotliCompressionQuality { get; set; } = 7;
@@ -211,11 +214,6 @@ namespace Uno.Wasm.Bootstrap
 
 		private Version ActualTargetFrameworkVersion
 			=> Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
-
-		private RuntimeConfiguration RuntimeConfigurationAsEnum
-			=> Enum.TryParse<RuntimeConfiguration>(RuntimeConfiguration, out var result)
-				? result
-				: throw new InvalidOperationException($"RuntimeConfiguration {RuntimeConfiguration} is not a valid value");
 
 		public override bool Execute()
 		{
@@ -746,10 +744,7 @@ namespace Uno.Wasm.Bootstrap
 
 			ValidateDotnet();
 
-			var runtimeConfigurationParam = $"--runtime-config=" +
-				(RuntimeConfigurationAsEnum.HasFlag(Bootstrap.RuntimeConfiguration.Threads)
-				? "release-threads"
-				: "release");
+			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "");
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
@@ -1755,6 +1750,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
@@ -1774,6 +1770,9 @@ namespace Uno.Wasm.Bootstrap
 				w.Write(config.ToString());
 			}
 		}
+
+		private string BuildRuntimeFeatures()
+			=> EnableThreads ? "threads" : "";
 
 		private void GenerateAppInfo()
 		{
