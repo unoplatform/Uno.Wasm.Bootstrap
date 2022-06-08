@@ -12,13 +12,14 @@
     <WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
-    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">Default</MonoWasmRuntimeConfiguration>
+    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">Release</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'=='' and '$(Configuration)'=='Debug'">false</WasmShellGenerateCompressedFiles>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'==''">true</WasmShellGenerateCompressedFiles>
     <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
     <WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
+    <WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
