@@ -164,6 +164,7 @@
         CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
         DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
+        EnableThreads="$(WasmShellEnableThreads)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"

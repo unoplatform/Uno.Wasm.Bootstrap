@@ -50,6 +50,9 @@ namespace Uno.Wasm.Bootstrap
 		[Required]
 		public bool IsOSUnixLike { get; set; }
 
+		[Microsoft.Build.Framework.Required]
+		public bool EnableThreads { get; set; }
+
 		public bool EnableEmscriptenWindows { get; set; } = true;
 
 		[Microsoft.Build.Framework.Required]
@@ -77,13 +80,6 @@ namespace Uno.Wasm.Bootstrap
 
 		public override bool Execute()
 			=> ExecuteAsync(_cts.Token).Result;
-
-
-		private RuntimeConfiguration RuntimeConfigurationAsEnum
-			=> Enum.TryParse<RuntimeConfiguration>(RuntimeConfiguration, out var result)
-				? result
-				: throw new InvalidOperationException($"RuntimeConfiguration {RuntimeConfiguration} is not a valid value");
-
 
 		private async Task<bool> ExecuteAsync(CancellationToken ct)
 		{
@@ -114,7 +110,7 @@ namespace Uno.Wasm.Bootstrap
 				sdkUri = sdkUri.Replace("linux", "windows");
 			}
 
-			if (RuntimeConfigurationAsEnum.HasFlag(Bootstrap.RuntimeConfiguration.Threads))
+			if (EnableThreads)
 			{
 				sdkUri = sdkUri.Replace(".zip", "-threads.zip");
 			}
