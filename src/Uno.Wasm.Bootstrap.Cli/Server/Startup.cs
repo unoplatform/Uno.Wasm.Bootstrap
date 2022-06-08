@@ -62,6 +62,11 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 				context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 				context.Response.Headers.Add("Access-Control-Allow-Methods", "*");
 				context.Response.Headers.Add("Access-Control-Allow-Headers", "*");
+
+
+				// Required for SharedArrayBuffer: https://developer.chrome.com/blog/enabling-shared-array-buffer/
+				context.Response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
+				context.Response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
 				await next();
 			});
 

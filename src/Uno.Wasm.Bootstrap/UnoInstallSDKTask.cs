@@ -19,6 +19,8 @@ namespace Uno.Wasm.Bootstrap
 {
 	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task, ICancelableTask
 	{
+		private readonly CancellationTokenSource _cts = new();
+
 		private static readonly TimeSpan _SDKFolderLockTimeout = TimeSpan.FromMinutes(2);
 		private static readonly TimeSpan _SDKLockRetryDelay = TimeSpan.FromSeconds(10);
 
@@ -32,6 +34,9 @@ namespace Uno.Wasm.Bootstrap
 		public string TargetFramework { get; set; } = "";
 
 		public string TargetFrameworkVersion { get; set; } = "0.0";
+
+		[Required]
+		public string RuntimeConfiguration { get; set; } = "";
 
 		[Required]
 		public string PackagerOverrideFolderPath { get; set; } = "";
@@ -70,10 +75,15 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public string? PackagerProjectFile { get; private set; }
 
-		private CancellationTokenSource _cts = new CancellationTokenSource();
-
 		public override bool Execute()
 			=> ExecuteAsync(_cts.Token).Result;
+
+
+		private RuntimeConfiguration RuntimeConfigurationAsEnum
+			=> Enum.TryParse<RuntimeConfiguration>(RuntimeConfiguration, out var result)
+				? result
+				: throw new InvalidOperationException($"RuntimeConfiguration {RuntimeConfiguration} is not a valid value");
+
 
 		private async Task<bool> ExecuteAsync(CancellationToken ct)
 		{
@@ -102,6 +112,11 @@ namespace Uno.Wasm.Bootstrap
 			if (EnableEmscriptenWindows)
 			{
 				sdkUri = sdkUri.Replace("linux", "windows");
+			}
+
+			if (RuntimeConfigurationAsEnum.HasFlag(Bootstrap.RuntimeConfiguration.Threads))
+			{
+				sdkUri = sdkUri.Replace(".zip", "-threads.zip");
 			}
 
 			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));

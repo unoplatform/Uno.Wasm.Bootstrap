@@ -205,7 +205,9 @@ declare type CoverageProfilerOptions = {
 declare type DotnetModuleConfig = {
     disableDotnet6Compatibility?: boolean;
     config?: MonoConfig | MonoConfigError;
-    configSrc?: string;
+	configSrc?: string;
+	baseUrl?: string,
+	mainScriptPath?: string,
     scriptDirectory?: string;
     onConfigLoaded?: () => void;
     onDotnetReady?: () => void;

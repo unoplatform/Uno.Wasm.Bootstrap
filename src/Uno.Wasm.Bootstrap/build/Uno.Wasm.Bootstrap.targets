@@ -12,7 +12,7 @@
     <WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
-    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
+    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">Default</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'=='' and '$(Configuration)'=='Debug'">false</WasmShellGenerateCompressedFiles>
@@ -169,6 +169,7 @@
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager/$(_WasmShellToolSuffix)"
+        RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
         TargetFramework="$(TargetFramework)"
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         TargetFrameworkVersion="$(TargetFrameworkVersion)"

@@ -100,6 +100,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			return <DotnetModuleConfig>{
 				disableDotnet6Compatibility: this.disableDotnet6Compatibility,
 				configSrc: this.configSrc,
+				baseUrl: this._unoConfig.uno_app_base + "/",
+				mainScriptPath: "dotnet.js",
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,

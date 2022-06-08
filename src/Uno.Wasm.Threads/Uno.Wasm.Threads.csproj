@@ -7,8 +7,10 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
-		<!--<MonoWasmRuntimeConfiguration>threads-release</MonoWasmRuntimeConfiguration>-->
+		<MonoWasmRuntimeConfiguration>Threads</MonoWasmRuntimeConfiguration>
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
+
+		<NetCoreWasmSDKUri>C:\temp\net7-test\2458654031-wasm\dotnet-runtime-wasm-linux-2bc3185-be4d292eaf2-2458654031-Release.zip</NetCoreWasmSDKUri>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -29,7 +31,7 @@
 
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 	<Import Project="..\Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems" Label="Shared" />
-
+	
 	<ItemGroup>
 		<None Remove="side.wasm" />
 		<None Remove="side.bc" />

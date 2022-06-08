@@ -212,6 +212,11 @@ namespace Uno.Wasm.Bootstrap
 		private Version ActualTargetFrameworkVersion
 			=> Version.TryParse(TargetFrameworkVersion.Substring(1), out var v) ? v : new Version("0.0");
 
+		private RuntimeConfiguration RuntimeConfigurationAsEnum
+			=> Enum.TryParse<RuntimeConfiguration>(RuntimeConfiguration, out var result)
+				? result
+				: throw new InvalidOperationException($"RuntimeConfiguration {RuntimeConfiguration} is not a valid value");
+
 		public override bool Execute()
 		{
 			try
@@ -741,9 +746,14 @@ namespace Uno.Wasm.Bootstrap
 
 			ValidateDotnet();
 
+			var runtimeConfigurationParam = $"--runtime-config=" +
+				(RuntimeConfigurationAsEnum.HasFlag(Bootstrap.RuntimeConfiguration.Threads)
+				? "release-threads"
+				: "release");
+
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
-			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
+			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
 			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
@@ -839,7 +849,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
-				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
+				packagerParams.Add(runtimeConfigurationParam);
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
 				packagerParams.Add($"--aot-compiler-opts=\"{AotCompilerOptions}\"");

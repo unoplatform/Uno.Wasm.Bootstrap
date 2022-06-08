@@ -596,11 +596,11 @@ class Driver {
 			case "release":
 				break;
 
-			case "threads-release":
+			case "release-threads":
 				enable_threads = true;
 				break;
 
-			case "threads-debug":
+			case "debug-threads":
 				enable_threads = true;
 				enable_debug = true;
 				break;
@@ -897,7 +897,8 @@ class Driver {
 		File.WriteAllText(config_json, config);
 
 		if (!emit_ninja) {
-			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
+			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm", "dotnet-crypto-worker.js" };
+
 			if (enable_threads) {
 				interp_files.Add ("dotnet.worker.js");
 			}
@@ -1054,6 +1055,17 @@ class Driver {
 			emcc_link_flags.Add(linker_optimization_level);
 		}
 
+		if (enable_threads)
+		{
+			emcc_link_flags.Add("-s USE_PTHREADS=1");
+			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
+			emcc_link_flags.Add("-Wno-pthreads-mem-growth");
+
+			emcc_flags += "-s USE_PTHREADS=1 ";
+			emcc_flags += "-s PTHREAD_POOL_SIZE=2 ";
+			emcc_flags += "-Wno-pthreads-mem-growth ";
+		}
+
 		if (opts.EnableWasmExceptions)
 		{
 			emcc_link_flags.Add("-fwasm-exceptions");
@@ -1094,7 +1106,7 @@ class Driver {
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
 		{
-			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf --mvp-features --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
+			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf --mvp-features --all-features --enable-threads --enable-bulk-memory --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
 		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
@@ -1347,6 +1359,7 @@ class Driver {
 			}
 		} else {
 			ninja.WriteLine ("build $appdir/dotnet.js: cpifdiff $wasm_runtime_dir/dotnet.js");
+			ninja.WriteLine ("build $appdir/dotnet-crypto-worker.js: cpifdiff $wasm_runtime_dir/dotnet-crypto-worker.js");
 			ninja.WriteLine ("build $appdir/dotnet.wasm: cpifdiff $wasm_runtime_dir/dotnet.wasm");
 			if (enable_threads) {
 				ninja.WriteLine ("build $appdir/dotnet.worker.js: cpifdiff $wasm_runtime_dir/dotnet.worker.js");
