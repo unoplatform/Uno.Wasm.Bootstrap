@@ -16,7 +16,7 @@ function delay(time) {
 }
 (() => __awaiter(this, void 0, void 0, function* () {
     const browser = yield puppeteer.launch({
-        "headless": false,
+        "headless": true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         "defaultViewport": { "width": 1280, "height": 1024 }
     });
