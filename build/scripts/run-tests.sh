@@ -17,7 +17,7 @@ dotnet tool install dotnet-serve --version 1.10.112 --tool-path $BUILD_SOURCESDI
 export PATH="$PATH:$BUILD_SOURCESDIRECTORY/build/tools"
 
 cd $BOOTSTRAP_APP_PATH
-dotnet serve -p 8000 -c -b &
+dotnet serve -p 8000 -c -b -h "Cross-Origin-Embedder-Policy: require-corp" -h "Cross-Origin-Opener-Policy: same-origin" &
 cd $BOOTSTRAP_TEST_RUNNER_PATH
 npm install
 node app

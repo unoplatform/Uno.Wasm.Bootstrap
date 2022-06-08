@@ -6,7 +6,7 @@ $BOOTSTRAP_TEST_RUNNER_PATH=$args[1]
 $env:BOOTSTRAP_TEST_RUNNER_URL=$args[2]
 
 cd $BOOTSTRAP_APP_PATH
-$serverProcess = Start-Process dotnet -ArgumentList 'serve -p 8000 -c' -NoNewWindow -PassThru
+$serverProcess = Start-Process dotnet -ArgumentList 'serve -p 8000 -c -b -h "Cross-Origin-Embedder-Policy: require-corp" -h "Cross-Origin-Opener-Policy: same-origin"' -NoNewWindow -PassThru
 
 Try 
 {
