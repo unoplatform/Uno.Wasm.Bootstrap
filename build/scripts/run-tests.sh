@@ -10,8 +10,14 @@ export BOOTSTRAP_APP_PATH=$1
 export BOOTSTRAP_TEST_RUNNER_PATH=$2
 export BOOTSTRAP_TEST_RUNNER_URL=$3
 
+# install dotnet serve / Remove as needed
+dotnet tool uninstall dotnet-serve -g || true
+dotnet tool uninstall dotnet-serve --tool-path $BUILD_SOURCESDIRECTORY/build/tools || true
+dotnet tool install dotnet-serve --version 1.10.112 --tool-path $BUILD_SOURCESDIRECTORY/build/tools || true
+export PATH="$PATH:$BUILD_SOURCESDIRECTORY/build/tools"
+
 cd $BOOTSTRAP_APP_PATH
-python $BUILD_SOURCESDIRECTORY/build/scripts/server.py &
+dotnet serve -p 8000 -c -b &
 cd $BOOTSTRAP_TEST_RUNNER_PATH
 npm install
 node app
