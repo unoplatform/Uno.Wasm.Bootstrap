@@ -47,7 +47,7 @@ namespace Uno.Wasm.Sample
 			Run();
 
 			_timer = new Timer(OnTick);
-			_timer.Change(TimeSpan.FromSeconds(.1), TimeSpan.FromSeconds(1));
+			_timer.Change(TimeSpan.FromSeconds(.1), TimeSpan.FromSeconds(.1));
 		}
 
 		private static void OnTick(object state)
