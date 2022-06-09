@@ -1247,6 +1247,10 @@ class Driver {
 			? "powershell"
 			: "bash -c";
 
+		var emcc_shell_response_prefix = is_windows
+			? "powershell -File"
+			: "bash ";
+
 		var tools_shell_prefix = is_windows
 			? "powershell"
 			: "";
@@ -1258,8 +1262,10 @@ class Driver {
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 		ninja.WriteLine ("rule emcc-link");
 
-		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {failOnError} {strip_cmd}");
-		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
+		ninja.WriteLine ($"  command = {emcc_shell_response_prefix} $builddir/emcc_link.ps1");
+		ninja.WriteLine ($"  rspfile = $builddir/emcc_link.ps1");
+		ninja.WriteLine ($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in {failOnError} {strip_cmd}");
+		ninja.WriteLine ($"  description = [EMCC-LINK] $in -> $out_js");
 		ninja.WriteLine ("rule linker");
 
 		var linkerBin = "dotnet $tools_dir/illink.dll";
