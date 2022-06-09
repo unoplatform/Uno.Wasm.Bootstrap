@@ -206,8 +206,8 @@ declare type DotnetModuleConfig = {
     disableDotnet6Compatibility?: boolean;
     config?: MonoConfig | MonoConfigError;
 	configSrc?: string;
-	baseUrl?: string,
-	mainScriptPath?: string,
+	baseUrl?: string;
+	mainScriptPath?: string;
     scriptDirectory?: string;
     onConfigLoaded?: () => void;
     onDotnetReady?: () => void;
