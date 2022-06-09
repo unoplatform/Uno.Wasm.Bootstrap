@@ -52,7 +52,7 @@ namespace Uno.Wasm.Sample
 
 		private static void OnTick(object state)
 		{
-			if (_event.WaitOne(10))
+			if (_event.WaitOne(10) && _mainThreadInvoked)
 			{
 				var r = $"Done {_messages.Count} results (_mainThreadInvoked:{_mainThreadInvoked})";
 				Runtime.InvokeJS($"Interop.appendResult('{r}')");
@@ -61,7 +61,7 @@ namespace Uno.Wasm.Sample
 			}
 			else
 			{
-				Console.WriteLine("Working...");
+				Console.WriteLine($"Working... (_mainThreadInvoked: {_mainThreadInvoked})");
 			}
 		}
 
