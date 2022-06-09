@@ -115,7 +115,7 @@ jobs:
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
       "http://localhost:8000/"
 
-    displayName: Threading Tests
+    displayName: Threading AOT Tests
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
