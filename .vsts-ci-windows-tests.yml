@@ -87,6 +87,7 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  # Thread test
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
@@ -95,6 +96,22 @@ jobs:
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threads\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
+      "http://localhost:8000/"
+
+    displayName: Threading Tests
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  # Thread AOT test
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+    displayName: Build Threading AOT Sample
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads.Aot\bin\Release\net6.0\dist" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
       "http://localhost:8000/"
 

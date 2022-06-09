@@ -75,7 +75,7 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
-  ## Threads validation
+  ## Threads Interp validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /t:Publish /m:1 "/p:WasmShellWebAppBasePath=/"
@@ -86,6 +86,20 @@ jobs:
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net6.0/dist" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading UI Tests 
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  ## Threads AOT validation
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /t:Publish /m:1 "/p:WasmShellWebAppBasePath=/"
+    displayName: Build Threads AOT test
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net6.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
+    displayName: Threading AOT UI Tests 
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
