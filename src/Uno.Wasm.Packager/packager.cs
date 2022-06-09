@@ -1082,7 +1082,7 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
 		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
 		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
-		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\\\"");
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\"");
 
 		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
 		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
@@ -1096,7 +1096,7 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
 		emcc_link_flags.Add("-s TOTAL_MEMORY=134217728");
 		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
-		emcc_link_flags.Add("-s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"");
+		emcc_link_flags.Add("-s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\"");
 
 		var failOnError = is_windows
 			? "; if ($$LastExitCode -ne 0) { return 1; }"
@@ -1106,7 +1106,7 @@ class Driver {
 		var commandSeparator = is_windows ? ";" : "&&";
 		if (opts.NativeStrip)
 		{
-			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf --mvp-features --all-features --enable-threads --enable-bulk-memory --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
+			strip_cmd = $" {commandSeparator} $wasm_opt --strip-dwarf --mvp-features --all-features --enable-threads --enable-bulk-memory --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
 		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
@@ -1122,6 +1122,13 @@ class Driver {
 
 		if (!string.IsNullOrEmpty(extra_emccflags)) {
 			emcc_flags += " " + extra_emccflags + " ";
+		}
+
+		if (enable_threads)
+		{
+			emcc_flags += "-DDISABLE_THREADS=0 ";
+			emcc_flags += "-pthread ";
+			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
