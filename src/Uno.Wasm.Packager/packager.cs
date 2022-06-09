@@ -1126,9 +1126,12 @@ class Driver {
 
 		if (enable_threads)
 		{
-			emcc_flags += "-DDISABLE_THREADS=0 ";
 			emcc_flags += "-pthread ";
 			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
+		}
+		else
+		{
+			emcc_flags += "-DDISABLE_THREADS=1 ";
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
@@ -1194,9 +1197,19 @@ class Driver {
 		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
+		var environment = new List<string>
+		{
+			"MONO_PATH=$mono_path"
+		};
+
+		if (enable_threads)
+		{
+			environment.Add("MONO_THREADS_SUSPEND=coop");
+		}
+
 		var aot_cross_prefix = is_windows
-			? $"cmd /c set \"MONO_PATH=$mono_path\" &&"
-			: "MONO_PATH=$mono_path";
+			? $"cmd /c set \"MONO_PATH=$mono_path\" &&" + string.Join(" ", environment.Select(e => $"set \"{e}\" &&"))
+			: string.Join(" ", environment);
 
 		// Rules
 		ninja.WriteLine ("rule aot");
