@@ -813,7 +813,6 @@ namespace Uno.Wasm.Bootstrap
 				if (EnableEmccProfiling)
 				{
 					extraEmccFlags.Add("--profiling");
-					packagerParams.Add("--no-native-strip");
 				}
 
 				packagerParams.Add("--wasm-exceptions");

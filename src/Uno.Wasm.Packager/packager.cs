@@ -400,7 +400,6 @@ class Driver {
 		public bool EnableZLib;
 		public bool EnableFS;
 		public bool EnableThreads;
-		public bool NativeStrip;
 		public bool Simd;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
@@ -476,7 +475,6 @@ class Driver {
 				LinkerVerbose = false,
 				EnableZLib = false,
 				EnableFS = false,
-				NativeStrip = true,
 				Simd = false,
 				EnableDynamicRuntime = false,
 				LinkerExcludeDeserialization = true,
@@ -534,7 +532,6 @@ class Driver {
 		AddFlag (p, new BoolFlag ("threads", "enable threads", opts.EnableThreads, b => opts.EnableThreads = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
-		AddFlag (p, new BoolFlag ("native-strip", "strip final executable", opts.NativeStrip, b => opts.NativeStrip = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
 		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
@@ -1123,10 +1120,6 @@ class Driver {
 			emcc_flags += "-pthread ";
 			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
 		}
-		else
-		{
-			emcc_flags += "-DDISABLE_THREADS=1 ";
-		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
 		var linkerResponse = Path.Combine (builddir, "linker.rsp");
@@ -1280,14 +1273,7 @@ class Driver {
 		ninja.WriteLine($"  command = {emcc_shell_response_prefix} $builddir/emcc_link.ps1");
 		ninja.WriteLine($"  rspfile = $builddir/emcc_link.ps1");
 		ninja.WriteLine($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in {failOnError}");
-		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out_js");
-
-		if (opts.NativeStrip)
-		{
-			ninja.WriteLine("rule wasm-opt");
-			ninja.WriteLine($"  command = {emcc_shell_prefix} $wasm_opt --strip-dwarf --mvp-features --all-features --enable-threads --enable-bulk-memory --enable-mutable-globals --enable-exception-handling \'$in\' -o \'$out\' {failOnError}");
-			ninja.WriteLine($"  description = [WASM-OPT] $in -> $out");
-		}
+		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
 
 		ninja.WriteLine ("rule linker");
 		var linkerBin = "dotnet $tools_dir/illink.dll";
@@ -1573,23 +1559,9 @@ class Driver {
 
 			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
-			var emccLinkWasmOutput = opts.NativeStrip
-				? "$appdir/dotnet-noopt.wasm"
-				: "$appdir/dotnet.wasm";
-
-			var emccLinkJSOutput = opts.NativeStrip
-				? "$appdir/dotnet-noopt.js"
-				: "$appdir/dotnet.js";
-
-			ninja.WriteLine ($"build {emccLinkJSOutput} {emccLinkWasmOutput}: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
-			ninja.WriteLine ($"  out_wasm={emccLinkWasmOutput}");
-			ninja.WriteLine ($"  out_js={emccLinkJSOutput}");
-
-			if (opts.NativeStrip)
-			{
-				ninja.WriteLine($"build $appdir/dotnet.wasm: wasm-opt {emccLinkWasmOutput}");
-				ninja.WriteLine($"build $appdir/dotnet.js: cpifdiff {emccLinkJSOutput}");
-			}
+			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
+			ninja.WriteLine ($"  out_wasm=$appdir/dotnet.wasm");
+			ninja.WriteLine ($"  out_js=$appdir/dotnet.js");
 		}
 		if (enable_linker) {
 			switch (linkMode) {
