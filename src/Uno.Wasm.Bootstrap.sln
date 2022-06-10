@@ -102,32 +102,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6.LogProf
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.LogProfiler", "Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj", "{3C2B9F04-972E-4A9F-AA08-545A67C7C455}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Threads.Aot", "Uno.Wasm.Threads.Aot\Uno.Wasm.Threads.Aot.csproj", "{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7}"
+EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{2477f160-939b-4b9f-b9cd-9100fcd24e34}*SharedItemsImports = 5
-		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{286b5778-da8b-4965-9fc6-bc6f4258e155}*SharedItemsImports = 13
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
-		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{92b22005-5a7b-4b38-8d09-68d7240ebe8c}*SharedItemsImports = 5
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{97e9b56a-be43-4590-a009-9ac135b371be}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{97e9b56a-be43-4590-a009-9ac135b371be}*SharedItemsImports = 5
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{9fff339e-bd09-4d1c-a756-92ae3625eafd}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{9fff339e-bd09-4d1c-a756-92ae3625eafd}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
-		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{adeff1c4-a1b5-4fe8-9eb0-a1d81b65b995}*SharedItemsImports = 13
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b401928c-600e-4450-adff-20eadc7ce3ec}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{b474457d-dbcd-4795-a2ab-ec3f09e53198}*SharedItemsImports = 13
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{b5571c08-f903-4f17-8346-36265f775b5f}*SharedItemsImports = 13
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b79f67e0-ac18-4b93-a3dd-f1bfe6f418e9}*SharedItemsImports = 5
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
-		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
-		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -277,6 +254,10 @@ Global
 		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3C2B9F04-972E-4A9F-AA08-545A67C7C455}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -318,8 +299,36 @@ Global
 		{B401928C-600E-4450-ADFF-20EADC7CE3EC} = {DF5C402A-5CB7-4692-BDB3-93F734E214FA}
 		{2DF55561-12DD-4325-BDBF-F42AC72FC284} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
 		{92B22005-5A7B-4B38-8D09-68D7240EBE8C} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
+		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7} = {B27FC2DE-70CA-4287-9FC1-D108F115D8AA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
+		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{2477f160-939b-4b9f-b9cd-9100fcd24e34}*SharedItemsImports = 5
+		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{286b5778-da8b-4965-9fc6-bc6f4258e155}*SharedItemsImports = 13
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
+		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{92b22005-5a7b-4b38-8d09-68d7240ebe8c}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{97e9b56a-be43-4590-a009-9ac135b371be}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{97e9b56a-be43-4590-a009-9ac135b371be}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{9fff339e-bd09-4d1c-a756-92ae3625eafd}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{9fff339e-bd09-4d1c-a756-92ae3625eafd}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
+		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{a73bc29e-c720-44c8-a406-2a82d6079921}*SharedItemsImports = 5
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{adeff1c4-a1b5-4fe8-9eb0-a1d81b65b995}*SharedItemsImports = 13
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b401928c-600e-4450-adff-20eadc7ce3ec}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{b474457d-dbcd-4795-a2ab-ec3f09e53198}*SharedItemsImports = 13
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{b5571c08-f903-4f17-8346-36265f775b5f}*SharedItemsImports = 13
+		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b79f67e0-ac18-4b93-a3dd-f1bfe6f418e9}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

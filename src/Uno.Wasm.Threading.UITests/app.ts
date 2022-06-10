@@ -9,7 +9,7 @@ function delay(time) {
 
 (async () => {
 	const browser = await puppeteer.launch({
-		"headless": false,
+		"headless": true,
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 		"defaultViewport": { "width": 1280, "height": 1024 }
 	});
@@ -55,7 +55,7 @@ function delay(time) {
 		console.log(`Results: ${value}`);
 	}
 
-	const expected = "StartupWorking...Done 10000 results";
+	const expected = "StartupDone 10000 results (_mainThreadInvoked:True)";
 
 	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);

@@ -12,13 +12,14 @@
     <WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
     <WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
-    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">release</MonoWasmRuntimeConfiguration>
+    <MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">Release</MonoWasmRuntimeConfiguration>
     <MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
     <WasmShellILLinkerEnabled Condition="'$(WasmShellILLinkerEnabled)'==''">true</WasmShellILLinkerEnabled>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'=='' and '$(Configuration)'=='Debug'">false</WasmShellGenerateCompressedFiles>
     <WasmShellGenerateCompressedFiles Condition="'$(WasmShellGenerateCompressedFiles)'==''">true</WasmShellGenerateCompressedFiles>
     <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
     <WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
+    <WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
@@ -163,12 +164,14 @@
         CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
         DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
+        EnableThreads="$(WasmShellEnableThreads)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
         MonoRuntimeExecutionMode="$(WasmShellMonoRuntimeExecutionMode)"
         MonoTempFolder="$(WasmShellMonoTempFolder)"
         NetCoreWasmSDKUri="$(NetCoreWasmSDKUri)"
         PackagerOverrideFolderPath="$(MSBuildThisFileDirectory)/packager/$(_WasmShellToolSuffix)"
+        RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
         TargetFramework="$(TargetFramework)"
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         TargetFrameworkVersion="$(TargetFrameworkVersion)"
@@ -205,6 +208,7 @@
         EnableLogProfiler="$(WasmShellEnableLogProfiler)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
         EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
+        EnableThreads="$(WasmShellEnableThreads)"
         ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
         ForceDisableWSL="$(WasmShellForceDisableWSL)"
         ForceUseWSL="$(WasmShellForceUseWSL)"

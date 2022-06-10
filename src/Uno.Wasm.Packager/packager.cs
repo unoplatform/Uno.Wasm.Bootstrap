@@ -400,7 +400,6 @@ class Driver {
 		public bool EnableZLib;
 		public bool EnableFS;
 		public bool EnableThreads;
-		public bool NativeStrip;
 		public bool Simd;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
@@ -457,7 +456,7 @@ class Driver {
 		var linkDescriptor = "";
 		var framework = "";
 		var runtimepack_dir = "";
-		string coremode, usermode;
+		string usermode;
 		string aot_profile = null;
 		string aot_compiler_options = "";
 		string wasm_runtime_path = null;
@@ -476,7 +475,6 @@ class Driver {
 				LinkerVerbose = false,
 				EnableZLib = false,
 				EnableFS = false,
-				NativeStrip = true,
 				Simd = false,
 				EnableDynamicRuntime = false,
 				LinkerExcludeDeserialization = true,
@@ -534,7 +532,6 @@ class Driver {
 		AddFlag (p, new BoolFlag ("threads", "enable threads", opts.EnableThreads, b => opts.EnableThreads = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
-		AddFlag (p, new BoolFlag ("native-strip", "strip final executable", opts.NativeStrip, b => opts.NativeStrip = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
 		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
@@ -596,11 +593,11 @@ class Driver {
 			case "release":
 				break;
 
-			case "threads-release":
+			case "release-threads":
 				enable_threads = true;
 				break;
 
-			case "threads-debug":
+			case "debug-threads":
 				enable_threads = true;
 				enable_debug = true;
 				break;
@@ -897,7 +894,8 @@ class Driver {
 		File.WriteAllText(config_json, config);
 
 		if (!emit_ninja) {
-			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
+			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm", "dotnet-crypto-worker.js" };
+
 			if (enable_threads) {
 				interp_files.Add ("dotnet.worker.js");
 			}
@@ -1054,6 +1052,17 @@ class Driver {
 			emcc_link_flags.Add(linker_optimization_level);
 		}
 
+		if (enable_threads)
+		{
+			emcc_link_flags.Add("-s USE_PTHREADS=1");
+			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
+			emcc_link_flags.Add("-Wno-pthreads-mem-growth");
+
+			emcc_flags += "-s USE_PTHREADS=1 ";
+			emcc_flags += "-s PTHREAD_POOL_SIZE=2 ";
+			emcc_flags += "-Wno-pthreads-mem-growth ";
+		}
+
 		if (opts.EnableWasmExceptions)
 		{
 			emcc_link_flags.Add("-fwasm-exceptions");
@@ -1070,7 +1079,7 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
 		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
 		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
-		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\\\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\\\"");
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\"");
 
 		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
 		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
@@ -1084,18 +1093,12 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
 		emcc_link_flags.Add("-s TOTAL_MEMORY=134217728");
 		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
-		emcc_link_flags.Add("-s \\\"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\\\"");
+		emcc_link_flags.Add("-s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\"");
 
 		var failOnError = is_windows
 			? "; if ($$LastExitCode -ne 0) { return 1; }"
 			: "";
 
-		string strip_cmd = "";
-		var commandSeparator = is_windows ? ";" : "&&";
-		if (opts.NativeStrip)
-		{
-			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf --mvp-features --enable-mutable-globals --enable-exception-handling \'$out_wasm\' -o \'$out_wasm\' {failOnError}";
-		}
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
 			emcc_flags += "-s SIMD=1 ";
@@ -1110,6 +1113,12 @@ class Driver {
 
 		if (!string.IsNullOrEmpty(extra_emccflags)) {
 			emcc_flags += " " + extra_emccflags + " ";
+		}
+
+		if (enable_threads)
+		{
+			emcc_flags += "-pthread ";
+			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
@@ -1175,9 +1184,19 @@ class Driver {
 		ninja.WriteLine ($"emcc_flags = -DENABLE_METADATA_UPDATE=1 {emcc_flags} ");
 		ninja.WriteLine ($"aot_base_args = llvmonly,asmonly,no-opt,static,direct-icalls,deterministic,nodebug,{aot_args}");
 
+		var environment = new List<string>
+		{
+			"MONO_PATH=$mono_path"
+		};
+
+		if (enable_threads)
+		{
+			environment.Add("MONO_THREADS_SUSPEND=coop");
+		}
+
 		var aot_cross_prefix = is_windows
-			? $"cmd /c set \"MONO_PATH=$mono_path\" &&"
-			: "MONO_PATH=$mono_path";
+			? $"cmd /c set \"MONO_PATH=$mono_path\" &&" + string.Join(" ", environment.Select(e => $"set \"{e}\" &&"))
+			: string.Join(" ", environment);
 
 		// Rules
 		ninja.WriteLine ("rule aot");
@@ -1235,21 +1254,28 @@ class Driver {
 			? "powershell"
 			: "bash -c";
 
+		var emcc_shell_response_prefix = is_windows
+			? "powershell -File"
+			: "bash ";
+
 		var tools_shell_prefix = is_windows
 			? "powershell"
 			: "";
 
 		ninja.WriteLine ("rule create-emsdk-env");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
+
 		ninja.WriteLine ("rule emcc");
 		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
-		ninja.WriteLine ("rule emcc-link");
 
-		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \\\"$out_js\\\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in\" {failOnError} {strip_cmd}");
-		ninja.WriteLine ("  description = [EMCC-LINK] $in -> $out_js");
+		ninja.WriteLine("rule emcc-link");
+		ninja.WriteLine($"  command = {emcc_shell_response_prefix} $builddir/emcc_link.ps1");
+		ninja.WriteLine($"  rspfile = $builddir/emcc_link.ps1");
+		ninja.WriteLine($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in {failOnError}");
+		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
+
 		ninja.WriteLine ("rule linker");
-
 		var linkerBin = "dotnet $tools_dir/illink.dll";
 
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
@@ -1347,6 +1373,7 @@ class Driver {
 			}
 		} else {
 			ninja.WriteLine ("build $appdir/dotnet.js: cpifdiff $wasm_runtime_dir/dotnet.js");
+			ninja.WriteLine ("build $appdir/dotnet-crypto-worker.js: cpifdiff $wasm_runtime_dir/dotnet-crypto-worker.js");
 			ninja.WriteLine ("build $appdir/dotnet.wasm: cpifdiff $wasm_runtime_dir/dotnet.wasm");
 			if (enable_threads) {
 				ninja.WriteLine ("build $appdir/dotnet.worker.js: cpifdiff $wasm_runtime_dir/dotnet.worker.js");
@@ -1533,21 +1560,18 @@ class Driver {
 			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
 			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
-			ninja.WriteLine ("  out_js=$appdir/dotnet.js");
-			ninja.WriteLine ("  out_wasm=$appdir/dotnet.wasm");
+			ninja.WriteLine ($"  out_wasm=$appdir/dotnet.wasm");
+			ninja.WriteLine ($"  out_js=$appdir/dotnet.js");
 		}
 		if (enable_linker) {
 			switch (linkMode) {
 			case LinkMode.SdkOnly:
-				coremode = "link";
 				usermode = "copy";
 				break;
 			case LinkMode.All:
-				coremode = "link";
 				usermode = "link";
 				break;
 			default:
-				coremode = "link";
 				usermode = "link";
 				break;
 			}

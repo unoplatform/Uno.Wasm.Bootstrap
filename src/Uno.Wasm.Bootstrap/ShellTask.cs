@@ -177,6 +177,9 @@ namespace Uno.Wasm.Bootstrap
 		public string RuntimeConfiguration { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
+		public bool EnableThreads { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public int BrotliCompressionQuality { get; set; } = 7;
@@ -741,9 +744,11 @@ namespace Uno.Wasm.Bootstrap
 
 			ValidateDotnet();
 
+			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "");
+
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
-			var pass1ResponseContent = $"--runtime-config={RuntimeConfiguration} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
+			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
 			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
@@ -808,7 +813,6 @@ namespace Uno.Wasm.Bootstrap
 				if (EnableEmccProfiling)
 				{
 					extraEmccFlags.Add("--profiling");
-					packagerParams.Add("--no-native-strip");
 				}
 
 				packagerParams.Add("--wasm-exceptions");
@@ -839,7 +843,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
-				packagerParams.Add($"--runtime-config={RuntimeConfiguration} ");
+				packagerParams.Add(runtimeConfigurationParam);
 				packagerParams.Add(aotOptions);
 				packagerParams.Add(aotProfile);
 				packagerParams.Add($"--aot-compiler-opts=\"{AotCompilerOptions}\"");
@@ -1745,6 +1749,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
@@ -1764,6 +1769,9 @@ namespace Uno.Wasm.Bootstrap
 				w.Write(config.ToString());
 			}
 		}
+
+		private string BuildRuntimeFeatures()
+			=> EnableThreads ? "threads" : "";
 
 		private void GenerateAppInfo()
 		{

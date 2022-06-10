@@ -18,12 +18,14 @@ items:
       href: features-additional-files.md
     - name: Javascript Dependency management
       href: features-dependency-management.md
-    - name: Deep linking
-      href: features-deep-linking.md
-    - name: Splash screen
-      href: features-splash-screen.md
     - name: Environment Variables
       href: features-environment-variables.md
+    - name: Splash screen
+      href: features-splash-screen.md
+    - name: Threading
+      href: features-threading.md
+    - name: Deep linking
+      href: features-deep-linking.md
     - name: Pre-compression
       href: features-pre-compression.md
     - name: Embedded mode

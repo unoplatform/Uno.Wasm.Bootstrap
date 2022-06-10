@@ -19,6 +19,8 @@ namespace Uno.Wasm.Bootstrap
 {
 	public class UnoInstallSDKTask_v0 : Microsoft.Build.Utilities.Task, ICancelableTask
 	{
+		private readonly CancellationTokenSource _cts = new();
+
 		private static readonly TimeSpan _SDKFolderLockTimeout = TimeSpan.FromMinutes(2);
 		private static readonly TimeSpan _SDKLockRetryDelay = TimeSpan.FromSeconds(10);
 
@@ -34,6 +36,9 @@ namespace Uno.Wasm.Bootstrap
 		public string TargetFrameworkVersion { get; set; } = "0.0";
 
 		[Required]
+		public string RuntimeConfiguration { get; set; } = "";
+
+		[Required]
 		public string PackagerOverrideFolderPath { get; set; } = "";
 
 		[Required]
@@ -44,6 +49,9 @@ namespace Uno.Wasm.Bootstrap
 
 		[Required]
 		public bool IsOSUnixLike { get; set; }
+
+		[Microsoft.Build.Framework.Required]
+		public bool EnableThreads { get; set; }
 
 		public bool EnableEmscriptenWindows { get; set; } = true;
 
@@ -69,8 +77,6 @@ namespace Uno.Wasm.Bootstrap
 
 		[Output]
 		public string? PackagerProjectFile { get; private set; }
-
-		private CancellationTokenSource _cts = new CancellationTokenSource();
 
 		public override bool Execute()
 			=> ExecuteAsync(_cts.Token).Result;
@@ -102,6 +108,11 @@ namespace Uno.Wasm.Bootstrap
 			if (EnableEmscriptenWindows)
 			{
 				sdkUri = sdkUri.Replace("linux", "windows");
+			}
+
+			if (EnableThreads)
+			{
+				sdkUri = sdkUri.Replace(".zip", "-threads.zip");
 			}
 
 			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));

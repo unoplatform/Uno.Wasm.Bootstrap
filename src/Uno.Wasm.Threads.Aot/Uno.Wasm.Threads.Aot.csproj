@@ -4,11 +4,10 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<AssemblyName>Uno.Wasm.Threads</AssemblyName>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
-		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
+		<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableThreads>true</WasmShellEnableThreads>
-		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,12 +32,14 @@ namespace Uno.Wasm.Sample
 		private static ManualResetEvent _event = new ManualResetEvent(false);
 		private static object _gate = new object();
 		private static List<string> _messages = new List<string>();
+		private static bool _mainThreadInvoked = false;
 		private static Timer _timer;
 
 		static void Main()
 		{
 			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
-			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
+			Console.WriteLine($"Runtime Version: " + RuntimeInformation.FrameworkDescription);
+			Console.WriteLine($"Runtime Mode: " + runtimeMode);
 			Console.WriteLine($"TID: {Thread.CurrentThread.ManagedThreadId}");
 
 			Runtime.InvokeJS("Interop.appendResult('Startup')");
@@ -44,21 +47,28 @@ namespace Uno.Wasm.Sample
 			Run();
 
 			_timer = new Timer(OnTick);
-			_timer.Change(TimeSpan.FromSeconds(.1), TimeSpan.FromSeconds(1));
+			_timer.Change(TimeSpan.FromSeconds(.1), TimeSpan.FromSeconds(.1));
 		}
 
 		private static void OnTick(object state)
 		{
-			if (_event.WaitOne(10))
+			if (_event.WaitOne(10) && _mainThreadInvoked)
 			{
-				var r = $"Done {_messages.Count} results";
+				var r = $"Done {_messages.Count} results (_mainThreadInvoked:{_mainThreadInvoked})";
 				Runtime.InvokeJS($"Interop.appendResult('{r}')");
+				Console.WriteLine($"[tid:{Thread.CurrentThread.ManagedThreadId}]: {r}");
 				_timer.Dispose();
 			}
 			else
 			{
-				Runtime.InvokeJS("Interop.appendResult('Working...')");
+				Console.WriteLine($"Working... (_mainThreadInvoked: {_mainThreadInvoked})");
 			}
+		}
+
+		public static void MainThreadCallback()
+		{
+			Console.WriteLine($"[tid:{Thread.CurrentThread.ManagedThreadId}]: MainThreadCallback");
+			_mainThreadInvoked = true;
 		}
 
 		private static async Task Run()
@@ -79,17 +89,37 @@ namespace Uno.Wasm.Sample
 			{
 				for (int i = 0; i < 10000; i++) {
 					logMessage($"{name}: {i}");
+
+					if ((i % 2000) == 0)
+					{
+						WebAssembly.JSInterop.InternalCalls.InvokeOnMainThread();
+					}
 				}
 			}
 
-			new Thread(_ => {
+			new Thread(_ =>
+			{
+				Console.WriteLine($"Starting thread [tid:{Thread.CurrentThread.ManagedThreadId}]");
+
+				WebAssembly.JSInterop.InternalCalls.InvokeOnMainThread();
+
 				DoWork("thread1");
 				tcs.TrySetResult(true);
+				Console.WriteLine($"Stopping thread [tid:{Thread.CurrentThread.ManagedThreadId}]");
 			}).Start();
 
 			await tcs.Task;
 
 			_event.Set();
 		}
+	}
+}
+
+namespace WebAssembly.JSInterop
+{
+	public static class InternalCalls
+	{
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		public static extern void InvokeOnMainThread();
 	}
 }
