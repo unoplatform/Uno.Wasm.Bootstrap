@@ -1061,6 +1061,8 @@ class Driver {
 			emcc_flags += "-s USE_PTHREADS=1 ";
 			emcc_flags += "-s PTHREAD_POOL_SIZE=2 ";
 			emcc_flags += "-Wno-pthreads-mem-growth ";
+
+			aot_compiler_options += " --wasm-gc-safepoints ";
 		}
 
 		if (opts.EnableWasmExceptions)
