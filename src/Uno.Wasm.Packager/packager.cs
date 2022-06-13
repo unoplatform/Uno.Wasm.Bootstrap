@@ -1193,7 +1193,7 @@ class Driver {
 
 		if (enable_threads)
 		{
-			environment.Add("MONO_THREADS_SUSPEND=coop");
+			// environment.Add("MONO_THREADS_SUSPEND=coop");
 		}
 
 		var aot_cross_prefix = is_windows
