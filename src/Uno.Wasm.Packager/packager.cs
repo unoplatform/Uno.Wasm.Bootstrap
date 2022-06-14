@@ -1061,6 +1061,8 @@ class Driver {
 			emcc_flags += "-s USE_PTHREADS=1 ";
 			emcc_flags += "-s PTHREAD_POOL_SIZE=2 ";
 			emcc_flags += "-Wno-pthreads-mem-growth ";
+
+			aot_compiler_options += " --wasm-gc-safepoints ";
 		}
 
 		if (opts.EnableWasmExceptions)
@@ -1191,7 +1193,7 @@ class Driver {
 
 		if (enable_threads)
 		{
-			environment.Add("MONO_THREADS_SUSPEND=coop");
+			// environment.Add("MONO_THREADS_SUSPEND=coop");
 		}
 
 		var aot_cross_prefix = is_windows
