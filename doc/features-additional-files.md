@@ -5,7 +5,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_CSS)`
 - `$(ADDITIONAL_HEAD)`
 
-Use the [Templates/index.html](src/Uno.Wasm.Bootstrap/Templates/index.html) file as an example.
+Use the [Templates/index.html](../src/Uno.Wasm.Bootstrap/Templates/index.html) file as an example.
 
 ### Support for additional JS files
 
