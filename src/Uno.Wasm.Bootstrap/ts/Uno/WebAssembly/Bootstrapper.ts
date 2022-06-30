@@ -47,6 +47,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.onConfigLoaded = () => this.configLoaded();
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
+
+			// Register this instance of the Uno namespace globally
+			globalThis.Uno = Uno;
 		}
 
 		public static async bootstrap(): Promise<void> {

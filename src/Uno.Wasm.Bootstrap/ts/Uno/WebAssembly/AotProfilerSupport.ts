@@ -31,7 +31,7 @@
 
 			const altKeyName = navigator.platform.match(/^Mac/i) ? "Cmd" : "Alt";
 
-			console.info(`AOT Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus), or Run this.saveAotProfile() from the browser debug console.`);
+			console.info(`AOT Profiler stop hotkey: Shift+${altKeyName}+P (when application has focus), or Run Uno.WebAssembly.Bootstrap.AotProfilerSupport.saveAotProfile() from the browser debug console.`);
 
 			document.addEventListener(
 				"keydown",
@@ -42,7 +42,7 @@
 				});
 		}
 
-		private saveAotProfile() {
+		public saveAotProfile() {
 			var stopProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:StopProfile");
 			stopProfile();
 
