@@ -21,6 +21,9 @@ This mode enable AOT compilation for most of the assemblies, with [some specific
 
 This mode is generally prefered to FullAOT as it allows to load arbitrary assemblies and execute their code through the interpreter.
 
+> [!IMPORTANT]
+> These modes are not supported on macOS as of .NET 6 (Bootstrapper 3.x), and .NET 7 (Bootstrapper 4.x). You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
+
 ## Required configuration for AOT, Mixed Mode or static linking on Linux
 - Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
