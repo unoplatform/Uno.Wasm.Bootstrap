@@ -327,11 +327,20 @@ for starting the `Main` method of the C# code.
 ### Index.html content override
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
+You can set it as follows, given there's an `index.html` file at the root of your project:
+```xml
+<PropertyGroup>
+  <WasmShellIndexHtmlPath>index.html</WasmShellIndexHtmlPath>
+</PropertyGroup>
+```
+
 This file should contain the following markers, for the runtime to initialize properly: 
 - `$(ADDITIONAL_CSS)`
 - `$(ADDITIONAL_HEAD)`
 
-Use the [Templates/index.html](../src/Uno.Wasm.Bootstrap/Templates/index.html) file as an example.
+You can use these files as an example 
+- [Templates/index.html](../src/Uno.Wasm.Bootstrap/Templates/index.html) when using the bootstrapper 4.x builds.
+- [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/3.3/src/Uno.Wasm.Bootstrap/Templates/index.html) when using the bootstrapper 3.3.x builds.
 
 ## Splash screen customization
 
