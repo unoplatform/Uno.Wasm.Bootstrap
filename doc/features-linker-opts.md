@@ -73,7 +73,7 @@ makes the serving of static files inefficient.
 
 The Bootstrapper tooling will generate two folders `_compressed_gz` and `_compressed_br` which contain compressed versions of the main files. A set IIS rewriting rules are used to redirect the queries to the requested pre-compressed files, with a preference for Brotli.
 
-When building an application, place [the following file](src/Uno.Wasm.SampleNet6/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
+When building an application, place [the following file](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/main/src/Uno.Wasm.SampleNet6/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
 
 Note that the pre-compressed files are optional, and if the rewriting rules are removed or not used (because the site is served without IIS), the original files are available at their normal locations.
 
@@ -339,7 +339,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_HEAD)`
 
 You can use these files as an example:
-- [Templates/index.html](../src/Uno.Wasm.Bootstrap/Templates/index.html) when using the bootstrapper 4.x builds.
+- [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/main/src/Uno.Wasm.Bootstrap/Templates/index.html) when using the bootstrapper 4.x builds.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/3.3/src/Uno.Wasm.Bootstrap/Templates/index.html) when using the bootstrapper 3.3.x builds.
 
 ## Splash screen customization
