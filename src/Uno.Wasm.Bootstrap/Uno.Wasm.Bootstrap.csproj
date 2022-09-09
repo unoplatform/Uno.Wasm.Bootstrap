@@ -88,7 +88,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<Visible>false</Visible>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.10.1/lib/netstandard1.3/*.dll">
+		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
