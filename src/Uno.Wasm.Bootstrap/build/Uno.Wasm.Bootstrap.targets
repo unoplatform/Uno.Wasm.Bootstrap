@@ -115,8 +115,8 @@
     <UpToDateCheckInput Include="@(LinkerDescriptor)" />
   </ItemGroup>
 
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
+  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" TaskFactory="TaskHostFactory" />
 
   <Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
     <!-- 
