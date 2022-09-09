@@ -1478,7 +1478,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
 			{
-				var sourceFilePath = item.ToString();
+				var sourceFilePath = item.ItemSpec;
 
 				if (sourceFilePath.StartsWith(CurrentProjectPath))
 				{
@@ -1492,7 +1492,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
-				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ToString());
+				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ItemSpec);
 			}
 		}
 
