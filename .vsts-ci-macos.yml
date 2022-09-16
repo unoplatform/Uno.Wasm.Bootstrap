@@ -1,7 +1,6 @@
 parameters:
   jobName: ''
   vmImage: ''
-  netcore_version: ''
 
 jobs:
 - job:  ${{ parameters.jobName }}
@@ -11,7 +10,6 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(Agent.WorkFolder)/.nuget
-    EMSCRIPTEN_VERSION: 1.40.0
     SourceLinkEnabled: false
 
   steps:
@@ -19,10 +17,11 @@ jobs:
   - template: build/ci/dotnet-install.yml
 
   - task: UseDotNet@2
-    displayName: 'Install .NET 5 SDK'
+    displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: '5.0.400'
+      version: 7.0.100-rc.1.22431.12
+      includePreviewVersions: true
 
   - bash: |
       cd $(Agent.WorkFolder)
