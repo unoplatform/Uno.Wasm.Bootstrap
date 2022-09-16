@@ -30,16 +30,6 @@ jobs:
      
     displayName: 'Install Ninja'
 
-  - bash: |
-      cd ~
-      echo Installing emscripten $(EMSCRIPTEN_VERSION)
-      git clone --branch $(EMSCRIPTEN_VERSION) https://github.com/emscripten-core/emsdk
-      cd ~/emsdk
-      ./emsdk install $(EMSCRIPTEN_VERSION)
-      ./emsdk activate $(EMSCRIPTEN_VERSION)
-
-    displayName: 'Setup Emscripten'
-
   # - bash: |
   #     source ~/emsdk/emsdk_env.sh
   #     export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
