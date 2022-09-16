@@ -36,7 +36,11 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");
 
+#if NET7_0_OR_GREATER
+			Imports.TestCallback();
+#else
 			Interop.Runtime.InvokeJS($"testCallback()", out var _);
+#endif
 
 			var idbFSEnabled = Interop.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
@@ -53,6 +57,14 @@ namespace Uno.Wasm.Sample
 			}, null, 5000, 5000);
 		}
 	}
+
+#if NET7_0_OR_GREATER
+	public static partial class Imports
+	{
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.testCallback")]
+		public static partial void TestCallback();
+	}
+#endif
 
 	public static partial class Exports
 	{
