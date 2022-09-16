@@ -828,6 +828,10 @@ class Driver {
 
 		file_list.Add ("dotnet.wasm");
 
+		if (enable_threads) {
+			file_list.Add("dotnet.worker.js");
+		}
+
 		string wasm_runtime_dir;
 		if (is_netcore) {
 			wasm_runtime_dir = Path.Combine (runtimepack_dir, "native");
@@ -867,8 +871,9 @@ class Driver {
 			var assetType = Path.GetExtension(f).ToLowerInvariant() switch
 			{
 				".dll" => "assembly",
-				".pdb" => "assembly",
+				".pdb" => "pdb",
 				".wasm" => "dotnetwasm",
+				".js" => "js-module-threads",
 				".dat" => "icu",
 				_ => throw new Exception($"Unsupported asset type")
 			};
