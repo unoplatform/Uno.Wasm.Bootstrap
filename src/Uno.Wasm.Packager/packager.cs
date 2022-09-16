@@ -63,7 +63,6 @@ class Driver {
 	static CapturingAssemblyResolver resolver;
 
 	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
-	const string BINDINGS_ASM_NAME_NETCORE = "System.Private.Runtime.InteropServices.JavaScript";
 	const string BINDINGS_RUNTIME_CLASS_NAME = "WebAssembly.Runtime";
 	const string HTTP_ASM_NAME = "System.Net.Http.WebAssemblyHttpHandler";
 	const string WEBSOCKETS_ASM_NAME = "WebAssembly.Net.WebSockets";
@@ -719,14 +718,6 @@ class Driver {
 			var resolved = Resolve (ra, out kind);
 			Import (resolved, kind);
 		}
-		if (add_binding) {
-			var bindings = ResolveFramework (is_netcore ? BINDINGS_ASM_NAME_NETCORE : BINDINGS_ASM_NAME_MONO + ".dll");
-			Import (bindings, AssemblyKind.Framework);
-			var http = ResolveFramework (HTTP_ASM_NAME + ".dll");
-			Import (http, AssemblyKind.Framework);
-			var websockets = ResolveFramework (WEBSOCKETS_ASM_NAME + ".dll");
-			Import (websockets, AssemblyKind.Framework);
-		}
 		Console.WriteLine("Done resolving assemblies");
 
 		if (enable_aot) {
@@ -835,6 +826,8 @@ class Driver {
 			file_list.Add ("aot-instances.dll");
 		}
 
+		file_list.Add ("dotnet.wasm");
+
 		string wasm_runtime_dir;
 		if (is_netcore) {
 			wasm_runtime_dir = Path.Combine (runtimepack_dir, "native");
@@ -875,17 +868,19 @@ class Driver {
 			{
 				".dll" => "assembly",
 				".pdb" => "assembly",
+				".wasm" => "dotnetwasm",
 				".dat" => "icu",
 				_ => throw new Exception($"Unsupported asset type")
 			};
 
 			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\" }}";
 		}));
-		var enableDebug = enable_debug ? " -1" : "0";
+		var debugLevel = enable_debug ? " -1" : "0";
+
+		// Follow https://github.com/dotnet/runtime/blob/e57438026c25707bf6dd52cd332db657e919bbd4/src/mono/wasm/runtime/dotnet.d.ts#L80
 		var config = $"{{" +
-			$"\n \t\"vfs_prefix\": \"{vfs_prefix}\"," +
-			$"\n \t\"assembly_root\": \"{assembly_root}\"," +
-			$"\n \t\"enable_debugging\": {enableDebug}," +
+			$"\n \t\"assemblyRootFolder\": \"{assembly_root}\"," +
+			$"\n \t\"debugLevel\": {debugLevel}," +
 			$"\n \t\"assets\": [ " + file_list_str + "]\n" +
 			$"}}";
 
@@ -894,7 +889,7 @@ class Driver {
 		File.WriteAllText(config_json, config);
 
 		if (!emit_ninja) {
-			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm", "dotnet-crypto-worker.js" };
+			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
 
 			if (enable_threads) {
 				interp_files.Add ("dotnet.worker.js");
@@ -1274,7 +1269,7 @@ class Driver {
 		ninja.WriteLine("rule emcc-link");
 		ninja.WriteLine($"  command = {emcc_shell_response_prefix} $builddir/emcc_link.ps1");
 		ninja.WriteLine($"  rspfile = $builddir/emcc_link.ps1");
-		ninja.WriteLine($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js {wasm_core_support_library} $in {failOnError}");
+		ninja.WriteLine($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js --extern-post-js {src_prefix}/es6/dotnet.es6.extpost.js {wasm_core_support_library} $in {failOnError}");
 		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
 
 		ninja.WriteLine ("rule linker");
@@ -1375,7 +1370,6 @@ class Driver {
 			}
 		} else {
 			ninja.WriteLine ("build $appdir/dotnet.js: cpifdiff $wasm_runtime_dir/dotnet.js");
-			ninja.WriteLine ("build $appdir/dotnet-crypto-worker.js: cpifdiff $wasm_runtime_dir/dotnet-crypto-worker.js");
 			ninja.WriteLine ("build $appdir/dotnet.wasm: cpifdiff $wasm_runtime_dir/dotnet.wasm");
 			if (enable_threads) {
 				ninja.WriteLine ("build $appdir/dotnet.worker.js: cpifdiff $wasm_runtime_dir/dotnet.worker.js");

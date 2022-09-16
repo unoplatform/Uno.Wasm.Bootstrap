@@ -73,6 +73,16 @@ declare interface EmscriptenModule {
 	onAbort?: {
 		(error: any): void;
 	};
+
+	/**
+	 * BEGIN UNO SPECIFIC
+	 */
+	ENVIRONMENT_IS_NODE: boolean;
+	ENVIRONMENT_IS_WEB: boolean;
+	aotProfileData: any;
+	/**
+	 * END UNO SPECIFIC
+	 */
 }
 declare type InstantiateWasmSuccessCallback = (instance: WebAssembly.Instance, module: WebAssembly.Module) => void;
 declare type InstantiateWasmCallBack = (imports: WebAssembly.Imports, successCallback: InstantiateWasmSuccessCallback) => any;
@@ -127,6 +137,15 @@ declare type MonoConfig = {
 	 * initial number of workers to add to the emscripten pthread pool
 	 */
 	pthreadPoolSize?: number;
+
+	/**
+	 * BEGIN UNO SPECIFIC
+	 */
+	aotProfilerOptions?: AOTProfilerOptions;
+	coverageProfilerOptions?: CoverageProfilerOptions;
+	/**
+	 * END UNO SPECIFIC
+	 */
 };
 interface ResourceRequest {
 	name: string;
@@ -180,6 +199,12 @@ declare type DotnetModuleConfig = {
 	imports?: any;
 	exports?: string[];
 	downloadResource?: (request: ResourceRequest) => LoadingResource | undefined;
+
+
+	// BEGIN UNO SPECIFIC
+	baseUrl?: string;
+	// END UNO SPECIFIC
+
 } & Partial<EmscriptenModule>;
 declare type APIType = {
 	runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
@@ -266,9 +291,9 @@ interface IMemoryView {
 	get byteLength(): number;
 }
 
-declare global {
-	function getDotnetRuntime(runtimeId: number): RuntimeAPI | undefined;
-}
+//declare global {
+//	function getDotnetRuntime(runtimeId: number): RuntimeAPI | undefined;
+//}
 
 declare const dotnet: ModuleAPI["dotnet"];
 declare const exit: ModuleAPI["exit"];
@@ -318,4 +343,4 @@ declare class ManagedObject implements IDisposable {
 	toString(): string;
 }
 
-export { ArraySegment, AssetBehaviours, AssetEntry, CreateDotnetRuntimeType, DotnetModuleConfig, EmscriptenModule, IMemoryView, LoadingResource, ManagedError, ManagedObject, MemoryViewType, ModuleAPI, MonoConfig, NativePointer, ResourceRequest, RuntimeAPI, Span, createDotnetRuntime as default, dotnet, exit };
+// export { ArraySegment, AssetBehaviours, AssetEntry, CreateDotnetRuntimeType, DotnetModuleConfig, EmscriptenModule, IMemoryView, LoadingResource, ManagedError, ManagedObject, MemoryViewType, ModuleAPI, MonoConfig, NativePointer, ResourceRequest, RuntimeAPI, Span, createDotnetRuntime as default, dotnet, exit };

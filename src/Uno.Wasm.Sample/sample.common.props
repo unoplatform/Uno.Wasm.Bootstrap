@@ -14,6 +14,10 @@
 	<EmbeddedResource Include="WasmCSS\**\*.css" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<AssemblyName>Uno.Wasm.SampleNet</AssemblyName>
+	</PropertyGroup>
+
   <ItemGroup>
 	<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
 	<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
@@ -33,7 +37,7 @@
 
 	<Error Condition="!exists('$(WasmShellOutputPackagePath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) does not exist in $(WasmShellOutputPackagePath)" />
 	<Error Condition="exists('$(WasmShellOutputPackagePath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.tx should not exist in $(WasmShellOutputPackagePath)" />
-	<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />
+	<!--<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />-->
 
 	<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) should not exist in $(WasmShellOutputDistPath)" />
 	<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />

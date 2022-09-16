@@ -18,6 +18,7 @@ using System;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.ComponentModel.Composition;
 
 namespace Uno.Wasm.Sample
 { 
@@ -35,6 +36,8 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now.ToString();
 			Console.WriteLine($"Main! {i} {now}");
 
+			Interop.Runtime.InvokeJS($"testCallback()", out var _);
+
 			var idbFSEnabled = Interop.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
 
@@ -49,5 +52,20 @@ namespace Uno.Wasm.Sample
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
 		}
+	}
+
+	public static partial class Exports
+	{
+#if NET7_0_OR_GREATER
+#pragma warning disable IDE0022 // Use expression body for methods (Will be fixed in net7 in RC2)
+		[System.Runtime.InteropServices.JavaScript.JSExport()]
+		public static void MyExportedMethod1()
+		{
+			Console.WriteLine($"Exported method invoked 1");
+		}
+#pragma warning restore IDE0022 // Use expression body for methods
+#endif
+		public static void MyExportedMethod2()
+			=> Console.WriteLine($"Exported method invoked 2");
 	}
 }

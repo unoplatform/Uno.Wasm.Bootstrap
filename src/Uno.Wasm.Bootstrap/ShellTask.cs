@@ -918,7 +918,6 @@ namespace Uno.Wasm.Bootstrap
 
 					var frameworkBindings = new List<string>
 					{
-						"System.Private.Runtime.InteropServices.JavaScript.dll"
 					};
 
 					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
