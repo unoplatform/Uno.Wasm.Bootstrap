@@ -103,7 +103,11 @@ namespace Uno.Wasm.Sample
 	{
 		public const int UGO_RWX = 0x1ff; // 0777
 
+#if NET7_0_OR_GREATER
+		[DllImport("libc", SetLastError = true)]
+#else
 		[DllImport("libc.so", SetLastError = true)]
+#endif
 		internal static extern int chmod(string pathname, int mode);
 		[DllImport("__Native")]
 		internal static extern int additional_native_add(int left, int right);
