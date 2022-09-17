@@ -42,7 +42,7 @@ const path = require("path");
 		console.log(`Results: ${value}`);
 	}
 
-	const expected = "InterpreterAndAOT;42;42.30;42.7;e42;True;true;True;1.3;1.4;3.1;0;42;requireJs:true;";
+	const expected = "InterpreterAndAOT;42;42.30;42.7;e42;True;true;True;1.3;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;";
 
 	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);

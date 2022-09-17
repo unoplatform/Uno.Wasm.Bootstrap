@@ -48,6 +48,12 @@ namespace Uno.Wasm.Sample
 			var requireAvailable = Runtime.InvokeJS($"typeof require.config !== 'undefined'");
 			Console.WriteLine($"requireAvailable: {idbFSValidation}");
 
+#if NET7_0_OR_GREATER
+			var jsInteropResult = Imports.TestCallback();
+#else
+			var jsInteropResult = Interop.Runtime.InvokeJS($"testCallback()", out var _);
+#endif
+
 			var jsTimeZone = Runtime.InvokeJS($"Intl.DateTimeFormat().resolvedOptions().timeZone");
 			var clrTimeZone = TimeZoneInfo.Local.DisplayName;
 			var timezoneValidation =
@@ -77,7 +83,8 @@ namespace Uno.Wasm.Sample
 				$"{SideModule4.side4_getCustomVersion()};" +
 				$"{chmodRes};" +
 				$"{additionalNativeAdd};" +
-				$"requireJs:{requireAvailable};"
+				$"requireJs:{requireAvailable};" +
+				$"jsInterop:{jsInteropResult};"
 				;
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
@@ -96,7 +103,7 @@ namespace Uno.Wasm.Sample
 	{
 		public const int UGO_RWX = 0x1ff; // 0777
 
-		[DllImport("libc.so", SetLastError = true)]
+		[DllImport("mylibc", SetLastError = true)]
 		internal static extern int chmod(string pathname, int mode);
 		[DllImport("__Native")]
 		internal static extern int additional_native_add(int left, int right);
@@ -128,9 +135,37 @@ namespace Uno.Wasm.Sample
 		internal static extern string side3_getCustomVersion();
 	}
 
-	class SideModule4
+	partial class SideModule4
 	{
+#if NET7_0_OR_GREATER
+		
+		[LibraryImport("side4", StringMarshalling = StringMarshalling.Utf8)]
+		internal static partial string side4_getCustomVersion();
+#else
 		[DllImport("side4")]
 		internal static extern string side4_getCustomVersion();
+#endif
 	}
+
+#if NET7_0_OR_GREATER
+	public static partial class Imports
+	{
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.testCallback")]
+		public static partial string TestCallback();
+	}
+#endif
+
+	public static partial class Exports
+	{
+#if NET7_0_OR_GREATER
+#pragma warning disable IDE0022 // Use expression body for methods (Will be fixed in net7 in RC2)
+		[System.Runtime.InteropServices.JavaScript.JSExport()]
+#endif
+		public static string MyExportedMethod()
+		{
+			return $"Invoked";
+		}
+#pragma warning restore IDE0022 // Use expression body for methods
+	}
+
 }

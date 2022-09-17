@@ -106,6 +106,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Threads.Aot", "Uno
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet7", "Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj", "{D348EE61-E4D1-4DAF-A84F-086BA6AD659B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.net7", "Uno.Wasm.StaticLinking.net7\Uno.Wasm.StaticLinking.net7.csproj", "{09FAA8FC-54FE-4602-A4A3-37CD98C99F74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -264,6 +266,10 @@ Global
 		{D348EE61-E4D1-4DAF-A84F-086BA6AD659B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D348EE61-E4D1-4DAF-A84F-086BA6AD659B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D348EE61-E4D1-4DAF-A84F-086BA6AD659B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09FAA8FC-54FE-4602-A4A3-37CD98C99F74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09FAA8FC-54FE-4602-A4A3-37CD98C99F74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09FAA8FC-54FE-4602-A4A3-37CD98C99F74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09FAA8FC-54FE-4602-A4A3-37CD98C99F74}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -307,11 +313,14 @@ Global
 		{92B22005-5A7B-4B38-8D09-68D7240EBE8C} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{1CA3AA29-A8FC-4CB3-8803-5BD739F2BEC7} = {B27FC2DE-70CA-4287-9FC1-D108F115D8AA}
 		{D348EE61-E4D1-4DAF-A84F-086BA6AD659B} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
+		{09FAA8FC-54FE-4602-A4A3-37CD98C99F74} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{09faa8fc-54fe-4602-a4a3-37cd98c99f74}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{09faa8fc-54fe-4602-a4a3-37cd98c99f74}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
 		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13

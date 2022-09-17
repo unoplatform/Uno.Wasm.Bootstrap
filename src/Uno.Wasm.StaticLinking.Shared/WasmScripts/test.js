@@ -21,3 +21,27 @@ var Validation = {
         return fPtr;
     }
 };
+
+// Needs to be initialized first
+async function initializeExports() {
+    if (Module.getAssemblyExports !== undefined) {
+        globalThis.samplesNetExports = await Module.getAssemblyExports("Uno.Wasm.StaticLinking");
+    }
+}
+
+initializeExports();
+
+function testCallback() {
+    try {
+        if (Module.getAssemblyExports !== undefined) {
+            return samplesNetExports.Uno.Wasm.Sample.Exports.MyExportedMethod();
+        }
+        else {
+            return Module.mono_bind_static_method("[Uno.Wasm.Sample] Uno.Wasm.Sample.Program:MyExportedMethod")();
+        }
+    }
+    catch (e) {
+        console.log(e);
+        throw e;
+    }
+}

@@ -63,10 +63,11 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  # Static linking test (net5)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
-    displayName: Build StaticLinking.Aot Sample
+    displayName: Build StaticLinking.Aot Sample (net5)
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
@@ -75,6 +76,22 @@ jobs:
       "http://localhost:8000/"
 
     displayName: StaticLinking.Aot Tests Net5
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+      
+  # Static linking test (net4)
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /t:Publish /m:1 /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
+    displayName: Build StaticLinking.Aot Sample (net7)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Net7\bin\Release\net7.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Aot Tests net7
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
