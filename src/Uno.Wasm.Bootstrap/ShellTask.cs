@@ -1239,6 +1239,22 @@ namespace Uno.Wasm.Bootstrap
 				{
 					yield return pInvokeLibrary.ItemSpec;
 				}
+
+				// In the case of libc, the resolution differs when running
+				// with or without AOT being enabled, so we add both entries.
+				// https://github.dev/dotnet/runtime/blob/58f5c95085b2eb56800b87f466183b1448d33b3d/src/mono/mono/utils/mono-dl.c#L158
+				var containsLibc = AdditionalPInvokeLibraries.Any(i => i.ItemSpec == "libc");
+				var containsLibcSo = AdditionalPInvokeLibraries.Any(i => i.ItemSpec == "libc.so");
+
+				if (containsLibc && !containsLibcSo)
+				{
+					yield return "libc.so";
+				}
+
+				if(containsLibcSo && !containsLibc)
+				{
+					yield return "libc";
+				}
 			}
 		}
 
