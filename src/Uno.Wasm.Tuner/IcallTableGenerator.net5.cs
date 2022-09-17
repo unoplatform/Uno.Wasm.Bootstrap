@@ -1,4 +1,5 @@
-﻿#pragma warning disable CS8632
+﻿// Based on https://github.com/dotnet/runtime/commit/4f7a096dce6bb1d69b844b539678fa25ed7b8e20
+#pragma warning disable CS8632
 #pragma warning disable IDE0022
 #pragma warning disable IDE0011
 #pragma warning disable IDE0007
@@ -44,7 +45,7 @@ internal sealed class IcallTableGenerator
 	// The runtime icall table should be generated using
 	// mono --print-icall-table
 	//
-	public IEnumerable<string> GenIcallTable(string? runtimeIcallTableFile, string[] assemblies, string? outputPath)
+	public IEnumerable<string> Generate(string? runtimeIcallTableFile, string[] assemblies, string? outputPath)
 	{
 		_icalls.Clear();
 		_signatures.Clear();
@@ -160,7 +161,20 @@ internal sealed class IcallTableGenerator
 			if ((method.GetMethodImplementationFlags() & MethodImplAttributes.InternalCall) == 0)
 				continue;
 
-			AddSignature(type, method);
+			try
+			{
+				AddSignature(type, method);
+			}
+#if ORIGINAL_NETCORE_SOURCE
+			catch (Exception ex) when (ex is not LogAsErrorException)
+			{
+				Log.LogWarning(null, "WASM0001", "", "", 0, 0, 0, 0, $"Could not get icall, or callbacks for method '{type.FullName}::{method.Name}' because '{ex.Message}'");
+#else
+			catch (Exception)
+			{
+#endif
+				continue;
+			}
 
 			var className = method.DeclaringType!.FullName!;
 			if (!_runtimeIcalls.ContainsKey(className))
@@ -261,6 +275,10 @@ internal sealed class IcallTableGenerator
 		{
 			AppendType(sb, t.GetElementType()!);
 			sb.Append('*');
+		}
+		else if (t.IsEnum)
+		{
+			AppendType(sb, Enum.GetUnderlyingType(t));
 		}
 		else
 		{
