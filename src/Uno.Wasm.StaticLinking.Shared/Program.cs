@@ -57,7 +57,7 @@ namespace Uno.Wasm.Sample
 			var jsTimeZone = Runtime.InvokeJS($"Intl.DateTimeFormat().resolvedOptions().timeZone");
 			var clrTimeZone = TimeZoneInfo.Local.DisplayName;
 			var timezoneValidation =
-#if NET5_0
+#if NET5_0_OR_GREATER
 				true; // Timezone support is not yet enabled for NET 5
 #else
 				jsTimeZone == clrTimeZone;
