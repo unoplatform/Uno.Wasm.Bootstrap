@@ -33,11 +33,11 @@ initializeExports();
 
 function testCallback() {
     try {
-        if (Module.getAssemblyExports !== undefined) {
+        if (Module.getAssemblyExports !== undefined && samplesNetExports.Uno !== undefined) {
             return samplesNetExports.Uno.Wasm.Sample.Exports.MyExportedMethod();
         }
         else {
-            return Module.mono_bind_static_method("[Uno.Wasm.Sample] Uno.Wasm.Sample.Program:MyExportedMethod")();
+            return Module.mono_bind_static_method("[Uno.Wasm.StaticLinking] Uno.Wasm.Sample.Exports:MyExportedMethod")();
         }
     }
     catch (e) {

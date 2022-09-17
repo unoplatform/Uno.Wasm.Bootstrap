@@ -157,8 +157,8 @@ namespace Uno.Wasm.Sample
 
 	public static partial class Exports
 	{
-#if NET7_0_OR_GREATER
 #pragma warning disable IDE0022 // Use expression body for methods (Will be fixed in net7 in RC2)
+#if NET7_0_OR_GREATER
 		[System.Runtime.InteropServices.JavaScript.JSExport()]
 #endif
 		public static string MyExportedMethod()
