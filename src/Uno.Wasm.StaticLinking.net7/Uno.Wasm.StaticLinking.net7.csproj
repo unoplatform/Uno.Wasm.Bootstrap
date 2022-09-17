@@ -39,7 +39,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(UseAOT)'=='true'">
-		<WasmShellAdditionalPInvokeLibrary Include="mylibc" />
+		<WasmShellAdditionalPInvokeLibrary Include="libc" />
 	</ItemGroup>
 
 	<ItemGroup>
