@@ -18,7 +18,6 @@ using System;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using System.ComponentModel.Composition;
 
 namespace Uno.Wasm.Sample
 { 
