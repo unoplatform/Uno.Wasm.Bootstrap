@@ -2,7 +2,6 @@ parameters:
   jobName: ''
   linux_container: ''
   linux_vmImage: 'ubuntu-latest'
-  netcore_version: ''
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -17,8 +16,6 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
-    EMSCRIPTEN_VERSION: 1.40.0
-    NETCORE_VERSION: ${{ parameters.netcore_version }}
 
   steps:
   - checkout: self
@@ -28,19 +25,11 @@ jobs:
   - template: build/ci/dotnet-install.yml
 
   - task: UseDotNet@2
-    displayName: 'Use .NET Core sdk'
-    condition: ne(variables['NETCORE_VERSION'], '2.2.x')
+    displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: ${{ parameters.netcore_version }}
-      installationPath: $(Agent.ToolsDirectory)/dotnet
-
-  - task: UseDotNet@2
-    displayName: 'Install .NET 5 SDK'
-    inputs:
-      packageType: sdk
-      version: '5.0.400'
-      installationPath: $(Agent.ToolsDirectory)/dotnet
+      version: 7.0.100-rc.1.22431.12
+      includePreviewVersions: true
 
   - task: NuGetToolInstaller@0
     inputs:
@@ -131,7 +120,16 @@ jobs:
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
-    displayName: StaticLinking.Aot Tests Net5
+    displayName: StaticLinking.Aot Tests net5
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  ## Static linking validation (net7)
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
+    displayName: StaticLinking.Aot Tests net7
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
   

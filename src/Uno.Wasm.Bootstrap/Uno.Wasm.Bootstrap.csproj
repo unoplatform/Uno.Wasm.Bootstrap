@@ -133,6 +133,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <UpToDateCheckInput Remove="ts\types\dotnet\mono.d.ts" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
@@ -171,9 +175,7 @@
 	</ItemGroup>
 
 	<!-- Run the typescript compiler before resources resolution -->
-	<Target Name="GenerateJavascriptBeforeCompile"
-					BeforeTargets="ResolveProjectReferences"
-					DependsOnTargets="CompileTypeScriptWithTSConfig">
+	<Target Name="GenerateJavascriptBeforeCompile" BeforeTargets="ResolveProjectReferences" DependsOnTargets="CompileTypeScriptWithTSConfig">
 
 		 <!--Delete the log files to avoid the TSC clean target to erase the output files before-->
 		<ItemGroup>

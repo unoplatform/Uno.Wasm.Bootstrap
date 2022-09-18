@@ -86,7 +86,12 @@ For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`,
 Each major version of the bootstrapper targets a different version of the .NET Runtime.
 
 - 2.x: Mono runtime (https://github.com/mono/mono)
-- 3.x: .NET 6 (https://github.com/dotnet/runtime)
-- 4.x-dev: .NET 7 (https://github.com/dotnet/runtime)
+- 3.x: .NET 6 (https://github.com/dotnet/runtime/commits/release/6.0)
+- 7.x-dev: .NET 7 (https://github.com/dotnet/runtime/commits/release/7.0)
+- 8.x-dev: .NET 8 (https://github.com/dotnet/runtime/commits/main)
 
-Starting from version 3.x, the bootstrapper uses a custom build of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly
+> [!NOTE]
+> Starting from version 3.x, the bootstrapper uses a custom build of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly
+
+> [!NOTE]
+> Bootstrapper builds version 4.x-dev were based on developments builds of .NET 7 and were later versioned 7.x-dev to match the appropriate runtime.

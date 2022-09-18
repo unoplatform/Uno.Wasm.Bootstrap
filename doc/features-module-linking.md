@@ -17,7 +17,7 @@ This allowing for p/invoke to be functional when resolving methods from the load
 ```
 
 #### WebAssembly Exceptions support 
-As of version 4.0 and later, WebAssembly Exceptions support is now required. 
+As of version 7.0 and later, WebAssembly Exceptions support is now required. 
 
 If you're building C++ files with exceptions support, you'll need to add the [emcc `-fwasm-exceptions` option](https://emscripten.org/docs/porting/exceptions.html#webassembly-exception-handling-proposal) and remove the `-s DISABLE_EXCEPTION_CATCHING=0` if you specified it.
 

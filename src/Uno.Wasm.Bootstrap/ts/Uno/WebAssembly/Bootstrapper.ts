@@ -8,9 +8,10 @@ namespace Uno.WebAssembly.Bootstrap {
 	export class Bootstrapper {
 		public disableDotnet6Compatibility: boolean;
 		public configSrc: string;
-		public onConfigLoaded: Function;
-		public onAbort: Function;
-		public onDotnetReady: Function;
+		public onConfigLoaded: (config: MonoConfig) => void | Promise<void>;
+		public onAbort: () => void;
+		public onDotnetReady: () => void;
+		public onDownloadResource: (request: ResourceRequest) => LoadingResource | undefined;
 
 		private _context?: DotnetPublicAPI;
 		private _monoConfig: MonoConfig;
@@ -19,6 +20,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _hotReloadSupport?: HotReloadSupport;
 		private _logProfiler?: LogProfilerSupport;
 		private _aotProfiler?: AotProfilerSupport;
+
+		private _runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
 
 		private _webAppBasePath: string;
         private _appBase: string;
@@ -43,10 +46,13 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
 
 			this.disableDotnet6Compatibility = false;
-			this.configSrc = `${this._webAppBasePath}${this._appBase}/mono-config.json`;
-			this.onConfigLoaded = () => this.configLoaded();
+			this.configSrc = `mono-config.json`;
+			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
+			this.onDownloadResource = (request) => <LoadingResource>{
+				response: this.fetchFile(request.resolvedUrl)
+			};
 
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
@@ -64,35 +70,41 @@ namespace Uno.WebAssembly.Bootstrap {
 				Bootstrapper.ENVIRONMENT_IS_NODE = typeof (<any>globalThis).process === 'object' && typeof (<any>globalThis).process.versions === 'object' && typeof (<any>globalThis).process.versions.node === 'string';
 				Bootstrapper.ENVIRONMENT_IS_SHELL = !Bootstrapper.ENVIRONMENT_IS_WEB && !Bootstrapper.ENVIRONMENT_IS_NODE && !Bootstrapper.ENVIRONMENT_IS_WORKER;
 
-
-				let runtime: Bootstrapper = null;
+				let bootstrapper: Bootstrapper = null;
 				let DOMContentLoaded = false;
 
 				if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 					globalThis.document.addEventListener("DOMContentLoaded", () => {
 						DOMContentLoaded = true;
-						runtime?.preInit();
+						bootstrapper?.preInit();
 					});
 				}
 
+				// This syntax is required to have TS not rewrite import statements
+				// when generating javascript in a single file.
 				//@ts-ignore
 				var config = await eval("import('./uno-config.js')");
 
-				runtime = new Bootstrapper(config.config);
+				bootstrapper = new Bootstrapper(config.config);
 
 				if (DOMContentLoaded) {
-					runtime.preInit();
+					bootstrapper.preInit();
 				}
 
+				// This syntax is required to have TS not rewrite import statements
+				// when generating javascript in a single file.
 				//@ts-ignore
 				var m = await eval("import(`./dotnet.js`)");
 
-				const { MONO, BINDING } = await m.default(
+				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
-						runtime.configure(context);
-						return runtime.asDotnetConfig();
+						bootstrapper.configure(context);
+						return bootstrapper.asDotnetConfig();
 					}
 				);
+
+				bootstrapper._runMain = dotnetRuntime.runMain;
+				(<any>bootstrapper._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
 			}
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
@@ -108,7 +120,8 @@ namespace Uno.WebAssembly.Bootstrap {
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
-				exports: ["IDBFS", "FS"]
+				exports: ["IDBFS", "FS"],
+				downloadResource: this.onDownloadResource
 			};
 		}
 
@@ -136,7 +149,7 @@ namespace Uno.WebAssembly.Bootstrap {
             else if (typeof this._context.Module.preInit === "function") {
                 this._context.Module.preRun = [];
             }
-            this._context.Module.preRun.push(() => this.wasmRuntimePreRun());
+            (<any>this._context.Module.preRun).push(() => this.wasmRuntimePreRun());
         }
 
 		/**
@@ -156,15 +169,26 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (this._unoConfig.environmentVariables) {
 				for (let key in this._unoConfig.environmentVariables) {
 					if (this._unoConfig.environmentVariables.hasOwnProperty(key)) {
-						if (this._monoConfig.enable_debugging) console.log(`Setting ${key}=${this._unoConfig.environmentVariables[key]}`);
-						this._monoConfig.environment_variables[key] = this._unoConfig.environmentVariables[key];
+						if (this._monoConfig.debugLevel) console.log(`Setting ${key}=${this._unoConfig.environmentVariables[key]}`);
+						this._monoConfig.environmentVariables[key] = this._unoConfig.environmentVariables[key];
 					}
 				}
 			}
 
+			this.timezonePreSetup();
+
 			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
 				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
 			}
+		}
+
+		private timezonePreSetup() {
+			let timeZone = 'UTC';
+			try {
+				timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				// eslint-disable-next-line no-empty
+			} catch { }
+			this._monoConfig.environmentVariables['TZ'] = timeZone || 'UTC';
 		}
 
 		private RuntimeReady() {
@@ -195,22 +219,16 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		// This is called during emscripten `preInit` event, after we fetched config.
-		private configLoaded() {
-			this._monoConfig = this._context.MONO.config as MonoConfig;
+		private configLoaded(config: MonoConfig) {
+			this._monoConfig = config;
 
 			if (this._unoConfig.generate_aot_profile) {
-				this._monoConfig.aot_profiler_options = <AOTProfilerOptions>{
+				this._monoConfig.aotProfilerOptions = <AOTProfilerOptions>{
 					write_at: "Uno.AotProfilerSupport::StopProfile",
 					send_to: "Uno.AotProfilerSupport::DumpAotProfileData"
 				};
 			}
 
-			if (this._monoConfig != null) {
-				this._monoConfig.fetch_file_cb = (asset: string) => this.fetchFile(asset);
-			}
-			else {
-				throw `Invalid .NET onfiguration`;
-			}
 		}
 
 		private runtimeAbort() {
@@ -232,7 +250,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					await this._hotReloadSupport.initializeHotReload();
 				}
 
-				this._context.MONO.mono_run_main(this._unoConfig.uno_main, []);
+				this._runMain(this._unoConfig.uno_main, []);
 
 				this.initializePWA();
 
@@ -367,7 +385,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			return init;
 		}
 
-		private fetchWithProgress(url: string, progressCallback: Function) {
+		private fetchWithProgress(url: string, progressCallback: Function) : Promise<void | Response> {
 
 			if (!this.loader) {
 				// No active loader, simply use the fetch API directly...
@@ -425,7 +443,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				.catch(err => this.raiseLoadingError(err));
 		}
 
-		private fetchFile(asset: string) {
+		private fetchFile(asset: string) : Promise<void | Response> {
 
 			if (asset.lastIndexOf(".dll") !== -1) {
 				asset = asset.replace(".dll", `.${this._unoConfig.assemblyFileExtension}`);

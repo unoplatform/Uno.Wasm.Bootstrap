@@ -3,8 +3,10 @@
   <PropertyGroup>
     <_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
 
-    <WasmShellTasksPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
-    <WasmShellTasksPath Condition="Exists('$(_packageBinaryPath)')">../tools</WasmShellTasksPath>
+	<_WasmShellTasksPathIsDevMode>false</_WasmShellTasksPathIsDevMode>
+	<_WasmShellTasksPathIsDevMode Condition="!Exists('$(_packageBinaryPath)')">true</_WasmShellTasksPathIsDevMode>
+    <WasmShellTasksPath Condition="$(_WasmShellTasksPathIsDevMode)">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
+    <WasmShellTasksPath Condition="!$(_WasmShellTasksPathIsDevMode)">../tools</WasmShellTasksPath>
 
     <WasmShellIndexHtmlPath Condition="!Exists('$(_packageBinaryPath)')">$(MSBuildThisFileDirectory)../Templates/index.html</WasmShellIndexHtmlPath>
     <WasmShellIndexHtmlPath Condition="Exists('$(_packageBinaryPath)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
@@ -82,7 +84,7 @@
   <Target Name="WasmBootstrapAdjustFrameworkReference" BeforeTargets="ProcessFrameworkReferences">
     <PropertyGroup>
       <_WasmShellIsNetCore Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' and '$(TargetFrameworkVersion.Substring(1))'&gt;='5.0'">true</_WasmShellIsNetCore>
-      <WasmShellIncludeWindowsCompatibility Condition="'$(WasmShellIncludeWindowsCompatibility)'==''">true</WasmShellIncludeWindowsCompatibility>
+      <WasmShellIncludeWindowsCompatibility Condition="'$(WasmShellIncludeWindowsCompatibility)'=='' and '$(TargetFrameworkVersion.Substring(1))'&lt;='6.0'">true</WasmShellIncludeWindowsCompatibility>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(_WasmShellIsNetCore)'=='true'">
@@ -92,7 +94,7 @@
       items added explicitly by the building project.
       -->
       <FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
-      <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" Condition="$(WasmShellIncludeWindowsCompatibility)" />
+      <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.0" Condition="'$(WasmShellIncludeWindowsCompatibility)'=='true'" />
     </ItemGroup>
   </Target>
 
@@ -115,8 +117,11 @@
     <UpToDateCheckInput Include="@(LinkerDescriptor)" />
   </ItemGroup>
 
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
-  <UsingTask AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
+  <UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
+  <UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
+	
+  <UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
+  <UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" TaskFactory="TaskHostFactory" />
 
   <Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
     <!-- 

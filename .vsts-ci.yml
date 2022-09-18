@@ -12,16 +12,11 @@ jobs:
     clean: true
 
   - task: UseDotNet@2
-    displayName: 'Install .NET 5 SDK'
+    displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: '5.0.400'
-
-  - task: UseDotNet@2
-    displayName: 'Install .NET 3.1.403'
-    inputs:
-      packageType: sdk
-      version: 3.1.403
+      version: 7.0.100-rc.1.22431.12
+      includePreviewVersions: true
 
   - template: build/ci/gitversion.yml
   - template: build/ci/dotnet-install.yml
@@ -106,18 +101,15 @@ jobs:
 
 - template: .vsts-ci-linux.yml
   parameters:
-    jobName: Linux_netcore3_1
-    netcore_version: 3.1.201
+    jobName: Linux_Tests
     linux_container: unoplatform/wasm-build:3.0
 
 - template: .vsts-ci-windows-tests.yml
   parameters:
-    jobName: Windows_netcore3_1
-    netcore_version: 3.1.201
+    jobName: Windows_Tests
     linux_container: unoplatform/wasm-build:3.0
 
 - template: .vsts-ci-macos.yml
   parameters:
-    jobName: macOS_netcore3_1
-    vmImage: macOS-10.15
-    netcore_version: 3.1.201
+    jobName: macOS_Tests
+    vmImage: macOS-12
