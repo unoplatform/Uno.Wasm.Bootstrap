@@ -10,10 +10,10 @@ Two techniques are available:
 
 # [**.NET 7 JSExport**](#tab/net7)
 
-.NET 7 introduces the [`[JSExportAttribute]`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.javascript.jsexportattribute?view=net-7.0) allows for Javascript to invoke C# static methods in a memory, threading and performance efficient way. 
+.NET 7 introduces the [`[JSExportAttribute]`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.javascript.jsexportattribute?view=net-7.0) which allows for Javascript to invoke C# static methods in a memory, threading and performance efficient way. 
 
 > [!IMPORTANT]
-> To enable these features, you'll need to use `net7.0` or later in your project's `TargetFramework`, and you will need to use the Uno Bootstrapper 7.x or later.
+> To enable this feature, you'll need to use `net7.0` or later in your project's `TargetFramework`, and you will need to use the Uno Bootstrapper 7.x or later.
 
 In your C# project (named `MyApp` for this example), add the following class:
 ```csharp
