@@ -175,9 +175,20 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			}
 
+			this.timezonePreSetup();
+
 			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
 				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
 			}
+		}
+
+		private timezonePreSetup() {
+			let timeZone = 'UTC';
+			try {
+				timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				// eslint-disable-next-line no-empty
+			} catch { }
+			this._monoConfig.environmentVariables['TZ'] = timeZone || 'UTC';
 		}
 
 		private RuntimeReady() {
