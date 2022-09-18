@@ -13,15 +13,7 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
-
-
-		<WasmShellForceUseWSL>true</WasmShellForceUseWSL>
-		<WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>
 	</PropertyGroup>
-	
-	<ItemGroup>
-		<WasmShellAdditionalPInvokeLibrary Include="libc" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Identity.Client" Version="4.14.0" />

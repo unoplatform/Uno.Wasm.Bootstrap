@@ -14,9 +14,6 @@
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
 		<LangVersion>latest</LangVersion>
-
-		<WasmShellForceUseWSL>true</WasmShellForceUseWSL>
-		<WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	
