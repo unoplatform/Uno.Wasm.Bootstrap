@@ -16,7 +16,9 @@
 // ******************************************************************
 using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using WebAssembly;
@@ -64,6 +66,13 @@ namespace Uno.Wasm.Sample
 #endif
 
 			Console.WriteLine($"Timezone: {jsTimeZone};{clrTimeZone}");
+
+			Console.WriteLine($"SIMD: {Vector.IsHardwareAccelerated}");
+
+#if NET7_0_OR_GREATER
+			Console.WriteLine($"Vector64: {Vector64.IsHardwareAccelerated}");
+			Console.WriteLine($"Vector128: {Vector128.IsHardwareAccelerated}");
+#endif
 
 			File.WriteAllText("/tmp/test.txt", "test.txt");
 			var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);

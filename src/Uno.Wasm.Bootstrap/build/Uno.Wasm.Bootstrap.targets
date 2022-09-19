@@ -22,6 +22,7 @@
     <WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
     <WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
     <WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
+    <WasmShellEnableSimd Condition="'$(WasmShellEnableSimd)'==''">false</WasmShellEnableSimd>
 
     <!--
     Set this variable to use custom debugger binaries instead of the files found 
@@ -169,6 +170,7 @@
         CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
         DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
         EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
+        EnableSimd="$(WasmShellEnableSimd)"
         EnableThreads="$(WasmShellEnableThreads)"
         GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
         IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
@@ -213,6 +215,7 @@
         EnableLogProfiler="$(WasmShellEnableLogProfiler)"
         EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
         EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
+        EnableSimd="$(WasmShellEnableSimd)"
         EnableThreads="$(WasmShellEnableThreads)"
         ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
         ForceDisableWSL="$(WasmShellForceDisableWSL)"

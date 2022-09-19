@@ -35,6 +35,6 @@
     <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
+    <Folder Include="$(MSBuildThisFileDirectory)native\" />
   </ItemGroup>
 </Project>

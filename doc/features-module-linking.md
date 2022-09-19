@@ -31,14 +31,31 @@ error: DISABLE_EXCEPTION_THROWING was set (likely due to -fno-exceptions), which
 ```
 
 #### Static Linking multi-version support
-As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM.
-In order to enable this scenario, the Uno Bootstrapper supports adding .bc files by convention.
+As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM. In order to enable this scenario, the Uno Bootstrapper supports adding .bc files by convention.
 
-If the bitcode file to be added is named `libTest.bc`, the following structure can be used in your project:
-- `libTest.bc/2.0.6/libTest.bc`
-- `libTest.bc/2.0.9/libTest.bc`
+If the bitcode file to be added is named `libTest.bc` or `libTest.a`, the following structure can be used in a project:
 
-In this case, based on the emscripten version used by the mono runtime, the bootstrapper will choose the closest matching version.
+|---------------------------------------|-------------------------------------------------------------------------------------------------------|
+| File path                             | Description                                                                                           |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `libTest.bc/2.0.6/libTest.bc`         | Emscripten 2.0.6 to 2.0.8, single threaded (Bootstrapper 3.3 and earlier format)                      |
+| `libTest.bc/2.0.9/libTest.bc`         | Emscripten 2.0.9 and later, single threaded (Bootstrapper 3.3 and earlier format)                     |
+| `libTest.bc/2.0.6/st/libTest.bc`      | Emscripten 2.0.6 and later, single threaded                                                           |
+| `libTest.bc/2.0.9/st/libTest.bc`      | Emscripten 2.0.9 and later, single threaded                                                           |
+| `libTest.bc/2.0.6/mt/libTest.bc`      | Emscripten 2.0.6 and later, multi threaded                                                            |
+| `libTest.bc/2.0.9/mt/libTest.bc`      | Emscripten 2.0.9 and later, multi threaded                                                            |
+| `libTest.bc/2.0.6/st,simd/libTest.bc` | Emscripten 2.0.6 and later, single threaded with SIMD                                                 |
+| `libTest.bc/2.0.9/st,simd/libTest.bc` | Emscripten 2.0.9 and later, single threaded with SIMD                                                 |
+| `libTest.bc/2.0.6/mt,simd/libTest.bc` | Emscripten 2.0.6 and later, multi threaded with SIMD                                                  |
+| `libTest.bc/2.0.9/mt,simd/libTest.bc` | Emscripten 2.0.9 and later, multi threaded with SIMD                                                  |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------|
+
+Based on the emscripten version used by the .NET runtime and the enabled runtime features, the bootstrapper will choose the closest matching version.
+
+As of bootstrapper 7.0, the following runtime features are supported:
+- `st` for Single Threaded runtime
+- `mt` for Multi Threaded runtime
+- `simd` for SIMD enabled runtime
 
 #### Static Linking additional emcc flags
 Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:
