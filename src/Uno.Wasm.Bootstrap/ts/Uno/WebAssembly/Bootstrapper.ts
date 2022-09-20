@@ -224,8 +224,8 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (this._unoConfig.generate_aot_profile) {
 				this._monoConfig.aotProfilerOptions = <AOTProfilerOptions>{
-					write_at: "Uno.AotProfilerSupport::StopProfile",
-					send_to: "Uno.AotProfilerSupport::DumpAotProfileData"
+					writeAt: "Uno.AotProfilerSupport::StopProfile",
+					sendTo: "Uno.AotProfilerSupport::DumpAotProfileData"
 				};
 			}
 
