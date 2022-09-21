@@ -19,61 +19,77 @@
 // 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 
-namespace Uno.Wasm.Bootstrap
+namespace Uno.Wasm.Bootstrap;
+
+internal class BitcodeFilesSelector
 {
-	internal class BitcodeFilesSelector
+	private record PackageSpec(string? Name, Version? Version, string Fullpath, string[] Features);
+
+	internal static string[] Filter(Version emscriptenVersion, string[] requiredFeatures, string[] bitcodeFiles)
 	{
-		internal static string[] Filter(Version emscriptenVersion, string[] bitcodeFiles)
+		var files = new List<string>();
+
+		foreach (var group in bitcodeFiles.GroupBy(f => Path.GetFileName(f)))
 		{
-			var files = new List<string>();
+			var versions = group
+				.AsEnumerable()
+				.Select(ParsePackageSpec)
+				.Where(s => requiredFeatures.All(r => s.Features.Contains(r)))
+				.OrderByDescending(v => v.Version)
+				.ToList();
 
-			foreach (var group in bitcodeFiles.GroupBy(f => Path.GetFileName(f)))
+			if(versions.Count == 1)
 			{
-				var versions = group
-					.AsEnumerable()
-					.Select(ParsePackageSpec)
-					.OrderByDescending(v => v.version)
-					.ToList();
-
-				if(versions.Count == 1)
-				{
-					files.Add(versions.Select(v => v.fullPath).First());
-				}
-				else
-				{
-					var validVersions = versions
-						.Where(v => v.version <= emscriptenVersion)
-						.Select(v => v.fullPath)
-						.ToArray();
-
-					files.Add(validVersions.FirstOrDefault() ?? versions.Last().fullPath);
-				}
+				files.Add(versions.Select(v => v.Fullpath).First());
 			}
+			else if(versions.Count > 1)
+			{
+				var validVersions = versions
+					.Where(v => v.Version <= emscriptenVersion)
+					.Select(v => v.Fullpath)
+					.ToArray();
 
-			return files.ToArray();
+				files.Add(validVersions.FirstOrDefault() ?? versions.Last().Fullpath);
+			}
 		}
 
-		private static (string? name, Version? version, string fullPath) ParsePackageSpec(string arg)
-		{
-			var fileName = Path.GetFileName(arg);
-			var pathToVersion = Path.GetDirectoryName(arg);
-			var versionText = Path.GetFileName(pathToVersion);
-			var fileSpec = Path.GetFileName(Path.GetDirectoryName(pathToVersion)) ?? "";
+		return files.ToArray();
+	}
 
-			if(fileSpec.Equals(fileName, StringComparison.OrdinalIgnoreCase)
-				&& Version.TryParse(versionText, out var version))
+	private static PackageSpec ParsePackageSpec(string arg)
+	{
+		var parts = arg.Split(Path.DirectorySeparatorChar);
+
+		var fileName = parts[parts.Length - 1];
+
+		if (parts.Length > 1)
+		{
+			if (Version.TryParse(parts[parts.Length - 2], out var version))
 			{
-				return (fileName, version, arg);
+				// Implicit single-threaded definition
+				if (parts[parts.Length - 3].Equals(fileName, StringComparison.OrdinalIgnoreCase))
+				{
+					return new(fileName, version, arg, new[] { "st" });
+				}
 			}
-			else
+			else if (parts.Length > 2)
 			{
-				return (null, null, arg);
+				// Featured explicit definition
+				var features = parts[parts.Length - 2].Split(',');
+
+				if (Version.TryParse(parts[parts.Length - 3], out version))
+				{
+					if (parts[parts.Length - 4].Equals(fileName, StringComparison.OrdinalIgnoreCase))
+					{
+						return new(fileName, version, arg, features);
+					}
+				}
 			}
 		}
+
+		return new (null, null, arg, new[] { "st" });
 	}
 }

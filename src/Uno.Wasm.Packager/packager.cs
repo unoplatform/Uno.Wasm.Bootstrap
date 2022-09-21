@@ -1103,7 +1103,7 @@ class Driver {
 
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
-			emcc_flags += "-s SIMD=1 ";
+			emcc_flags += "-msimd128 ";
 		}
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";

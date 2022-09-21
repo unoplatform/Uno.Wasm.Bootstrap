@@ -180,6 +180,9 @@ namespace Uno.Wasm.Bootstrap
 		public bool EnableThreads { get; set; }
 
 		[Microsoft.Build.Framework.Required]
+		public bool EnableSimd { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public int BrotliCompressionQuality { get; set; } = 7;
@@ -744,7 +747,7 @@ namespace Uno.Wasm.Bootstrap
 
 			ValidateDotnet();
 
-			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "");
+			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "") + " " + (EnableSimd ? "-simd" : "");
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
@@ -1269,7 +1272,19 @@ namespace Uno.Wasm.Bootstrap
 					.ToArray()
 					?? new string[0];
 
-				_bitcodeFilesCache = BitcodeFilesSelector.Filter(CurrentEmscriptenVersion, _bitcodeFilesCache);
+				List<string> features = new()
+				{
+					EnableThreads ? "mt" : "st"
+				};
+
+				if (EnableSimd)
+				{
+					features.Add("simd");
+				}
+
+				Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
+
+				_bitcodeFilesCache = BitcodeFilesSelector.Filter(CurrentEmscriptenVersion, features.ToArray(), _bitcodeFilesCache);
 			}
 
 			return _bitcodeFilesCache;
