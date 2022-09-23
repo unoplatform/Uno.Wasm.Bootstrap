@@ -77,3 +77,6 @@ declare type CoverageProfilerOptions = {
 	writeAt?: string;
 	sendTo?: string;
 };
+declare type LogProfilerOptions = {
+	configuration?: string, //  log profiler options string"
+}

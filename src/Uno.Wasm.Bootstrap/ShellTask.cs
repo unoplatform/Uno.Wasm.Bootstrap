@@ -135,7 +135,7 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableLogProfiler { get; set; }
 
-		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd,zip";
+		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
 
 		public string AssembliesFileExtension { get; set; } = "clr";
 

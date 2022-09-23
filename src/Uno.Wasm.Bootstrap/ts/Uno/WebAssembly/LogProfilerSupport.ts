@@ -18,13 +18,10 @@
 		public static initializeLogProfiler(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig): boolean {
 			const options = unoConfig.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
 			if (options) {
-				Module.ccall('mono_wasm_load_profiler_log', null, ['string'], [options]);
-
 				this._logProfilerEnabled = true;
-
 				return true;
 			}
-
+				
 			return false;
 		}
 
@@ -97,6 +94,7 @@
 				return FS.readFile(profileFilePath);
 			}
 			else {
+				console.debug(`Unable to fetch the profile file ${profileFilePath} as it is empty`);
 				return null;
 			}
 		}
