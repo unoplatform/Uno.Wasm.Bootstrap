@@ -15,6 +15,17 @@ Add the following to your WebAssembly project:
 
 Threading support can be detected at runtime by using the [`UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES`](features-environment-variables.md) environment variable.
 
+### Controlling the browser thread pool size
+
+By default, the runtime pre-creates a set of 4 Web Workers available to WebAssembly threads, and the .NET Runtime will reuse the workers as threads stop. 
+
+To change the number of threads available to the app, use the following:
+```xml
+<PropertyGroup>
+	<WasmShellPThreadsPoolSize>8</WasmShellPThreadsPoolSize>
+</PropertyGroup>
+```
+
 ### Restrictions
 WebAssembly Threads are using the `SharedArrayBuffer` browser feature, which is disabled in most cases for security reasons. 
 

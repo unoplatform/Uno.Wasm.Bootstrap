@@ -139,6 +139,7 @@ class Driver {
 		Console.WriteLine ("\t\t              'ifnewer' copies or overwrites the file if modified or size is different.");
 		Console.WriteLine ("\t--profile=x     Enable the 'x' mono profiler.");
 		Console.WriteLine ("\t--runtime-config=x  sets the mono runtime to use (defaults to release).");
+		Console.WriteLine ("\t--pthread-pool-size=x  sets the number of available pthreads the runtime can use (defaults to 4).");
 		Console.WriteLine ("\t--aot-assemblies=x List of assemblies to AOT in AOT+INTERP mode.");
 		Console.WriteLine ("\t--skip-aot-assemblies=x List of assemblies to skip AOT in AOT+INTERP mode.");
 		Console.WriteLine ("\t--aot-compiler-opts=x Adjust aot compiler options.");
@@ -460,6 +461,7 @@ class Driver {
 		string aot_compiler_options = "";
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
+		int pthread_pool_size = 4;
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
 		string linker_optimization_level = "";
@@ -503,6 +505,7 @@ class Driver {
 				{ "aot-assemblies=", s => aot_assemblies = s },
 				{ "aot-profile=", s => aot_profile = s },
 				{ "runtime-config=", s => runtime_config = s },
+				{ "pthread-pool-size=", s => int.TryParse(s, out pthread_pool_size) },
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
 				{ "aot-compiler-opts=", s => aot_compiler_options = s },
 				{ "link-mode=", s => linkModeParm = s },
@@ -883,9 +886,20 @@ class Driver {
 		var debugLevel = enable_debug ? " -1" : "0";
 
 		// Follow https://github.com/dotnet/runtime/blob/e57438026c25707bf6dd52cd332db657e919bbd4/src/mono/wasm/runtime/dotnet.d.ts#L80
+
+		var configOptions = new Dictionary<string, string>()
+		{
+			["assemblyRootFolder"] = $"\"{assembly_root}\"",
+			["debugLevel"] = debugLevel.ToString(),
+		};
+
+		if (enable_threads)
+		{
+			configOptions["pthreadPoolSize"] = pthread_pool_size.ToString();
+		}
+
 		var config = $"{{" +
-			$"\n \t\"assemblyRootFolder\": \"{assembly_root}\"," +
-			$"\n \t\"debugLevel\": {debugLevel}," +
+			string.Join(",", configOptions.Select(o => $"\n \t\"{o.Key}\": {o.Value}")) + "," +
 			$"\n \t\"assets\": [ " + file_list_str + "]\n" +
 			$"}}";
 

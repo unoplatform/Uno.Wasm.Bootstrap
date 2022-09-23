@@ -235,6 +235,7 @@
         NativeCompile="@(WasmShellNativeCompile)"
         NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"
+		PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
         PWAManifestFile="$(WasmPWAManifestFile)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
         RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
