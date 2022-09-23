@@ -143,6 +143,7 @@ declare type MonoConfig = {
 	 */
 	aotProfilerOptions?: AOTProfilerOptions;
 	coverageProfilerOptions?: CoverageProfilerOptions;
+	logProfilerOptions?: LogProfilerOptions;
 	/**
 	 * END UNO SPECIFIC
 	 */

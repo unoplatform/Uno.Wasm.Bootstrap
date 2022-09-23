@@ -4,10 +4,15 @@
     parent.append(txt);
 });
 
-// Needs to be
+// Needs to be initialized early
 async function initializeExports() {
     if (Module.getAssemblyExports !== undefined) {
-        globalThis.samplesNetExports = await Module.getAssemblyExports("Uno.Wasm.StaticLinking");
+        try {
+            globalThis.samplesNetExports = await Module.getAssemblyExports("Uno.Wasm.SampleNet");
+        }
+        catch (e) {
+            log.error(e);
+        }
     }
 }
 
@@ -15,11 +20,11 @@ initializeExports();
 
 function testCallback() {
     try {
-        if (Module.getAssemblyExports !== undefined) {
-            return samplesNetExports.Uno.Wasm.Sample.Exports.MyExportedMethod();
+        if (Module.getAssemblyExports !== undefined && samplesNetExports.hasOwnProperty('Uno')) {
+            return samplesNetExports.Uno.Wasm.SampleNet.Exports.MyExportedMethod1();
         }
         else {
-            return Module.mono_bind_static_method("[Uno.Wasm.Sample] Uno.Wasm.Sample.Program:MyExportedMethod")();
+            return Module.mono_bind_static_method("[Uno.Wasm.SampleNet] Uno.Wasm.Sample.Exports:MyExportedMethod2")();
         }
     }
     catch (e) {

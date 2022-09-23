@@ -24,7 +24,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
 
 		private _webAppBasePath: string;
-        private _appBase: string;
+		private _appBase: string;
 
 		private body: HTMLElement;
 		private loader: HTMLElement;
@@ -34,10 +34,10 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _currentBrowserIsChrome: boolean;
 		private _hasReferencedPdbs: boolean;
 
-        static ENVIRONMENT_IS_WEB: boolean;
-        static ENVIRONMENT_IS_WORKER: boolean;
-        static ENVIRONMENT_IS_NODE: boolean;
-        static ENVIRONMENT_IS_SHELL: boolean;
+		static ENVIRONMENT_IS_WEB: boolean;
+		static ENVIRONMENT_IS_WORKER: boolean;
+		static ENVIRONMENT_IS_NODE: boolean;
+		static ENVIRONMENT_IS_SHELL: boolean;
 
 		constructor(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._unoConfig = unoConfig;
@@ -136,21 +136,21 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.setupHotReload();
 		}
 
-        private setupHotReload() {
-            if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
-                this._hotReloadSupport = new HotReloadSupport(this._context);
-            }
-        }
+		private setupHotReload() {
+			if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
+				this._hotReloadSupport = new HotReloadSupport(this._context);
+			}
+		}
 
 		private setupEmscriptenPreRun() {
-            if (!this._context.Module.preRun) {
-                this._context.Module.preRun = [];
-            }
-            else if (typeof this._context.Module.preInit === "function") {
-                this._context.Module.preRun = [];
-            }
-            (<any>this._context.Module.preRun).push(() => this.wasmRuntimePreRun());
-        }
+			if (!this._context.Module.preRun) {
+				this._context.Module.preRun = [];
+			}
+			else if (typeof this._context.Module.preRun === "function") {
+				this._context.Module.preRun = [];
+			}
+			(<any>this._context.Module.preRun).push(() => this.wasmRuntimePreRun());
+		}
 
 		/**
 		 * Setup the global require.js library
@@ -158,11 +158,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		 * This setup is needed as .NET 7 sets up its own require function
 		 * if none is present, and the bootstrapper uses a global require.js.
 		 * */
-        private setupRequire() {
-            const anyModule = <any>this._context.Module;
-            anyModule.imports = anyModule.imports || {};
-            anyModule.imports.require = (<any>globalThis).require;
-        }
+		private setupRequire() {
+			const anyModule = <any>this._context.Module;
+			anyModule.imports = anyModule.imports || {};
+			anyModule.imports.require = (<any>globalThis).require;
+		}
 
 		private wasmRuntimePreRun() {
 
@@ -229,6 +229,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				};
 			}
 
+			var logProfilerConfig = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
+			if (logProfilerConfig) {
+				this._monoConfig.logProfilerOptions = <LogProfilerOptions>{
+					configuration: logProfilerConfig
+				};
+			}
 		}
 
 		private runtimeAbort() {
