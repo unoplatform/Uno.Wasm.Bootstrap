@@ -179,6 +179,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool EnableThreads { get; set; }
 
+		public int PThreadsPoolSize { get; set; } = 4;
+
 		[Microsoft.Build.Framework.Required]
 		public bool EnableSimd { get; set; }
 
@@ -748,6 +750,7 @@ namespace Uno.Wasm.Bootstrap
 			ValidateDotnet();
 
 			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "") + " " + (EnableSimd ? "-simd" : "");
+			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
