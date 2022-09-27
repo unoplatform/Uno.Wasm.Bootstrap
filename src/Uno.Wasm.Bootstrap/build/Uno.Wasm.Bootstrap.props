@@ -1,22 +1,25 @@
 <Project>
-  <PropertyGroup Condition="'$(WasmShellEnableMetadataUpdates)'=='true'">
-    <UseMonoRuntime>true</UseMonoRuntime>
+	<PropertyGroup Condition="'$(WasmShellEnableMetadataUpdates)'=='true'">
+		<UseMonoRuntime>true</UseMonoRuntime>
 
-    <!--
-  Needed by Visual Studio 2022 to detect that the
-  app can do metadata updates through browserlink
-  -->
-    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+		<!--
+		  Needed by Visual Studio 2022 to detect that the
+		  app can do metadata updates through browserlink
+		-->
+		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
 
-    <!-- Don't include browser-wasm in the output path -->
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+		<!-- Don't include browser-wasm in the output path -->
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
-    <!-- Disable appbundle generation for the browser-wasm RID -->
-    <WasmGenerateAppBundle>false</WasmGenerateAppBundle>
-  </PropertyGroup>
+		<!-- Disable appbundle generation for the browser-wasm RID -->
+		<WasmGenerateAppBundle>false</WasmGenerateAppBundle>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectCapability Include="WebAssembly" />
-    <ProjectCapability Include="SupportsHotReload" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectCapability Include="WebAssembly" />
+		<ProjectCapability Include="SupportsHotReload" />
+
+		<!-- Allow running/debugging from VS (see https://github.com/dotnet/runtime/pull/75986/files#diff-cace638214185dee3296b4f9f79db1f0187d338f393a75d9fb1fda13bf93d533R120) -->
+		<ProjectCapability Include="DotNetCoreWeb"/>
+	</ItemGroup>
 </Project>
