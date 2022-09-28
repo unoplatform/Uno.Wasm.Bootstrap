@@ -801,7 +801,7 @@ namespace Uno.Wasm.Bootstrap
 					: "";
 
 				var emccExportedRuntimeMethodsParams =
-					string.Join(" ", EmccExportedRuntimeMethods.Select(f => $"\"--emcc-exported-runtime-method={f.ItemSpec}\""));
+					string.Join(" ", GetEmccExportedRuntimeMethods().Select(f => $"\"--emcc-exported-runtime-method={f}\""));
 
 				if (_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
 				{
@@ -1268,6 +1268,9 @@ namespace Uno.Wasm.Bootstrap
 				}
 			}
 		}
+
+		private IEnumerable<string> GetEmccExportedRuntimeMethods()
+			=> (EmccExportedRuntimeMethods ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
@@ -1750,7 +1753,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var emccExportedRuntimeMethodsParams = string.Join(
 					",",
-					EmccExportedRuntimeMethods.Select(f => $"\'{f.ItemSpec}\'"));
+					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
 
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
