@@ -206,6 +206,7 @@
         CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
         DistCompressionLayoutMode="$(WasmShellCompressionLayoutMode)"
         DistPath="$(WasmShellDistPath)"
+        EmccExportedRuntimeMethods="@(WasmShellEmccExportedRuntimeMethod)"
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
         EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"

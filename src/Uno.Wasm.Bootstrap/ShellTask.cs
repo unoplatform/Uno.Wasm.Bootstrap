@@ -163,6 +163,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public Microsoft.Build.Framework.ITaskItem[]? NativeCompile { get; set; }
 
+		public Microsoft.Build.Framework.ITaskItem[]? EmccExportedRuntimeMethods { get; set; }
+
 		public bool GenerateCompressedFiles { get; set; }
 
 		public string? DistCompressionLayoutMode { get; set; }
@@ -798,6 +800,9 @@ namespace Uno.Wasm.Bootstrap
 					? string.Join(" ", NativeCompile.Select(f => $"\"--native-compile={AlignPath(GetFilePaths(f).fullPath)}\""))
 					: "";
 
+				var emccExportedRuntimeMethodsParams =
+					string.Join(" ", GetEmccExportedRuntimeMethods().Select(f => $"\"--emcc-exported-runtime-method={f}\""));
+
 				if (_runtimeExecutionMode != RuntimeExecutionMode.Interpreter && GenerateAOTProfile)
 				{
 					Log.LogMessage($"Forcing Interpreter mode because GenerateAOTProfile is set");
@@ -814,7 +819,7 @@ namespace Uno.Wasm.Bootstrap
 
 				var dedupOption = !EnableAOTDeduplication ? "--no-dedup" : "";
 
-				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} {additionalNativeCompile} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
+				var aotOptions = $"{aotMode} {dedupOption} {dynamicLibraryParams} {bitcodeFilesParams} {additionalNativeCompile} {emccExportedRuntimeMethodsParams} --emscripten-sdkdir=\"{emsdkPath}\" --builddir=\"{AlignPath(workAotPath)}\"";
 
 				if (EnableEmccProfiling)
 				{
@@ -1263,6 +1268,9 @@ namespace Uno.Wasm.Bootstrap
 				}
 			}
 		}
+
+		private IEnumerable<string> GetEmccExportedRuntimeMethods()
+			=> (EmccExportedRuntimeMethods ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
 
 		private IEnumerable<string> GetBitcodeFilesParams()
 		{
@@ -1743,6 +1751,10 @@ namespace Uno.Wasm.Bootstrap
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 				var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
+				var emccExportedRuntimeMethodsParams = string.Join(
+					",",
+					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
+
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"{ Path.GetFileName(_managedPath) }\";");
 				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
@@ -1757,6 +1769,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
+				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				if (GenerateAOTProfile)
 				{

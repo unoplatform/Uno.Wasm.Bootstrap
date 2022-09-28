@@ -446,6 +446,7 @@ class Driver {
 		var native_libs = new List<string> ();
 		var preload_files = new List<string> ();
 		var embed_files = new List<string> ();
+		var emcc_exported_runtime_methods = new List<string> ();
 		var native_compile = new List<string> ();
 		var pinvoke_libs = "";
 		var copyTypeParm = "default";
@@ -515,6 +516,7 @@ class Driver {
 				{ "native-lib=", s => native_libs.Add (s) },
 				{ "preload-file=", s => preload_files.Add (s) },
 				{ "embed-file=", s => embed_files.Add (s) },
+				{ "emcc-exported-runtime-method=", s => emcc_exported_runtime_methods.Add (s) },
 				{ "framework=", s => framework = s },
 				{ "extra-emccflags=", s => extra_emccflags = s },
 				{ "extra-linkerflags=", s => extra_linkerflags = s },
@@ -1095,7 +1097,29 @@ class Driver {
 		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
 		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
 		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
-		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[\'FS\',\'print\',\'ccall\',\'cwrap\',\'setValue\',\'getValue\',\'UTF8ToString\',\'UTF8ArrayToString\',\'FS_createPath\',\'FS_createDataFile\',\'removeRunDependency\',\'addRunDependency\',\'FS_readFile\',\'lengthBytesUTF8\',\'stringToUTF8\',\'addFunction\',\'removeFunction\',\'IDBFS\']\"");
+
+		emcc_exported_runtime_methods.Add("FS");
+		emcc_exported_runtime_methods.Add("print");
+		emcc_exported_runtime_methods.Add("ccall");
+		emcc_exported_runtime_methods.Add("cwrap");
+		emcc_exported_runtime_methods.Add("setValue");
+		emcc_exported_runtime_methods.Add("getValue");
+		emcc_exported_runtime_methods.Add("UTF8ToString");
+		emcc_exported_runtime_methods.Add("UTF8ArrayToString");
+		emcc_exported_runtime_methods.Add("FS_createPath");
+		emcc_exported_runtime_methods.Add("FS_createDataFile");
+		emcc_exported_runtime_methods.Add("removeRunDependency");
+		emcc_exported_runtime_methods.Add("addRunDependency");
+		emcc_exported_runtime_methods.Add("FS_readFile");
+		emcc_exported_runtime_methods.Add("lengthBytesUTF8");
+		emcc_exported_runtime_methods.Add("stringToUTF8");
+		emcc_exported_runtime_methods.Add("addFunction");
+		emcc_exported_runtime_methods.Add("removeFunction");
+		emcc_exported_runtime_methods.Add("IDBFS");
+
+		var exports = string.Join(",", emcc_exported_runtime_methods.Distinct().Select(m => $"\'{m}\'"));
+
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[" + exports + "]\"");
 
 		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
 		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
