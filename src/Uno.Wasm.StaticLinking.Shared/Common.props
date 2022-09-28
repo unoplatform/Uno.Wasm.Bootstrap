@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true'">
+    <Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
+    <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <WasmShellEmccExportedRuntimeMethod Include="GL" />
+
+	<!-- Based on https://github.com/dotnet/runtime/issues/76077#issuecomment-1260231545 -->
+    <WasmShellExtraEmccFlags Include="-s LEGACY_GL_EMULATION=1" />
+    <WasmShellExtraEmccFlags Include="-s USE_CLOSURE_COMPILER=1" />
+  </ItemGroup>
+</Project>

@@ -153,3 +153,14 @@ Or use emscripten functions:
 ```
 [DllImport("__Internal_emscripten")]
 public static extern void emscripten_console_log(string str);
+
+### Exposing additional methods from emscripten
+
+When interoperating with native features, such as OpenGL, it may be needed to expose additional features from emscripten.
+
+The `EXPORTED_RUNTIME_METHODS` flag can be filled through the following msbuild items:
+```xml
+<ItemGroup>
+	<WasmShellEmccExportedRuntimeMethod Include="GL" />
+</ItemGroup>
+```

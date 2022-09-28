@@ -120,7 +120,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
-				exports: ["IDBFS", "FS"],
+				exports: ["IDBFS", "FS"].concat(this._unoConfig.emcc_exported_runtime_methods),
 				downloadResource: this.onDownloadResource
 			};
 		}

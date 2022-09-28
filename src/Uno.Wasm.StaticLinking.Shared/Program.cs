@@ -50,6 +50,9 @@ namespace Uno.Wasm.Sample
 			var requireAvailable = Runtime.InvokeJS($"typeof require.config !== 'undefined'");
 			Console.WriteLine($"requireAvailable: {idbFSValidation}");
 
+			var glAvailable = Runtime.InvokeJS($"typeof GL !== 'undefined'");
+			Console.WriteLine($"glAvailable: {glAvailable}");
+
 #if NET7_0_OR_GREATER
 			var jsInteropResult = Imports.TestCallback();
 #else
@@ -93,7 +96,8 @@ namespace Uno.Wasm.Sample
 				$"{chmodRes};" +
 				$"{additionalNativeAdd};" +
 				$"requireJs:{requireAvailable};" +
-				$"jsInterop:{jsInteropResult};"
+				$"jsInterop:{jsInteropResult};" + 
+				$"gl:{glAvailable};"
 				;
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");

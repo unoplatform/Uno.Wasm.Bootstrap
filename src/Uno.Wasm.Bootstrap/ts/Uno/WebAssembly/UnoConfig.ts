@@ -29,6 +29,8 @@
 
 		offline_files: string[];
 
+		emcc_exported_runtime_methods?: string[];
+
 		uno_shell_mode: string;
 
 		environmentVariables?: {
