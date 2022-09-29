@@ -139,3 +139,29 @@ jobs:
       PathtoPublish: $(build.artifactstagingdirectory)
       ArtifactName: uno-wasm-bootstrap-linux-aot
       ArtifactType: Container
+
+  ## Static linking server validation (net7)
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests-server.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
+    displayName: StaticLinking.Aot Server Tests net7
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: CopyFiles@2
+    condition: always()
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7/bin/Release/net7.0
+      Contents: '**/*.*'
+      TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.StaticLinking.Server.net7
+      CleanTargetFolder: false
+      OverWrite: false
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-linux-aot
+      ArtifactType: Container

@@ -1,4 +1,4 @@
-dotnet tool install dotnet-serve --version 1.10.112 --tool-path $BUILD_SOURCESDIRECTORY\build\tools
+dotnet tool install dotnet-serve --version 1.10.140 --tool-path $BUILD_SOURCESDIRECTORY\build\tools
 $env:PATH="$env:PATH;$BUILD_SOURCESDIRECTORY\build\tools"
 
 $BOOTSTRAP_APP_PATH=$args[0]

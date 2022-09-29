@@ -3,8 +3,8 @@
   <PropertyGroup>
     <_packageBinaryPath>$(MSBuildThisFileDirectory)../tools/Uno.Wasm.Bootstrap.v0.dll</_packageBinaryPath>
 
-	<_WasmShellTasksPathIsDevMode>false</_WasmShellTasksPathIsDevMode>
-	<_WasmShellTasksPathIsDevMode Condition="!Exists('$(_packageBinaryPath)')">true</_WasmShellTasksPathIsDevMode>
+    <_WasmShellTasksPathIsDevMode>false</_WasmShellTasksPathIsDevMode>
+    <_WasmShellTasksPathIsDevMode Condition="!Exists('$(_packageBinaryPath)')">true</_WasmShellTasksPathIsDevMode>
     <WasmShellTasksPath Condition="$(_WasmShellTasksPathIsDevMode)">$(MSBuildThisFileDirectory)../bin/$(Configuration)/netstandard2.0</WasmShellTasksPath>
     <WasmShellTasksPath Condition="!$(_WasmShellTasksPathIsDevMode)">../tools</WasmShellTasksPath>
 
@@ -120,9 +120,11 @@
 
   <UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
   <UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
-	
+  <UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
+    
   <UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
   <UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" TaskFactory="TaskHostFactory" />
+  <UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
 
   <Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
     <!-- 
@@ -146,7 +148,14 @@
     <Message Importance="low" Text="Descriptor @(EmbeddedResource)" />
   </Target>
 
-  <Target Name="BuildDist" AfterTargets="AfterBuild">
+	<PropertyGroup>
+    <StaticWebAssetsPrepareForRunDependsOn>
+		BuildDist;
+		$(StaticWebAssetsPrepareForRunDependsOn)
+	</StaticWebAssetsPrepareForRunDependsOn>
+	</PropertyGroup>
+
+  <Target Name="BuildDist" BeforeTargets="Publish">
 
     <ItemGroup>
       <!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
@@ -183,7 +192,7 @@
         TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
         TargetFrameworkVersion="$(TargetFrameworkVersion)"
         WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner/$(_WasmShellToolSuffix)"
-		>
+        >
       <Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
       <Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />
       <Output TaskParameter="PackagerProjectFile" PropertyName="_UnoMonoPackagerProjectFile" />
@@ -210,7 +219,7 @@
         EmccLinkOptimization="$(WasmShellEmccLinkOptimization)"
         EmccLinkOptimizationLevel="$(WasmShellEmccLinkOptimizationLevel)"
         EnableAOTDeduplication="$(WasmShellEnableAOTDeduplication)"
-		EnableAotGSharedVT="$(WasmShellEnableAotGSharedVT)"
+        EnableAotGSharedVT="$(WasmShellEnableAotGSharedVT)"
         EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
         EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
         EnableLogProfiler="$(WasmShellEnableLogProfiler)"
@@ -236,11 +245,11 @@
         NativeCompile="@(WasmShellNativeCompile)"
         NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
         PackagerBinPath="$(_UnoMonoPackagerBinPath)"
-		PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
+        PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
         PWAManifestFile="$(WasmPWAManifestFile)"
         ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
         RuntimeConfiguration="$(MonoWasmRuntimeConfiguration)"
-		RuntimeCopyExclude="@(WasmShellRuntimeCopyExclude)"
+        RuntimeCopyExclude="@(WasmShellRuntimeCopyExclude)"
         RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
         RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
         TargetFramework="$(TargetFramework)"
@@ -249,11 +258,36 @@
         UseFileIntegrity="$(WashShellUseFileIntegrity)"
         WasmShellMode="$(WasmShellMode)"
         WebAppBasePath="$(WasmShellWebAppBasePath)"
-		>
+        >
         <Output TaskParameter="OutputPackagePath" PropertyName="WasmShellOutputPackagePath" />
         <Output TaskParameter="OutputDistPath" PropertyName="WasmShellOutputDistPath" />
     </ShellTask_v0>
+
+	  <ItemGroup>
+		  <StaticWebAsset Remove="@(StaticWebAsset)" />
+	  </ItemGroup>
+
+	  <StaticWebAssetsResolverTask_v0
+		  WebAppBasePath="$(WasmShellWebAppBasePath)"
+		  DistPath="$(WasmShellOutputDistPath)"
+		  AssemblyName="$(AssemblyName)"
+		  ProjectDirectory="$(MSBuildProjectDirectory)">
+		  <Output TaskParameter="StaticWebAsset" ItemName="StaticWebAsset" />
+	  </StaticWebAssetsResolverTask_v0>
+
   </Target>
+
+	<Target Name="UnoFillStaticAssets" BeforeTargets="ResolveStaticWebAssetsConfiguration">
+
+		<StaticWebAssetsResolverTask_v0
+			WebAppBasePath="$(WasmShellWebAppBasePath)"
+			DistPath="$(OutputPath)/dist"
+			AssemblyName="$(AssemblyName)"
+			ProjectDirectory="$(MSBuildProjectDirectory)">
+            <Output TaskParameter="StaticWebAsset" ItemName="StaticWebAsset" />
+		</StaticWebAssetsResolverTask_v0>
+
+	</Target>
 
   <Target Name="_CleanDist" BeforeTargets="Clean">
     <PropertyGroup>
@@ -284,7 +318,7 @@
           Condition="'$(AppendRuntimeIdentifierToOutputPath)'=='false' and '$(_OriginalPublishDir)'=='' and $(PublishDir.Contains($(RuntimeIdentifier)))">
 
     <!-- Override the PublishDir variable name to take AppendRuntimeIdentifierToOutputPath into account properly -->
-	  <CreateProperty
+      <CreateProperty
           Value="$(OutputPath)$(PublishDirName)\">
         <Output
             TaskParameter="Value"
