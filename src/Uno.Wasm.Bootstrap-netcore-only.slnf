@@ -3,7 +3,7 @@
     "path": "Uno.Wasm.Bootstrap.sln",
     "projects": [
       "LongPathTest\\Uno.Wasm.LongPath.csproj",
-      "Uno.Wasm.AotTests.Shared\\Uno.Wasm.AotTests.Shared.shproj",
+      "Uno.Wasm.Sample.RayTracer.Shared\\Uno.Wasm.Sample.RayTracer.Shared.shproj",
       "Uno.Wasm.Sample.RayTracer\\Uno.Wasm.Sample.RayTracer.csproj",
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
