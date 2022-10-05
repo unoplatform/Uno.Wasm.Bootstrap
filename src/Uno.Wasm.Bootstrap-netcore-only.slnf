@@ -4,7 +4,7 @@
     "projects": [
       "LongPathTest\\Uno.Wasm.LongPath.csproj",
       "Uno.Wasm.AotTests.Shared\\Uno.Wasm.AotTests.Shared.shproj",
-      "Uno.Wasm.AotTests.net5\\Uno.Wasm.AotTests.net5.csproj",
+      "Uno.Wasm.Sample.RayTracer\\Uno.Wasm.Sample.RayTracer.csproj",
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
       "Uno.Wasm.Bootstrap\\Uno.Wasm.Bootstrap.csproj",

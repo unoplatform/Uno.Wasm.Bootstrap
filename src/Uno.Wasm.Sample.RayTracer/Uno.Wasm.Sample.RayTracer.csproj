@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>net5.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-		<UseAOT Condition="$([MSBuild]::IsOsPlatform('Linux')) or ( $([MSBuild]::IsOsPlatform('Windows')) and '$(BUILD_REPOSITORY_PROVIDER)'=='' )">true</UseAOT>
+		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
+		<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 	</PropertyGroup>
@@ -47,7 +48,7 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<Target Name="AfterBuildValidation" AfterTargets="Build">
+	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />

@@ -48,9 +48,9 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/publish
       Contents: '**/*.*'
-      TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.AotTests.net5
+      TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.Sample.RayTracer
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
@@ -58,7 +58,7 @@ jobs:
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/dist" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/"
     displayName: Raytracer UI Tests Net5
     env:
@@ -94,13 +94,13 @@ jobs:
 
   ## SWA sub-path validation
   - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /t:Publish /m:1 "/p:WasmShellWebAppBasePath=/"
     displayName: Build RayTracer with sub-path
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/publish
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/subpath-override
       CleanTargetFolder: false
@@ -109,7 +109,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.AotTests.net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/dist" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/test/inner"
     displayName: Raytracer UI Tests Net5 (SWA)
     env:
