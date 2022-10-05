@@ -6,6 +6,23 @@ The publication of the application must be done in .NET Framework hosting (and n
 
 For deeper integration in the publishing pipeline, the `WasmShellOutputPackagePath` property is defined by the bootstrapper after the `BuildDist` target, which contains the path to the generated `package_XXX` content.
 
+## Integration with ASP.NET Core
+
+ASP.NET Core hosting is supported through the `Uno.Wasm.Bootstrap.Server` package.
+
+In order to host an Uno Platform App, you'll need to the following:
+- Create an `ASP.NET Core Web API` project (call it `MyApp.Server`). You may need to disable swagger for the `index.html` to be served properly.
+- Add a NuGet reference to `Uno.Wasm.Bootstrap.Server`
+- In your `Program.cs` startup, add the following to setup your `WebApplication` instance:
+```
+using Uno.Wasm.Bootstrap.Server;
+...
+app.UseUnoFrameworkFiles();
+app.MapFallbackToFile("index.html");
+```
+- Add a project reference to the `Wasm` project
+- Build and deploy `MyApp.Server`
+
 ## Serve the Wasm app through Windows Linux Subsystem
 Using Windows 10, serving the app through a small Web Server is done through WSL.
 

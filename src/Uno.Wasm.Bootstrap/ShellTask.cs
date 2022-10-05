@@ -47,7 +47,6 @@ namespace Uno.Wasm.Bootstrap
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string ServiceWorkerFileName = "service-worker.js";
 		private const string DeployMetadataName = "UnoDeploy";
-		private static readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 		private static readonly string _wwwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
 		private string _distPath = "";
@@ -339,16 +338,10 @@ namespace Uno.Wasm.Bootstrap
 			MoveFileSafe(workerFilePath, Path.Combine(_distPath, ServiceWorkerFileName));
 		}
 
-		/// <summary>
-		/// Align paths to fix issues with mixed path
-		/// </summary>
-		string FixupPath(string path)
-			=> path.Replace(OtherDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
 		private void FileCopy(string source, string dest, bool overwrite = false)
 		{
-			var sourceFileName = FixupPath(source);
-			var destFileName = FixupPath(dest);
+			var sourceFileName = PathHelper.FixupPath(source);
+			var destFileName = PathHelper.FixupPath(dest);
 
 			try
 			{
@@ -363,7 +356,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void DirectoryCreateDirectory(string directory)
 		{
-			var directoryName = FixupPath(directory);
+			var directoryName = PathHelper.FixupPath(directory);
 
 			try
 			{
@@ -688,7 +681,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (!string.IsNullOrEmpty(CustomDebuggerPath))
 			{
-				CustomDebuggerPath = FixupPath(CustomDebuggerPath!);
+				CustomDebuggerPath = PathHelper.FixupPath(CustomDebuggerPath!);
 			}
 
 			var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
@@ -984,29 +977,23 @@ namespace Uno.Wasm.Bootstrap
 
 		private void CleanupLinkerRemovedFiles(string workAotPath)
 		{
+			// Debugger.Launch();
+
 			//
 			// Additional assemblies are created as part of the packager processing
 			// remove those files so they're not part of the final payload.
 			//
 			var temporaryFilesToDelete = Directory
 				.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
-				.Select(f => Path.ChangeExtension(Path.GetFileName(f), ".dll"))
+				.SelectMany(f => new[] {
+					Path.ChangeExtension(Path.GetFileName(f), ".dll"),
+					Path.ChangeExtension(Path.GetFileName(f), ".pdb")
+				})
 				.ToList();
 
 			RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
 
 			temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
-
-			foreach (var f in temporaryFilesToDelete)
-			{
-				var fullPath = Path.Combine(_workDistPath, "managed", f);
-				var pdbFullPath = Path.ChangeExtension(fullPath, ".pdb");
-
-				if (File.Exists(pdbFullPath))
-				{
-					File.Delete(pdbFullPath);
-				}
-			}
 		}
 
 		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
@@ -1560,7 +1547,7 @@ namespace Uno.Wasm.Bootstrap
 						deployModeSource = "Excluded extension";
 					}
 
-					relativePath = FixupPath(relativePath).Replace(_wwwwroot, "");
+					relativePath = PathHelper.FixupPath(relativePath).Replace(_wwwwroot, "");
 
 					if (relativePath.StartsWith(WasmScriptsFolder))
 					{

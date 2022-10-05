@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<NoWarn>1701;1702;1705;649</NoWarn>
+		<PackageId>Uno.Wasm.Bootstrap.Server</PackageId>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>nventive</Authors>
+		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+		<Description>Runtime server features for ASP.NET Core hosted Uno Platform applications.</Description>
+		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) Uno Platform inc. - all rights reserved</Copyright>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="build\Uno.Wasm.Bootstrap.Server.targets">
+			<PackagePath>build</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
+	</ItemGroup>
+
+</Project>

@@ -48,7 +48,7 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<Target Name="AfterBuildValidation" AfterTargets="Build">
+	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />

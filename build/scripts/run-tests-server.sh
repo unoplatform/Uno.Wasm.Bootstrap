@@ -18,7 +18,12 @@ echo "BOOTSTRAP_TEST_RUNNER_PATH=$BOOTSTRAP_TEST_RUNNER_PATH"
 echo "BOOTSTRAP_TEST_RUNNER_URL=$BOOTSTRAP_TEST_RUNNER_URL"
 
 cd $BOOTSTRAP_APP_PATH
-$SWA_PATH start --port 8000 --app-location "$BOOTSTRAP_APP_PATH" &
+dotnet build -c Release
+
+# We're not running using the published build, so we need to set
+# environment first.
+export ASPNETCORE_ENVIRONMENT=development
+dotnet run -c Release --no-build --urls=http://localhost:8000/ &
 sleep 5
 
 cd $BOOTSTRAP_TEST_RUNNER_PATH

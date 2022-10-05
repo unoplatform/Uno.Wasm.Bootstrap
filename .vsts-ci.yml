@@ -46,10 +46,9 @@ jobs:
     displayName: UI Tests npm dependencies
 
   - script: |
-      cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap.binlog
-      cd $(build.sourcesdirectory)\src\Uno.Wasm.Bootstrap.DevServer
-      dotnet msbuild /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-bootstrap-devserver.binlog
+      cd $(build.sourcesdirectory)\src
+      dotnet msbuild Uno.Wasm.Bootstrap-paclages-only.slnf /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-packages.binlog
+
       cp $(Build.SourcesDirectory)/build/CHANGELOG.md $(build.artifactstagingdirectory)
     displayName: Build packages
 
