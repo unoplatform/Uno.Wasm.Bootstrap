@@ -14,7 +14,7 @@
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 	</PropertyGroup>
 
-	<Import Project="..\Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 

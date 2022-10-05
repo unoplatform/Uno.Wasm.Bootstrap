@@ -6,7 +6,7 @@
     <SharedGUID>286b5778-da8b-4965-9fc6-bc6f4258e155</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>Uno.Wasm.AotTests.Shared</Import_RootNamespace>
+    <Import_RootNamespace>Uno.Wasm.Sample.RayTracer.Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Benchmark.cs" />
