@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Adapted from https://github.com/dotnet/aspnetcore/blob/c85baf8db0c72ae8e68643029d514b2e737c9fae/src/Components/WebAssembly/Server/src/ComponentsWebAssemblyApplicationBuilderExtensions.cs
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Mime;
