@@ -39,7 +39,7 @@ jobs:
       $customMonoTempPath="$env:temp\with a space\test"
       mkdir $customMonoTempPath
       dotnet clean -c Release
-      dotnet publish /p:Configuration=Release "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win-temp-with-space.binlog
+      dotnet publish /p:Configuration=Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
   - pwsh: |
@@ -47,13 +47,13 @@ jobs:
       $customMonoTempPath="$env:temp\with a space\test2"
       mkdir $customMonoTempPath
       dotnet clean -c Release
-      dotnet publish -c Release "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
+      dotnet publish -c Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
       dotnet clean -c Release
-      dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build Raytracer Sample
 
   - pwsh: |
@@ -70,7 +70,7 @@ jobs:
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
       dotnet clean -c Release
-      dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build StaticLinking.Aot Sample (net5)
 
   - pwsh: |
@@ -87,7 +87,7 @@ jobs:
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
       dotnet clean -c Release
-      dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
     displayName: Build StaticLinking.Aot Sample (net7)
 
   - pwsh: |
@@ -104,7 +104,7 @@ jobs:
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
       dotnet clean -c Release
-      dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
     displayName: Build Threading Sample
 
   - pwsh: |
@@ -121,7 +121,7 @@ jobs:
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
       dotnet clean -c Release
-      dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
     displayName: Build Threading AOT Sample
 
   - pwsh: |
