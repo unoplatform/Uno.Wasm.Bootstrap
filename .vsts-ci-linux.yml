@@ -67,7 +67,7 @@ jobs:
   ## Threads Interp validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
-      dotnet clean -c Release
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
     displayName: Build Threads test
 
@@ -82,7 +82,7 @@ jobs:
   ## Threads AOT validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
-      dotnet clean -c Release
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
     displayName: Build Threads AOT test
 
@@ -97,7 +97,7 @@ jobs:
   ## SWA sub-path validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
-      dotnet clean -c Release
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
     displayName: Build RayTracer with sub-path
 
