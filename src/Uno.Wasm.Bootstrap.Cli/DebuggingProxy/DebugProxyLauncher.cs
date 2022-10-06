@@ -157,8 +157,8 @@ namespace Uno.Wasm.Bootstrap.Cli
 
 		private static string LocateDebugProxyExecutable(IWebHostEnvironment environment, IConfiguration configuration)
 		{
-			var buildConfiguration = configuration.GetValue<string>("configuration");
-			var targetFramework = configuration.GetValue<string>("targetframework");
+			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
+			var targetFramework = configuration.GetValue<string>("targetframework") ?? "";
 
 			var contentRoot = environment.ContentRootPath;
 			var debuggerInfoRoot = Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework, "wasm-debugger");
