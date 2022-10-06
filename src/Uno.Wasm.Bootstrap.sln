@@ -56,9 +56,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet5.Aot", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotProfiler", "Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj", "{435054BA-2B64-4E17-86F3-7D18F629FE80}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.AotTests.Shared", "Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.shproj", "{286B5778-DA8B-4965-9FC6-BC6F4258E155}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Sample.RayTracer.Shared", "Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.shproj", "{286B5778-DA8B-4965-9FC6-BC6F4258E155}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotTests.net5", "Uno.Wasm.AotTests.net5\Uno.Wasm.AotTests.net5.csproj", "{7EE991BB-C93D-4720-854C-1E708B652EF1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample.RayTracer", "Uno.Wasm.Sample.RayTracer\Uno.Wasm.Sample.RayTracer.csproj", "{7EE991BB-C93D-4720-854C-1E708B652EF1}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.StaticLinking.Shared", "Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.shproj", "{B5571C08-F903-4F17-8346-36265F775B5F}"
 EndProject
@@ -112,7 +112,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Simd
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.Server", "Uno.Wasm.Bootstrap.Server\Uno.Wasm.Bootstrap.Server.csproj", "{37FD9B59-9E0C-423B-8661-4BF110880FB8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Sample.Server.Net7", "Uno.Wasm.Sample.Server.Net7\Uno.Wasm.Sample.Server.Net7.csproj", "{2829B1BF-47C7-4284-9EAF-DEB48C4A0209}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample.Server.Net7", "Uno.Wasm.Sample.Server.Net7\Uno.Wasm.Sample.Server.Net7.csproj", "{2829B1BF-47C7-4284-9EAF-DEB48C4A0209}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Server.net7", "Uno.Wasm.StaticLinking.Server.net7\Uno.Wasm.StaticLinking.Server.net7.csproj", "{227B4962-4978-4712-8C52-630E2371A869}"
 EndProject
@@ -352,10 +352,10 @@ Global
 		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{2477f160-939b-4b9f-b9cd-9100fcd24e34}*SharedItemsImports = 5
-		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{286b5778-da8b-4965-9fc6-bc6f4258e155}*SharedItemsImports = 13
+		Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems*{286b5778-da8b-4965-9fc6-bc6f4258e155}*SharedItemsImports = 13
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
-		Uno.Wasm.AotTests.Shared\Uno.Wasm.AotTests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
+		Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{7ee991bb-c93d-4720-854c-1e708b652ef1}*SharedItemsImports = 5
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{92b22005-5a7b-4b38-8d09-68d7240ebe8c}*SharedItemsImports = 5
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{97e9b56a-be43-4590-a009-9ac135b371be}*SharedItemsImports = 5
