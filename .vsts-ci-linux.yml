@@ -48,7 +48,7 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.Sample.RayTracer
       CleanTargetFolder: false
@@ -58,7 +58,7 @@ jobs:
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/dist" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/"
     displayName: Raytracer UI Tests Net5
     env:
@@ -103,7 +103,7 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/subpath-override
       CleanTargetFolder: false
@@ -112,7 +112,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/dist" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/test/inner"
     displayName: Raytracer UI Tests Net5 (SWA)
     env:

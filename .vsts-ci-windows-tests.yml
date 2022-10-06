@@ -58,7 +58,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net7.0\publish" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net6.0\publish" `
       "$(build.sourcesdirectory)\src\WasmAot.UITests" `
       "http://localhost:8000/"
 
