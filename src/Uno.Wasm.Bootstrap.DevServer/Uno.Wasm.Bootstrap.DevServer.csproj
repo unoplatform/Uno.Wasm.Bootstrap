@@ -42,10 +42,10 @@
 			</Content>
 		</ItemGroup>
 
-		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll)" />
-		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll)" />
-		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll)" />
-		<Error Text="The netcoreapp3.1/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\dotnet-unowasm.dll)" />
+		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll')" />
+		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll')" />
+		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll')" />
+		<Error Text="The netcoreapp3.1/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\dotnet-unowasm.dll')" />
 	</Target>
 
 	<ItemGroup>
