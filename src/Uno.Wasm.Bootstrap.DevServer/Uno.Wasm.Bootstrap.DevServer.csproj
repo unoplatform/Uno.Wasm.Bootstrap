@@ -24,15 +24,15 @@
 				<PackagePath>build</PackagePath>
 				<Pack>true</Pack>
 			</Content>
-			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*">
 				<PackagePath>tools\server\net5</PackagePath>
 				<Pack>true</Pack>
 			</Content>
-			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*" Link="tools\server\net6\%(FileName)%(Extension)">
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*">
 				<PackagePath>tools\server\net6</PackagePath>
 				<Pack>true</Pack>
 			</Content>
-			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*" Link="tools\server\net7\%(FileName)%(Extension)">
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*">
 				<PackagePath>tools\server\net7</PackagePath>
 				<Pack>true</Pack>
 			</Content>
