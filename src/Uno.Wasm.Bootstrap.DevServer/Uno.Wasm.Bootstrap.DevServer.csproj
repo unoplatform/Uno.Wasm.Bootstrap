@@ -38,9 +38,9 @@
 			</Content>
 		</ItemGroup>
 
-		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll')" />
-		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll')" />
-		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="!Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll')" />
+		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll')" />
+		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll')" />
+		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll')" />
 	</Target>
 
 	<ItemGroup>
