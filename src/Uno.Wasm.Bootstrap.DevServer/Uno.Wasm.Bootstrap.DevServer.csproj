@@ -18,7 +18,7 @@
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
 	</PropertyGroup>
 
-	<Target Name="_PopulateNugetOutputs">
+	<Target Name="_PopulateNugetOutputs" BeforeTargets="Pack">
 		<ItemGroup>
 			<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
 				<PackagePath>build</PackagePath>
