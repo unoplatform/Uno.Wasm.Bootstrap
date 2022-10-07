@@ -18,28 +18,35 @@
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
-			<PackagePath>build</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\netcoreapp3.1\%(FileName)%(Extension)">
-			<PackagePath>tools\server\netcoreapp3.1</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
-			<PackagePath>tools\server\net5</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*" Link="tools\server\net6\%(FileName)%(Extension)">
-			<PackagePath>tools\server\net6</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*" Link="tools\server\net7\%(FileName)%(Extension)">
-			<PackagePath>tools\server\net7</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-	</ItemGroup>
+	<Target Name="_PopulateNugetOutputs">
+		<ItemGroup>
+			<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
+				<PackagePath>build</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\netcoreapp3.1\%(FileName)%(Extension)">
+				<PackagePath>tools\server\netcoreapp3.1</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
+				<PackagePath>tools\server\net5</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*" Link="tools\server\net6\%(FileName)%(Extension)">
+				<PackagePath>tools\server\net6</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*" Link="tools\server\net7\%(FileName)%(Extension)">
+				<PackagePath>tools\server\net7</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+		</ItemGroup>
+
+		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll)" />
+		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll)" />
+		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll)" />
+		<Error Text="The netcoreapp3.1/dotnet-unowasm.dll is missing" Condition="!Exists(..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\dotnet-unowasm.dll)" />
+	</Target>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
