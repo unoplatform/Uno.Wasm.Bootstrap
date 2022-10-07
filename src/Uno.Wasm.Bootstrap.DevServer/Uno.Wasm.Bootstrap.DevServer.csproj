@@ -11,30 +11,44 @@
 
 	<PropertyGroup>
 		<Authors>nventive</Authors>
-		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/unoplatform/uno.wasm.bootstrap</PackageProjectUrl>
 		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
-		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
+		<RepositoryUrl>https://github.com/unoplatform/uno.wasm.bootstrap</RepositoryUrl>
 		<Description>This package provides the development server and debugger support for Wasm bootstrap projects</Description>
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
 	</PropertyGroup>
 
+	<Target Name="_PopulateNugetOutputs" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
+				<PackagePath>build</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*">
+				<PackagePath>tools\server\net5</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*">
+				<PackagePath>tools\server\net6</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*">
+				<PackagePath>tools\server\net7</PackagePath>
+				<Pack>true</Pack>
+			</Content>
+		</ItemGroup>
+
+		<Error Text="The net7/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\dotnet-unowasm.dll')" />
+		<Error Text="The net6/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\dotnet-unowasm.dll')" />
+		<Error Text="The net5/dotnet-unowasm.dll is missing" Condition="'$(DISABLE_CLIHOST_NET6)'!='true' and !Exists('..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\dotnet-unowasm.dll')" />
+	</Target>
+
 	<ItemGroup>
-		<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
-			<PackagePath>build</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\netcoreapp3.1\*.*" Link="tools\server\netcoreapp3.1\%(FileName)%(Extension)">
-			<PackagePath>tools\server\netcoreapp3.1</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net5\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
-			<PackagePath>tools\server\net5</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-		<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net6\*.*" Link="tools\server\net5\%(FileName)%(Extension)">
-			<PackagePath>tools\server\net6</PackagePath>
-			<Pack>true</Pack>
-		</Content>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
 	</ItemGroup>
 
 </Project>
