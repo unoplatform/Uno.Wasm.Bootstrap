@@ -979,21 +979,26 @@ namespace Uno.Wasm.Bootstrap
 		{
 			// Debugger.Launch();
 
-			//
-			// Additional assemblies are created as part of the packager processing
-			// remove those files so they're not part of the final payload.
-			//
-			var temporaryFilesToDelete = Directory
-				.GetFiles(Path.Combine(workAotPath, "linker-out"), "*.aot-only")
-				.SelectMany(f => new[] {
+			var linkerOut = Path.Combine(workAotPath, "linker-out");
+
+			if (MonoILLinker)
+			{
+				//
+				// Additional assemblies are created as part of the packager processing
+				// remove those files so they're not part of the final payload.
+				//
+				var temporaryFilesToDelete = Directory
+					.GetFiles(linkerOut, "*.aot-only")
+					.SelectMany(f => new[] {
 					Path.ChangeExtension(Path.GetFileName(f), ".dll"),
 					Path.ChangeExtension(Path.GetFileName(f), ".pdb")
-				})
-				.ToList();
+					})
+					.ToList();
 
-			RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
 
-			temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+			}
 		}
 
 		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
