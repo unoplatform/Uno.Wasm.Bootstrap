@@ -100,11 +100,18 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  # Thread test Debug build for emscripten LTO issue
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
+      dotnet clean -c Debug /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Debug /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-debug.binlog
+    displayName: Build Threading Sample
+
   # Thread test
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-release.binlog
     displayName: Build Threading Sample
 
   - pwsh: |
