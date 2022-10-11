@@ -24,7 +24,7 @@
 	<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
   </ItemGroup>
 
-  <Target Name="AfterBuildValidation" AfterTargets="BuildDist">
+  <Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
 	<ItemGroup>
 	  <_AdditionalFile1 Include="SomeContent01.txt" />
 	  <_AdditionalFile1 Include="SomeContent02.txt" />
