@@ -939,8 +939,45 @@ namespace Uno.Wasm.Bootstrap
 							.Select(Path.GetFileName)
 						);
 
+<<<<<<< HEAD
 					string monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.js");
 					var monoConfig = File.ReadAllText(monoConfigFilePath);
+=======
+					RemoveMonoConfigJsonFiles(deletedFiles);
+				}
+			}
+		}
+
+		private void CleanupLinkerRemovedFiles(string workAotPath)
+		{
+			// Debugger.Launch();
+
+			var linkerOut = Path.Combine(workAotPath, "linker-out");
+
+			if (MonoILLinker)
+			{
+				//
+				// Additional assemblies are created as part of the packager processing
+				// remove those files so they're not part of the final payload.
+				//
+				var temporaryFilesToDelete = Directory
+					.GetFiles(linkerOut, "*.aot-only")
+					.SelectMany(f => new[] {
+					Path.ChangeExtension(Path.GetFileName(f), ".dll"),
+					Path.ChangeExtension(Path.GetFileName(f), ".pdb")
+					})
+					.ToList();
+
+				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+
+				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
+			}
+		}
+
+		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
+		{
+			var monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
+>>>>>>> 8cbc518 (fix: Ensure emscripten can run with linker disabled (interpreter only))
 
 					foreach (var deletedFile in deletedFiles)
 					{
