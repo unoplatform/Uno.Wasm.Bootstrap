@@ -1060,8 +1060,16 @@ class Driver {
 		var emcc_link_flags = new List<string>();
 		if (enable_debug || !opts.EmccLinkOptimizations)
 		{
-			emcc_link_flags.Add("-O0 -flto=thin");
-			emcc_flags += "-flto=thin ";
+			emcc_link_flags.Add("-O0 ");
+
+			if (!enable_threads)
+			{
+				// Disable thread optimizations because ofL
+				// wasm-ld: error: --shared-memory is disallowed by lto.tmp because it was not compiled with 'atomics' or 'bulk-memory' features.
+
+				emcc_link_flags.Add("-flto=thin");
+				emcc_flags += "-flto=thin ";
+			}
 		}
 		else
 		{
@@ -1136,7 +1144,7 @@ class Driver {
 		emcc_link_flags.Add("-s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\"");
 
 		var failOnError = is_windows
-			? "; if ($$LastExitCode -ne 0) { return 1; }"
+			? "; if ($$LastExitCode -ne 0) { exit 1; }"
 			: "";
 
 		if (enable_simd) {
@@ -1153,12 +1161,6 @@ class Driver {
 
 		if (!string.IsNullOrEmpty(extra_emccflags)) {
 			emcc_flags += " " + extra_emccflags + " ";
-		}
-
-		if (enable_threads)
-		{
-			emcc_flags += "-pthread ";
-			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
 		}
 
 		var ninja = File.CreateText (Path.Combine (builddir, "build.ninja"));
