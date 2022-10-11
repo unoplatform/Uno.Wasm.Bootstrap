@@ -86,6 +86,67 @@ jobs:
     displayName: StaticLinking.Aot Tests Net5
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+<<<<<<< HEAD
+=======
+      
+  # Static linking test (net4)
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
+    displayName: Build StaticLinking.Aot Sample (net7)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Net7\bin\Release\net7.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Aot Tests net7
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  # Thread test Debug build for emscripten LTO issue
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
+      dotnet clean -c Debug /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Debug /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-debug.binlog
+    displayName: Build Threading Sample
+
+  # Thread test
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-release.binlog
+    displayName: Build Threading Sample
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
+      "http://localhost:8000/"
+
+    displayName: Threading Tests
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  # Thread AOT test
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+    displayName: Build Threading AOT Sample
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads.Aot\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
+      "http://localhost:8000/"
+
+    displayName: Threading AOT Tests
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+>>>>>>> d3df4a4 (fix: Ensure that ninja failures fail the build)
 
   - task: PublishBuildArtifacts@1
     condition: always()

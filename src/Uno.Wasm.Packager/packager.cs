@@ -1020,8 +1020,21 @@ class Driver {
 		string emcc_link_flags = "";
 		if (enable_debug || !opts.EmccLinkOptimizations)
 		{
+<<<<<<< HEAD
 			emcc_link_flags += "-O0 -flto=thin ";
 			emcc_flags += "-flto=thin ";
+=======
+			emcc_link_flags.Add("-O0 ");
+
+			if (!enable_threads)
+			{
+				// Disable thread optimizations because ofL
+				// wasm-ld: error: --shared-memory is disallowed by lto.tmp because it was not compiled with 'atomics' or 'bulk-memory' features.
+
+				emcc_link_flags.Add("-flto=thin");
+				emcc_flags += "-flto=thin ";
+			}
+>>>>>>> d3df4a4 (fix: Ensure that ninja failures fail the build)
 		}
 		else
 			emcc_link_flags += linker_optimization_level + " ";
@@ -1032,6 +1045,68 @@ class Driver {
 
 			strip_cmd = $" {commandSeparator} \"$wasm_opt\" --strip-dwarf \'$out_wasm\' -o \'$out_wasm\'";
 		}
+<<<<<<< HEAD
+=======
+
+		if (opts.EnableWasmExceptions)
+		{
+			emcc_link_flags.Add("-fwasm-exceptions");
+			emcc_flags += " -fwasm-exceptions ";
+			aot_compiler_options += " --wasm-exceptions ";
+		}
+		else
+		{
+			emcc_flags += " -s DISABLE_EXCEPTION_CATCHING=0 ";
+		}
+
+		// Align with https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L143
+		emcc_link_flags.Add("-s EXPORT_ES6=1");
+		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
+		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
+		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
+
+		emcc_exported_runtime_methods.Add("FS");
+		emcc_exported_runtime_methods.Add("print");
+		emcc_exported_runtime_methods.Add("ccall");
+		emcc_exported_runtime_methods.Add("cwrap");
+		emcc_exported_runtime_methods.Add("setValue");
+		emcc_exported_runtime_methods.Add("getValue");
+		emcc_exported_runtime_methods.Add("UTF8ToString");
+		emcc_exported_runtime_methods.Add("UTF8ArrayToString");
+		emcc_exported_runtime_methods.Add("FS_createPath");
+		emcc_exported_runtime_methods.Add("FS_createDataFile");
+		emcc_exported_runtime_methods.Add("removeRunDependency");
+		emcc_exported_runtime_methods.Add("addRunDependency");
+		emcc_exported_runtime_methods.Add("FS_readFile");
+		emcc_exported_runtime_methods.Add("lengthBytesUTF8");
+		emcc_exported_runtime_methods.Add("stringToUTF8");
+		emcc_exported_runtime_methods.Add("addFunction");
+		emcc_exported_runtime_methods.Add("removeFunction");
+		emcc_exported_runtime_methods.Add("IDBFS");
+
+		var exports = string.Join(",", emcc_exported_runtime_methods.Distinct().Select(m => $"\'{m}\'"));
+
+		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[" + exports + "]\"");
+
+		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
+		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
+		emcc_link_flags.Add("--source-map-base http://example.com");
+		emcc_link_flags.Add("-s STRICT_JS=1");
+		emcc_link_flags.Add("-s EXPORT_NAME=\"'createDotnetRuntime'\"");
+		emcc_link_flags.Add("-s MODULARIZE=1");
+		emcc_link_flags.Add("-s ENVIRONMENT=\"web,webview,worker,node,shell\"");
+
+		// Additional flags
+		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
+		emcc_link_flags.Add("-s TOTAL_MEMORY=134217728");
+		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
+		emcc_link_flags.Add("-s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\"");
+
+		var failOnError = is_windows
+			? "; if ($$LastExitCode -ne 0) { exit 1; }"
+			: "";
+
+>>>>>>> d3df4a4 (fix: Ensure that ninja failures fail the build)
 		if (enable_simd) {
 			aot_args += "mattr=simd,";
 			emcc_flags += "-s SIMD=1 ";
