@@ -849,7 +849,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (ninjaResult.exitCode != 0)
 				{
-					throw new Exception("Failed to generate AOT layout (More details are available in diagnostics mode or using the MSBuild /bl switch)");
+					throw new Exception("Failed to run emscripten. More details are available in diagnostics logging mode or using the MSBuild /bl switch, see https://aka.platform.uno/msbuild-troubleshoot.");
 				}
 			}
 			else
