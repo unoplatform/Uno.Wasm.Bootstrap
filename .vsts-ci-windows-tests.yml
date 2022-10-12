@@ -66,6 +66,13 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  # Static linking test (net5) without the linker
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
+    displayName: Build StaticLinking.Aot Sample (net5)
+
   # Static linking test (net5)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
