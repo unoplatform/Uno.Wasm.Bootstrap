@@ -14,9 +14,11 @@
 		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
 		<Description>Runtime server features for ASP.NET Core hosted Uno Platform applications.</Description>
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) Uno Platform inc. - all rights reserved</Copyright>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="..\..\build\icon.png" Pack="true" PackagePath="\" />
 		<Content Include="build\Uno.Wasm.Bootstrap.Server.targets">
 			<PackagePath>build</PackagePath>
 			<Pack>true</Pack>
