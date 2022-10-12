@@ -675,7 +675,7 @@ class Driver {
 					Console.Error.WriteLine ($"The directory '{runtimepack_dir}' doesn't contain a 'runtimes/browser-wasm' subdirectory.");
 					return 1;
 				}
-				runtimepack_dir = Path.Combine (runtimepack_dir, "runtimes", "browser-wasm");
+				runtimepack_dir = Path.Combine (runtimepack_dir, "runtimes", "browser-wasm").Replace("\\", "/");
 			} else {
 				Console.Error.WriteLine ("The only valid value for --framework is 'net5...'");
 				return 1;
@@ -1296,13 +1296,13 @@ class Driver {
 			? "powershell"
 			: "bash -c";
 
-		var emcc_shell_response_prefix = is_windows
-			? "powershell -File"
-			: "bash ";
-
 		var tools_shell_prefix = is_windows
 			? "powershell"
 			: "";
+
+		var response_prefix = is_windows
+			? "`@"
+			: "@";
 
 		ninja.WriteLine ("rule create-emsdk-env");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
@@ -1311,10 +1311,17 @@ class Driver {
 		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
 		ninja.WriteLine ("  description = [EMCC] $in -> $out");
 
+		var src_prefix_es6 = Path.Combine(src_prefix, "es6") + Path.DirectorySeparatorChar;
+
+		// Additional parameters are not supported in the same way between linux and windows.
+		var jsAdditionals = $"--extern-pre-js {src_prefix_es6}runtime.es6.iffe.js --pre-js {src_prefix_es6}dotnet.es6.pre.js  --js-library {src_prefix_es6}dotnet.es6.lib.js --post-js {src_prefix_es6}dotnet.es6.post.js --extern-post-js {src_prefix_es6}dotnet.es6.extpost.js {wasm_core_support_library}";
+		var emcc_link_additionals_command = is_windows ? jsAdditionals : "";
+		var emcc_link_additionals_response = is_windows ? "" : jsAdditionals;
+
 		ninja.WriteLine("rule emcc-link");
-		ninja.WriteLine($"  command = {emcc_shell_response_prefix} $builddir/emcc_link.ps1");
-		ninja.WriteLine($"  rspfile = $builddir/emcc_link.ps1");
-		ninja.WriteLine($"  rspfile_content = $emcc $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 --extern-pre-js {src_prefix}/es6/runtime.es6.iffe.js --pre-js {src_prefix}/es6/dotnet.es6.pre.js  --js-library {src_prefix}/es6/dotnet.es6.lib.js --post-js {src_prefix}/es6/dotnet.es6.post.js --extern-post-js {src_prefix}/es6/dotnet.es6.extpost.js {wasm_core_support_library} $in {failOnError}");
+		ninja.WriteLine($"  command = {emcc_shell_prefix} \"$emcc {response_prefix}$builddir/emcc_link.rsp {emcc_link_additionals_command} {failOnError} \"");
+		ninja.WriteLine($"  rspfile = $builddir/emcc_link.rsp");
+		ninja.WriteLine($"  rspfile_content = $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 {emcc_link_additionals_response} $in");
 		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
 
 		ninja.WriteLine ("rule linker");

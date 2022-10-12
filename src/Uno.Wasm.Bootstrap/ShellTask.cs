@@ -860,7 +860,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
-				File.WriteAllLines(packagerResponseFile, packagerParams);
+				File.WriteAllLines(packagerResponseFile, packagerParams.Select(p => p.Replace("\\", "/")));
 
 				Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(packagerResponseFile)}");
 
