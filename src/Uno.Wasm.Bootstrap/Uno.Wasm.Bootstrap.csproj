@@ -47,7 +47,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="images\icon.png" Pack="true" PackagePath="\" />
+		<None Include="..\..\build\icon.png" Pack="true" PackagePath="\" />
 		<Content Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>

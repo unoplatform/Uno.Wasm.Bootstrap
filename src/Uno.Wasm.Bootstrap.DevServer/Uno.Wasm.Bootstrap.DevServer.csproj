@@ -16,10 +16,12 @@
 		<RepositoryUrl>https://github.com/unoplatform/uno.wasm.bootstrap</RepositoryUrl>
 		<Description>This package provides the development server and debugger support for Wasm bootstrap projects</Description>
 		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) nventive inc. - all rights reserved</Copyright>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<Target Name="_PopulateNugetOutputs" BeforeTargets="CoreCompile">
 		<ItemGroup>
+			<None Include="..\..\build\icon.png" Pack="true" PackagePath="\" />
 			<Content Include="build\Uno.Wasm.Bootstrap.DevServer.targets">
 				<PackagePath>build</PackagePath>
 				<Pack>true</Pack>
