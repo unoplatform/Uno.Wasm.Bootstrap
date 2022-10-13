@@ -1314,7 +1314,13 @@ class Driver {
 		var src_prefix_es6 = Path.Combine(src_prefix, "es6") + Path.DirectorySeparatorChar;
 
 		// Additional parameters are not supported in the same way between linux and windows.
-		var jsAdditionals = $"--extern-pre-js {src_prefix_es6}runtime.es6.iffe.js --pre-js {src_prefix_es6}dotnet.es6.pre.js  --js-library {src_prefix_es6}dotnet.es6.lib.js --post-js {src_prefix_es6}dotnet.es6.post.js --extern-post-js {src_prefix_es6}dotnet.es6.extpost.js {wasm_core_support_library}";
+		var jsAdditionals = $"--extern-pre-js {src_prefix_es6}runtime.es6.iffe.js " +
+			$"--pre-js {src_prefix_es6}dotnet.es6.pre.js  " +
+			$"--js-library {src_prefix_es6}dotnet.es6.lib.js " +
+			$"--post-js {src_prefix_es6}dotnet.es6.post.js " +
+			$"--extern-post-js {src_prefix_es6}dotnet.es6.extpost.js " +
+			wasm_core_support_library;
+
 		var emcc_link_additionals_command = is_windows ? jsAdditionals : "";
 		var emcc_link_additionals_response = is_windows ? "" : jsAdditionals;
 
