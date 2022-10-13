@@ -1,6 +1,6 @@
 ## Support for WebAssembly Threads
 
-Starting from .NET 7, experimental support for [WebAssembly threads](https://github.com/WebAssembly/threads/blob/master/proposals/threads/Overview.md) has been included. This support is provided by the boostrapper 7.0 and later, for interpreter and AOT modes.
+Starting from .NET 7, experimental support for [WebAssembly threads](https://github.com/WebAssembly/threads/blob/master/proposals/threads/Overview.md) has been included. This support is provided by the boostrapper 7.0 and later, for interpreter and AOT modes. The following documentation explains how to enable threading.
 
 > [!IMPORTANT]
 > Threading support is now supported in most major browsers. You can find out if your target browser supports it on the [WebAssembly roadmap](https://webassembly.org/roadmap).
