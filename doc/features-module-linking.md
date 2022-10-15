@@ -35,7 +35,6 @@ As emscripten's ABI is not guaranteed to be compatible between versions, it may 
 
 If the bitcode file to be added is named `libTest.bc` or `libTest.a`, the following structure can be used in a project:
 
-|---------------------------------------|-------------------------------------------------------------------------------------------------------|
 | File path                             | Description                                                                                           |
 |---------------------------------------|-------------------------------------------------------------------------------------------------------|
 | `libTest.bc/2.0.6/libTest.bc`         | Emscripten 2.0.6 to 2.0.8, single threaded (Bootstrapper 3.3 and earlier format)                      |
@@ -48,7 +47,6 @@ If the bitcode file to be added is named `libTest.bc` or `libTest.a`, the follow
 | `libTest.bc/2.0.9/st,simd/libTest.bc` | Emscripten 2.0.9 and later, single threaded with SIMD                                                 |
 | `libTest.bc/2.0.6/mt,simd/libTest.bc` | Emscripten 2.0.6 and later, multi threaded with SIMD                                                  |
 | `libTest.bc/2.0.9/mt,simd/libTest.bc` | Emscripten 2.0.9 and later, multi threaded with SIMD                                                  |
-|---------------------------------------|-------------------------------------------------------------------------------------------------------|
 
 Based on the emscripten version used by the .NET runtime and the enabled runtime features, the bootstrapper will choose the closest matching version.
 
