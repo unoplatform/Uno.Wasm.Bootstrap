@@ -70,6 +70,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
 		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
+		private byte[] _obfuscationKey = Array.Empty<byte>();
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -136,7 +137,9 @@ namespace Uno.Wasm.Bootstrap
 
 		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
 
-		public string AssembliesFileExtension { get; set; } = "clr";
+		public string AssembliesFileExtension { get; set; } = ".clr";
+
+		public bool ObfuscateAssemblies { get; set; } = false;
 
 		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
@@ -239,6 +242,7 @@ namespace Uno.Wasm.Bootstrap
 
 				PreloadAssemblies();
 				ValidateEmscriptenWindowsAvailability();
+				TryGenerateObfuscationKey();
 				TryEnableLongPathAware();
 				ParseProperties();
 				GetBcl();
@@ -264,6 +268,14 @@ namespace Uno.Wasm.Bootstrap
 			{
 				Log.LogError(ex.ToString(), false, true, null);
 				return false;
+			}
+		}
+
+		private void TryGenerateObfuscationKey()
+		{
+			if (ObfuscateAssemblies)
+			{
+				_obfuscationKey = Encoding.ASCII.GetBytes(Guid.NewGuid().ToString().Split('-')[0]);
 			}
 		}
 
@@ -1309,6 +1321,11 @@ namespace Uno.Wasm.Bootstrap
 			{
 				throw new InvalidOperationException($"The WasmShellWebAppBasePath property must end with a trailing \"/\" (got [{WebAppBasePath}] instead)");
 			}
+
+			if (!AssembliesFileExtension.StartsWith("."))
+			{
+				throw new InvalidOperationException($"The WasmShellAssembliesFileExtension property must start with a '.'");
+			}
 		}
 
 		private void BuildReferencedAssembliesList()
@@ -1420,7 +1437,7 @@ namespace Uno.Wasm.Bootstrap
 				throw new ApplicationException($"Unable to move PACKAGE DIST {_workDistPath} to {_finalPackagePath}: {ex}", ex);
 			}
 
-			RenameFiles(_finalPackagePath, "dll");
+			TryObfuscateAssemblies(Path.Combine(_finalPackagePath, Path.GetFileName(_managedPath)));
 		}
 
 		private static void MoveFileSafe(string source, string target)
@@ -1441,15 +1458,33 @@ namespace Uno.Wasm.Bootstrap
 		/// which are quite present in the enterprise space.
 		/// </summary>
 		/// <param name="extension">The extension to rename</param>
-		private void RenameFiles(string path, string extension)
+		private void TryObfuscateAssemblies(string path)
 		{
-			foreach (var dllFile in Directory.GetFiles(path, "*." + extension, SearchOption.AllDirectories))
+			foreach (var dllFile in Directory.GetFiles(path, "*.dll", SearchOption.AllDirectories))
 			{
-				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + "." + AssembliesFileExtension);
+				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + AssembliesFileExtension);
 
 				Log.LogMessage($"Renaming {dllFile} to {destDirName}");
 				Directory.Move(dllFile, destDirName);
+				
+				if (ObfuscateAssemblies)
+				{
+					Log.LogMessage($"Obfuscating {destDirName}");
+					ObfuscateAssembly(destDirName);
+				}
 			}
+		}
+
+		private void ObfuscateAssembly(string file)
+		{
+			var data = File.ReadAllBytes(file);
+			
+			for (var i = 0; i < data.Length; i++)
+			{
+				data[i] ^= _obfuscationKey[i % _obfuscationKey.Length];
+			}
+
+			File.WriteAllBytes(file, data);
 		}
 
 		private void GetBcl()
@@ -1763,6 +1798,11 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
+				if (ObfuscateAssemblies)
+				{
+					config.AppendLine($"config.assemblyObfuscationKey = \"{Encoding.ASCII.GetString(_obfuscationKey)}\";");
+				}
+
 				if (GenerateAOTProfile)
 				{
 					config.AppendLine($"config.generate_aot_profile = true;");
@@ -1876,7 +1916,7 @@ namespace Uno.Wasm.Bootstrap
 			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
 
 			var assemblyPathAndFiles = Directory
-				.EnumerateFiles(Path.Combine(_finalPackagePath, "managed"), "*." + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
+				.EnumerateFiles(Path.Combine(_finalPackagePath, "managed"), "*" + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
 				.ToArray();
 
 			var assemblyFiles = assemblyPathAndFiles

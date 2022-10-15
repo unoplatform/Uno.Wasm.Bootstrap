@@ -21,7 +21,7 @@ initializeExports();
 function testCallback() {
     try {
         if (Module.getAssemblyExports !== undefined && samplesNetExports.hasOwnProperty('Uno')) {
-            return samplesNetExports.Uno.Wasm.SampleNet.Exports.MyExportedMethod1();
+            return samplesNetExports.Uno.Wasm.Sample.Exports.MyExportedMethod1();
         }
         else {
             return Module.mono_bind_static_method("[Uno.Wasm.SampleNet] Uno.Wasm.Sample.Exports:MyExportedMethod2")();

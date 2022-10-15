@@ -35,7 +35,7 @@
 				<Pack>true</Pack>
 			</Content>
 			<Content Include="..\Uno.Wasm.Bootstrap.Cli\bin\$(Configuration)\net7.0\*.*">
-				<PackagePath>tools\server\net7</PackagePath>
+				<PackagePath>tools\server\net7.0</PackagePath>
 				<Pack>true</Pack>
 			</Content>
 		</ItemGroup>

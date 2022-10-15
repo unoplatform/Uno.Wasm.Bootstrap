@@ -51,12 +51,31 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
 			this.onDownloadResource = (request) => <LoadingResource>{
-				response: this.fetchFile(request.resolvedUrl)
+				response: this.deobfuscateFile(request.resolvedUrl, this.fetchFile(request.resolvedUrl))
 			};
 
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
 		}
+		
+		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(".dll")) {
+				const responseValue = await response;
+
+				if (responseValue) {
+					var data = new Uint8Array(await responseValue.arrayBuffer());
+					var key = this._unoConfig.assemblyObfuscationKey;
+
+					for (var i = 0; i < data.length; i++) {
+						data[i] ^= key.charCodeAt(i % key.length);
+					}
+
+					return new Response(data, { "status": 200, headers: responseValue.headers });
+				}
+			}
+			
+			return response;
+        }
 
 		public static async bootstrap(): Promise<void> {
 
@@ -452,7 +471,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private fetchFile(asset: string) : Promise<void | Response> {
 
 			if (asset.lastIndexOf(".dll") !== -1) {
-				asset = asset.replace(".dll", `.${this._unoConfig.assemblyFileExtension}`);
+				asset = asset.replace(".dll", this._unoConfig.assemblyFileExtension);
 			}
 
 			if (asset.startsWith("icudt") && asset.endsWith(".dat")) {

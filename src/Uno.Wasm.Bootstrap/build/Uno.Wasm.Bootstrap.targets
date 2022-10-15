@@ -13,6 +13,8 @@
 
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
+		<WasmShellAssembliesExtension Condition="'$(WasmShellAssembliesExtension)' == ''">.clr</WasmShellAssembliesExtension>
+
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 		<MonoWasmRuntimeConfiguration Condition="'$(MonoWasmRuntimeConfiguration)'==''">Release</MonoWasmRuntimeConfiguration>
 		<MonoRuntimeDebuggerEnabled Condition="'$(MonoRuntimeDebuggerEnabled)'==''">false</MonoRuntimeDebuggerEnabled>
@@ -102,7 +104,7 @@
 	<ItemGroup>
 		<!-- Default compressed extensions when WasmShellGenerateCompressedFiles is enabled -->
 		<WasmShellCompressedExtension Include=".wasm"/>
-		<WasmShellCompressedExtension Include=".clr"/>
+		<WasmShellCompressedExtension Include="$(WasmShellAssembliesExtension)"/>
 		<WasmShellCompressedExtension Include=".js"/>
 		<WasmShellCompressedExtension Include=".css"/>
 		<WasmShellCompressedExtension Include=".html"/>
@@ -246,6 +248,8 @@
 			MonoWasmSDKPath="$(_UnoMonoSdkPath)"
 			NativeCompile="@(WasmShellNativeCompile)"
 			NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
+			ObfuscateAssemblies="$(WasmShellObfuscateAssemblies)"
+			AssembliesFileExtension="$(WasmShellAssembliesExtension)"
 			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
 			PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
