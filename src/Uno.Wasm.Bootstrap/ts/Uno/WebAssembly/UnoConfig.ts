@@ -39,5 +39,7 @@
 
 		generate_aot_profile?: boolean;
 		enable_debugging?: boolean;
+		
+		assemblyObfuscationKey?: string;
 	}
 }

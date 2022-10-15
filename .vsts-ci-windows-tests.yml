@@ -71,7 +71,24 @@ jobs:
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
-    displayName: Build StaticLinking.Aot Sample (net5)
+    displayName: Build StaticLinking.Interpreter Sample (net5 without linker)
+
+  # Static linking test with obsfucation enabled
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
+    displayName: Build StaticLinking.StaticLinking.Aot.Net5 Sample (net5 with obfuscation)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Aot.Net5 Tests (net5 with obfuscation)
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   # Static linking test (net5)
   - pwsh: |
