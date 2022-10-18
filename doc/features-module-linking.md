@@ -136,6 +136,9 @@ static class AdditionalImportTest
 
 In order to invoke emscripten and mono native functions, the bootstrapper exposes the special library name `__Native`. 
 
+> [!NOTE]
+> In order for `__Native` to be available, you'll need to specify `<WasmShellAdditionalPInvokeLibrary Include="__Native" />` as explained in the sections above.
+
 For instance, the following enables the mono internal tracing:
 
 ```
