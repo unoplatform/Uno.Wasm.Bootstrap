@@ -37,3 +37,8 @@ Cross-Origin-Opener-Policy: same-origin
 ```
 
 You can find [more information about it on the Chrome Developer blog](https://developer.chrome.com/blog/enabling-shared-array-buffer/).
+
+If you're using [`dotnet serve`](https://github.com/natemcmaster/dotnet-serve) or any other similar server package to serve your application, you can use the following:
+```sh
+dotnet serve -p 8000 -h "Cross-Origin-Embedder-Policy: require-corp" -h "Cross-Origin-Opener-Policy: same-origin"
+```
