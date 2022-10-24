@@ -98,8 +98,6 @@ namespace Uno.Wasm.Bootstrap
 		private IEnumerable<string> DefaultAOTProfileExcludedMethods =>
 			new[]
 			{
-				@"HttpContent\.LoadIntoBufferAsync", // https://github.com/mono/mono/issues/19824
-
 				@"ManifestBasedResourceGroveler\.InternalGetSatelliteAssembly", // https://github.com/dotnet/runtime/issues/45698
 
 				@"System\.Reflection\.Assembly\.GetExecutingAssembly", // https://github.com/dotnet/runtime/issues/47996
