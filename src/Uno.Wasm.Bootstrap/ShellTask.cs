@@ -177,6 +177,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool ForceDisableWSL { get; set; }
 
+		public bool SkipPowershellExecutionPolicyValidation { get; set; } = false;
+
 		[Microsoft.Build.Framework.Required]
 		public string RuntimeConfiguration { get; set; } = "";
 
@@ -1146,6 +1148,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (EnableEmscriptenWindows)
 				{
+					ValidatPowershellExecutionPolicy();
+
 					var emsdkHostFolder = Environment.GetEnvironmentVariable("WASMSHELL_WSLEMSDK")
 						?? Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), ".uno", "emsdk");
 
@@ -1220,6 +1224,27 @@ namespace Uno.Wasm.Bootstrap
 			{
 				throw new NotSupportedException($"Unsupported platform");
 			}
+		}
+
+		private (int exitCode, string output, string error) ValidatPowershellExecutionPolicy()
+		{
+			var result = RunProcess("powershell", "Get-ExecutionPolicy");
+
+			if (result.exitCode != 0)
+			{
+				throw new Exception($"Failed to determine the powershell execution policy.");
+			}
+
+			// https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.2
+			if (!result.output.Equals("unrestricted", StringComparison.OrdinalIgnoreCase)
+				&& !result.output.Equals("remotesigned", StringComparison.OrdinalIgnoreCase)
+				&& !result.output.Equals("bypass", StringComparison.OrdinalIgnoreCase)
+				&& !SkipPowershellExecutionPolicyValidation)
+			{
+				throw new InvalidOperationException($"The current PowerShell Execution policy is [{result.output}]. To run the bootstrapper, open an elevated PowerShell prompt and run `Set-ExecutionPolicy RemoteSigned -Force`");
+			}
+
+			return result;
 		}
 
 		private object GetWSLHomePath()
