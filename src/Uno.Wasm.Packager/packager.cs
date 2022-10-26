@@ -1271,7 +1271,7 @@ class Driver {
 			ninja.WriteLine ($"  command = /bin/bash -c \"if cmp -s $in $out ; then : ; else {cpCommand} $in $out ; fi\"");
 
 			ninja.WriteLine ("rule cpifdiffex");
-			ninja.WriteLine ($"  command = /bin/bash -c \"if [[ -f $in && cmp -s $in $out ]] ; then : ; else {cpCommand} $in $out ; fi\"");
+			ninja.WriteLine ($"  command = /bin/bash -c \"if [ -f $in ] && [ `cmp -s $in $out` ] ; then : ; else {cpCommand} $in $out ; fi\"");
 
 			ninja.WriteLine ("  restat = true");
 			ninja.WriteLine ("  description = [CPIFDIFFEX] $in -> $out");

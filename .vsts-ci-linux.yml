@@ -162,6 +162,13 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
+  # Interpreter debug for symbols copy issue
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
+      dotnet clean -c Debug /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Debug /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.debug-interpreter-linux-debug.binlog
+    displayName: Build Debug Interpreter with linking Sample
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
