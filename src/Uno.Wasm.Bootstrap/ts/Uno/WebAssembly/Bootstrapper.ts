@@ -568,7 +568,11 @@ namespace Uno.WebAssembly.Bootstrap {
 				});
 			}
 			else {
-				this.mainInit();
+				// Reschedule the intialization to that the runtime can
+				// properly initialize and exit `m.default` to provide dotnetRuntime.runMain
+				setTimeout(() => {
+					this.mainInit();
+				}, 0);
 			}
 		}
 
