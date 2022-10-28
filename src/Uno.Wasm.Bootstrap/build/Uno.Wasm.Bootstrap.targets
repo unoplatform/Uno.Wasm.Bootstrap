@@ -208,7 +208,7 @@
 			AotProfile="@(WasmShellEnableAotProfile)"
 			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
-			Assets="@(Content);@(StaticWebAsset)"
+			Assets="@(Content)"
 			BaseIntermediateOutputPath="$(BaseIntermediateOutputPath)"
 			BrotliCompressionQuality="$(WasmShellBrotliCompressionQuality)"
 			BuildTaskBasePath="$(MSBuildThisFileDirectory)"
