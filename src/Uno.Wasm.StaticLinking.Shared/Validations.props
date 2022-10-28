@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+	<Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
+		<ItemGroup>
+			<_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_duplicateValidation>@(_duplicateValidationItems)</_duplicateValidation>
+		</PropertyGroup>
+
+		<Error Condition="$(_duplicateValidation.Contains(';'))" Text="Duplicate System.Private.CoreLib.clr detected" />
+
+		<Message Importance="high" Text="Output dist validated" />
+	</Target>
+
+</Project>
