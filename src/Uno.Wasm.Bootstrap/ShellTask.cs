@@ -701,12 +701,13 @@ namespace Uno.Wasm.Bootstrap
 			var wasmDebuggerRootPath = Path.Combine(IntermediateOutputPath, "wasm-debugger");
 			DirectoryCreateDirectory(wasmDebuggerRootPath);
 
-			var net5BasePaths = new[] {
-					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
-					Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
-				};
+			var debuggerBinBasePaths = new[] {
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", TargetFramework.ToLower()), // Compatibility with previous runtime packages
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
+			};
 
-			var proxyBasePath = net5BasePaths.First(Directory.Exists);
+			var proxyBasePath = debuggerBinBasePaths.First(Directory.Exists);
 
 			// Write down the debugger file path so the static file server can find it
 			File.WriteAllText(Path.Combine(wasmDebuggerRootPath, ".debuggerinfo"), proxyBasePath);
