@@ -30,14 +30,18 @@
 	  <_AdditionalFile1 Include="SomeContent02.txt" />
 	  <_AdditionalFile1 Include=".editorconfig" />
 	  <_AdditionalFile1 Include="nuget.config" />
+		
+	  <_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />
 	</ItemGroup>
+	  
 	<PropertyGroup>
 		<_monoConfigJson>$([System.IO.File]::ReadAllText('$(WasmShellOutputPackagePath)\mono-config.json'))</_monoConfigJson>
+		<_duplicateValidation>@(_duplicateValidationItems)</_duplicateValidation>
 	</PropertyGroup>
 
 	<Error Condition="!exists('$(WasmShellOutputPackagePath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) does not exist in $(WasmShellOutputPackagePath)" />
 	<Error Condition="exists('$(WasmShellOutputPackagePath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.tx should not exist in $(WasmShellOutputPackagePath)" />
-	<!--<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />-->
+	<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />
 
 	<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) should not exist in $(WasmShellOutputDistPath)" />
 	<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />
@@ -45,6 +49,8 @@
 
 	<Error Condition="$(_monoConfigJson.Contains('System.IO.Pipes.dll'))" Text="mono-config.json is incorrectly filtered" />
 
+	<Error Condition="$(_duplicateValidation.Contains(';'))" Text="Duplicate System.Private.CoreLib.clr detected" />
+	  
 	<Message Importance="high" Text="Output dist validated" />
   </Target>
 

@@ -43,6 +43,8 @@
     <Folder Include="$(MSBuildThisFileDirectory)native\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)Validations.props" />
     <Content Include="$(MSBuildThisFileDirectory)Common.props" />
   </ItemGroup>
+  <Import Project="Validations.props" />
 </Project>
