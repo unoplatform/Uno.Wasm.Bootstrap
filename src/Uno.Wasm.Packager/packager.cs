@@ -876,14 +876,14 @@ class Driver {
 			var assetType = Path.GetExtension(f).ToLowerInvariant() switch
 			{
 				".dll" => "assembly",
-				".pdb" => "pdb",
+				".pdb" => "assembly", // PDBs are loaded through https://github.com/dotnet/runtime/blob/55d35231b48ec0a66835a2bd71a968baf8ad9a12/src/mono/wasm/runtime/assets.ts#L411-L412
 				".wasm" => "dotnetwasm",
 				".js" => "js-module-threads",
 				".dat" => "icu",
 				_ => throw new Exception($"Unsupported asset type")
 			};
 
-			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\" }}";
+			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\", \"url\":\"{Path.GetFileName(f)}\" }}";
 		}));
 		var debugLevel = enable_debug ? " -1" : "0";
 

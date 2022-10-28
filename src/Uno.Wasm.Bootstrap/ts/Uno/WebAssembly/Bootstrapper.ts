@@ -51,6 +51,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
 			this.onDownloadResource = (request) => <LoadingResource>{
+				name: request.name,
+				url: request.resolvedUrl,
 				response: this.deobfuscateFile(request.resolvedUrl, this.fetchFile(request.resolvedUrl))
 			};
 
