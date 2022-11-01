@@ -253,6 +253,7 @@ namespace Uno.Wasm.Bootstrap
 				CopyRuntime();
 				RunPackager();
 				TryDeployDebuggerProxy();
+				GenerateServerAppFeaturesInfo();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				CleanupDist();
@@ -711,6 +712,10 @@ namespace Uno.Wasm.Bootstrap
 			// Write down the debugger file path so the static file server can find it
 			File.WriteAllText(Path.Combine(wasmDebuggerRootPath, ".debuggerinfo"), proxyBasePath);
 		}
+
+		private void GenerateServerAppFeaturesInfo()
+			// Write down an info file so the static file server can find it
+			=> File.WriteAllText(Path.Combine(IntermediateOutputPath, ".unoappfeatures"), BuildRuntimeFeatures());
 
 		private void RunPackager()
 		{

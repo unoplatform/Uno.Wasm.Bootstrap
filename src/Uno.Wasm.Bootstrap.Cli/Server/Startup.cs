@@ -57,16 +57,23 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 			var contentRoot = env.ContentRootPath;
 
+			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+
+			var useSecureMode = ShouldUseSecureMode(webHostEnvironment, configuration);
+
 			app.Use(async (context, next) =>
 			{
 				context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 				context.Response.Headers.Add("Access-Control-Allow-Methods", "*");
 				context.Response.Headers.Add("Access-Control-Allow-Headers", "*");
 
+				if (useSecureMode)
+				{
+					// Required for SharedArrayBuffer: https://developer.chrome.com/blog/enabling-shared-array-buffer/
+					context.Response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
+					context.Response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
+				}
 
-				// Required for SharedArrayBuffer: https://developer.chrome.com/blog/enabling-shared-array-buffer/
-				context.Response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
-				context.Response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
 				await next();
 			});
 
@@ -78,8 +85,6 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			});
 
 			app.UseWebAssemblyDebugging(configuration);
-
-			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
 			// foreach(DictionaryEntry entry in Environment.GetEnvironmentVariables())
 			// {
@@ -137,6 +142,24 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			});
 		}
 
+		private static bool ShouldUseSecureMode(IWebHostEnvironment environment, IConfiguration configuration)
+		{
+			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
+			var targetFramework = configuration.GetValue<string>("targetframework") ?? "";
+
+			var contentRoot = environment.ContentRootPath;
+			var debuggerInfoRoot = Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework);
+
+			var featuresInfoFile = Path.Combine(debuggerInfoRoot, ".unoappfeatures");
+			if (File.Exists(featuresInfoFile))
+			{
+				var featuresRaw = File.ReadAllText(featuresInfoFile);
+
+				return featuresRaw.Contains("threads", StringComparison.Ordinal);
+			}
+
+			return false;
+		}
 
 		private static string FindIndexHtmlFile(string basePath)
 		{
