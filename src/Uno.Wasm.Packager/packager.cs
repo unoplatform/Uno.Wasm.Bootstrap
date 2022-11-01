@@ -1336,7 +1336,7 @@ class Driver {
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
 		var tunerCommand = is_netcore ? $"dotnet $tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
-		var exitCommand = is_windows ? "" : "|| exit 1";
+		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
 		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
 		linker_args.Add($"--strip-link-attributes");
