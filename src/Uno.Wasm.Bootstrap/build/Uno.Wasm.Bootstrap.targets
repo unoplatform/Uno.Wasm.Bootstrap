@@ -106,8 +106,12 @@
 		<WasmShellCompressedExtension Include=".wasm"/>
 		<WasmShellCompressedExtension Include="$(WasmShellAssembliesExtension)"/>
 		<WasmShellCompressedExtension Include=".js"/>
+		<WasmShellCompressedExtension Include=".json"/>
 		<WasmShellCompressedExtension Include=".css"/>
 		<WasmShellCompressedExtension Include=".html"/>
+		<WasmShellCompressedExtension Include=".dat"/>
+		<WasmShellCompressedExtension Include=".ttf"/>
+		<WasmShellCompressedExtension Include=".txt"/>
 	</ItemGroup>
 
 	<ItemGroup>
