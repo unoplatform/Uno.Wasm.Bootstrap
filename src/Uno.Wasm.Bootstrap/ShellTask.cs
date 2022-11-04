@@ -390,6 +390,10 @@ namespace Uno.Wasm.Bootstrap
 				"*.wast",
 				"*.bc",
 				"*.a",
+				"*.rsp",
+				"*.c",
+				"*.h",
+				"package.json",
 			};
 
 			foreach (var unusedFile in unusedFiles)
