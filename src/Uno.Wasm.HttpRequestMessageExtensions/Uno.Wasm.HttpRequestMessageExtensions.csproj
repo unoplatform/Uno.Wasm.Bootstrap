@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<NoWarn>1701;1702;1705;649</NoWarn>
+		<PackageId>Uno.Wasm.HttpRequestMessageExtensions</PackageId>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+		<LangVersion>11.0</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>unoplatform</Authors>
+		<PackageProjectUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</PackageProjectUrl>
+		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+		<RepositoryUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</RepositoryUrl>
+		<Description>Runtime server features for ASP.NET Core hosted Uno Platform applications.</Description>
+		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) Uno Platform inc. - all rights reserved</Copyright>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\build\icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
+	</ItemGroup>
+
+</Project>
