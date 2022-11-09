@@ -44,7 +44,7 @@ Cross-Origin-Resource-Policy: cross-origin
 ```
 See [here additional information](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy) about this header.
 
-You can find [more information about it on the Chrome Developer blog](https://developer.chrome.com/blog/enabling-shared-array-buffer/).
+You can find [more information about threading on the Chrome Developer blog](https://developer.chrome.com/blog/enabling-shared-array-buffer/).
 
 If you're using [`dotnet serve`](https://github.com/natemcmaster/dotnet-serve) or any other similar server package to serve your application, you can use the following:
 ```sh
