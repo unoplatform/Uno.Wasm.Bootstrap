@@ -17,7 +17,7 @@ Threading support can be detected at runtime by using the [`UNO_BOOTSTRAP_MONO_R
 
 ### Controlling the browser thread pool size
 
-By default, the runtime pre-creates a set of 4 Web Workers available to WebAssembly threads, and the .NET Runtime will reuse the workers as threads stop. 
+By default, the runtime pre-creates a set of 4 WebWorkers available to WebAssembly threads, and the .NET Runtime will reuse the workers as threads stop. This value is used by the `ThreadPool` and `Tasks` subsystems.
 
 To change the number of threads available to the app, use the following:
 ```xml
@@ -25,6 +25,8 @@ To change the number of threads available to the app, use the following:
 	<WasmShellPThreadsPoolSize>8</WasmShellPThreadsPoolSize>
 </PropertyGroup>
 ```
+
+The maximum number of threads can be determined by the `UNO_BOOTSTRAP_MAX_THREADS` environment variable.
 
 ### Restrictions
 WebAssembly Threads are using the `SharedArrayBuffer` browser feature, which is disabled in most cases for security reasons. 

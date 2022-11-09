@@ -772,7 +772,7 @@ namespace Uno.Wasm.Bootstrap
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
-			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} ";
+			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} {pthreadPoolSizeParam}";
 			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
@@ -1865,6 +1865,11 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
+
+				if (EnableThreads)
+				{
+					AddEnvironmentVariable("UNO_BOOTSTRAP_MAX_THREADS", PThreadsPoolSize.ToString());
+				}
 
 				if (ExtraEmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
 				{
