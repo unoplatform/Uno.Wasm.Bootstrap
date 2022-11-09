@@ -27,5 +27,6 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base. Useful to reach assets deployed using the `UnoDeploy="Package"` mode.
 - `UNO_BOOTSTRAP_WEBAPP_BASE_PATH`, which specifies the base location of the webapp. This parameter is used in the context of deep-linking (through the `WasmShellWebAppBasePath` property). This property must contain a trailing `/` and its default is `./`.
 - `UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY`, which optionally specifies the maximum memory available to the WebAssembly module. 
+- `UNO_BOOTSTRAP_MAX_THREADS`, which provides the maximum number of threads that can be created.
 
 Those variables can be accessed through [Environment.GetEnvironmentVariable](https://docs.microsoft.com/en-us/dotnet/api/system.environment.getenvironmentvariable).
