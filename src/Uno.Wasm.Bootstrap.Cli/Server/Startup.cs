@@ -11,6 +11,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
@@ -19,14 +20,9 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using Uno.Wasm.Bootstrap.Cli.DebuggingProxy;
 
@@ -34,7 +30,6 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 {
 	class Startup
 	{
-		private const string WasmMimeType = "application/wasm";
 		private readonly char OtherDirectorySeparatorChar = Path.DirectorySeparatorChar == '/' ? '\\' : '/';
 
 		public void ConfigureServices(IServiceCollection services)
@@ -42,20 +37,18 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			services.AddRouting();
 			services.AddResponseCompression(options =>
 			{
+				options.EnableForHttps = true;
 				options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
 				{
-					MediaTypeNames.Application.Octet,
-					WasmMimeType
+					MediaTypeNames.Application.Octet
 				});
 			});
 		}
 
 		public void Configure(IApplicationBuilder app, IConfiguration configuration)
 		{
+			app.UseResponseCompression();
 			app.UseDeveloperExceptionPage();
-			var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
-			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
-			var contentRoot = env.ContentRootPath;
 
 			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
@@ -77,10 +70,13 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 				await next();
 			});
 
+			var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
+
 			app.UseStaticFiles(new StaticFileOptions
 			{
-				FileProvider = new PhysicalFileProvider(pathBase),
 				ContentTypeProvider = CreateContentTypeProvider(true),
+				FileProvider = new PhysicalFileProvider(pathBase),
+				HttpsCompression = HttpsCompressionMode.Compress,
 				OnPrepareResponse = SetCacheHeaders
 			});
 
@@ -132,6 +128,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 					? null : new StaticFileOptions
 					{
 						FileProvider = new PhysicalFileProvider(Path.GetDirectoryName(indexHtmlPath)),
+						HttpsCompression = HttpsCompressionMode.Compress,
 						OnPrepareResponse = SetCacheHeaders
 					};
 
@@ -180,9 +177,10 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 		private static IContentTypeProvider CreateContentTypeProvider(bool enableDebugging)
 		{
 			var result = new FileExtensionContentTypeProvider();
+			result.Mappings.Add(".blat", MediaTypeNames.Application.Octet);
+			result.Mappings.Add(".br", MediaTypeNames.Application.Octet);
 			result.Mappings.Add(".clr", MediaTypeNames.Application.Octet);
 			result.Mappings.Add(".dat", MediaTypeNames.Application.Octet);
-			// result.Mappings.Add(".wasm", "application/wasm");
 
 			if (enableDebugging)
 			{
