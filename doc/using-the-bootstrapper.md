@@ -87,7 +87,7 @@ Each major version of the bootstrapper targets a different version of the .NET R
 
 - 2.x: Mono runtime (https://github.com/mono/mono)
 - 3.x: .NET 6 (https://github.com/dotnet/runtime/commits/release/6.0)
-- 7.x-dev: .NET 7 (https://github.com/dotnet/runtime/commits/release/7.0)
+- 7.x: .NET 7 (https://github.com/dotnet/runtime/commits/release/7.0)
 - 8.x-dev: .NET 8 (https://github.com/dotnet/runtime/commits/main)
 
 > [!NOTE]
