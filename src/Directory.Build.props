@@ -13,7 +13,7 @@
 
 	<Product>$(AssemblyName) ($(TargetFramework))</Product>
 	<DefaultLanguage>en-US</DefaultLanguage>
-	<LangVersion>8.0</LangVersion>
+	<LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
