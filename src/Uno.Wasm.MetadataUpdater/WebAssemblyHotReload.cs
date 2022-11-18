@@ -59,7 +59,7 @@ namespace Uno.Wasm.MetadataUpdate
 		/// <summary>
 		/// For framework use only.
 		/// </summary>
-		public static void ApplyHotReloadDelta(string moduleIdString, string metadataDelta, string ilDeta)
+		public static void ApplyHotReloadDelta(string moduleIdString, string metadataDelta, string ilDeta, string pdbDelta)
 		{
 			if (_linkerEnabled)
 			{
@@ -80,6 +80,7 @@ namespace Uno.Wasm.MetadataUpdate
 			_updateDeltas[0].ModuleId = moduleId;
 			_updateDeltas[0].MetadataDelta = Convert.FromBase64String(metadataDelta);
 			_updateDeltas[0].ILDelta = Convert.FromBase64String(ilDeta);
+			_updateDeltas[0].PdbBytes = Convert.FromBase64String(pdbDelta);
 
 			_hotReloadAgent!.ApplyDeltas(_updateDeltas);
 		}
