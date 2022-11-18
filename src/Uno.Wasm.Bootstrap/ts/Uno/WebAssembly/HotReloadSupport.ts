@@ -2,12 +2,16 @@
 
 	export class HotReloadSupport {
 		private _context?: DotnetPublicAPI;
+		private _unoConfig?: UnoConfig;
 
-		constructor(context: DotnetPublicAPI) {
+		constructor(context: DotnetPublicAPI, unoConfig: UnoConfig) {
 			this._context = context;
+			this._unoConfig = unoConfig;
 		}
 
 		public async initializeHotReload(): Promise<void> {
+
+			const webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 
 			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
 			// from the "BrowserLink" feature.
@@ -25,7 +29,6 @@
 					},
 
 					applyExisting: async function (): Promise<void> {
-						const webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 
 						var hotreloadConfigResponse = await fetch(`/_framework/unohotreload`);
 
@@ -54,13 +57,13 @@
 						return this.getApplyUpdateCapabilitiesMethod();
 					},
 
-					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any) {
+					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any) {
 						this.initialize();
-						return this.applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta);
+						return this.applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "");
 					}
 				};
 			})((<any>window).Blazor || ((<any>window).Blazor = {}));
-
+				
 			// Apply pending updates caused by a browser refresh
 			(<any>window).Blazor._internal.initialize(this._context.BINDING);
 			await (<any>window).Blazor._internal.applyExisting();

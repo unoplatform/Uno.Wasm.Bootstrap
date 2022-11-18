@@ -154,12 +154,11 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.setupRequire();
 			this.setupEmscriptenPreRun();
-			this.setupHotReload();
 		}
 
 		private setupHotReload() {
 			if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
-				this._hotReloadSupport = new HotReloadSupport(this._context);
+				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
 			}
 		}
 
@@ -271,6 +270,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private async mainInit(): Promise<void> {
 			try {
 				this.attachDebuggerHotkey();
+				this.setupHotReload();
 				this.timezoneSetup();
 
 				if (this._hotReloadSupport) {
