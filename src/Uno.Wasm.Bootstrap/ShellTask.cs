@@ -767,12 +767,13 @@ namespace Uno.Wasm.Bootstrap
 			var emsdkPath = useFullPackager ? ValidateEmscripten() : "";
 
 			ValidateDotnet();
+			LinkerSetup();
 
 			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "") + " " + (EnableSimd ? "-simd" : "");
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
-			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} {pthreadPoolSizeParam}";
+			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} {pthreadPoolSizeParam} --illinker-path=\"{_linkerBinPath}\"";
 			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
@@ -868,6 +869,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(debugOption);
 				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
+				packagerParams.Add($"--illinker-path=\"{_linkerBinPath}\"");
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
@@ -924,8 +926,6 @@ namespace Uno.Wasm.Bootstrap
 					MonoILLinker
 				)
 				{
-					LinkerSetup();
-
 					var linkerInput = Path.Combine(IntermediateOutputPath, "linker-in");
 					var linkerResponse = Path.Combine(linkerInput, "linker.rsp");
 					var linkerParams = new List<string>();

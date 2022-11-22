@@ -463,6 +463,7 @@ class Driver {
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		int pthread_pool_size = 4;
+		string illinker_path = "";
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
 		string linker_optimization_level = "";
@@ -519,6 +520,7 @@ class Driver {
 				{ "emcc-exported-runtime-method=", s => emcc_exported_runtime_methods.Add (s) },
 				{ "framework=", s => framework = s },
 				{ "extra-emccflags=", s => extra_emccflags = s },
+				{ "illinker-path=", s => illinker_path = s },
 				{ "extra-linkerflags=", s => extra_linkerflags = s },
 				{ "linker-optimization-level=", s => linker_optimization_level = s },
 				{ "help", s => print_usage = true },
@@ -1181,6 +1183,7 @@ class Driver {
 		ninja.WriteLine ($"bcl_facades_dir = {bcl_facades_prefix}");
 		ninja.WriteLine ($"framework_dir = {framework_prefix}");
 		ninja.WriteLine ($"tools_dir = {bcl_tools_prefix}");
+		ninja.WriteLine ($"linker_dir = {illinker_path}");
 
 		if (!is_windows)
 		{
@@ -1331,7 +1334,7 @@ class Driver {
 		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
 
 		ninja.WriteLine ("rule linker");
-		var linkerBin = "dotnet $tools_dir/illink.dll";
+		var linkerBin = "dotnet \'$linker_dir/illink.dll\'";
 
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
