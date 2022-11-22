@@ -26,7 +26,7 @@ jobs:
     displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: 7.0.100-rc.1.22431.12
+      version: 7.0.100
       includePreviewVersions: true
 
   - pwsh: |
