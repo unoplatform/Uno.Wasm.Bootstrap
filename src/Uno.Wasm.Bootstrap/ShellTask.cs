@@ -972,7 +972,7 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(linkerResponse)}");
 
 					var linkerResults = RunProcess(
-						_linkerBinPath,
+						Path.Combine(_linkerBinPath, "illink.dll"),
 						$"\"@{linkerResponse}\"",
 						_managedPath
 					);
@@ -1102,7 +1102,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private void LinkerSetup()
-			=> _linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools", "illink.dll");
+			=> _linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools");
 
 		private bool IsRuntimeAOT()
 			=> _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
