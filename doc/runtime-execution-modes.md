@@ -117,6 +117,9 @@ This is the default mode on Windows. It requires installing [Python from Windows
 
 This mode is compatible with CI servers which have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
 
+> [!NOTE]
+> On Windows 10 and 11, you'll need enable developer mode and allow powershell scripts to run as `RemoteSigned` using **Control panel** / **System** / **Privacy & Security** / **For developers** / **PowerShell** / **Change execution policy to allow local scripts to run without signing**.
+
 ### Using Windows Subsystem for Linux
 This mode can be enabled by adding this property to the `csproj`:
 ```xml
