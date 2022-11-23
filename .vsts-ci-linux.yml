@@ -5,6 +5,7 @@ parameters:
 
 jobs:
 - job: ${{ parameters.jobName }}
+  timeoutInMinutes: 90
 
   container: ${{ parameters.linux_container }}
 
