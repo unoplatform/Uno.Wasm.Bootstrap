@@ -1251,7 +1251,7 @@ namespace Uno.Wasm.Bootstrap
 				&& !result.output.Equals("bypass", StringComparison.OrdinalIgnoreCase)
 				&& !SkipPowershellExecutionPolicyValidation)
 			{
-				throw new InvalidOperationException($"The current PowerShell Execution policy is [{result.output}]. To run the bootstrapper, open an elevated PowerShell prompt and run `Set-ExecutionPolicy RemoteSigned -Force`");
+				throw new InvalidOperationException($"The current PowerShell Execution policy is [{result.output}]. For more information see https://aka.platform.uno/bootstrapper-powershell");
 			}
 
 			return result;

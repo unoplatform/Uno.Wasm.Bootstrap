@@ -117,8 +117,15 @@ This is the default mode on Windows. It requires installing [Python from Windows
 
 This mode is compatible with CI servers which have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
 
-> [!NOTE]
-> On Windows 10 and 11, you'll need enable developer mode and allow powershell scripts to run as `RemoteSigned` using **Control panel** / **System** / **Privacy & Security** / **For developers** / **PowerShell** / **Change execution policy to allow local scripts to run without signing**.
+#### Powershell setup
+The bootstrapper needs to use powershell, and configuration is needed.
+
+You'll need to run the following command in an elevated (administrator) PowerShell prompt:
+```
+Set-ExecutionPolicy RemoteSigned -Force
+```
+
+You may also need to enable the developer mode for Windows 10 and 11 by using **Control panel** / **System** / **Privacy & Security** / **For developers** / **PowerShell** and setting **Change execution policy to allow local scripts to run without signing** to **On**.
 
 ### Using Windows Subsystem for Linux
 This mode can be enabled by adding this property to the `csproj`:
