@@ -8,6 +8,7 @@
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
       "Uno.Wasm.Bootstrap\\Uno.Wasm.Bootstrap.csproj",
+      "Uno.Wasm.HttpRequestMessageExtensions\\Uno.Wasm.HttpRequestMessageExtensions.csproj",
       "Uno.Wasm.MixedModeRoslynSample\\Uno.Wasm.MixedModeRoslynSample.csproj",
       "Uno.Wasm.MixedModeSample\\Uno.Wasm.MixedModeSample.csproj",
       "Uno.Wasm.Node.Sample\\Uno.Wasm.Node.Sample.csproj",
