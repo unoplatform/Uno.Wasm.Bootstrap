@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFrameworks>net5.0;net7.0</TargetFrameworks>
+		<Nullable>enable</Nullable>
+		<RollForward>Major</RollForward>
+
+		<InformationalVersion Condition="'$(Configuration)'=='Debug'">0.0.0-local-dev-build-DOT-NOT-PUBLISH</InformationalVersion>
+
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>uno-wasm-version</ToolCommandName>
+		<PackageOutputPath>./nupkg</PackageOutputPath>
+
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Colorful.Console" Version="1.2.15" />
+		<PackageReference Include="ConsoleTables" Version="2.4.2" />
+		<PackageReference Include="HtmlAgilityPack" Version="1.11.34" />
+		<PackageReference Include="Mono.Cecil" Version="0.11.3" />
+	</ItemGroup>
+
+</Project>

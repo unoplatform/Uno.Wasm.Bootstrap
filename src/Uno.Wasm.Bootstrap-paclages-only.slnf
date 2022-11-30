@@ -2,6 +2,7 @@
   "solution": {
     "path": "Uno.Wasm.Bootstrap.sln",
     "projects": [
+      "Uno.VersionChecker\\Uno.VersionChecker.csproj",
       "Uno.Wasm.AotProfiler\\Uno.Wasm.AotProfiler.csproj",
       "Uno.Wasm.Bootstrap.Cli\\Uno.Wasm.Bootstrap.Cli.csproj",
       "Uno.Wasm.Bootstrap.DevServer\\Uno.Wasm.Bootstrap.DevServer.csproj",
