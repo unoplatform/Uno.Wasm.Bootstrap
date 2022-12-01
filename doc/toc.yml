@@ -49,5 +49,11 @@ items:
     - name: 4GB Support
       href: features-4gb.md
 
+- name: Tools
+  items:
+    - name: Uno Version Checker
+      href: features-version-checker.md
+
+
 - name: Contributing
   href: contributing.md
