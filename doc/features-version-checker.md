@@ -1,4 +1,4 @@
-# Uno.VersionChecker
+# Uno.Wasm.VersionChecker
 
 This is a tool to extract the version of _dotnet assemblies_ used on a Uno.UI application. Should also work with most applications built on _Uno Bootstrapper_.
 
@@ -6,7 +6,7 @@ This is a tool to extract the version of _dotnet assemblies_ used on a Uno.UI ap
 Install the executable using the following command:
 
 ``` shell
-> dotnet tool install -g Uno.VersionChecker
+> dotnet tool install -g Uno.Wasm.VersionChecker
 ```
 
 ## Usage of `uno-wasm-version`
