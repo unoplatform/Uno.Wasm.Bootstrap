@@ -120,7 +120,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.HttpRequestMessage
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{84D19B91-8728-4EBD-A6B2-D51F3B0EAB31}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.VersionChecker", "Uno.VersionChecker\Uno.VersionChecker.csproj", "{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.VersionChecker", "Uno.Wasm.VersionChecker\Uno.Wasm.VersionChecker.csproj", "{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Root", "_Root", "{70AAFC96-05F5-43A3-959A-95FB32CDE202}"
 	ProjectSection(SolutionItems) = preProject
