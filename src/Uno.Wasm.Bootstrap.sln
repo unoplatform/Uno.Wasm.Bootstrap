@@ -116,6 +116,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample.Server.Net7
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Server.net7", "Uno.Wasm.StaticLinking.Server.net7\Uno.Wasm.StaticLinking.Server.net7.csproj", "{227B4962-4978-4712-8C52-630E2371A869}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.HttpRequestMessageExtensions", "Uno.Wasm.HttpRequestMessageExtensions\Uno.Wasm.HttpRequestMessageExtensions.csproj", "{0527B6ED-6050-4B55-A602-31DD46CF5999}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{84D19B91-8728-4EBD-A6B2-D51F3B0EAB31}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.VersionChecker", "Uno.VersionChecker\Uno.VersionChecker.csproj", "{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}"
@@ -311,6 +313,10 @@ Global
 		{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

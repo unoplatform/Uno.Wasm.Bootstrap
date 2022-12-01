@@ -9,6 +9,7 @@
       "Uno.Wasm.Bootstrap.Server\\Uno.Wasm.Bootstrap.Server.csproj",
       "Uno.Wasm.Bootstrap.UnitTests\\Uno.Wasm.Bootstrap.UnitTests.csproj",
       "Uno.Wasm.Bootstrap\\Uno.Wasm.Bootstrap.csproj",
+      "Uno.Wasm.HttpRequestMessageExtensions\\Uno.Wasm.HttpRequestMessageExtensions.csproj",
       "Uno.Wasm.LogProfiler\\Uno.Wasm.LogProfiler.csproj",
       "Uno.Wasm.MetadataUpdater\\Uno.Wasm.MetadataUpdater.csproj",
       "Uno.Wasm.Packager\\Uno.Wasm.Packager.csproj",
