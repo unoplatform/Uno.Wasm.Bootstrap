@@ -159,9 +159,14 @@ namespace Uno.Wasm.Bootstrap.Cli
 		{
 			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
 			var targetFramework = configuration.GetValue<string>("targetframework") ?? "";
+			var intermediatePath = configuration.GetValue<string>("intermediateoutputpath") ?? "";
 
 			var contentRoot = environment.ContentRootPath;
-			var debuggerInfoRoot = Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework, "wasm-debugger");
+			var debuggerInfoRoot = intermediatePath is { Length: > 0 }
+				// This is defined in when the boostrapper is referenced through nuget
+				? Path.Combine(contentRoot, intermediatePath, "wasm-debugger")
+				// Used as a fallback inside the bootstrapper solution
+				: Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework, "wasm-debugger");
 
 			var debuggerInfoFile = Path.Combine(debuggerInfoRoot, ".debuggerinfo");
 			if (!File.Exists(debuggerInfoFile))
