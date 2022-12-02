@@ -22,7 +22,7 @@
 		<!-- Used inside bootstrapper solution -->
 		<_UnoRunBasePath Condition="'$(OutputPath)'==''">$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/</_UnoRunBasePath>
 
-		<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(_UnoRunBasePath)dist&quot; --configuration &quot;$(Configuration)&quot; --targetframework &quot;$(TargetFramework)&quot; --intermediateoutputpath &quot;$(IntermediateOutputPath)&quot;  $(AdditionalRunArguments)</RunArguments>
+		<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(_UnoRunBasePath)dist&quot; --configuration &quot;$(Configuration)&quot; --targetframework &quot;$(TargetFramework)&quot; --intermediateoutputpath &quot;$(IntermediateOutputPath)/&quot;  $(AdditionalRunArguments)</RunArguments>
 	</PropertyGroup>
 
 </Project>
