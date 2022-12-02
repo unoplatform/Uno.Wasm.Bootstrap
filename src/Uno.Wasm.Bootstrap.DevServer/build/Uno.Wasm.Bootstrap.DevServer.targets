@@ -1,21 +1,28 @@
 ﻿<Project>
 
-  <PropertyGroup>
-	<!-- Web Project Run Parameters -->
-	<RunCommand>dotnet</RunCommand>
+	<PropertyGroup>
+		<!-- Web Project Run Parameters -->
+		<RunCommand>dotnet</RunCommand>
 
-	<!-- Nuget deployed run parameters -->
-	<_unoBinArgs>unowasm serve</_unoBinArgs>
+		<!-- Nuget deployed run parameters -->
+		<_unoBinArgs>unowasm serve</_unoBinArgs>
 
-	<_UnoDevServerBasePath Condition="'$(TargetFramework)'=='netstandard2.0'">netcoreapp3.1</_UnoDevServerBasePath>
-	<_UnoDevServerBasePath Condition="'$(TargetFramework.substring(0,3))'=='net' and '$(TargetFramework)'!='netstandard2.0'">net5</_UnoDevServerBasePath>
-	<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 5">net6</_UnoDevServerBasePath>
-	<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 6">net7.0</_UnoDevServerBasePath>
+		<_UnoDevServerBasePath Condition="'$(TargetFramework)'=='netstandard2.0'">netcoreapp3.1</_UnoDevServerBasePath>
+		<_UnoDevServerBasePath Condition="'$(TargetFramework.substring(0,3))'=='net' and '$(TargetFramework)'!='netstandard2.0'">net5</_UnoDevServerBasePath>
+		<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 5">net6</_UnoDevServerBasePath>
+		<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 6">net7.0</_UnoDevServerBasePath>
 
-	<!-- Uno.Wasm.Bootstrap internal args -->
-	<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
-	<_unoBinArgs Condition="!exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">&quot;$(MSBuildThisFileDirectory)../tools/server/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
-	<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\dist&quot; --configuration $(Configuration) --targetframework $(TargetFramework) $(AdditionalRunArguments)</RunArguments>
-  </PropertyGroup>
+		<!-- Uno.Wasm.Bootstrap internal args -->
+		<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+		<_unoBinArgs Condition="!exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">&quot;$(MSBuildThisFileDirectory)../tools/server/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+
+		<!-- Used when imported from the nuget package -->
+		<_UnoRunBasePath Condition="'$(OutputPath)'!=''">$(MSBuildProjectDirectory)/$(OutputPath)</_UnoRunBasePath>
+
+		<!-- Used inside bootstrapper solution -->
+		<_UnoRunBasePath Condition="'$(OutputPath)'==''">$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/</_UnoRunBasePath>
+
+		<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(_UnoRunBasePath)dist&quot; --configuration &quot;$(Configuration)&quot; --targetframework &quot;$(TargetFramework)&quot; --intermediateoutputpath &quot;$(IntermediateOutputPath)/&quot;  $(AdditionalRunArguments)</RunArguments>
+	</PropertyGroup>
 
 </Project>
