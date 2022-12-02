@@ -26,16 +26,6 @@
 		<WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
 		<WasmShellEnableSimd Condition="'$(WasmShellEnableSimd)'==''">false</WasmShellEnableSimd>
 
-		<!--
-    Set this variable to use custom debugger binaries instead of the files found 
-    in the active mono-wasm folder.
-    -->
-		<!--<MonoRuntimeCustomDebuggerPath>$(MSBuildThisFileDirectory)CustomDebuggerProxy</MonoRuntimeCustomDebuggerPath>-->
-		<!--
-    Uncomment to enable custom linker path
-    <MonoRuntimeCustomLinkerPath>$(MSBuildThisFileDirectory)</MonoRuntimeCustomLinkerPath>
-    -->
-
 		<!-- 
         Force all applicable references to be present in the ReferenceCopyLocalPaths property.
         Otherwise, the ReferencePath property only contains reference assemblies if those are available.
@@ -43,9 +33,9 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
 		<!-- 
-      When using IISExpress with a standalone app, there's no point restarting IISExpress
-      after build. It slows things unnecessarily and breaks in-flight HTTP requests.
-    -->
+		  When using IISExpress with a standalone app, there's no point restarting IISExpress
+		  after build. It slows things unnecessarily and breaks in-flight HTTP requests.
+		-->
 		<NoRestartServerOnBuild>true</NoRestartServerOnBuild>
 
 		<!-- Disable unwanted parts of the default publish process -->
@@ -180,6 +170,14 @@
 			<_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
 			<_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'=='true'">net5.0</_WasmShellToolSuffix>
 
+			<WasmShellLinkerPath
+				Condition="
+				'$(WasmShellLinkerPath)'==''
+				and '$(TargetFrameworkIdentifier)'=='.NETCoreApp'
+				and $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '6.0'))
+				and '$(ILLinkTasksAssembly)'!=''"
+			>$([System.IO.Path]::GetDirectoryName($(ILLinkTasksAssembly)))\..\net$(BundledNETCoreAppTargetFrameworkVersion)</WasmShellLinkerPath>
+
 		</PropertyGroup>
 
 		<UnoInstallSDKTask_v0
@@ -220,7 +218,7 @@
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
-			CustomLinkerPath="$(MonoRuntimeCustomLinkerPath)"
+			CustomLinkerPath="$(WasmShellLinkerPath)"
 			DistCompressionLayoutMode="$(WasmShellCompressionLayoutMode)"
 			DistPath="$(WasmShellDistPath)"
 			EmccExportedRuntimeMethods="@(WasmShellEmccExportedRuntimeMethod)"

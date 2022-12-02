@@ -5,6 +5,7 @@ parameters:
 
 jobs:
 - job: ${{ parameters.jobName }}
+  timeoutInMinutes: 90
 
   container: ${{ parameters.linux_container }}
 
@@ -28,7 +29,7 @@ jobs:
     displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: 7.0.100-rc.1.22431.12
+      version: 7.0.100
       includePreviewVersions: true
 
   - task: NuGetToolInstaller@0
