@@ -681,7 +681,8 @@ namespace Uno.WebAssembly.Bootstrap {
 						navigator.serviceWorker
 							.register(
 								`${_webAppBasePath}service-worker.js`, {
-								scope: _webAppBasePath
+								scope: _webAppBasePath,
+								type: 'module'
 							})
 							.then(function () {
 								console.debug('Service Worker Registered');
