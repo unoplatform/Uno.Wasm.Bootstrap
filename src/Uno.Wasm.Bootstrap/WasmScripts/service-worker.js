@@ -1,21 +1,14 @@
-﻿console.debug("[ServiceWorker] Initializing");
+﻿import { config } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
 
-let config = {};
+console.debug("[ServiceWorker] Initializing");
 
 self.addEventListener('install', function (e) {
     console.debug('[ServiceWorker] Installing offline worker');
     e.waitUntil(
-        fetch("$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)uno-config.js")
-            .then(r => r.text()
-                .then(configStr => {
-                    eval(configStr);
-                    caches.open('$(CACHE_KEY)').then(function (cache) {
-                        console.debug('[ServiceWorker] Caching app binaries and content');
-                        return cache.addAll(config.offline_files);
-                    });
-                }
-                )
-            )
+        caches.open('$(CACHE_KEY)').then(function (cache) {
+            console.debug('[ServiceWorker] Caching app binaries and content');
+            return cache.addAll(config.offline_files);
+        })
     );
 });
 
