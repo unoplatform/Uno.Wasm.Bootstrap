@@ -1,8 +1,8 @@
 ﻿define(() => {
     document.body.innerHTML =
-        "<h2>This sample is running <a href='https://github.com/nventive/Uno.Wasm.Bootstrap/blob/master/src/Uno.Wasm.AotTests/Benchmark.cs#L218'>this C# ray tracer</a> " +
+        "<h2>This sample is running <a href='https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/master/src/Uno.Wasm.AotTests/Benchmark.cs#L218'>this C# ray tracer</a> " +
         "using Mono's experimental WebAssembly AOT Runtime</h2>" +
-        "<h3>This experimental App has been built using the <a href='https://github.com/nventive/Uno.Wasm.Bootstrap'>Uno.Wasm.Bootstrap</a> nuget package</h3>" +
+        "<h3>This experimental App has been built using the <a href='https://github.com/unoplatform/Uno.Wasm.Bootstrap'>Uno.Wasm.Bootstrap</a> nuget package</h3>" +
         "<div id='resultImage' /><div id='results' />";
 });
 

@@ -1,5 +1,5 @@
 // ******************************************************************
-// Copyright � 2015-2018 nventive inc. All rights reserved.
+// Copyright � 2015-2022 Uno Platform inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 [assembly: System.Reflection.AssemblyFileVersion("1.0.8888")]
 [assembly: System.Reflection.AssemblyInformationalVersion("1.0.8888 - ")]
 [assembly: System.Reflection.AssemblyProduct("Uno.Wasm.ShellBase")]
-[assembly: System.Reflection.AssemblyCompany("nventive")]
-[assembly: System.Reflection.AssemblyCopyright("Copyright (C) nVentive 2011-2018")]
+[assembly: System.Reflection.AssemblyCompany("Uno Platform")]
+[assembly: System.Reflection.AssemblyCopyright("Copyright (C) Uno Platform Inc. 2011-2022")]
 
 

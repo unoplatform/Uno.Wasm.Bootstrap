@@ -8,13 +8,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<Authors>nventive</Authors>
-		<PackageProjectUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</PackageProjectUrl>
-		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
-		<RepositoryUrl>https://github.com/nventive/Uno.Wasm.Bootstrap</RepositoryUrl>
 		<Description>Runtime server features for ASP.NET Core hosted Uno Platform applications.</Description>
-		<Copyright>Copyright (C) 2015-$([System.DateTime]::Now.ToString(`yyyy`)) Uno Platform inc. - all rights reserved</Copyright>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<ItemGroup>
