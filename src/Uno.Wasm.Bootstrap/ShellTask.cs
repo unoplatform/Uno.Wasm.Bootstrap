@@ -87,7 +87,7 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public string IntermediateOutputPath { get; set; } = "";
 		[Microsoft.Build.Framework.Required]
-		public string BaseIntermediateOutputPath { get; set; } = "";
+		public string ProjectDir { get; set; } = "";
 
 		[Microsoft.Build.Framework.Required]
 		public string MonoWasmSDKPath { get; set; } = "";
@@ -318,7 +318,12 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
-			BaseIntermediateOutputPath = TryConvertLongPath(Path.GetFullPath(BaseIntermediateOutputPath));
+
+			if (!Path.IsPathRooted(IntermediateOutputPath))
+			{
+				IntermediateOutputPath = TryConvertLongPath(Path.Combine(ProjectDir, IntermediateOutputPath));
+			}
+
 			DistPath = TryConvertLongPath(DistPath);
 			CurrentProjectPath = TryConvertLongPath(CurrentProjectPath);
 			CustomDebuggerPath = TryConvertLongPath(CustomDebuggerPath!);
