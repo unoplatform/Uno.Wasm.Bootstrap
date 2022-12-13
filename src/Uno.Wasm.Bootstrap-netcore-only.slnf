@@ -30,6 +30,7 @@
       "Uno.Wasm.Tests.Electron\\Uno.Wasm.Tests.Electron.csproj",
       "Uno.Wasm.Tests.Empty\\Uno.Wasm.Test.Empty.csproj",
       "Uno.Wasm.Tests.Shared\\Uno.Wasm.Tests.Shared.shproj",
+      "Uno.Wasm.Tests.AbsoluteIntermediate\\Uno.Wasm.Tests.AbsoluteIntermediate.csproj",
       "Uno.Wasm.Tests.TypeScript\\Uno.Wasm.Tests.TypeScript.csproj",
       "Uno.Wasm.Threads.Aot\\Uno.Wasm.Threads.Aot.csproj",
       "Uno.Wasm.Threads.Shared\\Uno.Wasm.Threads.Shared.shproj",
