@@ -12,15 +12,20 @@
 		<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 5">net6</_UnoDevServerBasePath>
 		<_UnoDevServerBasePath Condition="'$([MSBuild]::GetTargetFrameworkVersion($(TargetFramework)))' &gt; 6">net7.0</_UnoDevServerBasePath>
 
+		<_UnoBootstrapIsDevelopment>false</_UnoBootstrapIsDevelopment>
+		<_UnoBootstrapIsDevelopment Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">true</_UnoBootstrapIsDevelopment>
+
 		<!-- Uno.Wasm.Bootstrap internal args -->
-		<_unoBinArgs Condition="exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
-		<_unoBinArgs Condition="!exists('$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli')">&quot;$(MSBuildThisFileDirectory)../tools/server/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+		<_unoBinArgs Condition="$(_UnoBootstrapIsDevelopment)">exec &quot;$(MSBuildThisFileDirectory)../../Uno.Wasm.Bootstrap.Cli/bin/$(Configuration)/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
+		<_unoBinArgs Condition="!$(_UnoBootstrapIsDevelopment)">&quot;$(MSBuildThisFileDirectory)../tools/server/$(_UnoDevServerBasePath)/dotnet-unowasm.dll&quot; serve $(_unoRunArgs)</_unoBinArgs>
 
 		<!-- Used when imported from the nuget package -->
-		<_UnoRunBasePath Condition="'$(OutputPath)'!=''">$(MSBuildProjectDirectory)/$(OutputPath)</_UnoRunBasePath>
+		<_UnoRunBasePath Condition="!$(_UnoBootstrapIsDevelopment) and '$(OutputPath)'!='' and !$([System.IO.Path]::IsPathRooted($(OutputPath)))">$(MSBuildProjectDirectory)/$(OutputPath)</_UnoRunBasePath>
+		<_UnoRunBasePath Condition="!$(_UnoBootstrapIsDevelopment) and '$(OutputPath)'!='' and $([System.IO.Path]::IsPathRooted($(OutputPath)))">$(OutputPath)</_UnoRunBasePath>
 
 		<!-- Used inside bootstrapper solution -->
-		<_UnoRunBasePath Condition="'$(OutputPath)'==''">$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/</_UnoRunBasePath>
+		<_UnoRunBasePath Condition="$(_UnoBootstrapIsDevelopment) and '$(OutputPath)'==''">$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/</_UnoRunBasePath>
+		<_UnoRunBasePath Condition="$(_UnoBootstrapIsDevelopment) and '$(OutputPath)'!='' and $([System.IO.Path]::IsPathRooted($(OutputPath)))">$(OutputPath)/$(TargetFramework)/</_UnoRunBasePath>
 
 		<RunArguments>$(_unoBinArgs) $(_unoRunArgs) --pathbase &quot;$(_UnoRunBasePath)dist&quot; --configuration &quot;$(Configuration)&quot; --targetframework &quot;$(TargetFramework)&quot; --intermediateoutputpath &quot;$(IntermediateOutputPath)/&quot;  $(AdditionalRunArguments)</RunArguments>
 	</PropertyGroup>
