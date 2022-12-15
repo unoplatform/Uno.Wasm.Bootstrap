@@ -116,8 +116,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample.Server.Net7
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Server.net7", "Uno.Wasm.StaticLinking.Server.net7\Uno.Wasm.StaticLinking.Server.net7.csproj", "{227B4962-4978-4712-8C52-630E2371A869}"
 EndProject
-<<<<<<< HEAD
-=======
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.HttpRequestMessageExtensions", "Uno.Wasm.HttpRequestMessageExtensions\Uno.Wasm.HttpRequestMessageExtensions.csproj", "{0527B6ED-6050-4B55-A602-31DD46CF5999}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{84D19B91-8728-4EBD-A6B2-D51F3B0EAB31}"
@@ -135,7 +133,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Root", "_Root", "{70AAFC96
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.AbsoluteIntermediate", "Uno.Wasm.Tests.AbsoluteIntermediate\Uno.Wasm.Tests.AbsoluteIntermediate.csproj", "{6584CC1B-2628-4872-851A-E85C0E572D39}"
 EndProject
->>>>>>> 9e0ba03 (chore: Add IntermediateOutputPath change validation)
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
