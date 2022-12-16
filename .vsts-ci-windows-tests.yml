@@ -60,7 +60,6 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
-
   # Ray tracer
 
   - pwsh: |
