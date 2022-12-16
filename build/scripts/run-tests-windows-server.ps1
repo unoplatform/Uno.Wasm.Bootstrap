@@ -6,7 +6,7 @@ $BOOTSTRAP_TEST_RUNNER_PATH=$args[2]
 $env:BOOTSTRAP_TEST_RUNNER_URL=$args[3]
 
 cd $BOOTSTRAP_APP_PATH
-$serverProcess = Start-Process .\$BOOTSTRAP_APP_EXE -NoNewWindow -PassThru
+$serverProcess = Start-Process .\$BOOTSTRAP_APP_EXE -NoNewWindow -PassThru --urls=$env:BOOTSTRAP_TEST_RUNNER_URL
 
 Try 
 {

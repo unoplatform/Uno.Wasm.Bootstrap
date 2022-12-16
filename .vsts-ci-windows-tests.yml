@@ -54,7 +54,7 @@ jobs:
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net7.0\publish" `
       "Uno.Wasm.StaticLinking.Server.net7.exe" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
-      "http://localhost:5000/"
+      "http://localhost:8000/"
 
     displayName: Standalone Server publish tests (net7)
     env:
