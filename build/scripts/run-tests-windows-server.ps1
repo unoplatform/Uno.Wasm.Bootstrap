@@ -1,3 +1,5 @@
+Set-PSDebug -Trace 1
+
 $BOOTSTRAP_APP_PATH=$args[0]
 $BOOTSTRAP_APP_EXE=$args[1]
 $BOOTSTRAP_TEST_RUNNER_PATH=$args[2]
