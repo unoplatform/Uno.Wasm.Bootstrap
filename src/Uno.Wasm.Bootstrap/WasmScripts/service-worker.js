@@ -5,9 +5,19 @@ console.debug("[ServiceWorker] Initializing");
 self.addEventListener('install', function (e) {
     console.debug('[ServiceWorker] Installing offline worker');
     e.waitUntil(
-        caches.open('$(CACHE_KEY)').then(function (cache) {
+        caches.open('$(CACHE_KEY)').then(async function (cache) {
             console.debug('[ServiceWorker] Caching app binaries and content');
-            return cache.addAll(config.offline_files);
+
+            // Add files one by one to avoid failed downloads to prevent the
+            // worker to fail installing.
+            for (var i = 0; i < config.offline_files.length; i++) {
+                try {
+                    await cache.add(config.offline_files[i]);
+                }
+                catch (e) {
+                    console.debug(`[ServiceWorker] Failed to fetch ${config.offline_files[i]}`);
+                }
+            }
         })
     );
 });

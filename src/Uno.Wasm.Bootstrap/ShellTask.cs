@@ -258,8 +258,8 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				CleanupDist();
 				PrepareFinalDist();
-				GenerateConfig();
 				TouchServiceWorker();
+				GenerateConfig();
 				MergeConfig();
 				GenerateIndexHtml();
 				GenerateEmbeddedJs();
