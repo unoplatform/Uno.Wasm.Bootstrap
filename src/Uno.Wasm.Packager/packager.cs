@@ -98,6 +98,9 @@ class Driver {
 		public string final_path;
 		// Whenever to AOT this assembly
 		public bool aot;
+
+		// If not null, this is a satellite assembly
+		public string culture;
 	}
 
 	static List<AssemblyData> assemblies = new List<AssemblyData> ();
@@ -255,7 +258,10 @@ class Driver {
 			return;
 		}
 
-		if (!asm_map.Add (Path.GetFullPath (ra)))
+		var assemblyFullPath = Path.GetFullPath(ra);
+		var assemblyDirectory = Path.GetDirectoryName(assemblyFullPath);
+
+		if (!asm_map.Add (assemblyFullPath))
 			return;
 		Console.WriteLine($"Resolving {ra}");
 		ReaderParameters rp = new ReaderParameters();
@@ -317,13 +323,41 @@ class Driver {
 				}
 				else
 				{
-					Console.WriteLine($"Coukd not resolve {ar.Name}");
+					Console.WriteLine($"Could not resolve {ar.Name}");
 				}
+			}
+		}
+
+		// Resolving satellite assemblies
+		if(kind == AssemblyKind.User)
+		{
+			string resourceFile = GetAssemblyResourceFileName(assemblyFullPath);
+
+			foreach (var subDirectory in Directory.EnumerateDirectories(assemblyDirectory))
+			{
+				var satelliteAssembly = Path.Combine(subDirectory, resourceFile);
+				if (!File.Exists(satelliteAssembly))
+				{
+					continue;
+				}
+
+				string cultureName = subDirectory.Substring(subDirectory.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+				string culturePath = Path.Combine(assemblyDirectory, cultureName);
+
+				var satelliteData = new AssemblyData() { name = resourceFile.Replace(".dll", ""), src_path = satelliteAssembly, culture = cultureName };
+				assemblies.Add(satelliteData);
+
+				file_list.Add(satelliteAssembly);
+
+				Console.WriteLine($"Added satellite assembly {cultureName}/{resourceFile}");
 			}
 		}
 
 		Console.WriteLine($"Resolved {ra}");
 	}
+
+	static string GetAssemblyResourceFileName(string assembly)
+		=> Path.GetFileNameWithoutExtension(assembly) + ".resources.dll";
 
 	void GenDriver (string builddir, List<string> profilers, ExecMode ee_mode, bool link_icalls) {
 		var symbols = new List<string> ();
@@ -774,7 +808,15 @@ class Driver {
 				Directory.Delete (bcl_dir, true);
 			Directory.CreateDirectory (bcl_dir);
 			foreach (var f in file_list) {
-				CopyFile(f, Path.Combine (bcl_dir, Path.GetFileName (f)), copyType);
+
+				var fileName = Path.GetFileName(f);
+
+				if(IsResourceAssembly(f, out var culture))
+				{
+					fileName = Path.Combine(culture, fileName);
+				}
+
+				CopyFile(f, Path.Combine (bcl_dir, fileName), copyType);
 			}
 		}
 
@@ -885,7 +927,20 @@ class Driver {
 				_ => throw new Exception($"Unsupported asset type")
 			};
 
-			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\", \"url\":\"{Path.GetFileName(f)}\" }}";
+			string cultureField = null;
+			string culturePathPrefix = null;
+
+			if (assetType is "assembly")
+			{
+				if(IsResourceAssembly(f, out var culture))
+				{
+					assetType = "resource";
+					cultureField = $", \"culture\":\"{Path.GetFileName(Path.GetDirectoryName(f))}\"";
+					culturePathPrefix = $"{culture}/";
+				}
+			}
+
+			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\", \"url\":\"{culturePathPrefix}{Path.GetFileName(f)}\" {cultureField} }}";
 		}));
 		var debugLevel = enable_debug ? " -1" : "0";
 
@@ -944,7 +999,7 @@ class Driver {
 			if (assembly == null)
 				continue;
 			string filename = Path.GetFileName (assembly);
-			if (filenames.ContainsKey (filename)) {
+			if (filenames.ContainsKey (filename) && !filename.EndsWith(".resources.dll",	StringComparison.OrdinalIgnoreCase)) {
 				Console.WriteLine ("Duplicate input assembly: " + assembly + " " + filenames [filename]);
 				return 1;
 			}
@@ -1470,6 +1525,12 @@ class Driver {
 			if (assembly == null)
 				continue;
 			string filename = Path.GetFileName (assembly);
+
+			if(a.culture is not null)
+			{
+				filename = Path.Combine(a.culture, filename);
+			}
+
 			var filename_noext = Path.GetFileNameWithoutExtension (filename);
 			string filename_pdb = Path.ChangeExtension (filename, "pdb");
 			var source_file_path = Path.GetFullPath (assembly);
@@ -1587,7 +1648,7 @@ class Driver {
 
 		if (link_icalls) {
 			string icall_assemblies = "";
-			foreach (var a in assemblies) {
+			foreach (var a in assemblies.Where(a => a.culture is null)) {
 				if (a.name == "mscorlib" || a.name == "System")
 					icall_assemblies += $"{a.linkout_path} ";
 			}
@@ -1596,7 +1657,7 @@ class Driver {
 		}
 		if (gen_pinvoke) {
 			string pinvoke_assemblies = "";
-			foreach (var a in assemblies)
+			foreach (var a in assemblies.Where(a => a.culture is null))
 				pinvoke_assemblies += $"{a.linkout_path} ";
 
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
@@ -1700,9 +1761,31 @@ class Driver {
 		return 0;
 	}
 
+	private bool IsResourceAssembly(string f, out string culture)
+	{
+		if (f.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase))
+		{
+			var originalAssembly = Path.GetFileName(f.Replace(".resources.dll", ".dll", StringComparison.OrdinalIgnoreCase));
+
+			var resourceAssemblyDirectory = Path.GetDirectoryName(Path.GetDirectoryName(f));
+			if (File.Exists(Path.Combine(resourceAssemblyDirectory, originalAssembly)))
+			{
+				culture = Path.GetFileName(Path.GetDirectoryName(f));
+
+				return true;
+			}
+		}
+
+		culture = null;
+		return false;
+	}
+
 	static void CopyFile(string sourceFileName, string destFileName, CopyType copyType, string typeFile = "")
 	{
 		Console.WriteLine($"{typeFile}cp: {copyType} - {sourceFileName} -> {destFileName}");
+
+		Directory.CreateDirectory(Path.GetDirectoryName(destFileName));
+
 		switch (copyType)
 		{
 			case CopyType.Always:
