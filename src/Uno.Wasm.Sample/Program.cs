@@ -18,6 +18,7 @@ using System;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Globalization;
 
 namespace Uno.Wasm.Sample
 { 
@@ -50,6 +51,10 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
 
 			Console.WriteLine(typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger));
+
+			var r = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
+			Console.WriteLine($"Res(en): {r.GetString("WebDescriptionMissing", new CultureInfo("en-US"))}");
+			Console.WriteLine($"Res(fr): {r.GetString("WebDescriptionMissing", new CultureInfo("fr-CA"))}");
 
 			_t = new Timer(_ => {
 				Console.WriteLine("message");
