@@ -102,6 +102,26 @@ internal sealed class PInvokeTableGenerator
 			}
 		}
 
+		if (HasAttribute(type, "System.Runtime.InteropServices.UnmanagedFunctionPointerAttribute"))
+		{
+			var method = type.GetMethod("Invoke");
+
+			if (method != null)
+			{
+				string? signature = SignatureMapper.MethodToSignature(method!);
+				if (signature == null)
+					throw new NotSupportedException($"Unsupported parameter type in method '{type.FullName}.{method.Name}'");
+
+
+#if ORIGINAL_NETCORE_SOURCE
+				Log.LogMessage(MessageImportance.Low, $"Adding pinvoke signature {signature} for method '{type.FullName}.{method.Name}'");
+#else
+				Console.WriteLine($"Adding pinvoke signature {signature} for method '{type.FullName}.{method.Name}'");
+#endif
+				signatures.Add(signature);
+			}
+		}
+
 		void CollectPInvokesForMethod(MethodInfo method)
 		{
 			if ((method.Attributes & MethodAttributes.PinvokeImpl) != 0)
@@ -181,6 +201,28 @@ internal sealed class PInvokeTableGenerator
 
 			return false;
 		}
+	}
+	private static bool HasAttribute(MemberInfo element, params string[] attributeNames)
+	{
+		foreach (CustomAttributeData cattr in CustomAttributeData.GetCustomAttributes(element))
+		{
+			try
+			{
+				for (int i = 0; i < attributeNames.Length; ++i)
+				{
+					if (cattr.AttributeType.FullName == attributeNames[i] ||
+						cattr.AttributeType.Name == attributeNames[i])
+					{
+						return true;
+					}
+				}
+			}
+			catch
+			{
+				// Assembly not found, ignore
+			}
+		}
+		return false;
 	}
 
 	private void EmitPInvokeTable(StreamWriter w, Dictionary<string, string> modules, List<PInvoke> pinvokes)
