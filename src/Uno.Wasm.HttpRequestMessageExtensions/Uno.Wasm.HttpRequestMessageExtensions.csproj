@@ -21,9 +21,4 @@
 	<ItemGroup>
 		<None Include="..\..\build\icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.AspNetCore.App" Version="6.0.0" />
-	</ItemGroup>
-
 </Project>
