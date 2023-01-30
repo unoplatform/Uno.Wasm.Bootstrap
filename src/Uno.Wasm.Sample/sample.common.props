@@ -51,10 +51,10 @@
 		<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />
 		<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.txt should not exist in $(WasmShellOutputDistPath)" />
 
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\managed\fr\System.Web.Services.Description.resources.clr')"
-			   Text="managed\fr\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputDistPath)" />
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\managed\pt-BR\System.Web.Services.Description.resources.clr')"
-			   Text="managed\pt-BR\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputDistPath)" />
+		<Error Condition="!exists('$(WasmShellOutputPackagePath)\managed\fr\System.Web.Services.Description.resources.clr')"
+			   Text="managed\fr\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputPackagePath)" />
+		<Error Condition="!exists('$(WasmShellOutputPackagePath)\managed\pt-BR\System.Web.Services.Description.resources.clr')"
+			   Text="managed\pt-BR\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputPackagePath)" />
 
 		<Error Condition="$(_monoConfigJson.Contains('System.IO.Pipes.dll'))" Text="mono-config.json is incorrectly filtered" />
 
