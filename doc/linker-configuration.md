@@ -52,4 +52,4 @@ If you need to enable any of those features, you can set the following in your c
 <EventSourceSupport>true</EventSourceSupport>
 ```
 
-Setting `InvariantGlobalization` to false will remove all satellite assemblies from the final package. 
+Setting `InvariantGlobalization` to true will remove all satellite assemblies from the final package. 
