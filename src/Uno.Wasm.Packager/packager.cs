@@ -53,7 +53,7 @@ class BoolFlag : Flag {
 }
 
 class Driver {
-	static bool enable_debug, enable_linker;
+	static bool enable_debug, enable_linker, invariant_globalization;
 	static string app_prefix, framework_prefix, bcl_tools_prefix, bcl_facades_prefix, out_prefix;
 	static List<string> bcl_prefixes;
 	static HashSet<string> asm_map = new HashSet<string> ();
@@ -329,7 +329,7 @@ class Driver {
 		}
 
 		// Resolving satellite assemblies
-		if(kind == AssemblyKind.User)
+		if(!invariant_globalization && kind == AssemblyKind.User)
 		{
 			string resourceFile = GetAssemblyResourceFileName(assemblyFullPath);
 
@@ -344,7 +344,13 @@ class Driver {
 				string cultureName = subDirectory.Substring(subDirectory.LastIndexOf(Path.DirectorySeparatorChar) + 1);
 				string culturePath = Path.Combine(assemblyDirectory, cultureName);
 
-				var satelliteData = new AssemblyData() { name = resourceFile.Replace(".dll", ""), src_path = satelliteAssembly, culture = cultureName };
+				var satelliteData = new AssemblyData() {
+					name = resourceFile.Replace(".dll", ""),
+					src_path = satelliteAssembly.Replace("\\", "/"),
+					culture = cultureName,
+					aot = false
+				};
+
 				assemblies.Add(satelliteData);
 
 				file_list.Add(satelliteAssembly);
@@ -442,6 +448,7 @@ class Driver {
 		public bool EnableDedup = true;
 		public bool EmccLinkOptimizations = false;
 		public bool EnableWasmExceptions = false;
+		public bool InvariantGlobalization = false;
 	}
 
 	int Run (string[] args) {
@@ -578,6 +585,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
 		AddFlag (p, new BoolFlag ("icu", "enable .NET 5+ ICU", opts.EnableICU, b => opts.EnableICU = b));
 		AddFlag (p, new BoolFlag ("emcc-link-optimization", "enable emcc link-time optimizations", opts.EmccLinkOptimizations, b => opts.EmccLinkOptimizations = b));
+		AddFlag (p, new BoolFlag ("invariant-globalization", "enables invariant globalization", opts.InvariantGlobalization, b => opts.InvariantGlobalization = b));
 		p.Add(new ResponseFileSource());		
 
 		var new_args = p.Parse (args).ToArray ();
@@ -618,6 +626,7 @@ class Driver {
 		enable_threads = opts.EnableThreads;
 		enable_dynamic_runtime = opts.EnableDynamicRuntime;
 		enable_simd = opts.Simd;
+		invariant_globalization = opts.InvariantGlobalization;
 
 		// Dedup is disabled by default https://github.com/dotnet/runtime/issues/48814
 		enable_dedup = opts.EnableDedup;
@@ -774,6 +783,14 @@ class Driver {
 			foreach (var ass in assemblies) {
 				if (aot_assemblies == "" || to_aot.ContainsKey (ass.name)) {
 					ass.aot = true;
+
+					if(ass.culture is not null)
+					{
+						// Satellite assemblies cannot be AOTed as they're
+						// implicitly duplicates.
+						ass.aot = false;
+					}
+
 					to_aot.Remove (ass.name);
 				}
 			}

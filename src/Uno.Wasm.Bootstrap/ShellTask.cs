@@ -129,6 +129,8 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool MonoILLinker { get; set; }
 
+		public bool InvariantGlobalization { get; set; } = false;
+
 		public bool EmccLinkOptimization { get; set; }
 
 		public string? EmccLinkOptimizationLevel { get; set; }
@@ -889,6 +891,11 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(EnableLogProfiler ? "--profile=log" : "");
 				packagerParams.Add($"\"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}\"");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
+
+				if (InvariantGlobalization)
+				{
+					packagerParams.Add("--invariant-globalization");
+				}
 
 				var packagerResponseFile = Path.Combine(workAotPath, "packager.rsp");
 				File.WriteAllLines(packagerResponseFile, packagerParams.Select(p => p.Replace("\\", "/")));
