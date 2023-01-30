@@ -15,6 +15,7 @@
 //
 // ******************************************************************
 using System;
+using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -82,6 +83,16 @@ namespace Uno.Wasm.Sample
 
 			var additionalNativeAdd = AdditionalImportTest.additional_native_add(21, 21);
 
+			var resManager = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
+			var s1 = resManager.GetString("WebDescriptionMissing", new CultureInfo("en-US"));
+			var s2 = resManager.GetString("WebDescriptionMissing", new CultureInfo("fr-CA"));
+			Console.WriteLine($"Res(en-US): {s1}");
+			Console.WriteLine($"Res(fr-CA): {s2}");
+
+			var satelliteValidation =
+				s1 == "Cannot find definition for {0}.  Service Description with namespace {1} is missing."
+				&& s2 == "Impossible de localiser une définition pour {0}. Description du service manquante avec l'espace de noms {1}.";
+
 			var res = $"{runtimeMode};" +
 				$"{SideModule1.test_add(21, 21)};" +
 				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
@@ -96,8 +107,9 @@ namespace Uno.Wasm.Sample
 				$"{chmodRes};" +
 				$"{additionalNativeAdd};" +
 				$"requireJs:{requireAvailable};" +
-				$"jsInterop:{jsInteropResult};" + 
-				$"gl:{glAvailable};"
+				$"jsInterop:{jsInteropResult};" +
+				$"gl:{glAvailable};"+
+				$"sat:{satelliteValidation};"
 				;
 
 			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");

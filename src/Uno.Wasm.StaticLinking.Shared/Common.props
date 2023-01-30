@@ -5,6 +5,9 @@
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
+	</ItemGroup>
+	<ItemGroup>
 		<WasmShellEmccExportedRuntimeMethod Include="GL" />
 
 		<!-- Based on https://github.com/dotnet/runtime/issues/76077#issuecomment-1260231545 -->
