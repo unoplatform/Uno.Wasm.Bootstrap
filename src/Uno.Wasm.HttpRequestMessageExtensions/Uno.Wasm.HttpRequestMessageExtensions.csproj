@@ -6,6 +6,7 @@
 		<PackageId>Uno.Wasm.HttpRequestMessageExtensions</PackageId>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
 		<LangVersion>11.0</LangVersion>
+		<IsPublishable>false</IsPublishable>
 	</PropertyGroup>
 
 	<PropertyGroup>
