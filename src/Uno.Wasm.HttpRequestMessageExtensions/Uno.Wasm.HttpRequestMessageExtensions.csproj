@@ -9,7 +9,6 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<Authors>unoplatform</Authors>
 		<PackageProjectUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</PackageProjectUrl>
 		<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
 		<RepositoryUrl>https://github.com/unoplatform/Uno.Wasm.Bootstrap</RepositoryUrl>
