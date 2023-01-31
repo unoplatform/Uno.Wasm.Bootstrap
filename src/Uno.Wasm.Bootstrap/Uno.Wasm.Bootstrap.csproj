@@ -13,8 +13,9 @@
 		<LangVersion>10.0</LangVersion>
 		<Nullable>enable</Nullable>
 	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(GitVersion_Sha)'!=''">
 		<AssemblyName>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</RootNamespace>
@@ -175,7 +176,7 @@
 			<TSOutputLogsToDelete Include="$(TSCompilerOutputLogDirectory)Tsc*.out" />
 		</ItemGroup>
 
-		<Delete Files="@(TSOutputLogsToDelete)" /> 
+		<Delete Files="@(TSOutputLogsToDelete)" />
 	</Target>
 
 	<!-- Include generated javascript as EmbeddedResource -->
