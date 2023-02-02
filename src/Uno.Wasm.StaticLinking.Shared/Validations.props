@@ -1,6 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
 
+	<ItemGroup>
+		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
+	</ItemGroup>
+
 	<Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
 		<ItemGroup>
 			<_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />

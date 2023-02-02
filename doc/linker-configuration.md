@@ -45,8 +45,11 @@ By default, some features are linked out as those are not likely to be used in a
 - `EventSourceSupport`
 - `EnableUnsafeUTF7Encoding`
 - `HttpActivityPropagationSupport`
+- `InvariantGlobalization`
 
 If you need to enable any of those features, you can set the following in your csproj first `PropertyGroup`:
 ```xml
 <EventSourceSupport>true</EventSourceSupport>
 ```
+
+Setting `InvariantGlobalization` to true will remove all satellite assemblies from the final package. 
