@@ -48,6 +48,8 @@ items:
       href: features-pwa.md
     - name: 4GB Support
       href: features-4gb.md
+    - name: HttpRequestMessage Extensions
+      href: features-httprequestmessage-extensions.md
 
 - name: Contributing
   href: contributing.md
