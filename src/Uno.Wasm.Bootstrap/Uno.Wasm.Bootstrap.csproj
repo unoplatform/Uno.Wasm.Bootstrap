@@ -189,6 +189,14 @@
 	<Target Name="IncludeGeneratedJavascript" AfterTargets="CompileTypeScriptWithTSConfig">
 		<ItemGroup>
 			<EmbeddedResource Include="@(GeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
+			<Content Remove="@(GeneratedJavascript)" />
+		</ItemGroup>
+	</Target>
+
+	<!-- Include generated javascript as EmbeddedResource -->
+	<Target Name="RemoveGeneratedJavascriptAsContent" AfterTargets="GetTypeScriptOutputForPublishing">
+		<ItemGroup>
+			<Content Remove="@(GeneratedJavascript)" />
 		</ItemGroup>
 	</Target>
 
