@@ -7,7 +7,7 @@ items:
   href: deploy-and-publish.md
 - name: Linker configuration
   href: linker-configuration.md
-- name: Runtime Exection Modes
+- name: Runtime Execution Modes
   href: runtime-execution-modes.md
 - name: Troubleshooting
   href: troubleshooting.md
@@ -16,6 +16,8 @@ items:
   items:
     - name: Using additional files
       href: features-additional-files.md
+    - name: Interoperating with Javascript
+      href: features-interop.md
     - name: Javascript Dependency management
       href: features-dependency-management.md
     - name: Environment Variables
@@ -50,12 +52,15 @@ items:
       href: features-4gb.md
     - name: HttpRequestMessage Extensions
       href: features-httprequestmessage-extensions.md
+    - name: Assemblies obfuscation
+      href: features-obfsucation.md
 
 - name: Tools
   items:
     - name: Uno Version Checker
       href: features-version-checker.md
 
-
 - name: Contributing
   href: contributing.md
+#- name: Release procedure
+#  href: release-procedure.md
