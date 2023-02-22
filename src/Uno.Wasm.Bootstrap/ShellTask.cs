@@ -1112,9 +1112,16 @@ namespace Uno.Wasm.Bootstrap
 				return EmccLinkOptimizationLevel ?? "-O3";
 			}
 		}
-
 		private void LinkerSetup()
-			=> _linkerBinPath = CustomLinkerPath ?? Path.Combine(MonoWasmSDKPath, "tools");
+		{
+			var embeddedLinker = Path.Combine(MonoWasmSDKPath, "tools");
+
+			// Use the embedded linker always when running with WSL, as the local windows binary
+			// is not compatible with Linux.
+			_linkerBinPath = (IsWSLRequired || CustomLinkerPath is null)
+				? embeddedLinker
+				: CustomLinkerPath;
+		}
 
 		private bool IsRuntimeAOT()
 			=> _runtimeExecutionMode == RuntimeExecutionMode.FullAOT || _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
