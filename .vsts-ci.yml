@@ -1,3 +1,4 @@
+
 jobs:
 - template: .vsts-ci-packages.yml
   parameters:
@@ -17,3 +18,5 @@ jobs:
   parameters:
     jobName: macOS_Tests
     vmImage: macOS-12
+
+- template: .vsts-ci-wsl-tests.yml

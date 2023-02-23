@@ -1,0 +1,91 @@
+parameters:
+  jobName: ''
+
+jobs:
+- job: WSL_Tests
+  timeoutInMinutes: 90
+
+  pool:
+    vmImage: 'windows-2022'
+
+  workspace:
+    clean: all
+
+  steps:
+  - checkout: self
+    clean: true
+    
+  - pwsh: |
+      # Set-PSDebug -Trace 1
+  
+      # Workaround from https://github.com/actions/runner-images/issues/6844#issuecomment-1367225048
+      # At the time of this comment (30-12-2022) this only works on Azure DevOps hosted
+      # agents and doesn't work on 1ES images
+      Write-Host "wsl --update --web-download"
+      wsl --update --web-download | Out-String
+
+      Write-Host "wsl --version" 
+      wsl --version
+
+      write-host "WSL install of ubuntu."
+      wsl --install -d Ubuntu-20.04 --web-download
+
+      write-host "Launch WSL."
+      $wsl = wsl -l -v | out-string
+
+      write-host $wsl
+
+      # workaround for encoding issue: https://github.com/microsoft/terminal/issues/110
+      while ($wsl -notmatch "R`0u`0n`0n`0i`0n`0g") {
+          start-sleep -seconds 1
+          $wsl = wsl -l -v | out-string
+          write-host $wsl
+      }
+      write-host "Ubuntu installed."
+
+    displayName: Install WSL
+
+  - pwsh: |
+      wsl wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+      wsl sudo dpkg -i packages-microsoft-prod.deb
+      wsl rm packages-microsoft-prod.deb  
+      wsl sudo apt-get update
+      wsl sudo apt-get install -y ninja-build lbzip2
+      wsl sudo apt-get install -y dotnet-sdk-7.0
+    displayName: Install WSL dependencies
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET SDK'
+    inputs:
+      packageType: sdk
+      version: 7.0.100
+      includePreviewVersions: true
+
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
+    displayName: Build bootstrap
+
+  # Static linking test (WSL Forced)
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEnableEmscriptenWindows=false /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-wsl.binlog
+    displayName: Build StaticLinking.Aot Sample (net7 WSL Forced)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Net7\bin\Release\net7.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Aot Tests net7
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-windows-test
+      ArtifactType: Container
