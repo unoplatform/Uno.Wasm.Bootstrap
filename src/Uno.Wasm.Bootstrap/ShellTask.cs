@@ -1109,9 +1109,11 @@ namespace Uno.Wasm.Bootstrap
 
 			// Use the embedded linker always when running with WSL, as the local windows binary
 			// is not compatible with Linux.
-			_linkerBinPath = (IsWSLRequired || CustomLinkerPath is null)
+			var linkerPath = (IsWSLRequired || CustomLinkerPath is null)
 				? embeddedLinker
 				: CustomLinkerPath;
+
+			_linkerBinPath = AlignPath(linkerPath);
 		}
 
 		private bool IsRuntimeAOT()
