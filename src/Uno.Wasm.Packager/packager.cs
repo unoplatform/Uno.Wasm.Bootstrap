@@ -1424,11 +1424,11 @@ class Driver {
 
 		if (is_windows)
 		{
-			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 /p:OutputPath=..\\linker-out\"");
+			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 -p:UseSharedCompilation=false /p:OutputPath=..\\linker-out\"");
 		}
 		else
 		{
-			ninja.WriteLine("  command = echo > aot-instances.cs; csc /deterministic /out:$out /target:library aot-instances.cs");
+			ninja.WriteLine("  command = dotnet new classlib -o aot-instances; rm aot-instances/*.cs; dotnet build aot-instances/aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 -p:UseSharedCompilation=false /p:OutputPath=../linker-out/");
 		}
 
 		ninja.WriteLine ("rule gen-runtime-icall-table");
