@@ -30,10 +30,12 @@ jobs:
       write-host "WSL install of ubuntu."
       # wsl --install -d Ubuntu-22.04 --web-download # Similar to https://github.com/Azure/azure-sdk-for-cpp/issues/4397
 
-      # Manuall installation of Ubuntu 20.04
+      #
+      # Manual installation of Ubuntu 20.04
+      #
       $url = "https://aka.ms/wslubuntu2004" # URL of the file to download
       $appxInstaller = "$env:TEMP\appx-install" # Folder where the uncompressed files will be saved
-      $distroInstaller = "$env:TEMP\wsl-install" # Folder where the uncompressed files will be saved
+      $distroInstaller = "$env:TEMP\wsl-install" # Folder for the inner 
 
       mkdir $appxInstaller
       mkdir $distroInstaller
@@ -48,6 +50,9 @@ jobs:
 
       & $distroInstaller\ubuntu.exe install --root
 
+      #
+      # End Manual install
+      #
 
       write-host "Launch WSL."
       $wsl = wsl -l -v | out-string
