@@ -2,6 +2,8 @@
 
 	export class AotProfilerSupport {
 
+		private static _initializeProfile: Function;
+
 		private _context?: DotnetPublicAPI;
 
         private _unoConfig: UnoConfig;
@@ -10,9 +12,8 @@
 			this._context = context;
 			this._unoConfig = unoConfig;
 
-			var initializeProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:Initialize");
-			if (initializeProfile) {
-				initializeProfile();
+			if (AotProfilerSupport._initializeProfile) {
+				AotProfilerSupport._initializeProfile();
 				this.attachProfilerHotKey();
 			}
 			else {
@@ -25,6 +26,13 @@
 				return new AotProfilerSupport(context, unoConfig);
 			}
 			return null;
+		}
+
+		public static async tryInitializeExports(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig, getAssemblyExports: any) {
+			if (unoConfig.generate_aot_profile) {
+				let profilerExports = await getAssemblyExports("Uno.Wasm.LogProfiler");
+				AotProfilerSupport._initializeProfile = profilerExports.Uno.AotProfilerSupport.Initialize;
+			}
 		}
 
 		private attachProfilerHotKey() {

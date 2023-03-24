@@ -16,6 +16,13 @@ items:
   items:
     - name: Using additional files
       href: features-additional-files.md
+<<<<<<< HEAD
+=======
+    - name: Interoperating with Javascript
+      href: features-interop.md
+    - name: Security
+      href: features-security.md
+>>>>>>> b791338 (feat: Adjust support for CSP)
     - name: Javascript Dependency management
       href: features-dependency-management.md
     - name: Environment Variables

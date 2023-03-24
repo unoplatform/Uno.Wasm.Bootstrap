@@ -43,7 +43,7 @@
 		<PackageReference Include="Mono.Options" Version="5.3.0.1" PrivateAssets="All" />
 		<PackageReference Include="MSBuildTasks" Version="1.5.0.235" PrivateAssets="All" />
 		<PackageReference Include="System.Text.Json" Version="5.0.0" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.TypeScript.MSBuild" Version="4.5.3" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.0.2" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -43,24 +43,20 @@ namespace Uno.Wasm.Sample
 			var now = DateTime.Now;
 			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
 
-			var validateEmAddFunctionResult = int.Parse(Runtime.InvokeJS($"Validation.validateEmAddFunction()")) != 0;
+			var validateEmAddFunctionResult = int.Parse(Imports.ValidateEmAddFunction()) != 0;
 
-			var idbFSValidation = Runtime.InvokeJS($"typeof IDBFS !== 'undefined'");
+			var idbFSValidation = Imports.ValidateIDBFS();
 			Console.WriteLine($"idbFSValidation: {idbFSValidation}");
 
-			var requireAvailable = Runtime.InvokeJS($"typeof require.config !== 'undefined'");
-			Console.WriteLine($"requireAvailable: {idbFSValidation}");
+			var requireAvailable = Imports.RequireAvailable();
+			Console.WriteLine($"requireAvailable: {requireAvailable}");
 
-			var glAvailable = Runtime.InvokeJS($"typeof GL !== 'undefined'");
+			var glAvailable = Imports.GLAvailable();
 			Console.WriteLine($"glAvailable: {glAvailable}");
 
-#if NET7_0_OR_GREATER
 			var jsInteropResult = Imports.TestCallback();
-#else
-			var jsInteropResult = Interop.Runtime.InvokeJS($"testCallback()", out var _);
-#endif
 
-			var jsTimeZone = Runtime.InvokeJS($"Intl.DateTimeFormat().resolvedOptions().timeZone");
+			var jsTimeZone = Imports.GetJSTimeZone();
 			var clrTimeZone = TimeZoneInfo.Local.DisplayName;
 			var timezoneValidation =
 #if NET5_0_OR_GREATER
@@ -112,7 +108,7 @@ namespace Uno.Wasm.Sample
 				$"sat:{satelliteValidation};"
 				;
 
-			var r = Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
+			var r = Imports.AppendResult(res);
 
 			SideModule1.test_png();
 		}
@@ -172,13 +168,66 @@ namespace Uno.Wasm.Sample
 #endif
 	}
 
-#if NET7_0_OR_GREATER
 	public static partial class Imports
 	{
+#if !NET7_0_OR_GREATER
+		public static partial string TestCallback()
+			=> Interop.Runtime.InvokeJS($"testCallback()", out var _);
+#else
 		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.testCallback")]
-		public static partial string TestCallback();
-	}
 #endif
+		public static partial string TestCallback();
+
+#if !NET7_0_OR_GREATER
+		public static partial string ValidateEmAddFunction()
+			=> Runtime.InvokeJS($"Validation.validateEmAddFunction()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.Validation.validateEmAddFunction")]
+#endif
+
+		public static partial string ValidateEmAddFunction();
+
+#if !NET7_0_OR_GREATER
+		public static partial string ValidateIDBFS()
+			=> Runtime.InvokeJS($"validateIDBFS()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.validateIDBFS")]
+#endif
+
+		public static partial string ValidateIDBFS();
+
+#if !NET7_0_OR_GREATER
+		public static partial string RequireAvailable()
+			=> Runtime.InvokeJS($"requireAvailable()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.requireAvailable")]
+#endif
+		public static partial string RequireAvailable();
+
+#if !NET7_0_OR_GREATER
+		public static partial string GLAvailable()
+			=> Runtime.InvokeJS($"glAvailable()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.glAvailable")]
+#endif
+		public static partial string GLAvailable();
+
+#if !NET7_0_OR_GREATER
+		public static partial string GetJSTimeZone()
+			=> Runtime.InvokeJS($"getJSTimeZone()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.getJSTimeZone")]
+#endif
+		public static partial string GetJSTimeZone();
+
+#if !NET7_0_OR_GREATER
+		public static partial string AppendResult(string res)
+			=> Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.Interop.appendResult")]
+#endif
+		public static partial string AppendResult(string res);
+	}
 
 	public static partial class Exports
 	{

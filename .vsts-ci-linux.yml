@@ -144,6 +144,15 @@ jobs:
       ArtifactName: uno-wasm-bootstrap-linux-aot
       ArtifactType: Container
 
+  ## Static linking validation (net7)
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests-csp.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
+    displayName: StaticLinking.Aot Tests net7 (CSP Enabled)
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
   ## Static linking server validation (net7)
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-server.sh \

@@ -17,6 +17,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _monoConfig: MonoConfig;
 		private _unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig;
 
+		private _getAssemblyExports: any;
+
 		private _hotReloadSupport?: HotReloadSupport;
 		private _logProfiler?: LogProfilerSupport;
 		private _aotProfiler?: AotProfilerSupport;
@@ -101,10 +103,8 @@ namespace Uno.WebAssembly.Bootstrap {
 					});
 				}
 
-				// This syntax is required to have TS not rewrite import statements
-				// when generating javascript in a single file.
 				//@ts-ignore
-				var config = await eval("import('./uno-config.js')");
+				var config = await import('./uno-config.js');
 
 				bootstrapper = new Bootstrapper(config.config);
 
@@ -112,10 +112,8 @@ namespace Uno.WebAssembly.Bootstrap {
 					bootstrapper.preInit();
 				}
 
-				// This syntax is required to have TS not rewrite import statements
-				// when generating javascript in a single file.
 				//@ts-ignore
-				var m = await eval("import(`./dotnet.js`)");
+				var m = await import(`./dotnet.js`);
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -125,12 +123,19 @@ namespace Uno.WebAssembly.Bootstrap {
 				);
 
 				bootstrapper._runMain = dotnetRuntime.runMain;
-				(<any>bootstrapper._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
+				await bootstrapper.setupExports(dotnetRuntime);
 			}
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
 			}
-		}
+        }
+
+		private async setupExports(dotnetRuntime: any) {
+			this._getAssemblyExports = dotnetRuntime.getAssemblyExports;
+			(<any>this._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
+
+			await AotProfilerSupport.tryInitializeExports(this._unoConfig, dotnetRuntime.getAssemblyExports);
+        }
 
 		public asDotnetConfig(): DotnetModuleConfig {
 			return <DotnetModuleConfig>{
@@ -156,8 +161,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.setupEmscriptenPreRun();
 		}
 
-		private setupHotReload() {
+		private async setupHotReload() {
 			if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
+				await HotReloadSupport.tryInitializeExports(this._getAssemblyExports);
+
 				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
 			}
 		}
@@ -218,7 +225,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.initializeRequire();
 			this._aotProfiler = AotProfilerSupport.initialize(this._context, this._unoConfig);
-			this._logProfiler?.postInitializeLogProfiler();
+			this._logProfiler?.postInitializeLogProfiler(this._getAssemblyExports);
 		}
 
 		private configureGlobal() {
@@ -270,8 +277,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		private async mainInit(): Promise<void> {
 			try {
 				this.attachDebuggerHotkey();
-				this.setupHotReload();
-				this.timezoneSetup();
+				await this.setupHotReload();
+				await this.timezoneSetup();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();
@@ -288,12 +295,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.cleanupInit();
 		}
 
-		private timezoneSetup() {
-			var timeZoneSetupMethod = this._context.BINDING.bind_static_method("[Uno.Wasm.TimezoneData] Uno.Wasm.TimezoneData.TimezoneHelper:Setup");
+		private async timezoneSetup() {
+			let timezoneDataExports = await this._getAssemblyExports("Uno.Wasm.TimezoneData");
 
-			if (timeZoneSetupMethod) {
-				timeZoneSetupMethod(Intl.DateTimeFormat().resolvedOptions().timeZone);
-			}
+			timezoneDataExports.Uno.Wasm.TimezoneData.TimezoneHelper.Setup(
+                Intl.DateTimeFormat().resolvedOptions().timeZone
+            );
 		}
 
 		private cleanupInit() {

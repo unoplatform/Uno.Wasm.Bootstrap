@@ -42,10 +42,20 @@ namespace Uno.Wasm.Sample
 			Interop.Runtime.InvokeJS($"testCallback()", out var _);
 #endif
 
-			var idbFSEnabled = Interop.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
+			var idbFSEnabled =
+#if NET7_0_OR_GREATER
+				Imports.IsIDBFSDefined();
+#else
+				Interop.Runtime.InvokeJS($"typeof IDBFS !== 'undefined'", out var _);
+#endif
 			Console.WriteLine($"IDBFS: {idbFSEnabled}");
 
-			var requireAvailable = Interop.Runtime.InvokeJS($"typeof require.config !== 'undefined'", out var _);
+			var requireAvailable =
+#if NET7_0_OR_GREATER
+				Imports.IsRequireAvailable();
+#else
+				Interop.Runtime.InvokeJS($"typeof require.config !== 'undefined'", out var _);
+#endif
 			Console.WriteLine($"requireJSAvailable: {requireAvailable}");
 
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
@@ -67,6 +77,12 @@ namespace Uno.Wasm.Sample
 	{
 		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.testCallback")]
 		public static partial void TestCallback();
+
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.isIDBFSDefined")]
+		public static partial bool IsIDBFSDefined();
+
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.isRequireAvailable")]
+		public static partial bool IsRequireAvailable();
 	}
 #endif
 

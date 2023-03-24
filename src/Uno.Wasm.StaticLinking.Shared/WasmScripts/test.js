@@ -18,7 +18,7 @@ var Validation = {
             throw `Could not execute emscripten addFunction`;
         }
 
-        return fPtr;
+        return fPtr + "";
     }
 };
 
@@ -30,6 +30,22 @@ async function initializeExports() {
 }
 
 initializeExports();
+
+function validateIDBFS() {
+    return "" + (typeof IDBFS !== 'undefined');
+}
+
+function requireAvailable() {
+    return "" + (typeof require.config !== 'undefined');
+}
+
+function glAvailable() {
+    return "" + (typeof GL !== 'undefined');
+}
+
+function getJSTimeZone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
 
 function testCallback() {
     try {
