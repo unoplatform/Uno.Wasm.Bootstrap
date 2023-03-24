@@ -7,9 +7,8 @@
 		private static _logProfilerEnabled: boolean;
 		private _flushLogProfile: Function;
 		private _getLogProfilerProfileOutputFile: Function;
-		private _triggerHeapShotLogProfiler: Function;
-        private _unoConfig: UnoConfig;
-        private _getAssemblyExports: any;
+		private triggerHeapShotLogProfiler: Function;
+		private _unoConfig: UnoConfig;
 
 		constructor(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._context = context;
@@ -22,18 +21,17 @@
 				this._logProfilerEnabled = true;
 				return true;
 			}
-				
+
 			return false;
 		}
 
-		public postInitializeLogProfiler(getAssemblyExports: any) {
-			this._getAssemblyExports = getAssemblyExports;
+		public postInitializeLogProfiler() {
 			if (LogProfilerSupport._logProfilerEnabled) {
 
 				this.attachHotKey();
 
-				setInterval(async () => {
-					await this.ensureInitializeProfilerMethods();
+				setInterval(() => {
+					this.ensureInitializeProfilerMethods();
 					this._flushLogProfile();
 				}, 5000);
 			}
@@ -70,24 +68,27 @@
 			}
 		}
 
-		private async ensureInitializeProfilerMethods() {
+		private ensureInitializeProfilerMethods() {
+			// This will fail when CSP is enabled, but initialization of the profiler
+			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
+			// to keep using bind_static_method.
+
 			if (LogProfilerSupport._logProfilerEnabled && !this._flushLogProfile) {
-
-				let profilerExports = await this._getAssemblyExports("Uno.Wasm.LogProfiler");
-
-				this._flushLogProfile = profilerExports.Uno.LogProfilerSupport.FlushProfile;
-				this._getLogProfilerProfileOutputFile = profilerExports.no.LogProfilerSupport.GetProfilerProfileOutputFile;
-				this._triggerHeapShotLogProfiler = profilerExports.Uno.LogProfilerSupport.TriggerHeapShot;
+				this._flushLogProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
+				this._getLogProfilerProfileOutputFile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
+				this.triggerHeapShotLogProfiler = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:TriggerHeapShot");
 			}
 		}
 
-		private async takeHeapShot() {
-			await this.ensureInitializeProfilerMethods();
-			this._triggerHeapShotLogProfiler();
+		private takeHeapShot() {
+			this.ensureInitializeProfilerMethods();
+
+			this.triggerHeapShotLogProfiler();
 		}
 
-		private async readProfileFile() {
-			await this.ensureInitializeProfilerMethods();
+		private readProfileFile() {
+			this.ensureInitializeProfilerMethods();
+
 			this._flushLogProfile();
 			var profileFilePath = this._getLogProfilerProfileOutputFile();
 
@@ -102,9 +103,10 @@
 			}
 		}
 
-		private async saveLogProfile() {
-			await this.ensureInitializeProfilerMethods();
-			var profileArray = await this.readProfileFile();
+		private saveLogProfile() {
+			this.ensureInitializeProfilerMethods();
+
+			var profileArray = this.readProfileFile();
 
 			var a = window.document.createElement('a');
 			a.href = window.URL.createObjectURL(new Blob([profileArray]));

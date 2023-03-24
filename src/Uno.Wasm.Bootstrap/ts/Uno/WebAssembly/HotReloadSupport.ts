@@ -57,8 +57,8 @@ namespace Uno.WebAssembly.Bootstrap {
 						// if (aspnetCoreBrowserTools == "true")
 						{
 							try {
-								var m = await import(`/_framework/blazor-hotreload.js`);
-								m.default.receiveHotReload();
+								var m = <any>await import(`/_framework/blazor-hotreload.js`);
+								m.receiveHotReload();
 							}
 							catch (e) {
 								console.error(`Failed to apply initial metadata delta ${e}`);

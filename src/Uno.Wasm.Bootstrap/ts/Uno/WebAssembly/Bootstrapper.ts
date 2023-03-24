@@ -123,18 +123,16 @@ namespace Uno.WebAssembly.Bootstrap {
 				);
 
 				bootstrapper._runMain = dotnetRuntime.runMain;
-				await bootstrapper.setupExports(dotnetRuntime);
+				bootstrapper.setupExports(dotnetRuntime);
 			}
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
 			}
         }
 
-		private async setupExports(dotnetRuntime: any) {
+		private setupExports(dotnetRuntime: any) {
 			this._getAssemblyExports = dotnetRuntime.getAssemblyExports;
 			(<any>this._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
-
-			await AotProfilerSupport.tryInitializeExports(this._unoConfig, dotnetRuntime.getAssemblyExports);
         }
 
 		public asDotnetConfig(): DotnetModuleConfig {
@@ -225,7 +223,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.initializeRequire();
 			this._aotProfiler = AotProfilerSupport.initialize(this._context, this._unoConfig);
-			this._logProfiler?.postInitializeLogProfiler(this._getAssemblyExports);
+			this._logProfiler?.postInitializeLogProfiler();
 		}
 
 		private configureGlobal() {
