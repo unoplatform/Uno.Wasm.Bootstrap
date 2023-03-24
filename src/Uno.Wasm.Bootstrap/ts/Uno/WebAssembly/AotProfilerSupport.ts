@@ -4,12 +4,15 @@
 
 		private _context?: DotnetPublicAPI;
 
-        private _unoConfig: UnoConfig;
+		private _unoConfig: UnoConfig;
 
 		constructor(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._context = context;
 			this._unoConfig = unoConfig;
 
+			// This will fail when CSP is enabled, but initialization of the profiler
+			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
+			// to keep using bind_static_method.
 			var initializeProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:Initialize");
 			if (initializeProfile) {
 				initializeProfile();

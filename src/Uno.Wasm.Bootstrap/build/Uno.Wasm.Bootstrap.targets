@@ -218,6 +218,7 @@
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			CustomDebuggerPath="$(MonoRuntimeCustomDebuggerPath)"
 			CustomLinkerPath="$(WasmShellLinkerPath)"
+			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			DistCompressionLayoutMode="$(WasmShellCompressionLayoutMode)"
 			DistPath="$(WasmShellDistPath)"
 			EmccExportedRuntimeMethods="@(WasmShellEmccExportedRuntimeMethod)"

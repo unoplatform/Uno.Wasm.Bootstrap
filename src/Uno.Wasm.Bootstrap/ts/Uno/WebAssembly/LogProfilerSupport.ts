@@ -8,7 +8,7 @@
 		private _flushLogProfile: Function;
 		private _getLogProfilerProfileOutputFile: Function;
 		private triggerHeapShotLogProfiler: Function;
-        private _unoConfig: UnoConfig;
+		private _unoConfig: UnoConfig;
 
 		constructor(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._context = context;
@@ -21,7 +21,7 @@
 				this._logProfilerEnabled = true;
 				return true;
 			}
-				
+
 			return false;
 		}
 
@@ -69,6 +69,10 @@
 		}
 
 		private ensureInitializeProfilerMethods() {
+			// This will fail when CSP is enabled, but initialization of the profiler
+			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
+			// to keep using bind_static_method.
+
 			if (LogProfilerSupport._logProfilerEnabled && !this._flushLogProfile) {
 				this._flushLogProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
 				this._getLogProfilerProfileOutputFile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");

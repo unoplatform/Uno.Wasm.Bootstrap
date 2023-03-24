@@ -18,6 +18,14 @@ async function initializeExports() {
 
 initializeExports();
 
+function isIDBFSDefined() {
+    return typeof IDBFS !== 'undefined';
+}
+
+function isRequireAvailable() {
+    return typeof require.config !== 'undefined';
+}
+
 function testCallback() {
     try {
         if (Module.getAssemblyExports !== undefined && samplesNetExports.hasOwnProperty('Uno')) {

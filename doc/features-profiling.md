@@ -1,3 +1,6 @@
+---
+uid: Uno.Wasm.Bootstrap.Profiling.Memory
+---
 ## Memory Profiling
 Managed Memory profiling is available through the use of the [Xamarin Profiler](https://docs.microsoft.com/en-us/xamarin/tools/profiler) or [`mprof-report`](https://www.mono-project.com/docs/debug+profile/profile/profiler/#analyzing-the-profile-data).
 
