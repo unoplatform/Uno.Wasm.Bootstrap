@@ -28,7 +28,26 @@ jobs:
       wsl --version
 
       write-host "WSL install of ubuntu."
-      wsl --install -d Ubuntu-22.04 --web-download
+      # wsl --install -d Ubuntu-22.04 --web-download # Similar to https://github.com/Azure/azure-sdk-for-cpp/issues/4397
+
+      # Manuall installation of Ubuntu 20.04
+      $url = "https://aka.ms/wslubuntu2004" # URL of the file to download
+      $appxInstaller = "$env:TEMP\appx-install" # Folder where the uncompressed files will be saved
+      $distroInstaller = "$env:TEMP\wsl-install" # Folder where the uncompressed files will be saved
+
+      mkdir $appxInstaller
+      mkdir $distroInstaller
+
+      # Download the file
+      Invoke-WebRequest $url -OutFile "$appxInstaller\distro.zip"
+
+      # Uncompress the file
+      Expand-Archive -Path "$appxInstaller\distro.zip" -DestinationPath $appxInstaller
+
+      Expand-Archive -Path "$appxInstaller\Ubuntu*_x64.appx" -DestinationPath $distroInstaller
+
+      & $distroInstaller\ubuntu.exe install --root
+
 
       write-host "Launch WSL."
       $wsl = wsl -l -v | out-string
@@ -46,7 +65,7 @@ jobs:
     displayName: Install WSL
 
   - pwsh: |
-      wsl wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+      wsl wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
       wsl sudo dpkg -i packages-microsoft-prod.deb
       wsl rm packages-microsoft-prod.deb  
       wsl sudo apt-get update
