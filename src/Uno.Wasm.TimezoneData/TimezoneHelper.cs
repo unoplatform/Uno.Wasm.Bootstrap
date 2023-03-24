@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Uno.Wasm.TimezoneData
 {
-	public class TimezoneHelper
+	public partial class TimezoneHelper
 	{
 		private const string AssemblyPrefix = "Uno.Wasm.TimezoneData.zoneinfo.";
 		private static readonly string ZoneInfoBasePath;
@@ -25,6 +25,7 @@ namespace Uno.Wasm.TimezoneData
 				: "/usr/share/zoneinfo";
 		}
 
+		[System.Runtime.InteropServices.JavaScript.JSExport()]
 		public static void Setup(string currentTimezone)
 		{
 #if DEBUG

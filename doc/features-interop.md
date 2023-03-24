@@ -1,9 +1,12 @@
+---
+uid: Uno.Wasm.Bootstrap.JSInterop
+---
 ## Interoperating with Javascript
 
 The Uno boostrapper provides the ability to interoperate from and to Javascript from .NET.
 
 Two techniques are available:
-- The use of .NET 7's new generated interop features. It uses code generation to create performant, thread-safe and does not make of the unsafe javascript `eval`.
+- The use of .NET 7's new generated interop features. It uses code generation to create performant, [CSP-Compliant](xref:Uno.Wasm.Bootstrap.Security), thread-safe interop and does not make of the unsafe javascript `eval`.
 - The use of the legacy C# `Interop.Runtime.InvokeJS(...)` and Javascript `mono_bind_static_method(...)`.
 
 ## Invoking C# code from Javascript
@@ -64,6 +67,9 @@ var result = myExportedMethod();
 
 > [!IMPORTANT]
 > The interop infrastructure only supports primitive types for parameters and return value.
+
+> [!IMPORTANT]
+> This type of interop is not compatible with [strict CSP](xref:Uno.Wasm.Bootstrap.Security).
 
 ***
 

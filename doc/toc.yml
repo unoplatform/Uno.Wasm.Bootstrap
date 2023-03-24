@@ -18,6 +18,8 @@ items:
       href: features-additional-files.md
     - name: Interoperating with Javascript
       href: features-interop.md
+    - name: Security
+      href: features-security.md
     - name: Javascript Dependency management
       href: features-dependency-management.md
     - name: Environment Variables

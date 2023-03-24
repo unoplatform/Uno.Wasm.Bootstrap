@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Threading.Tasks;
 using WebAssembly;
@@ -16,7 +17,7 @@ using WebAssembly;
 namespace Uno.Wasm.MetadataUpdate
 {
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	public static class WebAssemblyHotReload
+	public static partial class WebAssemblyHotReload
 	{
 		private static bool _linkerEnabled;
 		private static bool _debugEnabled;
@@ -27,7 +28,8 @@ namespace Uno.Wasm.MetadataUpdate
 			new UpdateDelta(),
 		};
 
-		internal static void Initialize()
+		[JSExport]
+		internal static bool Initialize()
 		{
 			bool.TryParse(Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_LOG_METADATA_UPDATES"), out _debugEnabled);
 
@@ -40,9 +42,7 @@ namespace Uno.Wasm.MetadataUpdate
 
 			if (_linkerEnabled)
 			{
-				WebAssembly.Runtime.InvokeJS("console.warn('" +
-					"The application was compiled with the IL linker enabled, hot reload is disabled. " +
-					"See WasmShellILLinkerEnabled for more details.');");
+				return false;
 			}
 			else
 			{
@@ -53,12 +53,15 @@ namespace Uno.Wasm.MetadataUpdate
 						Console.WriteLine(m);
 					}
 				});
+
+				return true;
 			}
 		}
 
 		/// <summary>
 		/// For framework use only.
 		/// </summary>
+		[JSExport]
 		public static void ApplyHotReloadDelta(string moduleIdString, string metadataDelta, string ilDeta, string pdbDelta)
 		{
 			if (_linkerEnabled)
@@ -88,6 +91,7 @@ namespace Uno.Wasm.MetadataUpdate
 		/// <summary>
 		/// For framework use only.
 		/// </summary>
+		[JSExport]
 		public static string GetApplyUpdateCapabilities()
 		{
 			if (_debugEnabled)

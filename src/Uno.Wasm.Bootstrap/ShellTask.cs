@@ -131,6 +131,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool InvariantGlobalization { get; set; } = false;
 
+		public string CSPConfiguration { get; set; } = "";
+
 		public bool EmccLinkOptimization { get; set; }
 
 		public string? EmccLinkOptimizationLevel { get; set; }
@@ -2042,6 +2044,7 @@ namespace Uno.Wasm.Bootstrap
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);
 			GeneratePrefetchHeaderContent(extraBuilder);
+			GenerateCSPMeta(extraBuilder);
 
 			html = html.Replace("$(ADDITIONAL_HEAD)", extraBuilder.ToString());
 
@@ -2056,6 +2059,15 @@ namespace Uno.Wasm.Bootstrap
 			w.Write(html);
 
 			Log.LogMessage($"HTML {htmlPath}");
+		}
+
+		private void GenerateCSPMeta(StringBuilder extraBuilder)
+		{
+			if (CSPConfiguration is { Length: > 0 } && _shellMode == ShellMode.Browser)
+			{
+				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
+				extraBuilder.AppendLine($"<meta http-equiv=\"Content-Security-Policy\" content=\"{CSPConfiguration}\" />\r\n");
+			}
 		}
 
 		private void GenerateEmbeddedJs()

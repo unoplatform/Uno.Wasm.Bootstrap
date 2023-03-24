@@ -7,8 +7,9 @@
 		private static _logProfilerEnabled: boolean;
 		private _flushLogProfile: Function;
 		private _getLogProfilerProfileOutputFile: Function;
-		private triggerHeapShotLogProfiler: Function;
+		private _triggerHeapShotLogProfiler: Function;
         private _unoConfig: UnoConfig;
+        private _getAssemblyExports: any;
 
 		constructor(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._context = context;
@@ -25,13 +26,14 @@
 			return false;
 		}
 
-		public postInitializeLogProfiler() {
+		public postInitializeLogProfiler(getAssemblyExports: any) {
+			this._getAssemblyExports = getAssemblyExports;
 			if (LogProfilerSupport._logProfilerEnabled) {
 
 				this.attachHotKey();
 
-				setInterval(() => {
-					this.ensureInitializeProfilerMethods();
+				setInterval(async () => {
+					await this.ensureInitializeProfilerMethods();
 					this._flushLogProfile();
 				}, 5000);
 			}
@@ -68,23 +70,24 @@
 			}
 		}
 
-		private ensureInitializeProfilerMethods() {
+		private async ensureInitializeProfilerMethods() {
 			if (LogProfilerSupport._logProfilerEnabled && !this._flushLogProfile) {
-				this._flushLogProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
-				this._getLogProfilerProfileOutputFile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
-				this.triggerHeapShotLogProfiler = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:TriggerHeapShot");
+
+				let profilerExports = await this._getAssemblyExports("Uno.Wasm.LogProfiler");
+
+				this._flushLogProfile = profilerExports.Uno.LogProfilerSupport.FlushProfile;
+				this._getLogProfilerProfileOutputFile = profilerExports.no.LogProfilerSupport.GetProfilerProfileOutputFile;
+				this._triggerHeapShotLogProfiler = profilerExports.Uno.LogProfilerSupport.TriggerHeapShot;
 			}
 		}
 
-		private takeHeapShot() {
-			this.ensureInitializeProfilerMethods();
-
-			this.triggerHeapShotLogProfiler();
+		private async takeHeapShot() {
+			await this.ensureInitializeProfilerMethods();
+			this._triggerHeapShotLogProfiler();
 		}
 
-		private readProfileFile() {
-			this.ensureInitializeProfilerMethods();
-
+		private async readProfileFile() {
+			await this.ensureInitializeProfilerMethods();
 			this._flushLogProfile();
 			var profileFilePath = this._getLogProfilerProfileOutputFile();
 
@@ -99,10 +102,9 @@
 			}
 		}
 
-		private saveLogProfile() {
-			this.ensureInitializeProfilerMethods();
-
-			var profileArray = this.readProfileFile();
+		private async saveLogProfile() {
+			await this.ensureInitializeProfilerMethods();
+			var profileArray = await this.readProfileFile();
 
 			var a = window.document.createElement('a');
 			a.href = window.URL.createObjectURL(new Blob([profileArray]));
