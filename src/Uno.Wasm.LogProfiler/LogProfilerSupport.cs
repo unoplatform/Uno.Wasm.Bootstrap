@@ -4,11 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
 
 namespace Uno
 {
-	public static partial class LogProfilerSupport
+	public static class LogProfilerSupport
 	{
 		private static readonly string ProfilerConfig = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS");
 		private static readonly Dictionary<string, string> _config;
@@ -18,7 +17,6 @@ namespace Uno
 			_config = ParseConfig();
 		}
 
-		[JSExport]
 		public static void FlushProfile()
 		{
 #if DEBUG
@@ -27,7 +25,6 @@ namespace Uno
 			mono_profiler_flush_log();
 		}
 
-		[JSExport]
 		public static string GetProfilerProfileOutputFile()
 		{
 			if (!_config.TryGetValue("output", out var outputFile))
@@ -38,7 +35,6 @@ namespace Uno
 			return outputFile;
 		}
 
-		[JSExport]
 		public static void TriggerHeapShot()
 		{
 			mono_profiler_flush_log();

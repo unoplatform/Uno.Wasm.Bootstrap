@@ -2,18 +2,20 @@
 
 	export class AotProfilerSupport {
 
-		private static _initializeProfile: Function;
-
 		private _context?: DotnetPublicAPI;
 
-        private _unoConfig: UnoConfig;
+		private _unoConfig: UnoConfig;
 
 		constructor(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._context = context;
 			this._unoConfig = unoConfig;
 
-			if (AotProfilerSupport._initializeProfile) {
-				AotProfilerSupport._initializeProfile();
+			// This will fail when CSP is enabled, but initialization of the profiler
+			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
+			// to keep using bind_static_method.
+			var initializeProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:Initialize");
+			if (initializeProfile) {
+				initializeProfile();
 				this.attachProfilerHotKey();
 			}
 			else {
@@ -26,13 +28,6 @@
 				return new AotProfilerSupport(context, unoConfig);
 			}
 			return null;
-		}
-
-		public static async tryInitializeExports(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig, getAssemblyExports: any) {
-			if (unoConfig.generate_aot_profile) {
-				let profilerExports = await getAssemblyExports("Uno.Wasm.LogProfiler");
-				AotProfilerSupport._initializeProfile = profilerExports.Uno.AotProfilerSupport.Initialize;
-			}
 		}
 
 		private attachProfilerHotKey() {
