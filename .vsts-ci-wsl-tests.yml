@@ -28,7 +28,7 @@ jobs:
       wsl --version
 
       write-host "WSL install of ubuntu."
-      wsl --install -d Ubuntu-20.04 --web-download
+      wsl --install -d Ubuntu-22.04 --web-download
 
       write-host "Launch WSL."
       $wsl = wsl -l -v | out-string
