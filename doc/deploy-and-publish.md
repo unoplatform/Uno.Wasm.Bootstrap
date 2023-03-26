@@ -24,10 +24,10 @@ app.MapFallbackToFile("index.html");
 - Build and deploy `MyApp.Server`
 
 ## Serve the Wasm app through Windows Linux Subsystem
-Using Windows 10, serving the app through a small Web Server is done through WSL.
+Using Windows 10/11, serving the app through a small Web Server is done through WSL.
 
 Here's how to install it:
-- Search for Ubuntu in the Windows Store: https://www.microsoft.com/en-us/search/result.aspx?q=ubuntu
+- Search for Ubuntu in the Microsoft Store: https://apps.microsoft.com/store/search/ubuntu
 - Install Ubuntu 18.04 or later, and follow the instructions during the first run
 	- If you have another distribution installed make sure that the 18.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
 	- Note that WSL 2 is considerably slower than WSL 1 for the boostrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
