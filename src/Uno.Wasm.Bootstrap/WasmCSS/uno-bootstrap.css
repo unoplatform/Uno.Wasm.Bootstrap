@@ -1,9 +1,12 @@
-﻿.uno-loader {
+﻿.uno-window-backplate {
+    position: fixed;
+    width: 100%;
+    height: 100%;
     background-color: var(--light-theme-bg-color, #F3F3F3);
 }
 
 @media (prefers-color-scheme: dark) {
-    .uno-loader {
+    .uno-window-backplate {
         background-color: var(--dark-theme-bg-color, #202020);
     }
 }
@@ -14,7 +17,7 @@
     top: 0;
     bottom: 0;
     left: 0;
-    right: 0;    
+    right: 0;
 }
 
     .uno-loader .logo {

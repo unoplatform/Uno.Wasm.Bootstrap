@@ -29,6 +29,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _appBase: string;
 
 		private body: HTMLElement;
+		private windowBackplate: HTMLElement;
 		private loader: HTMLElement;
 		private progress: HTMLProgressElement;
 
@@ -306,9 +307,19 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (this.loader && this.loader.parentNode) {
 				this.loader.parentNode.removeChild(this.loader);
 			}
+			let manifest = (<any>window)["UnoAppManifest"];
+			if (manifest && manifest.unsetBackgroundAfterLoad && this.windowBackplate) {
+				this.windowBackplate.classList.remove("uno-window-backplate");
+			}
 		}
 
 		private initProgress() {
+			this.windowBackplate = this.body.querySelector(".uno-window-backplate");
+			if (!this.windowBackplate) {
+				this.body.classList.add("uno-window-backplate");
+				this.windowBackplate = this.body;
+			}
+
 			this.loader = this.body.querySelector(".uno-loader");
 
 			if (this.loader) {
@@ -321,13 +332,13 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const configLoader = () => {
 				if (manifest && manifest.lightThemeBackgroundColor) {
-					this.loader.style.setProperty("--light-theme-bg-color", manifest.lightThemeBackgroundColor);
+					this.windowBackplate.style.setProperty("--light-theme-bg-color", manifest.lightThemeBackgroundColor);
 				}
 				if (manifest && manifest.darkThemeBackgroundColor) {
-					this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
+					this.windowBackplate.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
 				}
 				if (manifest && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
-					this.loader.style.setProperty("background-color", manifest.splashScreenColor);
+					this.windowBackplate.style.setProperty("background-color", manifest.splashScreenColor);
 				}
 				if (manifest && manifest.accentColor) {
 					this.loader.style.setProperty("--accent-color", manifest.accentColor);
