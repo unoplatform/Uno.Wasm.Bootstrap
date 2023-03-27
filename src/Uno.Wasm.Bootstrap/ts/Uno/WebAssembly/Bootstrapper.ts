@@ -343,6 +343,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (manifest && manifest.accentColor) {
 					this.loader.style.setProperty("--accent-color", manifest.accentColor);
 				}
+				if (manifest && manifest.lightThemeAccentColor) {
+					this.loader.style.setProperty("--accent-color", manifest.lightThemeAccentColor);
+				}
+				if (manifest && manifest.darkThemeAccentColor) {
+					this.loader.style.setProperty("--dark-theme-accent-color", manifest.darkThemeAccentColor);
+				}
 				const img = this.loader.querySelector("img");
 				if (manifest && manifest.splashScreenImage) {
 					if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g)) {

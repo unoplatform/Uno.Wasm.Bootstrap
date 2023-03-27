@@ -70,6 +70,20 @@
         color: var(--accent-color, #f85977);
     }
 
+    @media (prefers-color-scheme: dark) {
+        .uno-loader progress::-moz-progress-bar {
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+
+        .uno-loader progress::-webkit-progress-value {
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+
+        .uno-loader[loading-position='top'] progress {
+            color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+    }
+
     .uno-loader[loading-position='top'] .alert {
         bottom: auto;
         top: 10px;
@@ -93,6 +107,12 @@
         left: 50%;
         transform: translateX(-50%);
     }
+
+        @media (prefers-color-scheme: dark) {
+            .uno-loader[loading-alert] .alert {
+                color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            }
+        }
 
         .uno-loader[loading-alert] .alert:after {
             text-align: center;
