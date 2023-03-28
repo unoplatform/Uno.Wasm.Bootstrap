@@ -52,14 +52,25 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 
 		public void Configure(IApplicationBuilder app, IConfiguration configuration)
 		{
+<<<<<<< HEAD
 			app.UseDeveloperExceptionPage();
 			var pathBase = FixupPath(configuration.GetValue<string>("pathbase"));
 			var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 			var contentRoot = env.ContentRootPath;
+=======
+>>>>>>> 653b26c (fix: Disable local server compression to enable BrowserLink)
 
 			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
 			var useSecureMode = ShouldUseSecureMode(webHostEnvironment, configuration);
+			var isDebugBuild = IsDebugBuild(configuration);
+
+			if (!isDebugBuild)
+			{
+				app.UseResponseCompression();
+			}
+
+			app.UseDeveloperExceptionPage();
 
 			app.Use(async (context, next) =>
 			{
@@ -80,8 +91,13 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			app.UseStaticFiles(new StaticFileOptions
 			{
 				FileProvider = new PhysicalFileProvider(pathBase),
+<<<<<<< HEAD
 				ContentTypeProvider = CreateContentTypeProvider(true),
 				OnPrepareResponse = SetCacheHeaders
+=======
+                HttpsCompression = isDebugBuild ? HttpsCompressionMode.DoNotCompress : HttpsCompressionMode.Compress,
+                OnPrepareResponse = SetCacheHeaders
+>>>>>>> 653b26c (fix: Disable local server compression to enable BrowserLink)
 			});
 
 			app.UseWebAssemblyDebugging(configuration);
@@ -132,6 +148,10 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 					? null : new StaticFileOptions
 					{
 						FileProvider = new PhysicalFileProvider(Path.GetDirectoryName(indexHtmlPath)),
+<<<<<<< HEAD
+=======
+						HttpsCompression = isDebugBuild ? HttpsCompressionMode.DoNotCompress : HttpsCompressionMode.Compress,
+>>>>>>> 653b26c (fix: Disable local server compression to enable BrowserLink)
 						OnPrepareResponse = SetCacheHeaders
 					};
 
@@ -140,6 +160,13 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 					spa.Options.DefaultPageStaticFileOptions = indexHtmlStaticFileOptions;
 				});
 			});
+		}
+
+		private static bool IsDebugBuild(IConfiguration configuration)
+		{
+			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
+
+			return buildConfiguration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
 		}
 
 		private static bool ShouldUseSecureMode(IWebHostEnvironment environment, IConfiguration configuration)
