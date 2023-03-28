@@ -252,6 +252,7 @@
 			NinjaAdditionalParameters="$(WasmShellNinjaAdditionalParameters)"
 			ObfuscateAssemblies="$(WasmShellObfuscateAssemblies)"
 			AssembliesFileExtension="$(WasmShellAssembliesExtension)"
+			AssembliesFileNameObfuscationMode="$(WasmShellAssembliesFileNameObfuscationMode)"
 			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
 			PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
 			PWAManifestFile="$(WasmPWAManifestFile)"

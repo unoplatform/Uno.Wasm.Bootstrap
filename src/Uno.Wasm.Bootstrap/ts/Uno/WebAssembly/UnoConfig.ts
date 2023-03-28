@@ -11,6 +11,8 @@
 
 		assemblyFileExtension: string;
 
+		assemblyFileNameObfuscationMode: string;
+
 		mono_wasm_runtime: string;
 
 		mono_wasm_runtime_size?: number;
