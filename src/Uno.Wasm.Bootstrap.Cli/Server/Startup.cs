@@ -47,12 +47,18 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 
 		public void Configure(IApplicationBuilder app, IConfiguration configuration)
 		{
-			app.UseResponseCompression();
-			app.UseDeveloperExceptionPage();
 
 			var webHostEnvironment = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
 			var useSecureMode = ShouldUseSecureMode(webHostEnvironment, configuration);
+			var isDebugBuild = IsDebugBuild(configuration);
+
+			if (!isDebugBuild)
+			{
+				app.UseResponseCompression();
+			}
+
+			app.UseDeveloperExceptionPage();
 
 			app.Use(async (context, next) =>
 			{
@@ -76,8 +82,8 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			{
 				ContentTypeProvider = CreateContentTypeProvider(true),
 				FileProvider = new PhysicalFileProvider(pathBase),
-				HttpsCompression = HttpsCompressionMode.Compress,
-				OnPrepareResponse = SetCacheHeaders,
+        HttpsCompression = isDebugBuild ? HttpsCompressionMode.DoNotCompress : HttpsCompressionMode.Compress,
+        OnPrepareResponse = SetCacheHeaders,
 				DefaultContentType = MediaTypeNames.Application.Octet,
 				ServeUnknownFileTypes = true
 			});
@@ -130,7 +136,7 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 					? null : new StaticFileOptions
 					{
 						FileProvider = new PhysicalFileProvider(Path.GetDirectoryName(indexHtmlPath)),
-						HttpsCompression = HttpsCompressionMode.Compress,
+						HttpsCompression = isDebugBuild ? HttpsCompressionMode.DoNotCompress : HttpsCompressionMode.Compress,
 						OnPrepareResponse = SetCacheHeaders
 					};
 
@@ -139,6 +145,13 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 					spa.Options.DefaultPageStaticFileOptions = indexHtmlStaticFileOptions;
 				});
 			});
+		}
+
+		private static bool IsDebugBuild(IConfiguration configuration)
+		{
+			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
+
+			return buildConfiguration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
 		}
 
 		private static bool ShouldUseSecureMode(IWebHostEnvironment environment, IConfiguration configuration)
