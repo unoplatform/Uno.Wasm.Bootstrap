@@ -1,9 +1,12 @@
-﻿.uno-loader {
+﻿.uno-window-backplate {
+    position: fixed;
+    width: 100%;
+    height: 100%;
     background-color: var(--light-theme-bg-color, #F3F3F3);
 }
 
 @media (prefers-color-scheme: dark) {
-    .uno-loader {
+    .uno-window-backplate {
         background-color: var(--dark-theme-bg-color, #202020);
     }
 }
@@ -14,7 +17,7 @@
     top: 0;
     bottom: 0;
     left: 0;
-    right: 0;    
+    right: 0;
 }
 
     .uno-loader .logo {
@@ -67,6 +70,20 @@
         color: var(--accent-color, #f85977);
     }
 
+    @media (prefers-color-scheme: dark) {
+        .uno-loader progress::-moz-progress-bar {
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+
+        .uno-loader progress::-webkit-progress-value {
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+
+        .uno-loader[loading-position='top'] progress {
+            color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+        }
+    }
+
     .uno-loader[loading-position='top'] .alert {
         bottom: auto;
         top: 10px;
@@ -90,6 +107,12 @@
         left: 50%;
         transform: translateX(-50%);
     }
+
+        @media (prefers-color-scheme: dark) {
+            .uno-loader[loading-alert] .alert {
+                color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            }
+        }
 
         .uno-loader[loading-alert] .alert:after {
             text-align: center;
