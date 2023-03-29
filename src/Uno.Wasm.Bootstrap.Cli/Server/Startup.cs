@@ -80,15 +80,10 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			app.UseStaticFiles(new StaticFileOptions
 			{
 				FileProvider = new PhysicalFileProvider(pathBase),
-<<<<<<< HEAD
 				ContentTypeProvider = CreateContentTypeProvider(true),
 				OnPrepareResponse = SetCacheHeaders
-=======
-				HttpsCompression = HttpsCompressionMode.Compress,
-				OnPrepareResponse = SetCacheHeaders,
 				DefaultContentType = MediaTypeNames.Application.Octet,
 				ServeUnknownFileTypes = true
->>>>>>> 65f4d79 (feat(obfuscation): Adds support for extension-less assembly URIs)
 			});
 
 			app.UseWebAssemblyDebugging(configuration);
