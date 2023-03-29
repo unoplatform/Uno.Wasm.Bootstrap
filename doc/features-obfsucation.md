@@ -22,6 +22,36 @@ This feature allows to change the `.clr` extension for another extension. Add th
 > [!NOTE]
 > As of Bootstrapper 7.0, changing the extension does not permit local Visual Studio debugging and serving. Using [dotnet-serve](https://github.com/natemcmaster/dotnet-serve) is required.
 
+### Extension-less mode for assemblies
+This feature allows to remove the extension from the assemblies URI, by removing all `.` from the assembly file names.
+
+Add the following to your `csproj` file:
+```xml
+<PropertyGroup Condition="'$(Configuration)'=='Release'">
+	<WasmShellAssembliesFileNameObfuscationMode>NoDots</WasmShellAssembliesFileNameObfuscationMode>
+</PropertyGroup>
+```
+
+Note that serving extension-less files requires a special fallback in servers:
+- For IIS:
+	```xml
+	<staticContent>
+		...
+		<mimeMap fileExtension="." mimeType="application/octet-stream" />
+	</staticContent>
+	```
+
+- For ASP.NET Core, using a [`StaticFileOptions`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.staticfileoptions?view=aspnetcore-7.0)
+
+	```csharp
+	app.UseStaticFiles(new StaticFileOptions
+	{
+		...
+		DefaultContentType = MediaTypeNames.Application.Octet,
+		ServeUnknownFileTypes = true
+	});
+	```
+
 ### Obfuscating the contents of assemblies
 This feature allows to change the contents of the files using a simple XOR transformation applied to the generated site.
 
