@@ -71,6 +71,8 @@ namespace Uno.Wasm.Bootstrap
 		private static readonly SHA384Managed _sha384 = new SHA384Managed();
 		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
 		private byte[] _obfuscationKey = Array.Empty<byte>();
+		private FileNameObfuscationMode _assembliesFileNameObfuscationMode
+			= FileNameObfuscationMode.Original;
 
 		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
@@ -140,6 +142,8 @@ namespace Uno.Wasm.Bootstrap
 		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
 
 		public string AssembliesFileExtension { get; set; } = ".clr";
+
+		public string AssembliesFileNameObfuscationMode { get; set; } = nameof(FileNameObfuscationMode.Original);
 
 		public bool ObfuscateAssemblies { get; set; } = false;
 
@@ -997,7 +1001,7 @@ namespace Uno.Wasm.Bootstrap
 							.Select(Path.GetFileName)
 						);
 
-					RemoveMonoConfigJsonFiles(deletedFiles);
+					AdjustMonoConfigJson(deletedFiles);
 				}
 			}
 		}
@@ -1022,13 +1026,13 @@ namespace Uno.Wasm.Bootstrap
 					})
 					.ToList();
 
-				RemoveMonoConfigJsonFiles(temporaryFilesToDelete);
+				AdjustMonoConfigJson(temporaryFilesToDelete);
 
 				temporaryFilesToDelete.ForEach(f => File.Delete(Path.Combine(_workDistPath, "managed", f)));
 			}
 		}
 
-		private void RemoveMonoConfigJsonFiles(IEnumerable<string> deletedFiles)
+		private void AdjustMonoConfigJson(IEnumerable<string> deletedFiles)
 		{
 			var monoConfigFilePath = Path.Combine(_workDistPath, "mono-config.json");
 
@@ -1036,11 +1040,32 @@ namespace Uno.Wasm.Bootstrap
 			{
 				if (monoConfig["assets"] is JArray assetsArray)
 				{
+					// Cleanup the assets list for deleted files
 					var assetsDoDelete = assetsArray
 						.Where(asset => deletedFiles.Contains(asset["name"]?.Value<string>()))
 						.ToList();
 
 					assetsDoDelete.ForEach(a => assetsArray.Remove(a));
+
+					foreach (var asset in assetsArray)
+					{
+						var originalUrl = asset["url"]?.Value<string>();
+
+						if (originalUrl is not null)
+						{
+							if (originalUrl.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+							{
+								var newUrl = originalUrl.Substring(0, originalUrl.Length - "dll".Length - 1) + AssembliesFileExtension;
+
+								if (_assembliesFileNameObfuscationMode == FileNameObfuscationMode.NoDots)
+								{
+									newUrl = newUrl.Replace(".", "_");
+								}
+
+								asset["url"] = newUrl;
+							}
+						}
+					}
 				}
 
 				File.WriteAllText(monoConfigFilePath, JsonConvert.SerializeObject(monoConfig, Formatting.Indented));
@@ -1356,6 +1381,7 @@ namespace Uno.Wasm.Bootstrap
 		{
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 			ParseEnumProperty(nameof(MonoRuntimeExecutionMode), MonoRuntimeExecutionMode, out _runtimeExecutionMode);
+			ParseEnumProperty(nameof(AssembliesFileNameObfuscationMode), AssembliesFileNameObfuscationMode, out _assembliesFileNameObfuscationMode);
 			AotProfile ??= new ITaskItem[0];
 			_contentExtensionsToExclude =
 				ContentExtensionsToExclude
@@ -1509,7 +1535,14 @@ namespace Uno.Wasm.Bootstrap
 		{
 			foreach (var dllFile in Directory.GetFiles(path, "*.dll", SearchOption.AllDirectories))
 			{
-				string destDirName = Path.Combine(Path.GetDirectoryName(dllFile), Path.GetFileNameWithoutExtension(dllFile) + AssembliesFileExtension);
+				var destFileName = Path.GetFileNameWithoutExtension(dllFile) + AssembliesFileExtension;
+
+				if(_assembliesFileNameObfuscationMode == FileNameObfuscationMode.NoDots)
+				{
+					destFileName = destFileName.Replace(".", "_");
+				}
+
+				var destDirName = Path.Combine(Path.GetDirectoryName(dllFile), destFileName);
 
 				Log.LogMessage($"Renaming {dllFile} to {destDirName}");
 				Directory.Move(dllFile, destDirName);
@@ -1835,6 +1868,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_main = \"{entryPoint.DeclaringType.Module.Assembly.Name.Name}\";");
 				config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+				config.AppendLine($"config.assemblyFileNameObfuscationMode = \"{_assembliesFileNameObfuscationMode}\";");
 				config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
 				config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
 				config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
@@ -1968,7 +2002,7 @@ namespace Uno.Wasm.Bootstrap
 			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
 
 			var assemblyPathAndFiles = Directory
-				.EnumerateFiles(Path.Combine(_finalPackagePath, "managed"), "*" + AssembliesFileExtension, SearchOption.TopDirectoryOnly)
+				.EnumerateFiles(Path.Combine(_finalPackagePath, "managed"), "*", SearchOption.TopDirectoryOnly)
 				.ToArray();
 
 			var assemblyFiles = assemblyPathAndFiles
@@ -2210,7 +2244,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
-				throw new NotSupportedException($"The {name} {value} is not supported");
+				throw new NotSupportedException($"The {name} {stringValue} is not supported");
 			}
 		}
 

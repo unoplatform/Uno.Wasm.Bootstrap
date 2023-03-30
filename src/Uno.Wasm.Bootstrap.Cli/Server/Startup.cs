@@ -81,7 +81,9 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 			{
 				FileProvider = new PhysicalFileProvider(pathBase),
 				ContentTypeProvider = CreateContentTypeProvider(true),
-				OnPrepareResponse = SetCacheHeaders
+				OnPrepareResponse = SetCacheHeaders,
+				DefaultContentType = MediaTypeNames.Application.Octet,
+				ServeUnknownFileTypes = true
 			});
 
 			app.UseWebAssemblyDebugging(configuration);

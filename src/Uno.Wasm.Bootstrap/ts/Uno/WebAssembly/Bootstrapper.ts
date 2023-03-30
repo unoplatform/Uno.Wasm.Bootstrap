@@ -474,6 +474,10 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (asset.lastIndexOf(".dll") !== -1) {
 				asset = asset.replace(".dll", this._unoConfig.assemblyFileExtension);
+
+				if (this._unoConfig.assemblyFileNameObfuscationMode == "NoDots") {
+					asset = asset.replace(/\./g, "_");						
+				}
 			}
 
 			if (asset.startsWith("icudt") && asset.endsWith(".dat")) {
