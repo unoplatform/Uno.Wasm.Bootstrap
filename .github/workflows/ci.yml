@@ -45,8 +45,7 @@ jobs:
           include-prerelease: true
     
       - run: |
-          cd src
-          dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true src/Uno.Wasm.Sample.RayTracer/Uno.Wasm.Sample.RayTracer.csproj /bl:./artifacts-logs/build.binlog
+          dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true src/Uno.Wasm.Sample.RayTracer/Uno.Wasm.Sample.RayTracer.csproj /bl:./artifacts-logs/build.binlog
         name: Build WebAssembly app
 
       - uses: actions/upload-artifact@v2
