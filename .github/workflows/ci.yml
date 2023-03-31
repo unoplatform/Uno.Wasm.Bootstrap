@@ -14,7 +14,7 @@ on:
 jobs:
   build_and_deploy_job:
     env:
-      DIST_PATH: src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish
+      DIST_PATH: src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish/wwwroot
 
     if: (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
