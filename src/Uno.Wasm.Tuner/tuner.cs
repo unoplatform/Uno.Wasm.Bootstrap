@@ -42,7 +42,7 @@ public class WasmTuner
 		} else if (cmd == "--gen-pinvoke-table") {
 			return GenPinvokeTable (args);
 		} else if (cmd == "--gen-empty-assemblies") {
-			return GenEmptyAssemblies (args);
+			return GenEmptyAssemblies2 (args);
 		} else {
 			Usage ();
 			return 1;
@@ -64,15 +64,29 @@ public class WasmTuner
 			return "int";
 	}
 
-	int GenPinvokeTable (String[] args) {
+	int GenPinvokeTable (string[] args)
+	{
+		if (args[1].StartsWith("@"))
+		{
+			var rawContent = File.ReadAllText(args[1].Substring(1));
+
+			var content = rawContent.Split(" ");
+
+			args = new[] { args[0] }
+				.Concat(content)
+				.ToArray();
+		}
+
 		var outputFile = args[1];
 		var icallTable = args[3];
 
 		var modules = new Dictionary<string, string> ();
 		foreach (var module in args [2].Split (','))
+		{
 			modules [module] = module;
+		}
 
-		var files = args.Skip (4).ToArray ();
+		var files = args.Skip(4).ToArray();
 
 		var generator = new PInvokeTableGenerator();
 
@@ -118,8 +132,28 @@ public class WasmTuner
 	}
 
 	// Generate empty assemblies for the filenames in ARGS if they don't exist
-	int GenEmptyAssemblies (string[] args) {
-		foreach (var fname in args.Skip(1)) {
+	int GenEmptyAssemblies2 (IEnumerable<string> args)
+	{
+		args = args.SelectMany(arg =>
+		{
+			// Expand a response file
+
+			if (arg.StartsWith("@"))
+			{
+				var rawContent = File.ReadAllText(arg.Substring(1));
+				var content = rawContent.Split(" ");
+
+#if DEBUG
+				Console.WriteLine($"Tuner Response content: {rawContent}");
+#endif
+
+				return content;
+			}
+			return new[] { arg };
+		});
+
+		foreach (var fname in args.Skip(1))
+		{
 			if (File.Exists (fname) || !Path.GetExtension(fname).Equals(".dll", StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
