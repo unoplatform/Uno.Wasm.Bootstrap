@@ -139,12 +139,12 @@ This mode can be enabled by adding this property to the `csproj`:
 ```
 
 Requirements:
-- A Windows 10 machine with [WSL 1 or 2 with Ubuntu 18.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed.
+- A Windows 10 machine with [WSL 1 or 2 with Ubuntu 20.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed.
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
 - A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 3.1
 - ninja: `apt-get install ninja-build` in WSL
 
-If you have another distribution installed make sure that the 18.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
+If you have another distribution installed make sure that the 20.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
 Note that WSL 2 is considerably slower than WSL 1 for the boostrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
 
 During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](/src/Uno.Wasm.Bootstrap/build/scripts/dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
