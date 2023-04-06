@@ -1418,7 +1418,9 @@ class Driver {
 		linker_args.Add(extra_linkerflags);
 		linker_args.AddRange(linkerSearchPaths);
 
-		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies $out");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies \'@$builddir/tuner.rsp\'");
+		ninja.WriteLine ("  rspfile = $builddir/tuner.rsp");
+		ninja.WriteLine ("  rspfile_content = $out");
 		ninja.WriteLine ("  description = [IL-LINK]");
 		ninja.WriteLine ("rule aot-instances-dll");
 
@@ -1436,7 +1438,9 @@ class Driver {
 		ninja.WriteLine ("rule gen-icall-table");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-icall-table $out $runtime_table $in");
 		ninja.WriteLine ("rule gen-pinvoke-table");
-		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-pinvoke-table $out $pinvoke_libs $in");
+		ninja.WriteLine ($"  command = {tools_shell_prefix} {tunerCommand} --gen-pinvoke-table \'@$builddir/gen-pinvoke.rsp\'");
+		ninja.WriteLine ($"  rspfile = $builddir/gen-pinvoke.rsp");
+		ninja.WriteLine ($"  rspfile_content = $out $pinvoke_libs $in");
 		ninja.WriteLine ("rule ilstrip");
 		ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} $in $out; mono $tools_dir/mono-cil-strip.exe -q $out");
 		ninja.WriteLine ("  description = [IL-STRIP]");
