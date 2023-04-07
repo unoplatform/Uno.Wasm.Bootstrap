@@ -80,6 +80,8 @@ static class MonoInternals
 	internal static extern int mono_trace_set_options(string options);
 }
 ```
+> [!NOTE]
+> In order for `__Native` to be available, you'll need to specify `<WasmShellAdditionalPInvokeLibrary Include="__Native" />` item. See [Static linking additional P/Invoke libraries](features-module-linking.md#static-linking-additional-pinvoke-libraries) for details.
 
 Then in the `Main` of your application, add the following:
 ```csharp
