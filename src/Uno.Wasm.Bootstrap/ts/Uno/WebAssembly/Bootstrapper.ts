@@ -29,7 +29,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _appBase: string;
 
 		private body: HTMLElement;
-		private windowBackplate: HTMLElement;
+		private bodyObserver: MutationObserver;
 		private loader: HTMLElement;
 		private progress: HTMLProgressElement;
 
@@ -303,42 +303,47 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private cleanupInit() {
-			// Remove loader node, not needed anymore
-			if (this.loader && this.loader.parentNode) {
-				this.loader.parentNode.removeChild(this.loader);
+			if (this.progress) {
+				this.progress.value = this.progress.max;
 			}
-			let manifest = (<any>window)["UnoAppManifest"];
-			if (manifest && manifest.unsetBackgroundAfterLoad && this.windowBackplate) {
-				this.windowBackplate.classList.remove("uno-window-backplate");
+			// Remove loader node if observer will not handle it
+			if (!this.bodyObserver && this.loader && this.loader.parentNode) {
+				this.loader.parentNode.removeChild(this.loader);
 			}
 		}
 
 		private initProgress() {
-			this.windowBackplate = this.body.querySelector(".uno-window-backplate");
-			if (!this.windowBackplate) {
-				this.body.classList.add("uno-window-backplate");
-				this.windowBackplate = this.body;
-			}
-
 			this.loader = this.body.querySelector(".uno-loader");
 
 			if (this.loader) {
+				this.loader.id = "loading";
 				const totalBytesToDownload = this._unoConfig.mono_wasm_runtime_size + this._unoConfig.total_assemblies_size;
 				const progress = this.loader.querySelector("progress");
 				progress.max = totalBytesToDownload;
 				(<any>progress).value = ""; // indeterminate
 				this.progress = progress;
+
+				if (this.loader.parentElement == this.body) {
+
+					this.bodyObserver = new MutationObserver(() => {
+						this.loader.parentNode.removeChild(this.loader);
+						this.bodyObserver.disconnect();
+						this.bodyObserver = null;
+					});
+
+					this.bodyObserver.observe(this.body, { childList: true });
+				}
 			}
 
 			const configLoader = () => {
 				if (manifest && manifest.lightThemeBackgroundColor) {
-					this.windowBackplate.style.setProperty("--light-theme-bg-color", manifest.lightThemeBackgroundColor);
+					this.loader.style.setProperty("--light-theme-bg-color", manifest.lightThemeBackgroundColor);
 				}
 				if (manifest && manifest.darkThemeBackgroundColor) {
-					this.windowBackplate.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
+					this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
 				}
 				if (manifest && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
-					this.windowBackplate.style.setProperty("background-color", manifest.splashScreenColor);
+					this.loader.style.setProperty("background-color", manifest.splashScreenColor);
 				}
 				if (manifest && manifest.accentColor) {
 					this.loader.style.setProperty("--accent-color", manifest.accentColor);
