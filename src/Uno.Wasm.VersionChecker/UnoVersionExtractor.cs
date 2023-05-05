@@ -24,12 +24,12 @@ public sealed class UnoVersionExtractor : IDisposable
 	private readonly Uri _siteUri;
 	private readonly HttpClient _httpClient = new HttpClient();
 
-	private ImmutableArray<(string name, string version, string fileVersion, string configuration, string targetFramework, string? commit)> _assemblies;
+	private ImmutableArray<(string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit)> _assemblies;
 	private (Uri assembliesPath, string? mainAssembly, string[]? assemblies, string? server) _config;
-	private (string name, string version, string fileVersion, string configuration, string targetFramework, string? commit) _mainAssemblyDetails;
+	private (string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit) _mainAssemblyDetails;
 	private (string? version, string? name) _framework;
 	private bool _isAot;
-	
+
 	public UnoVersionExtractor(Uri siteUri)
 	{
 		_siteUri = siteUri;
@@ -132,7 +132,9 @@ public sealed class UnoVersionExtractor : IDisposable
 			return 1;
 		}
 
-		Console.WriteLineFormatted("{0} assemblies found. Downloading assemblies to read metadata...", Color.Gray,
+		Console.WriteLineFormatted(
+			"Trying to download {0} files to find assemblies. Downloading them to read metadata...",
+			Color.Gray,
 			new Formatter(_config.assemblies.Length, Color.Aqua));
 
 		var tasks = _config.assemblies
@@ -140,6 +142,7 @@ public sealed class UnoVersionExtractor : IDisposable
 			.ToArray();
 
 		_assemblies = (await Task.WhenAll(tasks))
+			.Where(x=>x.name is not null)
 			.OrderBy(d => d.name)
 			.ToImmutableArray();
 
@@ -179,6 +182,8 @@ public sealed class UnoVersionExtractor : IDisposable
 		}
 
 		Console.WriteLine();
+
+		Console.WriteLineFormatted("{0} assemblies successfully downloaded.", Color.Gray, new Formatter(_assemblies.Length, Color.Aqua));
 
 		WriteTable(table);
 
@@ -283,57 +288,87 @@ public sealed class UnoVersionExtractor : IDisposable
 		RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
 
-	private async Task<(string name, string version, string fileVersion, string configuration, string targetFramework, string? commit)> GetAssemblyDetails(Uri uri)
+	private async Task<(string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit)> GetAssemblyDetails(Uri uri)
 	{
-		await using var httpStream = await _httpClient.GetStreamAsync(uri);
-
-		var stream = new MemoryStream();
-		await httpStream.CopyToAsync(stream);
-		stream.Position = 0;
-
-		var assembly = AssemblyDefinition.ReadAssembly(stream);
-
-		var attributes = assembly.CustomAttributes.ToArray();
-
-		var name = assembly.Name.Name;
-		var version = assembly.Name.Version.ToString();
-		var fileVersion = "";
-		var targetFramework = "";
-		var commit = default(string?);
-		var configuration = "";
-
-		foreach (var attribute in attributes)
+		// Create http response from uri
+		using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+		using var response = await _httpClient.SendAsync(request);
+		if (!response.IsSuccessStatusCode)
 		{
-			switch (attribute.AttributeType.Name)
+			return default;
+		}
+
+		await using var httpStream = await response.Content.ReadAsStreamAsync();
+
+		try
+		{
+
+			var stream = new MemoryStream();
+			await httpStream.CopyToAsync(stream);
+			stream.Position = 0;
+
+			// Ensure it's a DLL file by reading the header
+			var header = new byte[2];
+			if(await stream.ReadAsync(header, 0, 2) != 2)
 			{
-				case "AssemblyInformationalVersionAttribute":
-					var versionStr = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
-					version = versionStr.Split('+').FirstOrDefault() ?? "";
-
-					if (COMMIT_REGEX.Match(versionStr) is { Success: true } m)
-					{
-						commit = m.Groups[1].Value;
-					}
-
-					break;
-				case "AssemblyFileVersionAttribute":
-					fileVersion = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
-					break;
-				case "TargetFrameworkAttribute":
-					targetFramework = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
-					break;
-				case "AssemblyConfigurationAttribute":
-					configuration = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
-					break;
+				return default;
 			}
-		}
+			if (header[0] != 'M' || header[1] != 'Z')
+			{
+				return default;
+			}
 
-		if (attributes.Length == 0)
+			// Reset the stream
+			stream.Position = 0;
+
+			var assembly = AssemblyDefinition.ReadAssembly(stream);
+
+			var attributes = assembly.CustomAttributes.ToArray();
+
+			var name = assembly.Name.Name;
+			var version = assembly.Name.Version.ToString();
+			var fileVersion = "";
+			var targetFramework = "";
+			var commit = default(string?);
+			var configuration = "";
+
+			foreach (var attribute in attributes)
+			{
+				switch (attribute.AttributeType.Name)
+				{
+					case "AssemblyInformationalVersionAttribute":
+						var versionStr = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
+						version = versionStr.Split('+').FirstOrDefault() ?? "";
+
+						if (COMMIT_REGEX.Match(versionStr) is { Success: true } m)
+						{
+							commit = m.Groups[1].Value;
+						}
+
+						break;
+					case "AssemblyFileVersionAttribute":
+						fileVersion = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
+						break;
+					case "TargetFrameworkAttribute":
+						targetFramework = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
+						break;
+					case "AssemblyConfigurationAttribute":
+						configuration = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
+						break;
+				}
+			}
+
+			if (attributes.Length == 0)
+			{
+				targetFramework = "WASM AOT";
+			}
+
+			return (name, version, fileVersion, configuration, targetFramework, commit);
+		}
+		catch (Exception ex)
 		{
-			targetFramework = "WASM AOT";
+			return default;
 		}
-
-		return (name, version, fileVersion, configuration, targetFramework, commit);
 	}
 
 
