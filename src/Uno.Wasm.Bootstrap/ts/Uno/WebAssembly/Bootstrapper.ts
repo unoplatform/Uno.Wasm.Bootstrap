@@ -326,7 +326,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (this.loader.parentElement == this.body) {
 
 					this.bodyObserver = new MutationObserver(() => {
-						if (!this.loader.classList.contains("keep-loader")){
+						if (!this.loader.classList.contains("uno-keep-loader")){
 							// This version of Uno Platform cannot remove
 							// bootstrapper's loader, so we must do it.
 							this.loader.parentNode.removeChild(this.loader);
@@ -340,7 +340,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				// Used by Uno Platform to detect this bootstrapper version
 				// can keep the loader displayed when requested
-				this.loader.classList.add("persistent-loader");
+				this.loader.classList.add("uno-persistent-loader");
 			}
 
 			const configLoader = () => {
