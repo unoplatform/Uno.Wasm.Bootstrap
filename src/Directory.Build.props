@@ -28,7 +28,7 @@
 	<Choose>
 		<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
 			<PropertyGroup>
-				<PackageIconUrl>https://nv-assets.azurewebsites.net/logos/uno.png</PackageIconUrl>
+				<PackageIconUrl>https://uno-assets.platform.uno/logos/uno.png</PackageIconUrl>
 				<PackageIcon>icon.png</PackageIcon>
 
 				<!-- Optional: Declare that the Repository URL can be published to NuSpec -->
