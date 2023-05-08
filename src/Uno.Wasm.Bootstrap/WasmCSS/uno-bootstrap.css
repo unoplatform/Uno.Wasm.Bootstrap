@@ -19,16 +19,17 @@
 }
 
     .uno-loader .logo {
-        width: auto;
-        height: auto;
-        /* Protect the width and height of the logo to fit the screen */
-        max-width: 70vw;
-        max-height: 70vh;
-        /* Center the logo */
-        position: absolute;
+        position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        max-width: min(90%, 620px);
+        max-height: min(90%, 300px);
+        width: auto;
+        height: auto;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 620px 300px;
     }
 
     .uno-loader progress {
