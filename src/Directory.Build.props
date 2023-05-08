@@ -21,7 +21,6 @@
 	<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
   </PropertyGroup>
 
-<<<<<<< HEAD
   <Choose>
 	<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
 	  <PropertyGroup>
@@ -37,28 +36,5 @@
 	  </ItemGroup>
 	</When>
   </Choose>
-=======
-	<Choose>
-		<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
-			<PropertyGroup>
-				<PackageIconUrl>https://uno-assets.platform.uno/logos/uno.png</PackageIconUrl>
-				<PackageIcon>icon.png</PackageIcon>
-
-				<!-- Optional: Declare that the Repository URL can be published to NuSpec -->
-				<PublishRepositoryUrl>true</PublishRepositoryUrl>
-				<!-- Optional: Embed source files that are not tracked by the source control manager to the PDB -->
-				<EmbedUntrackedSources>true</EmbedUntrackedSources>
-				<!-- Optional: Include PDB in the built .nupkg -->
-				<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-			</PropertyGroup>
-			<ItemGroup>
-				<PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1" PrivateAssets="All"/>
-			</ItemGroup>
-			<ItemGroup>
-				<None Include="$(MSBuildThisFileDirectory)..\build\icon.png" Pack="true" PackagePath="\" />
-			</ItemGroup>
-		</When>
-	</Choose>
->>>>>>> 58c862c (fix: Url relative to uno platform domain)
 
 </Project>
