@@ -326,13 +326,21 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (this.loader.parentElement == this.body) {
 
 					this.bodyObserver = new MutationObserver(() => {
-						this.loader.parentNode.removeChild(this.loader);
+						if (!this.loader.classList.contains("uno-keep-loader")){
+							// This version of Uno Platform cannot remove
+							// bootstrapper's loader, so we must do it.
+							this.loader.parentNode.removeChild(this.loader);
+						}
 						this.bodyObserver.disconnect();
 						this.bodyObserver = null;
 					});
 
 					this.bodyObserver.observe(this.body, { childList: true });
 				}
+
+				// Used by Uno Platform to detect this bootstrapper version
+				// can keep the loader displayed when requested
+				this.loader.classList.add("uno-persistent-loader");
 			}
 
 			const configLoader = () => {
