@@ -336,7 +336,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 					img.setAttribute("src", manifest.splashScreenImage);
 				} else {
-					img.setAttribute("src", "https://nv-assets.azurewebsites.net/logos/uno-splashscreen-light.png");
+					img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
 				}
 			};
 
