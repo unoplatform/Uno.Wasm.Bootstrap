@@ -511,7 +511,9 @@ namespace Uno.WebAssembly.Bootstrap {
 				asset = asset.replace(".dll", this._unoConfig.assemblyFileExtension);
 
 				if (this._unoConfig.assemblyFileNameObfuscationMode == "NoDots") {
-					asset = asset.replace(/\./g, "_");						
+					asset = asset.replace(/\/([^\/]*)$/, function (match, p1) {
+						return "/" + p1.replace(/\./g, "_");
+					});	
 				}
 			}
 
