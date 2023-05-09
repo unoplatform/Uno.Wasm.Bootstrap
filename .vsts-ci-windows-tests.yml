@@ -127,6 +127,16 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://127.0.0.1:8000/"
+
+    displayName: StaticLinking.Aot.Net5 Tests (net5 with file name obfuscation and ip address)
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
   # Static linking test (net5)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5

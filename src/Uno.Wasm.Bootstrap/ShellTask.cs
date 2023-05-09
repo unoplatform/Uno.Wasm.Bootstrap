@@ -1070,7 +1070,8 @@ namespace Uno.Wasm.Bootstrap
 
 								if (_assembliesFileNameObfuscationMode == FileNameObfuscationMode.NoDots)
 								{
-									newUrl = newUrl.Replace(".", "_");
+									var lastSlashIndex = newUrl.LastIndexOf('/');
+									newUrl = newUrl.Substring(0, lastSlashIndex + 1) + newUrl.Substring(lastSlashIndex + 1).Replace(".", "_");							
 								}
 
 								asset["url"] = newUrl;
