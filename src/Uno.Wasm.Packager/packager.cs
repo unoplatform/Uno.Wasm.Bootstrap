@@ -442,7 +442,6 @@ class Driver {
 		public bool EnableFS;
 		public bool EnableThreads;
 		public bool EnableJiterpreter;
-		public bool Simd;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
@@ -480,7 +479,6 @@ class Driver {
 		bool enable_dynamic_runtime = false;
 		bool is_netcore = false;
 		bool is_windows = Environment.OSVersion.Platform == PlatformID.Win32NT;
-		bool enable_simd = false;
 		var il_strip = false;
 		var linker_verbose = false;
 		var runtimeTemplate = "runtime.js";
@@ -525,7 +523,6 @@ class Driver {
 				LinkerVerbose = false,
 				EnableZLib = false,
 				EnableFS = false,
-				Simd = false,
 				EnableDynamicRuntime = false,
 				LinkerExcludeDeserialization = true,
 				EnableCollation = false,
@@ -590,7 +587,6 @@ class Driver {
 		AddFlag (p, new BoolFlag ("jiterpreter", "enable jiterpreter", opts.EnableJiterpreter, b => opts.EnableJiterpreter = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
-		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
 		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
@@ -636,7 +632,6 @@ class Driver {
 		enable_fs = opts.EnableFS;
 		enable_threads = opts.EnableThreads;
 		enable_dynamic_runtime = opts.EnableDynamicRuntime;
-		enable_simd = opts.Simd;
 		invariant_globalization = opts.InvariantGlobalization;
 
 		// Dedup is disabled by default https://github.com/dotnet/runtime/issues/48814
@@ -740,11 +735,6 @@ class Driver {
 
 		if (aot_profile != null && !File.Exists (aot_profile)) {
 			Console.Error.WriteLine ($"AOT profile file '{aot_profile}' not found.");
-			return 1;
-		}
-
-		if (enable_simd && !is_netcore) {
-			Console.Error.WriteLine ("--simd is only supported with netcore.");
 			return 1;
 		}
 
@@ -1330,10 +1320,9 @@ class Driver {
 			? "; if ($$LastExitCode -ne 0) { exit 1; }"
 			: "";
 
-		if (enable_simd) {
-			aot_args += "mattr=simd,";
-			emcc_flags += "-msimd128 ";
-		}
+		aot_args += "mattr=simd,";
+		emcc_flags += "-msimd128 ";
+
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
 			emcc_flags += $"-emit-llvm ";
@@ -1525,7 +1514,7 @@ class Driver {
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
-		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
+		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");\
 		linker_args.Add($"--strip-link-attributes");
 		linker_args.Add(extra_linkerflags);
 		linker_args.AddRange(linkerSearchPaths);
