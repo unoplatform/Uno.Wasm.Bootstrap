@@ -159,6 +159,8 @@ public class WasmTuner
 				continue;
 			}
 
+			Console.WriteLine($"Generating empty linked assembly for {fname}");
+
 			var basename = Path.GetFileName (fname).Replace (".exe", "").Replace (".dll", "");
 			var assembly = AssemblyDefinition.CreateAssembly (new AssemblyNameDefinition (basename, new Version (0, 0, 0, 0)), basename, ModuleKind.Dll);
 			assembly.Write (fname);
