@@ -30,6 +30,7 @@
         background-repeat: no-repeat;
         background-position: center;
         background-size: 620px 300px;
+        pointer-events: none;
     }
 
     .uno-loader progress {
