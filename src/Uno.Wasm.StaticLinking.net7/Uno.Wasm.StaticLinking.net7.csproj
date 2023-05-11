@@ -11,6 +11,7 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<!--<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>-->
+		<WasmShellEnableSimd>true</WasmShellEnableSimd>
 	</PropertyGroup>
 
 	<ItemGroup>
