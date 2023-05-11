@@ -144,6 +144,7 @@ declare type MonoConfig = {
 	aotProfilerOptions?: AOTProfilerOptions;
 	coverageProfilerOptions?: CoverageProfilerOptions;
 	logProfilerOptions?: LogProfilerOptions;
+	runtimeOptions?: string[], // array of runtime options as strings
 	/**
 	 * END UNO SPECIFIC
 	 */

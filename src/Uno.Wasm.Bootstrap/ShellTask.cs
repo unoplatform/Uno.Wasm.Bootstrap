@@ -135,6 +135,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public string CSPConfiguration { get; set; } = "";
 
+		public bool EnableJiterpreter { get; set; } = false;
+
+		public string RuntimeOptions { get; set; } = "";
+
 		public bool EmccLinkOptimization { get; set; }
 
 		public string? EmccLinkOptimizationLevel { get; set; }
@@ -724,7 +728,8 @@ namespace Uno.Wasm.Bootstrap
 			var debuggerBinBasePaths = new[] {
 				Path.Combine(MonoWasmSDKPath, "dbg-proxy", TargetFramework.ToLower()), // Compatibility with previous runtime packages
 				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
-				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5"),
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net7.0")
 			};
 
 			var proxyBasePath = debuggerBinBasePaths.First(Directory.Exists);
@@ -784,7 +789,12 @@ namespace Uno.Wasm.Bootstrap
 			ValidateDotnet();
 			LinkerSetup();
 
-			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "") + " " + (EnableSimd ? "-simd" : "");
+			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}"
+				+ (EnableThreads ? "-threads" : "") + " "
+				+ (EnableSimd ? "-simd" : "") + " "
+				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
+				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
+
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
@@ -921,8 +931,8 @@ namespace Uno.Wasm.Bootstrap
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\"", workAotPath)
-					: RunProcess("ninja", $"{NinjaAdditionalParameters}", workAotPath);
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\" -v", workAotPath)
+					: RunProcess("ninja", $"{NinjaAdditionalParameters} -v", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
 				{
@@ -1584,8 +1594,17 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GetBcl()
 		{
-			_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib", "net7.0");
-			var reals = Directory.GetFiles(_bclPath, "*.dll");
+			_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib");
+
+			var subDirectories = Directory.GetDirectories(_bclPath);
+			if(subDirectories.Length != 1)
+			{
+				throw new InvalidDataException("The lib directory structure must have exactly one target framework");
+			}
+
+			_bclPath = Path.Combine(_bclPath, subDirectories.First());
+
+			var reals = Directory.GetFiles(_bclPath, "*.dll", SearchOption.AllDirectories);
 			_bclAssemblies = reals.ToDictionary(x => Path.GetFileName(x));
 		}
 
