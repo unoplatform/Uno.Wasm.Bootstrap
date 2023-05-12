@@ -1161,15 +1161,6 @@ class Driver {
 		if (enable_debug || !opts.EmccLinkOptimizations)
 		{
 			emcc_link_flags.Add("-O0 ");
-
-			if (!enable_threads)
-			{
-				// Disable thread optimizations because ofL
-				// wasm-ld: error: --shared-memory is disallowed by lto.tmp because it was not compiled with 'atomics' or 'bulk-memory' features.
-
-				emcc_link_flags.Add("-flto=thin");
-				emcc_flags += "-flto=thin ";
-			}
 		}
 		else
 		{
@@ -1325,7 +1316,9 @@ class Driver {
 
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
-			emcc_flags += $"-emit-llvm ";
+
+			// No need to emit LLVM, we're not using LTO options
+			// emcc_flags += $"-emit-llvm ";
 		}
 		if (!use_release_runtime)
 			// -s ASSERTIONS=2 is very slow
@@ -1392,7 +1385,7 @@ class Driver {
 		}
 		else
 		{
-			ninja.WriteLine("emcc = $$env:PYTHONUTF8=1; $$EMCC_DEBUG=1; emcc ");
+			ninja.WriteLine("emcc = $$env:PYTHONUTF8=1; emcc ");
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
