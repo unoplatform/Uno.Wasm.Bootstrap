@@ -1106,6 +1106,8 @@ class Driver {
 		else
 			runtime_libs += $"$runtime_libdir/libmono-native.a ";
 
+		string emcc_flags = "";
+
 		string aot_args = "llvm-path=\"$emscripten_sdkdir/upstream/bin\",";
 		string profiler_libs = "";
 		string profiler_aot_args = "";
@@ -1121,6 +1123,12 @@ class Driver {
 			if (profiler_aot_args != "")
 				profiler_aot_args += " ";
 			profiler_aot_args += $"--profile={profiler}";
+
+			if (profiler == "aot")
+			{
+				// related to driver.c conditionals
+				emcc_flags += " -DENABLE_AOT_PROFILER=1 ";
+			}
 		}
 		string extra_link_libs = "";
 		foreach (var lib in native_libs)
@@ -1145,7 +1153,6 @@ class Driver {
 			driver_deps += " $builddir/icall-table.h";
 		if (gen_pinvoke)
 			driver_deps += " $builddir/pinvoke-table.h";
-		string emcc_flags = "";
 		if (enable_lto)
 			emcc_flags += "--llvm-lto 1 ";
 		if (enable_zlib || is_netcore)
@@ -1190,6 +1197,8 @@ class Driver {
 		{
 			emcc_flags += " -s DISABLE_EXCEPTION_CATCHING=0 ";
 		}
+
+		emcc_flags += " -s EXPORT_ES6=1 ";
 
 		// https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L187
 		emcc_exported_runtime_methods.Add("FS");
