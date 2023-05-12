@@ -508,6 +508,7 @@ class Driver {
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
 		string linker_optimization_level = "";
+		string wasm_tuner_path = "";
 		var linker_args = new List<string>();
 
 		var opts = new WasmOptions () {
@@ -564,6 +565,7 @@ class Driver {
 				{ "illinker-path=", s => illinker_path = s },
 				{ "extra-linkerflags=", s => extra_linkerflags = s },
 				{ "linker-optimization-level=", s => linker_optimization_level = s },
+				{ "wasm-tuner-path=", s => wasm_tuner_path = s },
 				{ "help", s => print_usage = true },
 			};
 
@@ -1410,7 +1412,11 @@ class Driver {
 
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
-		var tunerCommand = is_netcore ? $"dotnet $tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll" : "mono $tools_dir/wasm-tuner.exe";
+		var tunerCommand = $"dotnet " +
+			(string.IsNullOrEmpty(wasm_tuner_path)
+				? $"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll"
+				: wasm_tuner_path);
+
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
 		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");

@@ -205,6 +205,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string? CustomLinkerPath { get; set; }
 
+		public string? WasmTunerBinPath { get; set; }
+
 		public string? PWAManifestFile { get; set; }
 
 		public bool EnableLongPathSupport { get; set; } = true;
@@ -884,6 +886,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(referencePathsParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(EnableLogProfiler ? "--profile=log" : "");
+				packagerParams.Add(!string.IsNullOrEmpty(WasmTunerBinPath) ? $"\"--wasm-tuner-path={AlignPath(Path.GetFullPath(WasmTunerBinPath))}\"" : "");
 				packagerParams.Add($"\"--linker-optimization-level={GetEmccLinkerOptimizationLevel()}\"");
 				packagerParams.Add($"\"{AlignPath(Path.GetFullPath(Assembly))}\"");
 
