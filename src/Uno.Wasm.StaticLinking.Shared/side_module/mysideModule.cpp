@@ -49,6 +49,16 @@ WASM_EXPORT int test_exception() {
 }
 
 WASM_EXPORT void test_png() {
-	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	// Disabled for emsdk 3.1.34
+	//
+	//   "emsdk/emsdk-3.1.34/emsdk/upstream/bin\wasm-ld.exe" @C:\Users\jerome.uno\AppData\Local\Temp\emscripten__pcr75u2.rsp.utf-8
+	//   LLVM ERROR : Cannot select : 0x2700a022d48 : ch = catchret 0x2700844b498, BasicBlock : ch< 0x2700a020a30>, BasicBlock : ch< 0x2700a020928>, emsdk\emsdk - 3.1.34\emsdk\upstream\emscripten\cache\ports\libpng\libpng - 1.6.37\png.c:249 : 1
+	//   	In function : png_create_png_struct
+	//   	PLEASE submit a bug report to https ://github.com/llvm/llvm-project/issues/ and include the crash backtrace.
+	//   Stack dump :
+	//   0.    Running pass 'Function Pass Manager' on module 'emsdk\\upstream\\emscripten\\cache\\sysroot\\lib\\wasm32-emscripten\\thinlto\\libpng.a(png.c.o at 31350)'.
+	//   1.    Running pass 'WebAssembly Instruction Selection' on function '@png_create_png_struct'
+	// png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
 	printf("After test_png\r\n");
 }
