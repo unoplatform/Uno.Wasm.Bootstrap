@@ -1514,7 +1514,7 @@ class Driver {
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
-		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");\
+		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
 		linker_args.Add($"--strip-link-attributes");
 		linker_args.Add(extra_linkerflags);
 		linker_args.AddRange(linkerSearchPaths);
