@@ -9,7 +9,6 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
-		<WasmShellDisableSDKCheckSumValidation>true</WasmShellDisableSDKCheckSumValidation>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 	</PropertyGroup>
