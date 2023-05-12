@@ -197,7 +197,6 @@
 			TargetFramework="$(TargetFramework)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"
 			TargetFrameworkVersion="$(TargetFrameworkVersion)"
-			WasmTunerOverrideFolderPath="$(MSBuildThisFileDirectory)/wasm-tuner/$(_WasmShellToolSuffix)"
         >
 			<Output TaskParameter="SdkPath" PropertyName="_UnoMonoSdkPath" />
 			<Output TaskParameter="PackagerBinPath" PropertyName="_UnoMonoPackagerBinPath" />

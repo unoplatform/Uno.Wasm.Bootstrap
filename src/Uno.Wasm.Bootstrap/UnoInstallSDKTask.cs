@@ -42,9 +42,6 @@ namespace Uno.Wasm.Bootstrap
 		public string PackagerOverrideFolderPath { get; set; } = "";
 
 		[Required]
-		public string WasmTunerOverrideFolderPath { get; set; } = "";
-
-		[Required]
 		public string CilStripOverrideFolderPath { get; set; } = "";
 
 		[Required]
@@ -75,8 +72,6 @@ namespace Uno.Wasm.Bootstrap
 
 		[Output]
 		public string? PackagerBinPath { get; set; }
-		[Output]
-		public string? WasmTunerBinPath { get; set; }
 
 		[Output]
 		public string? PackagerProjectFile { get; private set; }
@@ -136,7 +131,6 @@ namespace Uno.Wasm.Bootstrap
 			{
 				void WriteTools()
 				{
-					WriteWasmTuner();
 					WriteCilStrip();
 				}
 
@@ -264,22 +258,6 @@ namespace Uno.Wasm.Bootstrap
 			if (IsOSUnixLike)
 			{
 				Process.Start("chmod", $"-R +x \"{SdkPath}\"");
-			}
-		}
-
-		private void WriteWasmTuner()
-		{
-			if (!string.IsNullOrEmpty(WasmTunerOverrideFolderPath))
-			{
-				var basePath = Path.Combine(SdkPath, "tools");
-				Directory.CreateDirectory(basePath);
-
-				foreach (var file in Directory.EnumerateFiles(WasmTunerOverrideFolderPath))
-				{
-					var destFileName = Path.Combine(basePath, Path.GetFileName(file));
-					Log.LogMessage($"Copy wasm-tuner {file} to {destFileName}");
-					File.Copy(file, destFileName, true);
-				}
 			}
 		}
 
