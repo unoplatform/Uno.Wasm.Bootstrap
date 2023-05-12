@@ -1392,7 +1392,7 @@ class Driver {
 		}
 		else
 		{
-			ninja.WriteLine("emcc = $$env:PYTHONUTF8=1; emcc ");
+			ninja.WriteLine("emcc = $$env:PYTHONUTF8=1; $$EMCC_DEBUG=1; emcc ");
 		}
 
 		ninja.WriteLine ("wasm_opt = $emscripten_sdkdir/upstream/bin/wasm-opt");
