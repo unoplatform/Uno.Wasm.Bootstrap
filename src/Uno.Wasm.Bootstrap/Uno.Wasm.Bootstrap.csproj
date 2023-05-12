@@ -225,6 +225,7 @@
 		<ItemGroup>
 			<_PackagerNet5Files Include="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/packager.*" />
 			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/wasm-tuner.*" />
+			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/Mono.Cecil.*" />
 			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Json.dll" />
 			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Reflection.MetadataLoadContext.dll" />
 		</ItemGroup>
