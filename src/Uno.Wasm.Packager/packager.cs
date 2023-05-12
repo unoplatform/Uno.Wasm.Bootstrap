@@ -1498,6 +1498,11 @@ class Driver {
 		var emcc_link_additionals_command = is_windows ? jsAdditionals : "";
 		var emcc_link_additionals_response = is_windows ? "" : jsAdditionals;
 
+		// Prevents https://github.com/emscripten-core/emscripten/blob/347262aec9c4450e34b6af617d1420dbda2f6662/src/preamble.js#L945 to remove
+		// the `env` member: https://github.com/emscripten-core/emscripten/blob/347262aec9c4450e34b6af617d1420dbda2f6662/emcc.py#L2534
+		// which is being used here: https://github.com/dotnet/runtime/blob/e131899322693dff60b835a83bbf02f7916e3991/src/mono/wasm/runtime/startup.ts#LL446C1-L446C10
+		emcc_link_flags.Add("-s ASSERTIONS=1");
+
 		ninja.WriteLine("rule emcc-link");
 		ninja.WriteLine($"  command = {emcc_shell_prefix} \"$emcc {response_prefix}$builddir/emcc_link.rsp {emcc_link_additionals_command} {failOnError} \"");
 		ninja.WriteLine($"  rspfile = $builddir/emcc_link.rsp");
