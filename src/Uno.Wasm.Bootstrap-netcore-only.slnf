@@ -35,7 +35,6 @@
       "Uno.Wasm.Threads.Aot\\Uno.Wasm.Threads.Aot.csproj",
       "Uno.Wasm.Threads.Shared\\Uno.Wasm.Threads.Shared.shproj",
       "Uno.Wasm.Threads\\Uno.Wasm.Threads.csproj",
-      "Uno.Wasm.TimezoneData\\Uno.Wasm.TimezoneData.csproj",
       "Uno.WasmSample WithSpace Aot\\Uno.WasmSample.WithSpace.Aot.csproj",
       "Uno.WasmSample WithSpace\\Uno.WasmSample.WithSpace.csproj"
     ]

@@ -13,7 +13,6 @@
       "Uno.Wasm.LogProfiler\\Uno.Wasm.LogProfiler.csproj",
       "Uno.Wasm.MetadataUpdater\\Uno.Wasm.MetadataUpdater.csproj",
       "Uno.Wasm.Packager\\Uno.Wasm.Packager.csproj",
-      "Uno.Wasm.TimezoneData\\Uno.Wasm.TimezoneData.csproj",
       "Uno.Wasm.Tuner\\Uno.Wasm.Tuner.csproj"
     ]
   }

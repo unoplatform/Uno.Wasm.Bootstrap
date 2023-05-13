@@ -21,7 +21,6 @@
       "Uno.Wasm.Threading.UITests\\Uno.Wasm.Threading.UITests.njsproj",
       "Uno.Wasm.Threads.Aot\\Uno.Wasm.Threads.Aot.csproj",
       "Uno.Wasm.Threads\\Uno.Wasm.Threads.csproj",
-      "Uno.Wasm.TimezoneData\\Uno.Wasm.TimezoneData.csproj",
       "Uno.WasmSample WithSpace Aot\\Uno.WasmSample.WithSpace.Aot.csproj",
       "Uno.WasmSample WithSpace\\Uno.WasmSample.WithSpace.csproj",
       "WasmAot.UITests\\WasmAot.UITests.njsproj"
