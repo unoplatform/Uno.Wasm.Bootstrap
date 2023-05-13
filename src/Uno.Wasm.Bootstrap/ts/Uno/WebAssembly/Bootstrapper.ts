@@ -283,7 +283,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			try {
 				this.attachDebuggerHotkey();
 				await this.setupHotReload();
-				await this.timezoneSetup();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();
@@ -298,14 +297,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this.cleanupInit();
-		}
-
-		private async timezoneSetup() {
-			let timezoneDataExports = await this._getAssemblyExports("Uno.Wasm.TimezoneData");
-
-			timezoneDataExports.Uno.Wasm.TimezoneData.TimezoneHelper.Setup(
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-            );
 		}
 
 		private cleanupInit() {

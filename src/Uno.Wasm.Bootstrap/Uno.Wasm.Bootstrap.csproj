@@ -135,11 +135,6 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.TimezoneData\Uno.Wasm.TimezoneData.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
@@ -195,10 +190,6 @@
 
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>
-			<Content Include="./tools/support/Uno.Wasm.TimezoneData.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
 			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>

@@ -754,11 +754,6 @@ namespace Uno.Wasm.Bootstrap
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
 
-			// Timezone support
-			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
-
-			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
-
 			var metadataUpdaterPath = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.MetadataUpdater.dll");
 
 			if (RuntimeDebuggerEnabled)
@@ -977,7 +972,6 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
 					linkerParams.AddRange(bindingsPath);
-					linkerParams.Add($" -a \"{releaseTimeZoneData}\"");
 
 					if (RuntimeDebuggerEnabled)
 					{
