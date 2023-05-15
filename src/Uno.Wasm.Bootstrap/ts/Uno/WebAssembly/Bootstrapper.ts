@@ -323,20 +323,20 @@ namespace Uno.WebAssembly.Bootstrap {
 				(<any>progress).value = ""; // indeterminate
 				this.progress = progress;
 
-				if (this.loader.parentElement == this.body) {
+				this.bodyObserver = new MutationObserver(() => {
+					if (!this.loader.classList.contains("uno-keep-loader")) {
+						// This version of Uno Platform cannot remove
+						// bootstrapper's loader, so we must do it.
+						this.loader.remove();
+					}
 
-					this.bodyObserver = new MutationObserver(() => {
-						if (!this.loader.classList.contains("uno-keep-loader")){
-							// This version of Uno Platform cannot remove
-							// bootstrapper's loader, so we must do it.
-							this.loader.parentNode.removeChild(this.loader);
-						}
+					if (this.bodyObserver) {
 						this.bodyObserver.disconnect();
 						this.bodyObserver = null;
-					});
+					}
+				});
 
-					this.bodyObserver.observe(this.body, { childList: true });
-				}
+				this.bodyObserver.observe(this.body, { childList: true });
 
 				// Used by Uno Platform to detect this bootstrapper version
 				// can keep the loader displayed when requested
@@ -513,7 +513,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (this._unoConfig.assemblyFileNameObfuscationMode == "NoDots") {
 					asset = asset.replace(/\/([^\/]*)$/, function (match, p1) {
 						return "/" + p1.replace(/\./g, "_");
-					});	
+					});
 				}
 			}
 
