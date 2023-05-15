@@ -51,10 +51,12 @@ declare const MONO: {
 };
 
 declare function mono_bind_static_method(fqn: string, signature?: string): Function;
+declare function conv_string(mono_obj: any): string | null;
 
 declare type MONOType = typeof MONO;
 declare const BINDING: {
 	bind_static_method: typeof mono_bind_static_method;
+	conv_string: typeof conv_string;
 };
 declare type BINDINGType = typeof BINDING;
 interface DotnetPublicAPI {
