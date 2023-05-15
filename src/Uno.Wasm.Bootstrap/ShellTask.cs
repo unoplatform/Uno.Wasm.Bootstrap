@@ -1409,6 +1409,30 @@ namespace Uno.Wasm.Bootstrap
 			{
 				throw new InvalidOperationException($"The WasmShellAssembliesFileExtension property must start with a '.'");
 			}
+
+			if(GenerateAOTProfile && MonoILLinker)
+			{
+				// Unknown failure based on the use of the AOT profiler and the linker.
+				// See https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/724
+				//
+				// EXCEPTION handling: System.InvalidProgramException: 
+				//  "<unnamed thread>" tid=0x1 this=0xa690420 , thread handle : 0x1c032f8, state : not waiting
+				//    at <unknown> <0xffffffff>
+				//    at Interop/Sys..cctor () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at (wrapper runtime-invoke) object.runtime_invoke_direct_void (object,intptr,intptr,intptr) [0x0002d] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at <unknown> <0x00000>
+				//    at <unknown> <0xffffffff>
+				//    at System.Threading.Thread.GetCurrentProcessorNumber () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.ProcessorIdCache.ProcessorNumberSpeedCheck () [0x0001a] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.Thread..cctor () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at (wrapper runtime-invoke) object.runtime_invoke_direct_void (object,intptr,intptr,intptr) [0x0002d] in <af246631a49f42ca8792d861c42583dd>:
+				//    at <unknown> <0x00000>
+				//    at <unknown> <0xffffffff>
+				//    at System.Threading.ObjectHeader.TryEnterFast (object) [0x00023] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.Monitor.ReliableEnterTimeout (object,int,bool&) [0x00021] in <af246631a49f42ca8792d861c42583dd>:0
+				//
+				throw new InvalidOperationException($"Generating an AOT profile is not supported when the linker is enabled");
+			}
 		}
 
 		private void BuildReferencedAssembliesList()
