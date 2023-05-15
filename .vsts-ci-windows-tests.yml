@@ -202,20 +202,18 @@ jobs:
   #     dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
   #   displayName: Build Threading AOT Sample
 
-  #   # - pwsh: |
+  # - pwsh: |
   #     $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
   #     "$(build.sourcesdirectory)\src\Uno.Wasm.Threads.Aot\bin\Release\net6.0\dist" `
   #     "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
   #     "http://localhost:8000/"
+  #   displayName: Threading AOT Tests
+  #   env:
+  #     BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
   #
   # Disabled for the following error:
   # BROWSER LOG: Aborted(Module.arguments has been replaced with plain arguments_ (the initial value can be provided on Module, 
   # but after startup the value is only looked for on a local variable of that name))
-
-
-    displayName: Threading AOT Tests
-    env:
-      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - task: PublishBuildArtifacts@1
     condition: always()
