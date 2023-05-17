@@ -158,6 +158,12 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.setupRequire();
 			this.setupEmscriptenPreRun();
+
+			// Module is not exposed in the context in net8+
+			(<any>globalThis).Module = this._context.Module;
+
+			// Required for hot reload (browser-link provided javascript file)
+			(<any>globalThis).BINDING = this._context.BINDING;
 		}
 
 		private async setupHotReload() {
@@ -277,7 +283,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			try {
 				this.attachDebuggerHotkey();
 				await this.setupHotReload();
-				await this.timezoneSetup();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();
@@ -292,14 +297,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this.cleanupInit();
-		}
-
-		private async timezoneSetup() {
-			let timezoneDataExports = await this._getAssemblyExports("Uno.Wasm.TimezoneData");
-
-			timezoneDataExports.Uno.Wasm.TimezoneData.TimezoneHelper.Setup(
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-            );
 		}
 
 		private cleanupInit() {

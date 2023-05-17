@@ -11,6 +11,9 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
 		<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
+		
+		<!-- Linker is disabled when generating a profile https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/724 -->
+		<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>

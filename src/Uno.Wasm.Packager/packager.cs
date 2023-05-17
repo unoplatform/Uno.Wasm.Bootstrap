@@ -68,6 +68,7 @@ class Driver {
 	const string WEBSOCKETS_ASM_NAME = "WebAssembly.Net.WebSockets";
 	const string BINDINGS_MODULE = "corebindings.o";
 	const string BINDINGS_MODULE_SUPPORT = "$tool_prefix/src/binding_support.js";
+	private static readonly string[] jiterpreterOptions = new[] { "jiterpreter-traces-enabled", "jiterpreter-interp-entry-enabled", "jiterpreter-jit-call-enabled" };
 
 	class AssemblyData {
 		// Assembly name
@@ -440,7 +441,7 @@ class Driver {
 		public bool EnableZLib;
 		public bool EnableFS;
 		public bool EnableThreads;
-		public bool Simd;
+		public bool EnableJiterpreter;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
@@ -478,7 +479,6 @@ class Driver {
 		bool enable_dynamic_runtime = false;
 		bool is_netcore = false;
 		bool is_windows = Environment.OSVersion.Platform == PlatformID.Win32NT;
-		bool enable_simd = false;
 		var il_strip = false;
 		var linker_verbose = false;
 		var runtimeTemplate = "runtime.js";
@@ -499,11 +499,14 @@ class Driver {
 		var framework = "";
 		var runtimepack_dir = "";
 		string usermode;
+		string runtimeOptions = null;
 		string aot_profile = null;
 		string aot_compiler_options = "";
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		int pthread_pool_size = 4;
+		int wasmInitialMemory = 16777216;
+		string wasmStackSize = "5MB";
 		string illinker_path = "";
 		string extra_emccflags = "";
 		string extra_linkerflags = "";
@@ -520,7 +523,6 @@ class Driver {
 				LinkerVerbose = false,
 				EnableZLib = false,
 				EnableFS = false,
-				Simd = false,
 				EnableDynamicRuntime = false,
 				LinkerExcludeDeserialization = true,
 				EnableCollation = false,
@@ -550,6 +552,8 @@ class Driver {
 				{ "aot-profile=", s => aot_profile = s },
 				{ "runtime-config=", s => runtime_config = s },
 				{ "pthread-pool-size=", s => int.TryParse(s, out pthread_pool_size) },
+				{ "wasm-initial-memory=", s => int.TryParse(s, out wasmInitialMemory) },
+				{ "wasm-stack-size=", s => wasmStackSize = s },
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
 				{ "aot-compiler-opts=", s => aot_compiler_options = s },
 				{ "link-mode=", s => linkModeParm = s },
@@ -564,6 +568,7 @@ class Driver {
 				{ "extra-emccflags=", s => extra_emccflags = s },
 				{ "illinker-path=", s => illinker_path = s },
 				{ "extra-linkerflags=", s => extra_linkerflags = s },
+				{ "runtime-options=", s => runtimeOptions = s },
 				{ "linker-optimization-level=", s => linker_optimization_level = s },
 				{ "wasm-tuner-path=", s => wasm_tuner_path = s },
 				{ "help", s => print_usage = true },
@@ -579,9 +584,9 @@ class Driver {
 		AddFlag (p, new BoolFlag ("zlib", "enable the use of zlib for System.IO.Compression support", opts.EnableZLib, b => opts.EnableZLib = b));
 		AddFlag (p, new BoolFlag ("enable-fs", "enable filesystem support (through Emscripten's file_packager.py in a later phase)", opts.EnableFS, b => opts.EnableFS = b));
 		AddFlag (p, new BoolFlag ("threads", "enable threads", opts.EnableThreads, b => opts.EnableThreads = b));
+		AddFlag (p, new BoolFlag ("jiterpreter", "enable jiterpreter", opts.EnableJiterpreter, b => opts.EnableJiterpreter = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
-		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
 		AddFlag (p, new BoolFlag ("wasm-exceptions", "enable exceptions", opts.EnableWasmExceptions, b => opts.EnableWasmExceptions = b));
 		AddFlag (p, new BoolFlag ("linker-exclude-deserialization", "Link out .NET deserialization support", opts.LinkerExcludeDeserialization, b => opts.LinkerExcludeDeserialization = b));
 		AddFlag (p, new BoolFlag ("collation", "enable unicode collation support", opts.EnableCollation, b => opts.EnableCollation = b));
@@ -627,7 +632,6 @@ class Driver {
 		enable_fs = opts.EnableFS;
 		enable_threads = opts.EnableThreads;
 		enable_dynamic_runtime = opts.EnableDynamicRuntime;
-		enable_simd = opts.Simd;
 		invariant_globalization = opts.InvariantGlobalization;
 
 		// Dedup is disabled by default https://github.com/dotnet/runtime/issues/48814
@@ -734,11 +738,6 @@ class Driver {
 			return 1;
 		}
 
-		if (enable_simd && !is_netcore) {
-			Console.Error.WriteLine ("--simd is only supported with netcore.");
-			return 1;
-		}
-
 		//are we working from the tree?
 		if (sdkdir != null) {
 			framework_prefix = Path.Combine (tool_prefix, "framework"); //all framework assemblies are currently side built to packager.exe
@@ -758,7 +757,7 @@ class Driver {
 			/* corelib */
 			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "native"));
 			/* .net runtime */
-			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "lib", "net7.0"));
+			bcl_prefixes.Add (Path.Combine (runtimepack_dir, "lib", "net8.0"));
 		} else {
 			bcl_tools_prefix = Path.Combine (bcl_root, "wasm_tools");
 			bcl_prefixes.Add (bcl_prefix);
@@ -976,6 +975,27 @@ class Driver {
 			configOptions["pthreadPoolSize"] = pthread_pool_size.ToString();
 		}
 
+		var runtimeOptionsSet = runtimeOptions?.Split(" ")?.ToHashSet() ?? new HashSet<string>(3);
+		foreach (var jiterpreterOption in jiterpreterOptions)
+		{
+			if (opts.EnableJiterpreter)
+			{
+				if (!runtimeOptionsSet.Contains($"--no-{jiterpreterOption}"))
+				{
+					runtimeOptionsSet.Add($"--{jiterpreterOption}");
+				}
+			}
+			else
+			{
+				if (!runtimeOptionsSet.Contains($"--{jiterpreterOption}"))
+				{
+					runtimeOptionsSet.Add($"--no-{jiterpreterOption}");
+				}
+			}
+		}
+
+		configOptions["runtimeOptions"] = $"[{string.Join(",", runtimeOptionsSet.Select(o => $"\"{o}\""))}]";
+
 		var config = $"{{" +
 			string.Join(",", configOptions.Select(o => $"\n \t\"{o.Key}\": {o.Value}")) + "," +
 			$"\n \t\"assets\": [ " + file_list_str + "]\n" +
@@ -1048,7 +1068,7 @@ class Driver {
 		}
 		string runtime_libs = "";
 		if (ee_mode == ExecMode.Interp || ee_mode == ExecMode.AotInterp || link_icalls) {
-			runtime_libs += $"$runtime_libdir/libmono-ee-interp.a $runtime_libdir/libmono-ilgen.a ";
+			runtime_libs += $"$runtime_libdir/libmono-ee-interp.a ";
 			// We need to link the icall table because the interpreter uses it to lookup icalls even if the aot-ed icall wrappers are available
 			if (!link_icalls)
 				runtime_libs += $"$runtime_libdir/libmono-icall-table.a ";
@@ -1056,8 +1076,10 @@ class Driver {
 		runtime_libs += $"$runtime_libdir/libmonosgen-2.0.a ";
 		if (is_netcore)
 		{
+			runtime_libs += $"$runtime_libdir/wasm-bundled-timezones.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.Native.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
+			runtime_libs += $"$runtime_libdir/libSystem.Globalization.Native.a ";
 			runtime_libs += $"$runtime_libdir/libicuuc.a ";
 			runtime_libs += $"$runtime_libdir/libicui18n.a ";
 			runtime_libs += $"$runtime_libdir/libicudata.a ";
@@ -1068,12 +1090,14 @@ class Driver {
 
 			if (enable_debug)
 			{
+				runtime_libs += $"$runtime_libdir/libmono-component-marshal-ilgen-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-debugger-static.a ";
 			}
 			else
 			{
+				runtime_libs += $"$runtime_libdir/libmono-component-marshal-ilgen-stub-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-debugger-stub-static.a ";
@@ -1081,6 +1105,8 @@ class Driver {
 		}
 		else
 			runtime_libs += $"$runtime_libdir/libmono-native.a ";
+
+		string emcc_flags = "";
 
 		string aot_args = "llvm-path=\"$emscripten_sdkdir/upstream/bin\",";
 		string profiler_libs = "";
@@ -1097,6 +1123,12 @@ class Driver {
 			if (profiler_aot_args != "")
 				profiler_aot_args += " ";
 			profiler_aot_args += $"--profile={profiler}";
+
+			if (profiler == "aot")
+			{
+				// related to driver.c conditionals
+				emcc_flags += " -DENABLE_AOT_PROFILER=1 ";
+			}
 		}
 		string extra_link_libs = "";
 		foreach (var lib in native_libs)
@@ -1121,7 +1153,6 @@ class Driver {
 			driver_deps += " $builddir/icall-table.h";
 		if (gen_pinvoke)
 			driver_deps += " $builddir/pinvoke-table.h";
-		string emcc_flags = "";
 		if (enable_lto)
 			emcc_flags += "--llvm-lto 1 ";
 		if (enable_zlib || is_netcore)
@@ -1137,15 +1168,6 @@ class Driver {
 		if (enable_debug || !opts.EmccLinkOptimizations)
 		{
 			emcc_link_flags.Add("-O0 ");
-
-			if (!enable_threads)
-			{
-				// Disable thread optimizations because ofL
-				// wasm-ld: error: --shared-memory is disallowed by lto.tmp because it was not compiled with 'atomics' or 'bulk-memory' features.
-
-				emcc_link_flags.Add("-flto=thin");
-				emcc_flags += "-flto=thin ";
-			}
 		}
 		else
 		{
@@ -1176,13 +1198,12 @@ class Driver {
 			emcc_flags += " -s DISABLE_EXCEPTION_CATCHING=0 ";
 		}
 
-		// Align with https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L143
-		emcc_link_flags.Add("-s EXPORT_ES6=1");
-		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
-		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
-		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
+		emcc_flags += " -s EXPORT_ES6=1 ";
 
+		// https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L187
 		emcc_exported_runtime_methods.Add("FS");
+		emcc_exported_runtime_methods.Add("out");
+		emcc_exported_runtime_methods.Add("err");
 		emcc_exported_runtime_methods.Add("print");
 		emcc_exported_runtime_methods.Add("ccall");
 		emcc_exported_runtime_methods.Add("cwrap");
@@ -1205,31 +1226,108 @@ class Driver {
 
 		emcc_link_flags.Add("-s EXPORTED_RUNTIME_METHODS=\"[" + exports + "]\"");
 
-		// https://github.com/dotnet/runtime/blob/8a043bf7adb0fbf5e60a8dd557c98686bc0a8377/src/mono/wasm/wasm.proj#L133
-		emcc_link_flags.Add("-s EXPORTED_FUNCTIONS=_malloc,stackSave,stackRestore,stackAlloc,_memalign,_memset,_htons,_ntohs,_free");
+		// https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L202
+		List<string> exportedFunctions = new()
+		{
+			"_malloc" ,
+			"_memalign" ,
+			"_htons" ,
+			"_ntohs" ,
+
+			"_fmod" ,
+			"_atan2" ,
+			"_fma" ,
+			"_pow" ,
+			"_fmodf" ,
+			"_atan2f" ,
+			"_fmaf" ,
+			"_powf" ,
+
+			"_asin" ,
+			"_asinh" ,
+			"_acos" ,
+			"_acosh" ,
+			"_atan" ,
+			"_atanh" ,
+			"_cbrt" ,
+			"_cos" ,
+			"_cosh" ,
+			"_exp" ,
+			"_log" ,
+			"_log2" ,
+			"_log10" ,
+			"_sin" ,
+			"_sinh" ,
+			"_tan" ,
+			"_tanh" ,
+
+			"_asinf" ,
+			"_asinhf" ,
+			"_acosf" ,
+			"_acoshf" ,
+			"_atanf" ,
+			"_atanhf" ,
+			"_cbrtf" ,
+			"_cosf" ,
+			"_coshf" ,
+			"_expf" ,
+			"_logf" ,
+			"_log2f" ,
+			"_log10f" ,
+			"_sinf" ,
+			"_sinhf" ,
+			"_tanf" ,
+			"_tanhf" ,
+
+			// Uno specific
+			"_malloc",
+			"stackSave",
+			"stackRestore",
+			"stackAlloc",
+			"_memalign",
+			"_memset",
+			"_htons",
+			"_ntohs",
+			"_free"
+		};
+
+		var exportedFunctionsValue = string.Join(",", exportedFunctions.Distinct());
+		emcc_link_flags.Add($"-s EXPORTED_FUNCTIONS={exportedFunctionsValue}");
+
+		// Align with https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L279
+		emcc_link_flags.Add("-s EXPORT_ES6=1");
+		emcc_link_flags.Add("-s ALLOW_MEMORY_GROWTH=1");
+		emcc_link_flags.Add("-s NO_EXIT_RUNTIME=1");
+		emcc_link_flags.Add("-s FORCE_FILESYSTEM=1");
+
 		emcc_link_flags.Add("--source-map-base http://example.com");
-		emcc_link_flags.Add("-s STRICT_JS=1");
 		emcc_link_flags.Add("-s EXPORT_NAME=\"'createDotnetRuntime'\"");
 		emcc_link_flags.Add("-s MODULARIZE=1");
 		emcc_link_flags.Add("-s ENVIRONMENT=\"web,webview,worker,node,shell\"");
 
-		// Additional flags
 		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
-		emcc_link_flags.Add("-s TOTAL_MEMORY=134217728");
+		emcc_link_flags.Add($"-s INITIAL_MEMORY={wasmInitialMemory}");
+		emcc_link_flags.Add($"-s STACK_SIZE={wasmStackSize}");
+
+		emcc_link_flags.Add("-s WASM_BIGINT=1");
 		emcc_link_flags.Add("-s ERROR_ON_UNDEFINED_SYMBOLS=1");
 		emcc_link_flags.Add("-s \"DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\'memset\']\"");
+
+		// https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L303
+		emcc_link_flags.Add("-Wno-limited-postlink-optimizations");
 
 		var failOnError = is_windows
 			? "; if ($$LastExitCode -ne 0) { exit 1; }"
 			: "";
 
-		if (enable_simd) {
-			aot_args += "mattr=simd,";
-			emcc_flags += "-msimd128 ";
-		}
+		aot_args += "mattr=simd,";
+		emcc_flags += "-msimd128 ";
+
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
-			emcc_flags += $"-emit-llvm ";
+
+			// No need to emit LLVM, we're not using LTO options
+			// emcc_flags += $"-emit-llvm ";
 		}
 		if (!use_release_runtime)
 			// -s ASSERTIONS=2 is very slow
@@ -1394,17 +1492,21 @@ class Driver {
 		var jsAdditionals = $"--extern-pre-js {src_prefix_es6}runtime.es6.iffe.js " +
 			$"--pre-js {src_prefix_es6}dotnet.es6.pre.js  " +
 			$"--js-library {src_prefix_es6}dotnet.es6.lib.js " +
-			$"--post-js {src_prefix_es6}dotnet.es6.post.js " +
 			$"--extern-post-js {src_prefix_es6}dotnet.es6.extpost.js " +
 			wasm_core_support_library;
 
 		var emcc_link_additionals_command = is_windows ? jsAdditionals : "";
 		var emcc_link_additionals_response = is_windows ? "" : jsAdditionals;
 
+		// Prevents https://github.com/emscripten-core/emscripten/blob/347262aec9c4450e34b6af617d1420dbda2f6662/src/preamble.js#L945 to remove
+		// the `env` member: https://github.com/emscripten-core/emscripten/blob/347262aec9c4450e34b6af617d1420dbda2f6662/emcc.py#L2534
+		// which is being used here: https://github.com/dotnet/runtime/blob/e131899322693dff60b835a83bbf02f7916e3991/src/mono/wasm/runtime/startup.ts#LL446C1-L446C10
+		emcc_link_flags.Add("-s ASSERTIONS=1");
+
 		ninja.WriteLine("rule emcc-link");
 		ninja.WriteLine($"  command = {emcc_shell_prefix} \"$emcc {response_prefix}$builddir/emcc_link.rsp {emcc_link_additionals_command} {failOnError} \"");
 		ninja.WriteLine($"  rspfile = $builddir/emcc_link.rsp");
-		ninja.WriteLine($"  rspfile_content = $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s STRICT_JS=1 -s MODULARIZE=1 {emcc_link_additionals_response} $in");
+		ninja.WriteLine($"  rspfile_content = $emcc_flags {string.Join(" ", emcc_link_flags)} -v -o \"$out_js\" -s MODULARIZE=1 {emcc_link_additionals_response} $in");
 		ninja.WriteLine($"  description = [EMCC-LINK] $in -> $out");
 
 		ninja.WriteLine ("rule linker");

@@ -24,7 +24,6 @@
 		<WasmShellBrotliCompressionQuality Condition="'$(WasmShellBrotliCompressionQuality)'==''">7</WasmShellBrotliCompressionQuality>
 		<WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
 		<WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
-		<WasmShellEnableSimd Condition="'$(WasmShellEnableSimd)'==''">false</WasmShellEnableSimd>
 
 		<!-- 
         Force all applicable references to be present in the ReferenceCopyLocalPaths property.
@@ -185,7 +184,6 @@
 			CilStripOverrideFolderPath="$(MSBuildThisFileDirectory)/cilstrip"
 			DisableSDKCheckSumValidation="$(WasmShellDisableSDKCheckSumValidation)"
 			EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
-			EnableSimd="$(WasmShellEnableSimd)"
 			EnableThreads="$(WasmShellEnableThreads)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IsOSUnixLike="$([MSBuild]::IsOsUnixLike())"
@@ -227,10 +225,10 @@
 			EnableAotGSharedVT="$(WasmShellEnableAotGSharedVT)"
 			EnableEmccProfiling="$(WasmShellEnableEmccProfiling)"
 			EnableEmscriptenWindows="$(WasmShellEnableEmscriptenWindows)"
+			EnableJiterpreter="$(WasmShellEnableJiterpreter)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
 			EnableLongPathSupport="$(WasmShellEnableLongPathSupport)"
 			EnableNetCoreICU="$(WasmShellEnableNetCoreICU)"
-			EnableSimd="$(WasmShellEnableSimd)"
 			EnableThreads="$(WasmShellEnableThreads)"
 			ExtraEmccFlags="@(WasmShellExtraEmccFlags)"
 			ForceDisableWSL="$(WasmShellForceDisableWSL)"
@@ -261,6 +259,7 @@
 			RuntimeCopyExclude="@(WasmShellRuntimeCopyExclude)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
 			RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
+			RuntimeOptions="$(WasmShellRuntimeOptions)"
 			SkipPowershellExecutionPolicyValidation="$(WasmShellSkipPowershellExecutionPolicyValidation)"
 			TargetFramework="$(TargetFramework)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"

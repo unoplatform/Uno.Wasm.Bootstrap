@@ -135,6 +135,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public string CSPConfiguration { get; set; } = "";
 
+		public bool EnableJiterpreter { get; set; } = false;
+
+		public string RuntimeOptions { get; set; } = "";
+
 		public bool EmccLinkOptimization { get; set; }
 
 		public string? EmccLinkOptimizationLevel { get; set; }
@@ -194,9 +198,6 @@ namespace Uno.Wasm.Bootstrap
 		public bool EnableThreads { get; set; }
 
 		public int PThreadsPoolSize { get; set; } = 4;
-
-		[Microsoft.Build.Framework.Required]
-		public bool EnableSimd { get; set; }
 
 		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
@@ -724,7 +725,8 @@ namespace Uno.Wasm.Bootstrap
 			var debuggerBinBasePaths = new[] {
 				Path.Combine(MonoWasmSDKPath, "dbg-proxy", TargetFramework.ToLower()), // Compatibility with previous runtime packages
 				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5", "Release"), // Compatibility with previous runtime packages
-				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5")
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net5"),
+				Path.Combine(MonoWasmSDKPath, "dbg-proxy", "net7.0")
 			};
 
 			var proxyBasePath = debuggerBinBasePaths.First(Directory.Exists);
@@ -751,11 +753,6 @@ namespace Uno.Wasm.Bootstrap
 			DirectoryCreateDirectory(workAotPath);
 
 			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
-
-			// Timezone support
-			var releaseTimeZoneData = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.TimezoneData.dll");
-
-			referencePathsParameter += $" \"{AlignPath(releaseTimeZoneData)}\"";
 
 			var metadataUpdaterPath = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.MetadataUpdater.dll");
 
@@ -784,7 +781,11 @@ namespace Uno.Wasm.Bootstrap
 			ValidateDotnet();
 			LinkerSetup();
 
-			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}" + (EnableThreads ? "-threads" : "") + " " + (EnableSimd ? "-simd" : "");
+			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}"
+				+ (EnableThreads ? "-threads" : "") + " "
+				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
+				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
+
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
@@ -921,8 +922,8 @@ namespace Uno.Wasm.Bootstrap
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\"", workAotPath)
-					: RunProcess("ninja", $"{NinjaAdditionalParameters}", workAotPath);
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\" -v", workAotPath)
+					: RunProcess("ninja", $"{NinjaAdditionalParameters} -v", workAotPath);
 
 				if (ninjaResult.exitCode != 0)
 				{
@@ -971,7 +972,6 @@ namespace Uno.Wasm.Bootstrap
 
 					var bindingsPath = frameworkBindings.Select(a => $"-a \"{Path.Combine(linkerInput, a)}\"");
 					linkerParams.AddRange(bindingsPath);
-					linkerParams.Add($" -a \"{releaseTimeZoneData}\"");
 
 					if (RuntimeDebuggerEnabled)
 					{
@@ -1379,11 +1379,6 @@ namespace Uno.Wasm.Bootstrap
 					EnableThreads ? "mt" : "st"
 				};
 
-				if (EnableSimd)
-				{
-					features.Add("simd");
-				}
-
 				Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
 
 				_bitcodeFilesCache = BitcodeFilesSelector.Filter(CurrentEmscriptenVersion, features.ToArray(), _bitcodeFilesCache);
@@ -1413,6 +1408,30 @@ namespace Uno.Wasm.Bootstrap
 			if (!AssembliesFileExtension.StartsWith("."))
 			{
 				throw new InvalidOperationException($"The WasmShellAssembliesFileExtension property must start with a '.'");
+			}
+
+			if(GenerateAOTProfile && MonoILLinker)
+			{
+				// Unknown failure based on the use of the AOT profiler and the linker.
+				// See https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/724
+				//
+				// EXCEPTION handling: System.InvalidProgramException: 
+				//  "<unnamed thread>" tid=0x1 this=0xa690420 , thread handle : 0x1c032f8, state : not waiting
+				//    at <unknown> <0xffffffff>
+				//    at Interop/Sys..cctor () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at (wrapper runtime-invoke) object.runtime_invoke_direct_void (object,intptr,intptr,intptr) [0x0002d] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at <unknown> <0x00000>
+				//    at <unknown> <0xffffffff>
+				//    at System.Threading.Thread.GetCurrentProcessorNumber () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.ProcessorIdCache.ProcessorNumberSpeedCheck () [0x0001a] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.Thread..cctor () [0x00000] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at (wrapper runtime-invoke) object.runtime_invoke_direct_void (object,intptr,intptr,intptr) [0x0002d] in <af246631a49f42ca8792d861c42583dd>:
+				//    at <unknown> <0x00000>
+				//    at <unknown> <0xffffffff>
+				//    at System.Threading.ObjectHeader.TryEnterFast (object) [0x00023] in <af246631a49f42ca8792d861c42583dd>:0
+				//    at System.Threading.Monitor.ReliableEnterTimeout (object,int,bool&) [0x00021] in <af246631a49f42ca8792d861c42583dd>:0
+				//
+				throw new InvalidOperationException($"Generating an AOT profile is not supported when the linker is enabled");
 			}
 		}
 
@@ -1584,8 +1603,17 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GetBcl()
 		{
-			_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib", "net7.0");
-			var reals = Directory.GetFiles(_bclPath, "*.dll");
+			_bclPath = Path.Combine(MonoWasmSDKPath, "runtimes", "browser-wasm", "lib");
+
+			var subDirectories = Directory.GetDirectories(_bclPath);
+			if(subDirectories.Length != 1)
+			{
+				throw new InvalidDataException("The lib directory structure must have exactly one target framework");
+			}
+
+			_bclPath = Path.Combine(_bclPath, subDirectories.First());
+
+			var reals = Directory.GetFiles(_bclPath, "*.dll", SearchOption.AllDirectories);
 			_bclAssemblies = reals.ToDictionary(x => Path.GetFileName(x));
 		}
 

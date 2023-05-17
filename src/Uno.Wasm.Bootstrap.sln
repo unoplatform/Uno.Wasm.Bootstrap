@@ -42,8 +42,6 @@ Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Uno.Wasm.Threading.UITests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.DevServer", "Uno.Wasm.Bootstrap.DevServer\Uno.Wasm.Bootstrap.DevServer.csproj", "{6ACB62AD-0DFF-4593-A7EC-5A4E21DA4ABE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.TimezoneData", "Uno.Wasm.TimezoneData\Uno.Wasm.TimezoneData.csproj", "{FE9D3339-36EB-4B4F-9534-EA742FD59C2C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking", "Uno.Wasm.Static Linking\Uno.Wasm.StaticLinking.csproj", "{EBCB3142-593E-4815-915D-3B88B75161C1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.WasmSample.WithSpace.Aot", "Uno.WasmSample WithSpace Aot\Uno.WasmSample.WithSpace.Aot.csproj", "{359A63C4-C5D0-4011-8C39-89D23190B22F}"
@@ -203,10 +201,6 @@ Global
 		{6ACB62AD-0DFF-4593-A7EC-5A4E21DA4ABE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6ACB62AD-0DFF-4593-A7EC-5A4E21DA4ABE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6ACB62AD-0DFF-4593-A7EC-5A4E21DA4ABE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FE9D3339-36EB-4B4F-9534-EA742FD59C2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FE9D3339-36EB-4B4F-9534-EA742FD59C2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FE9D3339-36EB-4B4F-9534-EA742FD59C2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FE9D3339-36EB-4B4F-9534-EA742FD59C2C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EBCB3142-593E-4815-915D-3B88B75161C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EBCB3142-593E-4815-915D-3B88B75161C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EBCB3142-593E-4815-915D-3B88B75161C1}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -35,11 +35,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (mono_obj === 0)
 				return null;
 
-			const raw = MonoRuntimeCompatibility.mono_string_get_utf8(mono_obj);
-			const res = Module.UTF8ToString(raw);
-			Module._free(raw);
-
-			return res;
+			return BINDING.conv_string(mono_obj);
 		}
 
 		public static call_method(method: any, this_arg: any, args: any) {
