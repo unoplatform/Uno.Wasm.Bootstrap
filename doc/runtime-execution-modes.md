@@ -30,12 +30,14 @@ To enable this mode, use the following option:
 </PropertyGroup>
 ```
 
-Additionally, some options can be used to fine tune the Jiterpreter mode:
+Additionally, some options can be used to fine tune the Jiterpreter mode, using options found [in this file](https://github.com/dotnet/runtime/blob/6a047a9aec7a36039cffac61186b04bd3f16dbe0/src/mono/mono/utils/options-def.h#L86-L114):
 ```xml
 <PropertyGroup>
-    <WasmShellJiterpreterMaxStackSize>100</WasmShellJiterpreterMaxStackSize>
+    <WasmShellRuntimeOptions>--jiterpreter-stats-enable --jiterpreter-estimate-heat</WasmShellRuntimeOptions>
 </PropertyGroup>
 ```
+
+Finally, runtime statistics are maintained by the jiterpreter and can be displayed by running `INTERNAL.jiterpreter_dump_stats()` in the browser debugger console.
 
 ### Mixed Interpreter and AOT Mode
 This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609). 
