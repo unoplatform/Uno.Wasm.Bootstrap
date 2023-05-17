@@ -259,7 +259,7 @@
 			RuntimeCopyExclude="@(WasmShellRuntimeCopyExclude)"
 			RuntimeDebuggerEnabled="$(MonoRuntimeDebuggerEnabled)"
 			RuntimeHostConfigurationOption="@(RuntimeHostConfigurationOption)"
-			RuntimeOptions="@(WasmShellRuntimeOptions)"
+			RuntimeOptions="$(WasmShellRuntimeOptions)"
 			SkipPowershellExecutionPolicyValidation="$(WasmShellSkipPowershellExecutionPolicyValidation)"
 			TargetFramework="$(TargetFramework)"
 			TargetFrameworkIdentifier="$(TargetFrameworkIdentifier)"

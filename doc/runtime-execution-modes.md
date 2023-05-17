@@ -19,6 +19,24 @@ This mode is the slowest, but allows for great flexibility and debugging, as wel
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
 
+### Jiterpreter mode
+
+This mode is a hybrid between the interpreter and the AOT modes, where the interpreter is used to execute the code, but the JIT engine is used to generate some WebAssembly code on the fly. This mode is generally faster than the interpreter, but slower than the AOT mode.
+
+To enable this mode, use the following option:
+```xml
+<PropertyGroup>
+    <WasmShellEnableJiterpreter>true</WasmShellEnableJiterpreter>
+</PropertyGroup>
+```
+
+Additionally, some options can be used to fine tune the Jiterpreter mode:
+```xml
+<PropertyGroup>
+    <WasmShellJiterpreterMaxStackSize>100</WasmShellJiterpreterMaxStackSize>
+</PropertyGroup>
+```
+
 ### Mixed Interpreter and AOT Mode
 This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609). 
 
@@ -30,7 +48,7 @@ This mode is generally prefered to FullAOT as it allows to load arbitrary assemb
 ## Required configuration for AOT, Mixed Mode or static linking on Linux
 - Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
-- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 5.0
+- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 6.0
 - ninja: `apt-get install ninja-build`
 
 The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build).
