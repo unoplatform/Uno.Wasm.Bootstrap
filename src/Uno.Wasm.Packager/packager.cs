@@ -1411,6 +1411,10 @@ class Driver {
 			// environment.Add("MONO_THREADS_SUSPEND=coop");
 		}
 
+		var response_prefix = is_windows
+			? "`@"
+			: "@";
+
 		var aot_cross_prefix = is_windows
 			? $"cmd /c set \"MONO_PATH=$mono_path\" &&" + string.Join(" ", environment.Select(e => $"set \"{e}\" &&"))
 			: string.Join(" ", environment);
@@ -1419,11 +1423,14 @@ class Driver {
 		ninja.WriteLine ("rule aot");
 		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} {aot_compiler_options} --aot=$aot_args,$aot_base_args,depfile=$depfile,llvm-outfile=$outfile $src_file");
 		ninja.WriteLine ("  description = [AOT] $src_file -> $outfile");
-		ninja.WriteLine ("rule aot-instances");
-		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross --debug {profiler_aot_args} {aot_compiler_options} --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
-		ninja.WriteLine ("  description = [AOT-INSTANCES] $outfile");
-		ninja.WriteLine ("rule mkdir");
 
+		ninja.WriteLine ("rule aot-instances");
+		ninja.WriteLine ($"  command = {aot_cross_prefix} $cross  --response=$builddir/aot-instances.rsp");
+		ninja.WriteLine ($"  rspfile = $builddir/aot-instances.rsp");
+		ninja.WriteLine ($"  rspfile_content = --debug {profiler_aot_args} {aot_compiler_options} --aot=$aot_base_args,llvm-outfile=$outfile,dedup-include=$dedup_image $src_files");
+		ninja.WriteLine ("  description = [AOT-INSTANCES] $outfile");
+
+		ninja.WriteLine ("rule mkdir");
 		if (Environment.OSVersion.Platform != PlatformID.Win32NT)
 		{
 			ninja.WriteLine("  command = mkdir -p $out");
@@ -1474,10 +1481,6 @@ class Driver {
 		var tools_shell_prefix = is_windows
 			? "powershell"
 			: "";
-
-		var response_prefix = is_windows
-			? "`@"
-			: "@";
 
 		ninja.WriteLine ("rule create-emsdk-env");
 		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
