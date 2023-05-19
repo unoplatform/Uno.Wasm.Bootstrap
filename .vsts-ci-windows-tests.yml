@@ -170,6 +170,23 @@ jobs:
     displayName: StaticLinking.Aot Tests net7
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+    
+    # Embedded mode test (net6)
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Embedded
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleEmbedded-win.binlog
+    displayName: Build StaticLinking.Embedded Sample (net6)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Embedded\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Embedded Tests
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   # Thread test Debug build for emscripten LTO issue
   - pwsh: |

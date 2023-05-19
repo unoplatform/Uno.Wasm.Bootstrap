@@ -62,7 +62,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
 		}
-		
+
 		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
 			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(".dll")) {
 				const responseValue = await response;
@@ -78,7 +78,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					return new Response(data, { "status": 200, headers: responseValue.headers });
 				}
 			}
-			
+
 			return response;
         }
 
@@ -106,6 +106,10 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				//@ts-ignore
 				var config = await import('./uno-config.js');
+
+				if(document && (document as any).uno_app_base_override) {
+					config.config.uno_app_base = (document as any).uno_app_base_override;
+				}
 
 				bootstrapper = new Bootstrapper(config.config);
 
@@ -542,7 +546,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			} else {
 				if (!this._unoConfig.enable_debugging) {
 					// Assembly fetch streaming is disabled during debug, it seems to
-					// interfere with the ability for mono or the chrome debugger to 
+					// interfere with the ability for mono or the chrome debugger to
 					// initialize the debugging session properly. Streaming in debug is
 					// not particularly interesting, so we can skip it.
 
