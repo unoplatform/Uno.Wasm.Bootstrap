@@ -59,15 +59,18 @@ declare const BINDING: {
 	conv_string: typeof conv_string;
 };
 declare type BINDINGType = typeof BINDING;
-interface DotnetPublicAPI extends EmscriptenModule {
+interface DotnetPublicAPI {
 	MONO: typeof MONO;
 	BINDING: typeof BINDING;
 	INTERNAL: any;
+	Module: EmscriptenModule;
 	RuntimeId: number;
 	RuntimeBuildInfo: {
 		ProductVersion: string;
 		Configuration: string;
 	};
+	preInit?: (() => any)[] | (() => any);
+	preRun?: (() => any)[] | (() => any);
 }
 
 declare type AOTProfilerOptions = {
