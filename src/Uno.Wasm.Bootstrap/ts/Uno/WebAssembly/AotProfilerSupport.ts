@@ -24,7 +24,7 @@
 		}
 
 		public static initialize(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig): AotProfilerSupport {
-			if (context.Module.ENVIRONMENT_IS_WEB && unoConfig.generate_aot_profile) {
+			if (context.ENVIRONMENT_IS_WEB && unoConfig.generate_aot_profile) {
 				return new AotProfilerSupport(context, unoConfig);
 			}
 			return null;
@@ -51,7 +51,7 @@
 
 			// Export the file
 			var a = window.document.createElement('a');
-			var blob = new Blob([(<any>this._context.Module).aot_profile_data]);
+			var blob = new Blob([(<any>this._context).aot_profile_data]);
 			a.href = window.URL.createObjectURL(blob);
 			a.download = "aot.profile";
 

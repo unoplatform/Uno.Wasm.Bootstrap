@@ -59,11 +59,10 @@ declare const BINDING: {
 	conv_string: typeof conv_string;
 };
 declare type BINDINGType = typeof BINDING;
-interface DotnetPublicAPI {
+interface DotnetPublicAPI extends EmscriptenModule {
 	MONO: typeof MONO;
 	BINDING: typeof BINDING;
 	INTERNAL: any;
-	Module: EmscriptenModule;
 	RuntimeId: number;
 	RuntimeBuildInfo: {
 		ProductVersion: string;

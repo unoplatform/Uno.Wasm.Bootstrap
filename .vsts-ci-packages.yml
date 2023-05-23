@@ -21,11 +21,6 @@ jobs:
   - template: build/ci/gitversion.yml
   - template: build/ci/dotnet-install.yml
 
-  - task: NuGetToolInstaller@0
-    inputs:
-      versionSpec: 4.9.1
-      checkLatest: false
-
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2
       conventional-changelog -p angular -u -r 1 -o "build/CHANGELOG.md"

@@ -137,7 +137,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		private setupExports(dotnetRuntime: any) {
 			this._getAssemblyExports = dotnetRuntime.getAssemblyExports;
-			(<any>this._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
+			(<any>this._context).getAssemblyExports = dotnetRuntime.getAssemblyExports;
         }
 
 		public asDotnetConfig(): DotnetModuleConfig {
@@ -157,21 +157,21 @@ namespace Uno.WebAssembly.Bootstrap {
 		public configure(context: DotnetPublicAPI) {
 			this._context = context;
 
-			this._context.Module.ENVIRONMENT_IS_WEB = Bootstrapper.ENVIRONMENT_IS_WEB;
-			this._context.Module.ENVIRONMENT_IS_NODE = Bootstrapper.ENVIRONMENT_IS_NODE;
+			this._context.ENVIRONMENT_IS_WEB = Bootstrapper.ENVIRONMENT_IS_WEB;
+			this._context.ENVIRONMENT_IS_NODE = Bootstrapper.ENVIRONMENT_IS_NODE;
 
 			this.setupRequire();
 			this.setupEmscriptenPreRun();
 
 			// Module is not exposed in the context in net8+
-			(<any>globalThis).Module = this._context.Module;
+			(<any>globalThis).Module = this._context;
 
 			// Required for hot reload (browser-link provided javascript file)
 			(<any>globalThis).BINDING = this._context.BINDING;
 		}
 
 		private async setupHotReload() {
-			if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
+			if (this._context.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
 				await HotReloadSupport.tryInitializeExports(this._getAssemblyExports);
 
 				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
@@ -179,13 +179,13 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private setupEmscriptenPreRun() {
-			if (!this._context.Module.preRun) {
-				this._context.Module.preRun = [];
+			if (!this._context.preRun) {
+				this._context.preRun = [];
 			}
-			else if (typeof this._context.Module.preRun === "function") {
-				this._context.Module.preRun = [];
+			else if (typeof this._context.preRun === "function") {
+				this._context.preRun = [];
 			}
-			(<any>this._context.Module.preRun).push(() => this.wasmRuntimePreRun());
+			(<any>this._context.preRun).push(() => this.wasmRuntimePreRun());
 		}
 
 		/**
@@ -195,7 +195,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		 * if none is present, and the bootstrapper uses a global require.js.
 		 * */
 		private setupRequire() {
-			const anyModule = <any>this._context.Module;
+			const anyModule = <any>this._context;
 			anyModule.imports = anyModule.imports || {};
 			anyModule.imports.require = (<any>globalThis).require;
 		}
@@ -248,10 +248,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			// List of possible exports: https://github.com/emscripten-core/emscripten/blob/c834ef7d69ccb4100239eeba0b0f6573fed063bc/src/modules.js#L391
 			// Needs to be aligned with exports in https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly/blob/f7294fe410705bc220e63fc51d44bdffe4093a5d/patches/fix-additional-emscripten-exports.patch#L19
 			// And in the packager's list of exports.
-			thatGlobal.lengthBytesUTF8 = (<any>this._context.Module).lengthBytesUTF8;
-			thatGlobal.stringToUTF8 = (<any>this._context.Module).stringToUTF8;
-			thatGlobal.UTF8ToString = (<any>this._context.Module).UTF8ToString;
-			thatGlobal.UTF8ArrayToString = (<any>this._context.Module).UTF8ArrayToString;
+			thatGlobal.lengthBytesUTF8 = (<any>this._context).lengthBytesUTF8;
+			thatGlobal.stringToUTF8 = (<any>this._context).stringToUTF8;
+			thatGlobal.UTF8ToString = (<any>this._context).UTF8ToString;
+			thatGlobal.UTF8ArrayToString = (<any>this._context).UTF8ArrayToString;
 		}
 
 		// This is called during emscripten `preInit` event, after we fetched config.
@@ -524,7 +524,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			asset = asset.replace("/managed/", `/${this._unoConfig.uno_remote_managedpath}/`);
 
-			if (this._context.Module.ENVIRONMENT_IS_NODE) {
+			if (this._context.ENVIRONMENT_IS_NODE) {
 				var fs = require('fs');
 
 				console.log('Loading... ' + asset);
@@ -569,7 +569,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			// Uno.Wasm.Bootstrap is using "requirejs" by default, which is an AMD implementation
 			// But when run with NodeJS or Electron, it's using CommonJS instead of AMD
-			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (this._context.Module.ENVIRONMENT_IS_NODE || this.isElectron());
+			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (this._context.ENVIRONMENT_IS_NODE || this.isElectron());
 
 			if (this._unoConfig.enable_debugging) console.log("Done loading the BCL");
 
@@ -643,7 +643,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private attachDebuggerHotkey() {
-			if (this._context.Module.ENVIRONMENT_IS_WEB) {
+			if (this._context.ENVIRONMENT_IS_WEB) {
 
 				let loadAssemblyUrls = this._monoConfig.assets.map(a => a.name);
 
