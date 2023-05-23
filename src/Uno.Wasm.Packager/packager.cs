@@ -893,10 +893,12 @@ class Driver {
 			file_list.Add ("aot-instances.dll");
 		}
 
-		file_list.Add ("dotnet.wasm");
+		file_list.Add ("dotnet.native.wasm");
+		file_list.Add ("dotnet.native.js");
+		file_list.Add ("dotnet.runtime.js");
 
 		if (enable_threads) {
-			file_list.Add("dotnet.worker.js");
+			file_list.Add("dotnet.native.worker.js");
 		}
 
 		string wasm_runtime_dir;
@@ -935,12 +937,17 @@ class Driver {
 
 		var file_list_str = string.Join(",\n", file_list.Distinct().Select(f =>
 		{
+			var fileName = Path.GetFileName(f).ToLower(); ;
+
 			var assetType = Path.GetExtension(f).ToLowerInvariant() switch
 			{
 				".dll" => "assembly",
 				".pdb" => "assembly", // PDBs are loaded through https://github.com/dotnet/runtime/blob/55d35231b48ec0a66835a2bd71a968baf8ad9a12/src/mono/wasm/runtime/assets.ts#L411-L412
 				".wasm" => "dotnetwasm",
-				".js" => "js-module-threads",
+				".js" when fileName is "dotnet.native.worker.js" => "js-module-threads",
+				".js" when fileName is "dotnet.native.js" => "js-module-native",
+				".js" when fileName is "dotnet.runtime.js" => "js-module-runtime",
+				".js" when fileName is "dotnet.js" => "js-module-dotnet",
 				".dat" => "icu",
 				_ => throw new Exception($"Unsupported asset type")
 			};
@@ -1006,10 +1013,10 @@ class Driver {
 		File.WriteAllText(config_json, config);
 
 		if (!emit_ninja) {
-			var interp_files = new List<string> { "dotnet.js", "dotnet.wasm" };
+			var interp_files = new List<string> { "dotnet.js", "dotnet.native.wasm", "dotnet.runtime.js", "dotnet.native.js" };
 
 			if (enable_threads) {
-				interp_files.Add ("dotnet.worker.js");
+				interp_files.Add ("dotnet.native.worker.js");
 			}
 			foreach (var fname in interp_files) {
 				File.Delete (Path.Combine (out_prefix, fname));
@@ -1492,7 +1499,7 @@ class Driver {
 		var src_prefix_es6 = Path.Combine(src_prefix, "es6") + Path.DirectorySeparatorChar;
 
 		// Additional parameters are not supported in the same way between linux and windows.
-		var jsAdditionals = $"--extern-pre-js {src_prefix_es6}runtime.es6.iffe.js " +
+		var jsAdditionals =
 			$"--pre-js {src_prefix_es6}dotnet.es6.pre.js  " +
 			$"--js-library {src_prefix_es6}dotnet.es6.lib.js " +
 			$"--extern-post-js {src_prefix_es6}dotnet.es6.extpost.js " +
@@ -1617,10 +1624,10 @@ class Driver {
 				ninja.WriteLine ($"  flags = -s USE_ZLIB=1 -I{runtime_dir}/include/mono-2.0");
 			}
 		} else {
-			ninja.WriteLine ("build $appdir/dotnet.js: cpifdiff $wasm_runtime_dir/dotnet.js");
-			ninja.WriteLine ("build $appdir/dotnet.wasm: cpifdiff $wasm_runtime_dir/dotnet.wasm");
+			ninja.WriteLine ("build $appdir/dotnet.native.js: cpifdiff $wasm_runtime_dir/dotnet.native.js");
+			ninja.WriteLine ("build $appdir/dotnet.native.wasm: cpifdiff $wasm_runtime_dir/dotnet.native.wasm");
 			if (enable_threads) {
-				ninja.WriteLine ("build $appdir/dotnet.worker.js: cpifdiff $wasm_runtime_dir/dotnet.worker.js");
+				ninja.WriteLine ("build $appdir/dotnet.native.worker.js: cpifdiff $wasm_runtime_dir/dotnet.native.worker.js");
 			}
 		}
 		if (enable_aot)
@@ -1809,9 +1816,9 @@ class Driver {
 
 			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
-			ninja.WriteLine ($"build $appdir/dotnet.js $appdir/dotnet.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
-			ninja.WriteLine ($"  out_wasm=$appdir/dotnet.wasm");
-			ninja.WriteLine ($"  out_js=$appdir/dotnet.js");
+			ninja.WriteLine ($"build $appdir/dotnet.native.js $appdir/dotnet.native.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
+			ninja.WriteLine ($"  out_wasm=$appdir/dotnet.native.wasm");
+			ninja.WriteLine ($"  out_js=$appdir/dotnet.native.js");
 		}
 		if (enable_linker) {
 			switch (linkMode) {

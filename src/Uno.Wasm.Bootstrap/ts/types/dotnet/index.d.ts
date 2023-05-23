@@ -1,27 +1,9 @@
-// Based on https://github.com/dotnet/runtime/blob/ca82565a60380bf4220255c65e493deb44314346/src/mono/wasm/runtime/dotnet.d.ts
 //! Licensed to the .NET Foundation under one or more agreements.
 //! The .NET Foundation licenses this file to you under the MIT license.
 //!
 //! This is generated file, see src/mono/wasm/runtime/rollup.config.js
 
 //! This is not considered public API with backward compatibility guarantees. 
-
-interface DotnetHostBuilder {
-	withConfig(config: MonoConfig): DotnetHostBuilder;
-	withConfigSrc(configSrc: string): DotnetHostBuilder;
-	withApplicationArguments(...args: string[]): DotnetHostBuilder;
-	withEnvironmentVariable(name: string, value: string): DotnetHostBuilder;
-	withEnvironmentVariables(variables: {
-		[i: string]: string;
-	}): DotnetHostBuilder;
-	withVirtualWorkingDirectory(vfsPath: string): DotnetHostBuilder;
-	withDiagnosticTracing(enabled: boolean): DotnetHostBuilder;
-	withDebugging(level: number): DotnetHostBuilder;
-	withMainAssembly(mainAssemblyName: string): DotnetHostBuilder;
-	withApplicationArgumentsFromQuery(): DotnetHostBuilder;
-	create(): Promise<RuntimeAPI>;
-	run(): Promise<number>;
-}
 
 declare interface NativePointer {
 	__brandNativePointer: "NativePointer";
@@ -39,6 +21,7 @@ declare interface EmscriptenModule {
 	HEAP8: Int8Array;
 	HEAP16: Int16Array;
 	HEAP32: Int32Array;
+	HEAP64: BigInt64Array;
 	HEAPU8: Uint8Array;
 	HEAPU16: Uint16Array;
 	HEAPU32: Uint32Array;
@@ -46,8 +29,8 @@ declare interface EmscriptenModule {
 	HEAPF64: Float64Array;
 	_malloc(size: number): VoidPtr;
 	_free(ptr: VoidPtr): void;
-	print(message: string): void;
-	printErr(message: string): void;
+	out(message: string): void;
+	err(message: string): void;
 	ccall<T>(ident: string, returnType?: string | null, argTypes?: string[], args?: any[], opts?: any): T;
 	cwrap<T extends Function>(ident: string, returnType: string, argTypes?: string[], opts?: any): T;
 	cwrap<T extends Function>(ident: string, ...args: any[]): T;
@@ -58,13 +41,10 @@ declare interface EmscriptenModule {
 	UTF8ArrayToString(u8Array: Uint8Array, idx?: number, maxBytesToRead?: number): string;
 	FS_createPath(parent: string, path: string, canRead?: boolean, canWrite?: boolean): string;
 	FS_createDataFile(parent: string, name: string, data: TypedArray, canRead: boolean, canWrite: boolean, canOwn?: boolean): string;
-	FS_readFile(filename: string, opts: any): any;
-	removeRunDependency(id: string): void;
-	addRunDependency(id: string): void;
+	addFunction(fn: Function, signature: string): number;
 	stackSave(): VoidPtr;
 	stackRestore(stack: VoidPtr): void;
 	stackAlloc(size: number): VoidPtr;
-	ready: Promise<unknown>;
 	instantiateWasm?: InstantiateWasmCallBack;
 	preInit?: (() => any)[] | (() => any);
 	preRun?: (() => any)[] | (() => any);
@@ -73,7 +53,6 @@ declare interface EmscriptenModule {
 	onAbort?: {
 		(error: any): void;
 	};
-
 	/**
 	 * BEGIN UNO SPECIFIC
 	 */
@@ -84,11 +63,27 @@ declare interface EmscriptenModule {
 	 * END UNO SPECIFIC
 	 */
 }
-declare type InstantiateWasmSuccessCallback = (instance: WebAssembly.Instance, module: WebAssembly.Module) => void;
-declare type InstantiateWasmCallBack = (imports: WebAssembly.Imports, successCallback: InstantiateWasmSuccessCallback) => any;
+type InstantiateWasmSuccessCallback = (instance: WebAssembly.Instance, module: WebAssembly.Module | undefined) => void;
+type InstantiateWasmCallBack = (imports: WebAssembly.Imports, successCallback: InstantiateWasmSuccessCallback) => any;
 declare type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array;
 
-declare type MonoConfig = {
+interface DotnetHostBuilder {
+	withConfig(config: MonoConfig): DotnetHostBuilder;
+	withConfigSrc(configSrc: string): DotnetHostBuilder;
+	withApplicationArguments(...args: string[]): DotnetHostBuilder;
+	withEnvironmentVariable(name: string, value: string): DotnetHostBuilder;
+	withEnvironmentVariables(variables: {
+		[i: string]: string;
+	}): DotnetHostBuilder;
+	withVirtualWorkingDirectory(vfsPath: string): DotnetHostBuilder;
+	withDiagnosticTracing(enabled: boolean): DotnetHostBuilder;
+	withDebugging(level: number): DotnetHostBuilder;
+	withMainAssembly(mainAssemblyName: string): DotnetHostBuilder;
+	withApplicationArgumentsFromQuery(): DotnetHostBuilder;
+	create(): Promise<RuntimeAPI>;
+	run(): Promise<number>;
+}
+type MonoConfig = {
 	/**
 	 * The subfolder containing managed assemblies and pdbs. This is relative to dotnet.js script.
 	 */
@@ -109,6 +104,10 @@ declare type MonoConfig = {
 	 * We are throttling parallel downloads in order to avoid net::ERR_INSUFFICIENT_RESOURCES on chrome. The default value is 16.
 	 */
 	maxParallelDownloads?: number;
+	/**
+	 * We are making up to 2 more delayed attempts to download same asset. Default true.
+	 */
+	enableDownloadRetry?: boolean;
 	/**
 	 * Name of the assembly with main entrypoint
 	 */
@@ -137,6 +136,22 @@ declare type MonoConfig = {
 	 * initial number of workers to add to the emscripten pthread pool
 	 */
 	pthreadPoolSize?: number;
+	/**
+	 * If true, the snapshot of runtime's memory will be stored in the browser and used for faster startup next time. Default is false.
+	 */
+	startupMemoryCache?: boolean;
+	/**
+	 * hash of assets
+	 */
+	assetsHash?: string;
+	/**
+	 * application environment
+	 */
+	applicationEnvironment?: string;
+	/**
+	 * query string to be used for asset loading
+	 */
+	assetUniqueQuery?: string;
 
 	/**
 	 * BEGIN UNO SPECIFIC
@@ -188,27 +203,28 @@ interface AssetEntry extends ResourceRequest {
 	 */
 	pendingDownload?: LoadingResource;
 }
-declare type AssetBehaviours = "resource" | "assembly" | "pdb" | "heap" | "icu" | "vfs" | "dotnetwasm" | "js-module-threads";
-declare type GlobalizationMode = "icu" | // load ICU globalization data from any runtime assets with behavior "icu".
+type AssetBehaviours = "resource" | "assembly" | "pdb" | "heap" | "icu" | "vfs" | "dotnetwasm" | "js-module-threads" | "js-module-runtime" | "js-module-dotnet" | "js-module-native" | "symbols";
+type GlobalizationMode = "icu" | // load ICU globalization data from any runtime assets with behavior "icu".
 	"invariant" | //  operate in invariant globalization mode.
+	"hybrid" | // operate in hybrid globalization mode with small ICU files, using native platform functions
 	"auto";
-declare type DotnetModuleConfig = {
+type DotnetModuleConfig = {
 	disableDotnet6Compatibility?: boolean;
 	config?: MonoConfig;
 	configSrc?: string;
 	onConfigLoaded?: (config: MonoConfig) => void | Promise<void>;
 	onDotnetReady?: () => void | Promise<void>;
+	onDownloadResourceProgress?: (resourcesLoaded: number, totalResources: number) => void;
+	getApplicationEnvironment?: (bootConfigResponse: Response) => string | null;
 	imports?: any;
 	exports?: string[];
 	downloadResource?: (request: ResourceRequest) => LoadingResource | undefined;
 
-
 	// BEGIN UNO SPECIFIC
 	baseUrl?: string;
 	// END UNO SPECIFIC
-
 } & Partial<EmscriptenModule>;
-declare type APIType = {
+type APIType = {
 	runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
 	runMainAndExit: (mainAssemblyName: string, args: string[]) => Promise<number>;
 	setEnvironmentVariable: (name: string, value: string) => void;
@@ -240,7 +256,7 @@ declare type APIType = {
 	getHeapF32: (offset: NativePointer) => number;
 	getHeapF64: (offset: NativePointer) => number;
 };
-declare type RuntimeAPI = {
+type RuntimeAPI = {
 	/**
 	 * @deprecated Please use API object instead. See also MONOType in dotnet-legacy.d.ts
 	 */
@@ -254,26 +270,21 @@ declare type RuntimeAPI = {
 	runtimeId: number;
 	runtimeBuildInfo: {
 		productVersion: string;
+		gitHash: string;
 		buildConfiguration: string;
 	};
 } & APIType;
-declare type ModuleAPI = {
+type ModuleAPI = {
 	dotnet: DotnetHostBuilder;
 	exit: (code: number, reason?: any) => void;
 };
-declare function createDotnetRuntime(moduleFactory: DotnetModuleConfig | ((api: RuntimeAPI) => DotnetModuleConfig)): Promise<RuntimeAPI>;
-declare type CreateDotnetRuntimeType = typeof createDotnetRuntime;
+type CreateDotnetRuntimeType = (moduleFactory: DotnetModuleConfig | ((api: RuntimeAPI) => DotnetModuleConfig)) => Promise<RuntimeAPI>;
 
 interface IDisposable {
 	dispose(): void;
 	get isDisposed(): boolean;
 }
-declare const enum MemoryViewType {
-	Byte = 0,
-	Int32 = 1,
-	Double = 2
-}
-interface IMemoryView {
+interface IMemoryView extends IDisposable {
 	/**
 	 * copies elements from provided source to the wasm memory.
 	 * target has to have the elements of the same type as the underlying C# array.
@@ -293,56 +304,64 @@ interface IMemoryView {
 	get byteLength(): number;
 }
 
+declare function mono_exit(exit_code: number, reason?: any): void;
+
+declare const dotnet: DotnetHostBuilder;
+declare const exit: typeof mono_exit;
+
+interface BootJsonData {
+	readonly entryAssembly: string;
+	readonly resources: ResourceGroups;
+	/** Gets a value that determines if this boot config was produced from a non-published build (i.e. dotnet build or dotnet run) */
+	readonly debugBuild: boolean;
+	readonly linkerEnabled: boolean;
+	readonly cacheBootResources: boolean;
+	readonly config: string[];
+	readonly icuDataMode: ICUDataMode;
+	readonly startupMemoryCache: boolean | undefined;
+	readonly runtimeOptions: string[] | undefined;
+	modifiableAssemblies: string | null;
+	aspnetCoreBrowserTools: string | null;
+}
+type BootJsonDataExtension = {
+	[extensionName: string]: ResourceList;
+};
+interface ResourceGroups {
+	readonly assembly: ResourceList;
+	readonly lazyAssembly: ResourceList;
+	readonly pdb?: ResourceList;
+	readonly runtime: ResourceList;
+	readonly satelliteResources?: {
+		[cultureName: string]: ResourceList;
+	};
+	readonly libraryInitializers?: ResourceList;
+	readonly extensions?: BootJsonDataExtension;
+	readonly runtimeAssets: ExtendedResourceList;
+}
+type ResourceList = {
+	[name: string]: string;
+};
+type ExtendedResourceList = {
+	[name: string]: {
+		hash: string;
+		behavior: string;
+	};
+};
+declare enum ICUDataMode {
+	Sharded = 0,
+	All = 1,
+	Invariant = 2,
+	Custom = 3
+}
+
+/* BEGIN UNO SPECIFIC */
 //declare global {
 //	function getDotnetRuntime(runtimeId: number): RuntimeAPI | undefined;
 //}
+/* END UNO SPECIFIC */
 
-declare const dotnet: ModuleAPI["dotnet"];
-declare const exit: ModuleAPI["exit"];
-/**
- * Span class is JS wrapper for System.Span<T>. This view doesn't own the memory, nor pin the underlying array.
- * It's ideal to be used on call from C# with the buffer pinned there or with unmanaged memory.
- * It is disposed at the end of the call to JS.
- */
-declare class Span implements IMemoryView, IDisposable {
-	dispose(): void;
-	get isDisposed(): boolean;
-	set(source: TypedArray, targetOffset?: number | undefined): void;
-	copyTo(target: TypedArray, sourceOffset?: number | undefined): void;
-	slice(start?: number | undefined, end?: number | undefined): TypedArray;
-	get length(): number;
-	get byteLength(): number;
-}
-/**
- * ArraySegment class is JS wrapper for System.ArraySegment<T>.
- * This wrapper would also pin the underlying array and hold GCHandleType.Pinned until this JS instance is collected.
- * User could dispose it manually.
- */
-declare class ArraySegment implements IMemoryView, IDisposable {
-	dispose(): void;
-	get isDisposed(): boolean;
-	set(source: TypedArray, targetOffset?: number | undefined): void;
-	copyTo(target: TypedArray, sourceOffset?: number | undefined): void;
-	slice(start?: number | undefined, end?: number | undefined): TypedArray;
-	get length(): number;
-	get byteLength(): number;
-}
-/**
- * Represents proxy to the System.Exception
- */
-declare class ManagedError extends Error implements IDisposable {
-	get stack(): string | undefined;
-	dispose(): void;
-	get isDisposed(): boolean;
-	toString(): string;
-}
-/**
- * Represents proxy to the System.Object
- */
-declare class ManagedObject implements IDisposable {
-	dispose(): void;
-	get isDisposed(): boolean;
-	toString(): string;
-}
+declare const createDotnetRuntime: CreateDotnetRuntimeType;
 
-// export { ArraySegment, AssetBehaviours, AssetEntry, CreateDotnetRuntimeType, DotnetModuleConfig, EmscriptenModule, IMemoryView, LoadingResource, ManagedError, ManagedObject, MemoryViewType, ModuleAPI, MonoConfig, NativePointer, ResourceRequest, RuntimeAPI, Span, createDotnetRuntime as default, dotnet, exit };
+/* BEGIN UNO SPECIFIC */
+// export { AssetEntry, BootJsonData, CreateDotnetRuntimeType, DotnetModuleConfig, EmscriptenModule, ICUDataMode, IMemoryView, ModuleAPI, MonoConfig, ResourceRequest, RuntimeAPI, createDotnetRuntime as default, dotnet, exit };
+/* END UNO SPECIFIC */

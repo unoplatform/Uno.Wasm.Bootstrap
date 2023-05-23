@@ -2000,7 +2000,7 @@ namespace Uno.Wasm.Bootstrap
 				var tempFile = Path.GetTempFileName();
 				try
 				{
-					var monoJsPath = Path.Combine(_finalPackagePath, "dotnet.js");
+					var monoJsPath = Path.Combine(_finalPackagePath, "dotnet.native.js");
 
 					using (var fs = new StreamWriter(tempFile))
 					{
@@ -2013,7 +2013,7 @@ namespace Uno.Wasm.Bootstrap
 					File.Delete(monoJsPath);
 					File.Move(tempFile, monoJsPath);
 
-					Log.LogMessage($"Merged config files with dotnet.js");
+					Log.LogMessage($"Merged config files with dotnet.native.js");
 				}
 				finally
 				{
@@ -2039,7 +2039,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private (string monoWasmFileName, long monoWasmSize, long totalAssembliesSize, (string fileName, long length)[] assemblyFiles, (string fileName, string integrity)[] filesIntegrity) GetFilesDetails()
 		{
-			const string monoWasmFileName = "dotnet.wasm";
+			const string monoWasmFileName = "dotnet.native.wasm";
 
 			var monoWasmFilePathAndName = Path.Combine(_finalPackagePath, monoWasmFileName);
 			var monoWasmSize = new FileInfo(monoWasmFilePathAndName).Length;
@@ -2226,14 +2226,22 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
 		{
-			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
+			if (_shellMode == ShellMode.Browser)
 			{
-				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}uno-config.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}mono-config.json\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.native.wasm\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.native.js\" />");
+				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.runtime.js\" />");
 
-				var distName = Path.GetFileName(_managedPath);
-				foreach(var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
+				if (GeneratePrefetchHeaders)
 				{
-					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
+					var distName = Path.GetFileName(_managedPath);
+					foreach (var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
+					{
+						extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
+					}
 				}
 			}
 		}
