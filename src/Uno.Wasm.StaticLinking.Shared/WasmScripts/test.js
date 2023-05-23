@@ -43,6 +43,16 @@ function glAvailable() {
     return "" + (typeof GL !== 'undefined');
 }
 
+function functionsExportsAvailable() {
+    var available =
+        typeof globalThis.lengthBytesUTF8 !== 'undefined'
+        && typeof globalThis.stringToUTF8 !== 'undefined'
+        && typeof globalThis.UTF8ToString !== 'undefined'
+        && typeof globalThis.UTF8ArrayToString !== 'undefined'
+
+    return "" + available;
+}
+
 function getJSTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }

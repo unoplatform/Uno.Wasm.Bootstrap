@@ -54,6 +54,9 @@ namespace Uno.Wasm.Sample
 			var glAvailable = Imports.GLAvailable();
 			Console.WriteLine($"glAvailable: {glAvailable}");
 
+			var functionsExportsAvailable = Imports.FunctionsExportsAvailable();
+			Console.WriteLine($"functionsExportsAvailable: {functionsExportsAvailable}");
+
 			var jsInteropResult = Imports.TestCallback();
 
 			var jsTimeZone = Imports.GetJSTimeZone();
@@ -105,6 +108,7 @@ namespace Uno.Wasm.Sample
 				$"requireJs:{requireAvailable};" +
 				$"jsInterop:{jsInteropResult};" +
 				$"gl:{glAvailable};"+
+				$"functionsExportsAvailable:{functionsExportsAvailable};"+
 				$"sat:{satelliteValidation};"
 				;
 
@@ -227,6 +231,15 @@ namespace Uno.Wasm.Sample
 		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.Interop.appendResult")]
 #endif
 		public static partial string AppendResult(string res);
+
+
+#if !NET7_0_OR_GREATER
+		public static partial string FunctionsExportsAvailable()
+			=> Runtime.InvokeJS($"functionsExportsAvailable()");
+#else
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.functionsExportsAvailable")]
+#endif
+		public static partial string FunctionsExportsAvailable();
 	}
 
 	public static partial class Exports
