@@ -32,11 +32,6 @@ jobs:
       version: 8.0.100-preview.3.23178.7
       includePreviewVersions: true
 
-  - task: NuGetToolInstaller@0
-    inputs:
-      versionSpec: 4.9.1
-      checkLatest: false
-
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
