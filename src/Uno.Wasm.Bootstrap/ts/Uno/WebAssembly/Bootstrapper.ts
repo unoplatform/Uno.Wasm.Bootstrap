@@ -156,9 +156,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			// Module may not be initialized yet (.NET 8 and later)
 			(<any>this._context).Module = this._context.Module || {};
 
-			this._context.Module.ENVIRONMENT_IS_WEB = Bootstrapper.ENVIRONMENT_IS_WEB;
-			this._context.Module.ENVIRONMENT_IS_NODE = Bootstrapper.ENVIRONMENT_IS_NODE;
-
 			this.setupRequire();
 			this.setupEmscriptenPreRun();
 
