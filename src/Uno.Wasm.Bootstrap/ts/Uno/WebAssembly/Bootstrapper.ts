@@ -170,7 +170,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private async setupHotReload() {
-			if (this._context.Module.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
+			if (Bootstrapper.ENVIRONMENT_IS_WEB && this.hasDebuggingEnabled()) {
 				await HotReloadSupport.tryInitializeExports(this._getAssemblyExports);
 
 				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
@@ -523,7 +523,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			asset = asset.replace("/managed/", `/${this._unoConfig.uno_remote_managedpath}/`);
 
-			if (this._context.Module.ENVIRONMENT_IS_NODE) {
+			if (Bootstrapper.ENVIRONMENT_IS_NODE) {
 				var fs = require('fs');
 
 				console.log('Loading... ' + asset);
@@ -568,7 +568,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			// Uno.Wasm.Bootstrap is using "requirejs" by default, which is an AMD implementation
 			// But when run with NodeJS or Electron, it's using CommonJS instead of AMD
-			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (this._context.Module.ENVIRONMENT_IS_NODE || this.isElectron());
+			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (Bootstrapper.ENVIRONMENT_IS_NODE || this.isElectron());
 
 			if (this._unoConfig.enable_debugging) console.log("Done loading the BCL");
 
@@ -642,7 +642,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private attachDebuggerHotkey() {
-			if (this._context.Module.ENVIRONMENT_IS_WEB) {
+			if (Bootstrapper.ENVIRONMENT_IS_WEB) {
 
 				let loadAssemblyUrls = this._monoConfig.assets.map(a => a.name);
 
