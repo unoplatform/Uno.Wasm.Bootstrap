@@ -24,7 +24,7 @@
 		}
 
 		public static initialize(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig): AotProfilerSupport {
-			if (context.Module.ENVIRONMENT_IS_WEB && unoConfig.generate_aot_profile) {
+			if (Bootstrapper.ENVIRONMENT_IS_WEB && unoConfig.generate_aot_profile) {
 				return new AotProfilerSupport(context, unoConfig);
 			}
 			return null;

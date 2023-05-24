@@ -56,8 +56,6 @@ declare interface EmscriptenModule {
 	/**
 	 * BEGIN UNO SPECIFIC
 	 */
-	ENVIRONMENT_IS_NODE: boolean;
-	ENVIRONMENT_IS_WEB: boolean;
 	aotProfileData: any;
 	/**
 	 * END UNO SPECIFIC

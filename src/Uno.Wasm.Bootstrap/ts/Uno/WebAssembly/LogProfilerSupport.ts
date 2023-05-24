@@ -39,7 +39,7 @@
 
 		private attachHotKey() {
 
-			if (this._context.Module.ENVIRONMENT_IS_WEB) {
+			if (Bootstrapper.ENVIRONMENT_IS_WEB) {
 
 				if (LogProfilerSupport._logProfilerEnabled) {
 					// Use the combination shift+alt+D because it isn't used by the major browsers
