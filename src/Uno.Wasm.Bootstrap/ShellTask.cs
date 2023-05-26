@@ -886,6 +886,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
 				packagerParams.Add($"--illinker-path=\"{_linkerBinPath}\"");
+				packagerParams.Add($"--target-framework=\"{TargetFramework}\"");
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
