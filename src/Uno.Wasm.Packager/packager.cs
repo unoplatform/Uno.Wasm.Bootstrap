@@ -135,6 +135,7 @@ class Driver {
 		Console.WriteLine ("\t--mono-sdkdir=x Set the mono sdk directory to 'x'");
 		Console.WriteLine ("\t--deploy=x      Set the deploy prefix to 'x' (default to 'managed')");
 		Console.WriteLine ("\t--vfs=x         Set the VFS prefix to 'x' (default to 'managed')");
+		Console.WriteLine ("\t--target-framework=x Set app target framework");
 		Console.WriteLine ("\t--template=x    Set the template name to  'x' (default to 'runtime.js')");
 		Console.WriteLine ("\t--asset=x       Add specified asset 'x' to list of assets to be copied");
 		Console.WriteLine ("\t--search-path=x Add specified path 'x' to list of paths used to resolve assemblies");
@@ -464,6 +465,7 @@ class Driver {
 		app_prefix = Environment.CurrentDirectory;
 		var assembly_root = "managed";
 		var vfs_prefix = "managed";
+		var target_framework = "net5.0";
 		var use_release_runtime = true;
 		var enable_aot = false;
 		var enable_dedup = true;
@@ -541,6 +543,7 @@ class Driver {
 				{ "wasm-runtime-path=", s => wasm_runtime_path = s },
 				{ "deploy=", s => assembly_root = s },
 				{ "vfs=", s => vfs_prefix = s },
+				{ "target-framework=", s => target_framework = s },
 				{ "aot", s => ee_mode = ExecMode.Aot },
 				{ "aot-interp", s => ee_mode = ExecMode.AotInterp },
 				{ "template=", s => runtimeTemplate = s },
@@ -1544,11 +1547,11 @@ class Driver {
 
 		if (is_windows)
 		{
-			ninja.WriteLine("  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 -p:UseSharedCompilation=false /p:OutputPath=..\\linker-out\"");
+			ninja.WriteLine($"  command = cmd /c \"dotnet new classlib -o aot-instances && del aot-instances\\*.cs && dotnet build aot-instances\\aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework={target_framework} -p:UseSharedCompilation=false /p:OutputPath=..\\linker-out\"");
 		}
 		else
 		{
-			ninja.WriteLine("  command = dotnet new classlib -o aot-instances; rm aot-instances/*.cs; dotnet build aot-instances/aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework=net5.0 -p:UseSharedCompilation=false /p:OutputPath=../linker-out/");
+			ninja.WriteLine($"  command = dotnet new classlib -o aot-instances; rm aot-instances/*.cs; dotnet build aot-instances/aot-instances.csproj /r -p:Deterministic=true -p:ImplicitUsings=false -p:TargetFramework={target_framework} -p:UseSharedCompilation=false /p:OutputPath=../linker-out/");
 		}
 
 		ninja.WriteLine ("rule gen-runtime-icall-table");
