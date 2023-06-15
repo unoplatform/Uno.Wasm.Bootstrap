@@ -28,6 +28,12 @@ Enabling CSP support can be done in three ways:
 
 Enabling CSP without `unsafe-eval` implies that the application will not be able to use [Runtime.JSInvoke](xref:Uno.Wasm.Bootstrap.JSInterop), and [JSImport/JSExport](xref:Uno.Wasm.Bootstrap.JSInterop) must be used instead.
 
+### Validation
+
+In order to test, browsers support a _report-only_ mode which logs violations and continues.
+
+To enable this mode, use the `Content-Security-Policy-Report-Only` header instead of `Content-Security-Policy`.
+
 ### Limitations
 
 Enabling CSP is not compatible with [memory profiling](xref:Uno.Wasm.Bootstrap.Profiling.Memory) and [AOT profile generation](xref:Uno.Wasm.Bootstrap.Runtime.Execution).
