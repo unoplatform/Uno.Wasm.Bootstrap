@@ -1299,6 +1299,7 @@ class Driver {
 			"_htons",
 			"_ntohs",
 			"_free"
+			"_emscripten_longjmp"
 		};
 
 		var exportedFunctionsValue = string.Join(",", exportedFunctions.Distinct());
