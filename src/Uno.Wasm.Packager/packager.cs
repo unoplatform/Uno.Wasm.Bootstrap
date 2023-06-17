@@ -1298,7 +1298,7 @@ class Driver {
 			"_memset",
 			"_htons",
 			"_ntohs",
-			"_free"
+			"_free",
 			"_emscripten_longjmp"
 		};
 
