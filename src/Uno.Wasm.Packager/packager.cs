@@ -1107,7 +1107,14 @@ class Driver {
 			}
 			else
 			{
-				runtime_libs += $"$runtime_libdir/libmono-component-marshal-ilgen-stub-static.a ";
+				// ilgen is required most of the time and we'll need to include it conditionally
+				// when incompatible assemblies are detected: https://github.com/dotnet/runtime/blob/8b25fd382260e8eafbfd77f64b0fe28dc7301c2e/src/tasks/MonoTargetsTasks/MarshalingPInvokeScanner/MarshalingPInvokeScanner.cs#L21
+				// runtime_libs += $"$runtime_libdir/libmono-component-marshal-ilgen-stub-static.a ";
+
+				// For now, we include the component always, as even basic tests require the component
+				// to be linked in.
+				 runtime_libs += $"$runtime_libdir/libmono-component-marshal-ilgen-static.a ";
+
 				runtime_libs += $"$runtime_libdir/libmono-component-diagnostics_tracing-stub-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-hot_reload-stub-static.a ";
 				runtime_libs += $"$runtime_libdir/libmono-component-debugger-stub-static.a ";
@@ -1214,23 +1221,30 @@ class Driver {
 		emcc_exported_runtime_methods.Add("FS");
 		emcc_exported_runtime_methods.Add("out");
 		emcc_exported_runtime_methods.Add("err");
-		emcc_exported_runtime_methods.Add("print");
 		emcc_exported_runtime_methods.Add("ccall");
 		emcc_exported_runtime_methods.Add("cwrap");
 		emcc_exported_runtime_methods.Add("setValue");
 		emcc_exported_runtime_methods.Add("getValue");
 		emcc_exported_runtime_methods.Add("UTF8ToString");
 		emcc_exported_runtime_methods.Add("UTF8ArrayToString");
+		emcc_exported_runtime_methods.Add("stringToUTF8Array");
 		emcc_exported_runtime_methods.Add("FS_createPath");
 		emcc_exported_runtime_methods.Add("FS_createDataFile");
 		emcc_exported_runtime_methods.Add("removeRunDependency");
 		emcc_exported_runtime_methods.Add("addRunDependency");
+		emcc_exported_runtime_methods.Add("addFunction");
+		emcc_exported_runtime_methods.Add("safeSetTimeout");
+		emcc_exported_runtime_methods.Add("runtimeKeepalivePush");
+		emcc_exported_runtime_methods.Add("runtimeKeepalivePop");
+		emcc_exported_runtime_methods.Add("maybeExit");
+
+		// Additional uno-only exports
 		emcc_exported_runtime_methods.Add("FS_readFile");
 		emcc_exported_runtime_methods.Add("lengthBytesUTF8");
 		emcc_exported_runtime_methods.Add("stringToUTF8");
-		emcc_exported_runtime_methods.Add("addFunction");
 		emcc_exported_runtime_methods.Add("removeFunction");
 		emcc_exported_runtime_methods.Add("IDBFS");
+		emcc_exported_runtime_methods.Add("print");
 
 		var exports = string.Join(",", emcc_exported_runtime_methods.Distinct().Select(m => $"\'{m}\'"));
 
@@ -1239,11 +1253,6 @@ class Driver {
 		// https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L202
 		List<string> exportedFunctions = new()
 		{
-			"_malloc" ,
-			"_memalign" ,
-			"_htons" ,
-			"_ntohs" ,
-
 			"_fmod" ,
 			"_atan2" ,
 			"_fma" ,
@@ -1290,7 +1299,7 @@ class Driver {
 			"_tanhf" ,
 
 			// Uno specific
-			"_malloc",
+			"_malloc" ,
 			"stackSave",
 			"stackRestore",
 			"stackAlloc",
@@ -1301,8 +1310,17 @@ class Driver {
 			"_free"
 		};
 
+		if (enable_threads)
+		{
+			// https://github.com/dotnet/runtime/blob/6c3a197c4e01bb40c58e7c88370f92acbd53d81c/src/mono/wasm/wasm.proj#L265
+			exportedFunctions.Add("_emscripten_main_runtime_thread_id");
+		}
+
 		var exportedFunctionsValue = string.Join(",", exportedFunctions.Distinct());
 		emcc_link_flags.Add($"-s EXPORTED_FUNCTIONS={exportedFunctionsValue}");
+
+		//  workaround for https://github.com/emscripten-core/emscripten/issues/18034
+		emcc_link_flags.Add($"-s TEXTDECODER=0");
 
 		// Align with https://github.com/dotnet/runtime/blob/0a57a9b20905b1e14993dc4604bad3bdf0b57fa2/src/mono/wasm/wasm.proj#L279
 		emcc_link_flags.Add("-s EXPORT_ES6=1");
