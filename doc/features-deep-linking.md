@@ -9,7 +9,7 @@ Deep-linking enables the path part of the URI to indicate a location which shoul
 > [!TIP]
 > This feature is colloquially referred to as _routes_ in the web development world.
 
-## Use in applications
+## Use in Uno Platform applications
 
 Apps using deep-linking typically parse the URI as part of a robust navigation system. No longer is access to resources on discrete pages complicated by repetitive UI steps. Instead, these areas can be navigated to directly from a link in an email, a bookmark, or another website. When planning the capabilities of your application, it is important to decide whether common scenarios necessitate deep-linking. 
 
@@ -36,7 +36,7 @@ If missing, add the following parameter to your project file to enable deep-link
 This parameter can be configured on build by using a command-line parameter as follows:
 
 ```bash
-dotnet build "/p:WasmShellWebAppBasePath=/"
+dotnet build "-p:WasmShellWebAppBasePath=/"
 ```
 
 ## Behavior
