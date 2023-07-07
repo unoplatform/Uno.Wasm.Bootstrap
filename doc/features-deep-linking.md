@@ -7,7 +7,7 @@ uid: UnoWasmBootstrap.Features.DeepLinking
 Deep-linking enables the path part of the URI to indicate a location that should be navigated to. 
 
 > [!TIP]
-> This feature is colloquially referred to as _routes_ in the web development world.
+> This feature is colloquially referred to as _routing_ in the web development world.
 
 ## Use in Uno Platform applications
 
@@ -17,13 +17,11 @@ If so, consider a navigation [system](xref:Overview.Navigation) that allows mapp
 
 ## Configure deep-linking
 
-This feature is enabled by default in new projects generated from the `unoapp` template with version 4.9 or later. Certain cases may require disabling this feature, such as when the application is hosted in a subdirectory of the host.
+This feature is enabled by default in new projects generated from the `unoapp` template with version 4.9 or later.
 
-Disabling deep-linking is done by removing the `WasmShellWebAppBasePath` property from the `.csproj` file. 
+Certain cases may require disabling this feature, such as when the application is hosted in a subdirectory of the host. This can be done by removing the `WasmShellWebAppBasePath` property from the `.csproj` file.
 
-### Enable deep-linking
-
-If missing, add the following parameter to your project file to enable deep-linking:
+For project created from older template, add the following parameter to your project file to enable deep-linking:
 
 ```xml
 <PropertyGroup>
