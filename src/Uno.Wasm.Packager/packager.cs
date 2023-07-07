@@ -507,7 +507,6 @@ class Driver {
 		string wasm_runtime_path = null;
 		var runtime_config = "release";
 		int pthread_pool_size = 4;
-		int wasmInitialMemory = 16777216;
 		string wasmStackSize = "5MB";
 		string illinker_path = "";
 		string extra_emccflags = "";
@@ -555,7 +554,6 @@ class Driver {
 				{ "aot-profile=", s => aot_profile = s },
 				{ "runtime-config=", s => runtime_config = s },
 				{ "pthread-pool-size=", s => int.TryParse(s, out pthread_pool_size) },
-				{ "wasm-initial-memory=", s => int.TryParse(s, out wasmInitialMemory) },
 				{ "wasm-stack-size=", s => wasmStackSize = s },
 				{ "skip-aot-assemblies=", s => skip_aot_assemblies = s },
 				{ "aot-compiler-opts=", s => aot_compiler_options = s },
@@ -1334,7 +1332,6 @@ class Driver {
 		emcc_link_flags.Add("-s ENVIRONMENT=\"web,webview,worker,node,shell\"");
 
 		emcc_link_flags.Add("-s ALLOW_TABLE_GROWTH=1");
-		emcc_link_flags.Add($"-s INITIAL_MEMORY={wasmInitialMemory}");
 		emcc_link_flags.Add($"-s STACK_SIZE={wasmStackSize}");
 
 		emcc_link_flags.Add("-s WASM_BIGINT=1");
