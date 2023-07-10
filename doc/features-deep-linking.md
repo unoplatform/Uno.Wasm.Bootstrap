@@ -54,7 +54,7 @@ One example of such support is done through the [Azure Static WebApps](https://p
 
 ### Anchor based navigation
 
-When deep-linking is disabled, anchor-based navigation remains supported, as it does not impact the path part of the URI.
+When deep-linking is disabled, [anchor-based navigation](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#linking_to_an_element_on_the_same_page) remains supported, as it does not impact the path part of the URI.
 
 ## See also
 
