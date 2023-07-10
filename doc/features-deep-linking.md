@@ -1,15 +1,45 @@
-### Support for deep-linking / routes
+---
+uid: UnoWasmBootstrap.Features.DeepLinking
+---
 
-By default, deep-linking is not enabled to allow deployed apps to be hosted at any deployed locations. Anchor based navigation is supported by default, as it does not impact the path part of the URI.
+# Support for deep-linking (routes)
 
-To enable deep-linking or routes, add the following parameter to your project:
+Deep-linking enables the path part of the URI to indicate a location that should be navigated to. 
+
+> [!TIP]
+> This feature is colloquially referred to as _routing_ in the web development world.
+
+## Use in Uno Platform applications
+
+Apps using deep-linking typically parse the URI as part of a robust navigation system. No longer is access to resources on discrete pages complicated by repetitive UI steps. Instead, these areas can be navigated directly from a link in an email, a bookmark, or another website. When planning the capabilities of your application, it is essential to decide whether common scenarios necessitate deep-linking. 
+
+If so, consider a navigation [system](xref:Overview.Navigation) that allows mapping route names to specific sectors of UI elements.
+
+## Configure deep-linking
+
+This feature is enabled by default in new projects generated from the `unoapp` template with version 4.9 or later.
+
+Certain cases may require disabling this feature, such as when the application is hosted in a subdirectory of the host. This can be done by removing the `WasmShellWebAppBasePath` property from the `.csproj` file.
+
+For project created from older template, add the following parameter to your project file to enable deep-linking:
+
 ```xml
 <PropertyGroup>
   <WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>
 </PropertyGroup>
 ```
 
-This will for the all requests made to the bootstrapper's support files to be read from this path, regardless of the depth of the path. This way an address like `https://example.com/route1/item1` will be supported, assuming that the application is hosted at the root of the host.
+### Build-time configuration
+
+This parameter can be configured on build by using a command-line parameter as follows:
+
+```bash
+dotnet build "-p:WasmShellWebAppBasePath=/"
+```
+
+## Behavior
+
+All requests made to the bootstrapper's support files are read from the path specified by the `WasmShellWebAppBasePath` property. Restrictions are not placed on the depth of the path, so an address like `https://example.com/route1/item1` will be supported, assuming that the application is hosted at the root of the host.
 
 One example of such support is done through the [Azure Static WebApps](https://platform.uno/docs/articles/guides/azure-static-webapps.html) support, using navigation fallback:
 
@@ -22,7 +52,12 @@ One example of such support is done through the [Azure Static WebApps](https://p
 }
 ```
 
-This parameter can be configured on build by using a command-line parameter as follows:
+### Anchor based navigation
 
-```bash
-dotnet build "/p:WasmShellWebAppBasePath=/"
+When deep-linking is disabled, [anchor-based navigation](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#linking_to_an_element_on_the_same_page) remains supported, as it does not impact the path part of the URI.
+
+## See also
+
+- [Azure Static WebApps](xref:Uno.Tutorials.AzureStaticWepApps)
+- [Navigation](xref:Overview.Navigation)
+- [RouteMap](xref:Reference.Navigation.RouteMap)
