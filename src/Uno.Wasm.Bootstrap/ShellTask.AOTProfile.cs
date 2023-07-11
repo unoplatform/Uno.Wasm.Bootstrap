@@ -96,23 +96,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private IEnumerable<string> DefaultAOTProfileExcludedMethods =>
-			new[]
-			{
-				@"ManifestBasedResourceGroveler\.InternalGetSatelliteAssembly", // https://github.com/dotnet/runtime/issues/45698
-
-				@"System\.Reflection\.Assembly\.GetExecutingAssembly", // https://github.com/dotnet/runtime/issues/47996
-				@"System\.RuntimeType\.GetType",
-				@"System\.RuntimeTypeHandle\.internal_from_name",
-				@"System\.RuntimeTypeHandle\.GetTypeByName",
-				@"System\.Type\.GetType",
-				@"System\.Runtime\.Loader\.AssemblyLoadContext\.InternalLoadFromPath",
-				@"System\.Runtime\.Loader\.AssemblyLoadContext\.InternalLoadFile",
-				@"System\.Runtime\.Loader\.AssemblyLoadContext\.LoadFromAssemblyName",
-				@"System\.Reflection\.Assembly\.Load",
-				@"System\.Reflection\.Assembly\.InternalLoad",
-				@"System\.Reflection\.RuntimeAssembly\.InternalGetSatelliteAssembly",
-				@"System\.Reflection\.RuntimeAssembly\.InternalLoad",
-			};
+			new string[0];
 
 		private void TryDumpProfileMethods(Mono.Profiler.Aot.ProfileData profile, string filePath)
 		{
