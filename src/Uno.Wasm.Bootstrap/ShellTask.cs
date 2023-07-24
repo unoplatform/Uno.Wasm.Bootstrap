@@ -1311,7 +1311,13 @@ namespace Uno.Wasm.Bootstrap
 
 		private (int exitCode, string output, string error) ValidatPowershellExecutionPolicy()
 		{
-			var result = RunProcess("powershell", "Get-ExecutionPolicy");
+			var result = RunProcess(
+				"powershell",
+				"Get-ExecutionPolicy",
+				environmentVariables: new[] {
+					// Workaround for https://github.com/PowerShell/PowerShell/issues/18530#issuecomment-1325691850
+					("PSModulePath", "")
+				});
 
 			if (result.exitCode != 0)
 			{
