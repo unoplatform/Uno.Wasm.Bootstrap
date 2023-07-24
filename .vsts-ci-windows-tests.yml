@@ -6,7 +6,7 @@ jobs:
   timeoutInMinutes: 90
 
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-2022'
 
   workspace:
     clean: all
