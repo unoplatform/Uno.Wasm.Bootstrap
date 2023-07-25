@@ -551,7 +551,11 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool HasNativeCompile => NativeCompile is { } nativeCompile && nativeCompile.Length != 0;
 
-		private (int exitCode, string output, string error) RunProcess(string executable, string parameters, string? workingDirectory = null)
+		private (int exitCode, string output, string error) RunProcess(
+			string executable,
+			string parameters,
+			string? workingDirectory = null,
+			(string variable, string value)[]? environmentVariables = null)
 		{
 			if (IsWSLRequired
 				&& !ForceDisableWSL
@@ -611,6 +615,14 @@ namespace Uno.Wasm.Bootstrap
 					Arguments = parameters
 				}
 			};
+
+			if(environmentVariables is not null)
+			{
+				foreach (var envVar in environmentVariables)
+				{
+					p.StartInfo.Environment.Add(envVar.variable, envVar.value);
+				}
+			}
 
 			if (workingDirectory != null)
 			{
@@ -900,7 +912,9 @@ namespace Uno.Wasm.Bootstrap
 
 				Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(packagerResponseFile)}");
 
-				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath);
+				var environmentVariables = new List<(string, string)>();
+				
+				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath, environmentVariables.ToArray());
 
 				if (aotPackagerResult.exitCode != 0)
 				{
