@@ -913,13 +913,7 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(packagerResponseFile)}");
 
 				var environmentVariables = new List<(string, string)>();
-				if (GenerateAOTProfile)
-				{
-					// https://github.com/dotnet/runtime/blob/21f07e17b0874a898c660afc07261c70a2cb867d/src/mono/wasm/build/WasmApp.Native.targets#L278
-					environmentVariables.Add(("ENABLE_AOT_PROFILER", "1"));
-					environmentVariables.Add(("ENABLE_BROWSER_PROFILER", "1"));
-				}
-
+				
 				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath, environmentVariables.ToArray());
 
 				if (aotPackagerResult.exitCode != 0)
