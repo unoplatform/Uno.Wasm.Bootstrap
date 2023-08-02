@@ -925,15 +925,7 @@ namespace Uno.Wasm.Bootstrap
 
 				Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(packagerResponseFile)}");
 
-				var environmentVariables = new List<(string, string)>();
-				if (GenerateAOTProfile)
-				{
-					// https://github.com/dotnet/runtime/blob/21f07e17b0874a898c660afc07261c70a2cb867d/src/mono/wasm/build/WasmApp.Native.targets#L278
-					environmentVariables.Add(("ENABLE_AOT_PROFILER", "1"));
-					environmentVariables.Add(("ENABLE_BROWSER_PROFILER", "1"));
-				}
-
-				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath, environmentVariables.ToArray());
+				var aotPackagerResult = RunProcess(packagerBinPath, $"@\"{AlignPath(packagerResponseFile)}\"", _workDistPath);
 
 				if (aotPackagerResult.exitCode != 0)
 				{
@@ -942,9 +934,16 @@ namespace Uno.Wasm.Bootstrap
 
 				var ninjaPath = Path.Combine(MonoWasmSDKPath, "tools", "ninja.exe");
 
+				var environmentVariables = default((string, string)[]);
+				if (GenerateAOTProfile)
+				{
+					// https://github.com/dotnet/runtime/blob/21f07e17b0874a898c660afc07261c70a2cb867d/src/mono/wasm/build/WasmApp.Native.targets#L278
+					environmentVariables = new[] { ("ENABLE_AOT_PROFILER", "1"), ("ENABLE_BROWSER_PROFILER", "1") };
+				}
+
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\" -v", workAotPath)
-					: RunProcess("ninja", $"{NinjaAdditionalParameters} -v", workAotPath);
+					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\" -v", workAotPath, environmentVariables)
+					: RunProcess("ninja", $"{NinjaAdditionalParameters} -v", workAotPath, environmentVariables);
 
 				if (ninjaResult.exitCode != 0)
 				{
