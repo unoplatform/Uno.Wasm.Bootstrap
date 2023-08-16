@@ -1,5 +1,5 @@
 ﻿#if NET7_0_OR_GREATER
-// #define USE_JSIMPORT
+#define USE_JSIMPORT
 #endif
 
 // ******************************************************************
