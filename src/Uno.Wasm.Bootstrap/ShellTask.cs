@@ -1076,14 +1076,14 @@ namespace Uno.Wasm.Bootstrap
 				{
 					// Cleanup the assets list for deleted files
 					var assetsDoDelete = assetsArray
-						.Where(asset => deletedFiles.Contains(asset["name"]?.Value<string>()))
+						.Where(asset => deletedFiles.Contains(asset["virtualPath"]?.Value<string>()))
 						.ToList();
 
 					assetsDoDelete.ForEach(a => assetsArray.Remove(a));
 
 					foreach (var asset in assetsArray)
 					{
-						var originalUrl = asset["url"]?.Value<string>();
+						var originalUrl = asset["name"]?.Value<string>();
 
 						if (originalUrl is not null)
 						{
@@ -1097,7 +1097,7 @@ namespace Uno.Wasm.Bootstrap
 									newUrl = newUrl.Substring(0, lastSlashIndex + 1) + newUrl.Substring(lastSlashIndex + 1).Replace(".", "_");
 								}
 
-								asset["url"] = newUrl;
+								asset["name"] = newUrl;
 							}
 						}
 					}
