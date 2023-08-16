@@ -96,7 +96,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				var m = await import(`./dotnet.js`);
 
 				// Change the global loadBootResource
-				m.dotnet.withResourceLoader(
+				m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
 					(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors) => bootstrapper.loadResource(type, name, defaultUri, integrity, behavior));
 
 				const dotnetRuntime = await m.default(
