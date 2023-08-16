@@ -122,7 +122,7 @@ jobs:
   ## Static linking validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6/bin/Release/net6.0/dist" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net5
     env:

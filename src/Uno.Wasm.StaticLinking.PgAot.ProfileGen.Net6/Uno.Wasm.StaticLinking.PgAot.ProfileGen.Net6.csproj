@@ -1,0 +1,75 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<AssemblyName>Uno.Wasm.StaticLinking</AssemblyName>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
+		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+		
+		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
+		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
+		<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
+		
+		<!-- Linker is disabled when generating a profile https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/724 -->
+		<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Content\**" />
+	  <Content Remove="Content\**" />
+	  <EmbeddedResource Remove="Content\**" />
+	  <None Remove="Content\**" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellEnableAotProfile Include="aot.profile" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
+	</ItemGroup>
+      
+	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
+
+	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
+
+	<ItemGroup>
+		<WasmShellMonoEnvironment Include="MONO_GC_PARAMS" Value="soft-heap-limit=512m,nursery-size=64m,evacuation-threshold=66,major=marksweep" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_LEVEL" Value="debug" />
+		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<WasmShellExtraEmccFlags Include="-s USE_LIBPNG=1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UseAOT)'=='true'">
+		<WasmShellAdditionalPInvokeLibrary Include="libc" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<LinkerDescriptor Include="LinkerConfig.xml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+	</ItemGroup>
+
+	<Target Name="_validateProfileGenerationFlags" BeforeTargets="BeforeBuild">
+		<Error Condition="'$(WasmShellGenerateAOTProfile)'!='true'" Text="WasmShellGenerateAOTProfile must be set to true for this sample (Current is: $(WasmShellGenerateAOTProfile))" />
+	</Target>
+</Project>

@@ -95,62 +95,62 @@ jobs:
 
   # Static linking test with obsfucation enabled
   - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
-    displayName: Build StaticLinking.StaticLinking.Aot.Net5 Sample (net5 with obfuscation)
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /bl:$(build.artifactstagingdirectory)/SampleNet6-nolinker-win.binlog
+    displayName: Build StaticLinking.StaticLinking.Aot.Net6 Sample (net6 with obfuscation)
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
-    displayName: StaticLinking.Aot.Net5 Tests (net5 with obfuscation)
+    displayName: StaticLinking.Aot.Net6 Tests (net6 with obfuscation)
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   # Static linking test with file name obsfucation enabled
   - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
     displayName: Build StaticLinking.StaticLinking.Aot.Net5 Sample (net5 with file name obfuscation)
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
-    displayName: StaticLinking.Aot.Net5 Tests (net5 with file name obfuscation)
+    displayName: StaticLinking.Aot.Net6 Tests (net6 with file name obfuscation)
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://127.0.0.1:8000/"
 
-    displayName: StaticLinking.Aot.Net5 Tests (net5 with file name obfuscation and ip address)
+    displayName: StaticLinking.Aot.Net6 Tests (net5 with file name obfuscation and ip address)
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   # Static linking test (net5)
   - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build StaticLinking.Aot Sample (net5)
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net5\bin\Release\net5.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
-    displayName: StaticLinking.Aot Tests Net5
+    displayName: StaticLinking.Aot Tests Net6
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
       
