@@ -1540,6 +1540,17 @@ namespace Uno.Wasm.Bootstrap
 				OutputPackagePath = _finalPackagePath.Replace(@"\\?\", "");
 			}
 
+			// Move ICU files to the managed folder to avoid multiple lookups in start_asset_download_sources
+			// implied by having multiple sources (https://github.com/dotnet/runtime/blob/ae0f0d8fec21eb69088c970ad58af75cca429651/src/mono/wasm/runtime/loader/assets.ts#L513)
+			// move all *.icu files from ditFolder to _managedPath
+			var icuFiles = Directory.GetFiles(_workDistPath, "icudt*.dat");
+			foreach (var icuFile in icuFiles)
+			{
+				var icuFileName = Path.GetFileName(icuFile);
+				var icuFileDestination = Path.Combine(_managedPath, icuFileName);
+				File.Move(icuFile, icuFileDestination);
+			}
+
 			// Create the path if it does not exist (particularly if the path is
 			// not in a set of folder that exists)
 			Directory.CreateDirectory(_finalPackagePath);
