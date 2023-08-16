@@ -97,7 +97,6 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				// Change the global loadBootResource
 				m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
-					(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors) => bootstrapper.loadResource(type, name, defaultUri, integrity, behavior));
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -433,11 +432,11 @@ namespace Uno.WebAssembly.Bootstrap {
 				return defaultUri;
 			}
 
-			return this.deobfuscateFile(defaultUri, this.fetchFile(defaultUri));
+			return this.deobfuscateFile(name, this.fetchFile(defaultUri));
 		}
 
 		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(".dll")) {
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(this._unoConfig.assemblyFileExtension)) {
 				const responseValue = await response;
 
 				if (responseValue) {
