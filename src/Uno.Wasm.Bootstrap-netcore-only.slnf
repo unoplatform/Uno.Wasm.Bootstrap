@@ -13,7 +13,7 @@
       "Uno.Wasm.Node.Sample\\Uno.Wasm.Node.Sample.csproj",
       "Uno.Wasm.Sample.Server.Net7\\Uno.Wasm.Sample.Server.Net7.csproj",
       "Uno.Wasm.SampleNet6.Aot\\Uno.Wasm.SampleNet6.Aot.csproj",
-      "Uno.Wasm.SampleNet5\\Uno.Wasm.SampleNet5.csproj",
+      "Uno.Wasm.SampleNet6\\Uno.Wasm.SampleNet6.csproj",
       "Uno.Wasm.SampleNet6.LogProfiler\\Uno.Wasm.SampleNet6.LogProfiler.csproj",
       "Uno.Wasm.SampleNet6\\Uno.Wasm.SampleNet6.csproj",
       "Uno.Wasm.SampleNet7\\Uno.Wasm.SampleNet7.csproj",
