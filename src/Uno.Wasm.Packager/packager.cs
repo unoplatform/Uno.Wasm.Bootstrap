@@ -966,7 +966,7 @@ class Driver {
 				}
 			}
 
-			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\", \"url\":\"{culturePathPrefix}{Path.GetFileName(f)}\" {cultureField} }}";
+			return $" {{ \"name\": \"{culturePathPrefix}{Path.GetFileName(f)}\",\"virtualPath\": \"{Path.GetFileName(f)}\", \"loadRemote\": true, \"behavior\":\"{assetType}\" {cultureField} }}";
 		}));
 		var debugLevel = enable_debug ? " -1" : "0";
 
@@ -1003,6 +1003,8 @@ class Driver {
 		}
 
 		configOptions["runtimeOptions"] = $"[{string.Join(",", runtimeOptionsSet.Select(o => $"\"{o}\""))}]";
+		configOptions["remoteSources"] = "[\'managed/\']";
+		configOptions["globalizationMode"] = "\"all\"";
 
 		var config = $"{{" +
 			string.Join(",", configOptions.Select(o => $"\n \t\"{o.Key}\": {o.Value}")) + "," +

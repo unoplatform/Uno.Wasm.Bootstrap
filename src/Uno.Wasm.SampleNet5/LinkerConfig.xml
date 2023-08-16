@@ -1,4 +1,0 @@
-﻿<linker>
-	<assembly fullname="Uno.Wasm.SampleNet5"/>
-	<assembly fullname="System.Private.CoreLib"/>
-</linker>

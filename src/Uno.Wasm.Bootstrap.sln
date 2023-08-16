@@ -48,9 +48,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.WasmSample.WithSpace.Ao
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Interpreter", "Uno.Wasm.StaticLinking.Interpreter\Uno.Wasm.StaticLinking.Interpreter.csproj", "{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet5", "Uno.Wasm.SampleNet5\Uno.Wasm.SampleNet5.csproj", "{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet5.Aot", "Uno.Wasm.SampleNet5.Aot\Uno.Wasm.SampleNet5.Aot.csproj", "{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6.Aot", "Uno.Wasm.SampleNet6.Aot\Uno.Wasm.SampleNet6.Aot.csproj", "{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.AotProfiler", "Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj", "{435054BA-2B64-4E17-86F3-7D18F629FE80}"
 EndProject
@@ -64,9 +62,9 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Tests.Shared", "Un
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Static Linking", "Static Linking", "{5F914B7D-AFA2-4145-9548-B1B3A16D77AE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Aot.Net5", "Uno.Wasm.StaticLinking.Aot.Net5\Uno.Wasm.StaticLinking.Aot.Net5.csproj", "{DA82EF90-D444-414A-9DCE-4DB27FF72DAA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Aot.Net6", "Uno.Wasm.StaticLinking.Aot.Net6\Uno.Wasm.StaticLinking.Aot.Net6.csproj", "{DA82EF90-D444-414A-9DCE-4DB27FF72DAA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.PgAot.Net5", "Uno.Wasm.StaticLinking.PgAot.Net5\Uno.Wasm.StaticLinking.PgAot.Net5.csproj", "{97E9B56A-BE43-4590-A009-9AC135B371BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.PgAot.Net6", "Uno.Wasm.StaticLinking.PgAot.Net6\Uno.Wasm.StaticLinking.PgAot.Net6.csproj", "{97E9B56A-BE43-4590-A009-9AC135B371BE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RayTracer", "RayTracer", "{69177198-1DFD-40BE-A7DA-903E27861DCF}"
 EndProject
@@ -94,7 +92,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Embedded.App", "Un
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.MetadataUpdater", "Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj", "{0E0EF69E-4FE1-463E-9939-8147D122D50E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5", "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5\Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net5.csproj", "{2DF55561-12DD-4325-BDBF-F42AC72FC284}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net6", "Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net6\Uno.Wasm.StaticLinking.PgAot.ProfileGen.Net6.csproj", "{2DF55561-12DD-4325-BDBF-F42AC72FC284}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6.LogProfiler", "Uno.Wasm.SampleNet6.LogProfiler\Uno.Wasm.SampleNet6.LogProfiler.csproj", "{92B22005-5A7B-4B38-8D09-68D7240EBE8C}"
 EndProject
@@ -125,23 +123,23 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Root", "_Root", "{70AAFC96
 		..\.vsts-ci-linux.yml = ..\.vsts-ci-linux.yml
 		..\.vsts-ci-macos.yml = ..\.vsts-ci-macos.yml
 		..\.vsts-ci-windows-tests.yml = ..\.vsts-ci-windows-tests.yml
+		..\.vsts-ci-wsl-tests.yml = ..\.vsts-ci-wsl-tests.yml
 		..\.vsts-ci.yml = ..\.vsts-ci.yml
 		..\Readme.md = ..\Readme.md
-		..\.vsts-ci-wsl-tests.yml = ..\.vsts-ci-wsl-tests.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.AbsoluteIntermediate", "Uno.Wasm.Tests.AbsoluteIntermediate\Uno.Wasm.Tests.AbsoluteIntermediate.csproj", "{6584CC1B-2628-4872-851A-E85C0E572D39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.StaticLinking.Embedded", "Uno.Wasm.StaticLinking.Embedded\Uno.Wasm.StaticLinking.Embedded.csproj", "{B7270680-8BCF-4246-834C-0F7CAF48FBB9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Embedded", "Uno.Wasm.StaticLinking.Embedded\Uno.Wasm.StaticLinking.Embedded.csproj", "{B7270680-8BCF-4246-834C-0F7CAF48FBB9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{D9443716-A385-4210-80A3-06B8688EDD96}"
 	ProjectSection(SolutionItems) = preProject
-		..\build\scripts\run-tests.sh = ..\build\scripts\run-tests.sh
 		..\build\scripts\run-tests-csp.sh = ..\build\scripts\run-tests-csp.sh
 		..\build\scripts\run-tests-server.sh = ..\build\scripts\run-tests-server.sh
 		..\build\scripts\run-tests-swa.sh = ..\build\scripts\run-tests-swa.sh
-		..\build\scripts\run-tests-windows.ps1 = ..\build\scripts\run-tests-windows.ps1
 		..\build\scripts\run-tests-windows-server.ps1 = ..\build\scripts\run-tests-windows-server.ps1
+		..\build\scripts\run-tests-windows.ps1 = ..\build\scripts\run-tests-windows.ps1
+		..\build\scripts\run-tests.sh = ..\build\scripts\run-tests.sh
 		..\build\scripts\server.py = ..\build\scripts\server.py
 	EndProjectSection
 EndProject
@@ -227,10 +225,6 @@ Global
 		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{390B1E51-6A66-4EFE-B794-6DEB65F4CD82}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -356,7 +350,6 @@ Global
 		{EBCB3142-593E-4815-915D-3B88B75161C1} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
 		{359A63C4-C5D0-4011-8C39-89D23190B22F} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{9FFF339E-BD09-4D1C-A756-92AE3625EAFD} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
-		{B79F67E0-AC18-4B93-A3DD-F1BFE6F418E9} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{390B1E51-6A66-4EFE-B794-6DEB65F4CD82} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{286B5778-DA8B-4965-9FC6-BC6F4258E155} = {69177198-1DFD-40BE-A7DA-903E27861DCF}
 		{7EE991BB-C93D-4720-854C-1E708B652EF1} = {69177198-1DFD-40BE-A7DA-903E27861DCF}
@@ -413,7 +406,8 @@ Global
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b401928c-600e-4450-adff-20eadc7ce3ec}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{b474457d-dbcd-4795-a2ab-ec3f09e53198}*SharedItemsImports = 13
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{b5571c08-f903-4f17-8346-36265f775b5f}*SharedItemsImports = 13
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{b79f67e0-ac18-4b93-a3dd-f1bfe6f418e9}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{b7270680-8bcf-4246-834c-0f7caf48fbb9}*SharedItemsImports = 5
+		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{b7270680-8bcf-4246-834c-0f7caf48fbb9}*SharedItemsImports = 5
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{d348ee61-e4d1-4daf-a84f-086ba6ad659b}*SharedItemsImports = 5
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5

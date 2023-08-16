@@ -1,4 +1,8 @@
-﻿// ******************************************************************
+﻿#if NET7_0_OR_GREATER
+#define USE_JSIMPORT
+#endif
+
+// ******************************************************************
 // Copyright � 2015-2022 Uno Platform inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +44,7 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"test_float:{SideModule1.test_add_float1(21, 21)}");
 			Console.WriteLine($"test_add_double:{SideModule1.test_add_double(21, 21)}");
 
+			Console.WriteLine($"Before now");
 			var now = DateTime.Now;
 			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
 
@@ -162,7 +167,7 @@ namespace Uno.Wasm.Sample
 
 	partial class SideModule4
 	{
-#if NET7_0_OR_GREATER
+#if USE_JSIMPORT
 		
 		[LibraryImport("side4", StringMarshalling = StringMarshalling.Utf8)]
 		internal static partial string side4_getCustomVersion();
@@ -174,7 +179,7 @@ namespace Uno.Wasm.Sample
 
 	public static partial class Imports
 	{
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string TestCallback()
 			=> Interop.Runtime.InvokeJS($"testCallback()", out var _);
 #else
@@ -182,7 +187,7 @@ namespace Uno.Wasm.Sample
 #endif
 		public static partial string TestCallback();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string ValidateEmAddFunction()
 			=> Runtime.InvokeJS($"Validation.validateEmAddFunction()");
 #else
@@ -191,7 +196,7 @@ namespace Uno.Wasm.Sample
 
 		public static partial string ValidateEmAddFunction();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string ValidateIDBFS()
 			=> Runtime.InvokeJS($"validateIDBFS()");
 #else
@@ -200,7 +205,7 @@ namespace Uno.Wasm.Sample
 
 		public static partial string ValidateIDBFS();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string RequireAvailable()
 			=> Runtime.InvokeJS($"requireAvailable()");
 #else
@@ -208,7 +213,7 @@ namespace Uno.Wasm.Sample
 #endif
 		public static partial string RequireAvailable();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string GLAvailable()
 			=> Runtime.InvokeJS($"glAvailable()");
 #else
@@ -216,7 +221,7 @@ namespace Uno.Wasm.Sample
 #endif
 		public static partial string GLAvailable();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string GetJSTimeZone()
 			=> Runtime.InvokeJS($"getJSTimeZone()");
 #else
@@ -224,7 +229,7 @@ namespace Uno.Wasm.Sample
 #endif
 		public static partial string GetJSTimeZone();
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string AppendResult(string res)
 			=> Runtime.InvokeJS($"Interop.appendResult(\"{res}\")");
 #else
@@ -233,7 +238,7 @@ namespace Uno.Wasm.Sample
 		public static partial string AppendResult(string res);
 
 
-#if !NET7_0_OR_GREATER
+#if !USE_JSIMPORT
 		public static partial string FunctionsExportsAvailable()
 			=> Runtime.InvokeJS($"functionsExportsAvailable()");
 #else
@@ -245,7 +250,7 @@ namespace Uno.Wasm.Sample
 	public static partial class Exports
 	{
 #pragma warning disable IDE0022 // Use expression body for methods (Will be fixed in net7 in RC2)
-#if NET7_0_OR_GREATER
+#if USE_JSIMPORT
 		[System.Runtime.InteropServices.JavaScript.JSExport()]
 #endif
 		public static string MyExportedMethod()

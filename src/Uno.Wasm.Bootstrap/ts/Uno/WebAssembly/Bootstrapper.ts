@@ -11,7 +11,6 @@ namespace Uno.WebAssembly.Bootstrap {
 		public onConfigLoaded: (config: MonoConfig) => void | Promise<void>;
 		public onAbort: () => void;
 		public onDotnetReady: () => void;
-		public onDownloadResource: (request: ResourceRequest) => LoadingResource | undefined;
 
 		private _context?: DotnetPublicAPI;
 		private _monoConfig: MonoConfig;
@@ -53,34 +52,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
-			this.onDownloadResource = (request) => <LoadingResource>{
-				name: request.name,
-				url: request.resolvedUrl,
-				response: this.deobfuscateFile(request.resolvedUrl, this.fetchFile(request.resolvedUrl))
-			};
 
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
 		}
-
-		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(".dll")) {
-				const responseValue = await response;
-
-				if (responseValue) {
-					var data = new Uint8Array(await responseValue.arrayBuffer());
-					var key = this._unoConfig.assemblyObfuscationKey;
-
-					for (var i = 0; i < data.length; i++) {
-						data[i] ^= key.charCodeAt(i % key.length);
-					}
-
-					return new Response(data, { "status": 200, headers: responseValue.headers });
-				}
-			}
-
-			return response;
-        }
 
 		public static async bootstrap(): Promise<void> {
 
@@ -120,6 +95,9 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`./dotnet.js`);
 
+				// Change the global loadBootResource
+				m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
+
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
 						bootstrapper.configure(context);
@@ -133,7 +111,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
 			}
-        }
+		}
 
 		private setupExports(dotnetRuntime: any) {
 			this._getAssemblyExports = dotnetRuntime.getAssemblyExports;
@@ -150,7 +128,6 @@ namespace Uno.WebAssembly.Bootstrap {
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
 				exports: ["IDBFS", "FS"].concat(this._unoConfig.emcc_exported_runtime_methods),
-				downloadResource: this.onDownloadResource
 			};
 		}
 
@@ -446,6 +423,35 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			return init;
+		}
+
+		private loadResource(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors):
+			string | Promise<Response | void> | null | undefined {
+
+			if (type == "dotnetjs") {
+				return defaultUri;
+			}
+
+			return this.deobfuscateFile(name, this.fetchFile(defaultUri));
+		}
+
+		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(this._unoConfig.assemblyFileExtension)) {
+				const responseValue = await response;
+
+				if (responseValue) {
+					var data = new Uint8Array(await responseValue.arrayBuffer());
+					var key = this._unoConfig.assemblyObfuscationKey;
+
+					for (var i = 0; i < data.length; i++) {
+						data[i] ^= key.charCodeAt(i % key.length);
+					}
+
+					return new Response(data, { "status": 200, headers: responseValue.headers });
+				}
+			}
+
+			return response;
 		}
 
 		private fetchWithProgress(url: string, progressCallback: Function) : Promise<void | Response> {
