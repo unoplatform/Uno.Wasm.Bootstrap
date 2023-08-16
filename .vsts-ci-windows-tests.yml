@@ -35,11 +35,11 @@ jobs:
     displayName: Build bootstrap
 
   - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet5
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet6
       $customMonoTempPath="$env:temp\with a space\test"
       mkdir $customMonoTempPath
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish /p:Configuration=Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win-temp-with-space.binlog
+      dotnet publish /p:Configuration=Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet6-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
   # Standalone Server publish
