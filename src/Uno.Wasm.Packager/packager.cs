@@ -954,19 +954,21 @@ class Driver {
 			};
 
 			string cultureField = null;
-			string culturePathPrefix = null;
+			string pathPrefix = null;
 
 			if (assetType is "assembly")
 			{
-				if(IsResourceAssembly(f, out var culture))
+				pathPrefix = "managed/";
+
+				if (IsResourceAssembly(f, out var culture))
 				{
 					assetType = "resource";
 					cultureField = $", \"culture\":\"{Path.GetFileName(Path.GetDirectoryName(f))}\"";
-					culturePathPrefix = $"{culture}/";
+					pathPrefix += $"{culture}/";
 				}
 			}
 
-			return $" {{ \"name\": \"{Path.GetFileName(f)}\", \"behavior\":\"{assetType}\", \"url\":\"{culturePathPrefix}{Path.GetFileName(f)}\" {cultureField} }}";
+			return $" {{ \"name\": \"{pathPrefix}{Path.GetFileName(f)}\", \"virtualPath\": \"{Path.GetFileName(f)}\", \"loadRemote\": true, \"behavior\":\"{assetType}\" {cultureField} }}";
 		}));
 		var debugLevel = enable_debug ? " -1" : "0";
 
@@ -1003,6 +1005,8 @@ class Driver {
 		}
 
 		configOptions["runtimeOptions"] = $"[{string.Join(",", runtimeOptionsSet.Select(o => $"\"{o}\""))}]";
+		configOptions["remoteSources"] = "[\'./\']";
+		configOptions["globalizationMode"] = "\"all\"";
 
 		var config = $"{{" +
 			string.Join(",", configOptions.Select(o => $"\n \t\"{o.Key}\": {o.Value}")) + "," +
