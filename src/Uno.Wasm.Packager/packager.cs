@@ -1003,7 +1003,7 @@ class Driver {
 		}
 
 		configOptions["runtimeOptions"] = $"[{string.Join(",", runtimeOptionsSet.Select(o => $"\"{o}\""))}]";
-		configOptions["remoteSources"] = "[\'managed/\']";
+		configOptions["remoteSources"] = $"[\"{assembly_root}/\"]";
 		configOptions["globalizationMode"] = "\"all\"";
 
 		var config = $"{{" +
