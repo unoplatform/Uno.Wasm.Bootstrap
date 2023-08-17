@@ -1899,6 +1899,20 @@ class Driver {
 			// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
 			linker_args.Add($"--keep-metadata all ");
 
+
+			// Generate a workaround for https://github.com/dotnet/runtime/issues/90745
+			var linkerDefinitionFile = Path.GetTempFileName();
+			File.WriteAllText(
+				linkerDefinitionFile,
+				@"
+						<linker>
+							<assembly fullname=""System.Private.CoreLib"">
+								<type fullname=""System.Runtime.CompilerServices.InlineArrayAttribute"" />
+							</assembly>
+						</linker>
+						");
+			linker_args.Add($" -x \"{linkerDefinitionFile}\"");
+
 			linker_args.Add($" --verbose ");
 
 			ninja.WriteLine ("build $builddir/linker-out: mkdir");
