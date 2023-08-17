@@ -1008,6 +1008,20 @@ namespace Uno.Wasm.Bootstrap
 					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
 					linkerParams.Add($"-out \"{_managedPath}\"");
 
+					// Generate a workaround for https://github.com/dotnet/runtime/issues/90745
+					var linkerDefinitionFile = Path.GetTempFileName();
+					File.WriteAllText(
+						linkerDefinitionFile,
+						@"
+						<linker>
+							<assembly fullname=""System.Private.CoreLib"">
+								<type fullname=""System.Runtime.CompilerServices.InlineArrayAttribute"" />
+							</assembly>
+						</linker>
+						");
+
+					linkerParams.Add($"-x \"{linkerDefinitionFile}\"");
+
 					File.WriteAllLines(linkerResponse, linkerParams);
 
 					Log.LogMessage(MessageImportance.Low, $"Response file: {File.ReadAllText(linkerResponse)}");
@@ -1036,6 +1050,8 @@ namespace Uno.Wasm.Bootstrap
 						);
 
 					AdjustMonoConfigJson(deletedFiles);
+
+					File.Delete(linkerDefinitionFile);
 				}
 			}
 		}
