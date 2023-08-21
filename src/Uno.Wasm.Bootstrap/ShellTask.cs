@@ -1039,8 +1039,6 @@ namespace Uno.Wasm.Bootstrap
 						);
 
 					AdjustMonoConfigJson(deletedFiles);
-
-					File.Delete(linkerDefinitionFile);
 				}
 			}
 		}
