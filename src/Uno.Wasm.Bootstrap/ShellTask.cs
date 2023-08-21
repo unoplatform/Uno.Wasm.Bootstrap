@@ -999,7 +999,10 @@ namespace Uno.Wasm.Bootstrap
 					}
 
 					// Opts should be aligned with the monolinker call in packager.cs, validate for linker_args as well
-					linkerParams.Add($"--deterministic --disable-opt unreachablebodies --used-attrs-only true ");
+					linkerParams.Add($"--deterministic --disable-opt unreachablebodies ");
+
+					// disabled to align with the .NET SDK default behavior (https://github.com/dotnet/runtime/issues/90745)
+					// linkerParams.Add($"--used-attrs-only true ");
 
 					// Metadata linking https://github.com/mono/linker/commit/fafb6cf6a385a8c753faa174b9ab7c3600a9d494
 					linkerParams.Add("--keep-metadata all ");
@@ -1007,20 +1010,6 @@ namespace Uno.Wasm.Bootstrap
 					linkerParams.Add(GetLinkerFeatureConfiguration());
 					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
 					linkerParams.Add($"-out \"{_managedPath}\"");
-
-					// Generate a workaround for https://github.com/dotnet/runtime/issues/90745
-					var linkerDefinitionFile = Path.GetTempFileName();
-					File.WriteAllText(
-						linkerDefinitionFile,
-						@"
-						<linker>
-							<assembly fullname=""System.Private.CoreLib"">
-								<type fullname=""System.Runtime.CompilerServices.InlineArrayAttribute"" />
-							</assembly>
-						</linker>
-						");
-
-					linkerParams.Add($"-x \"{linkerDefinitionFile}\"");
 
 					File.WriteAllLines(linkerResponse, linkerParams);
 
@@ -1050,8 +1039,6 @@ namespace Uno.Wasm.Bootstrap
 						);
 
 					AdjustMonoConfigJson(deletedFiles);
-
-					File.Delete(linkerDefinitionFile);
 				}
 			}
 		}
