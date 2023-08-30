@@ -1087,6 +1087,7 @@ class Driver {
 		if (is_netcore)
 		{
 			runtime_libs += $"$runtime_libdir/wasm-bundled-timezones.a ";
+			runtime_libs += $"$runtime_libdir/libmono-wasm-simd.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.Native.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.Globalization.Native.a ";
@@ -1349,6 +1350,7 @@ class Driver {
 
 		aot_args += "mattr=simd,";
 		emcc_flags += "-msimd128 ";
+		emcc_flags += "-DCONFIGURATION_COMPILE_OPTIONS=\"-msimd128\" -DCONFIGURATION_INTERPSIMDTABLES_LIB=\"simd\" ";
 
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
