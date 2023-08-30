@@ -1087,6 +1087,7 @@ class Driver {
 		if (is_netcore)
 		{
 			runtime_libs += $"$runtime_libdir/wasm-bundled-timezones.a ";
+			runtime_libs += $"$runtime_libdir/libmono-wasm-simd.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.Native.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.IO.Compression.Native.a ";
 			runtime_libs += $"$runtime_libdir/libSystem.Globalization.Native.a ";
