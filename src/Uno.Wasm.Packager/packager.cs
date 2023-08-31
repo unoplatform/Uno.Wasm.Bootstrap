@@ -1490,17 +1490,17 @@ class Driver {
 		else
 		{
 			ninja.WriteLine ("rule cp");
-			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+			ninja.WriteLine ($"  command = cmd /V:ON /c set \"in1=$in\" & set \"in2=!in1:/=\\!\" & set \"out1=$out\" & set \"out2=!out1:/=\\!\" & copy /y !in2! !out2! 1> NUL");
 			ninja.WriteLine ($"  description = [CP] $in -> $out");
 
 			ninja.WriteLine ("rule cpifdiff");
-			ninja.WriteLine ($"  command = {commandPrefix} {cpCommand} '$in' '$out'");
+			ninja.WriteLine ($"  command = cmd /V:ON /c set \"in1=$in\" & set \"in2=!in1:/=\\!\" & set \"out1=$out\" & set \"out2=!out1:/=\\!\" & copy /y !in2! !out2! 1> NUL");
+			ninja.WriteLine ($"  description = [CPIFDIFF] $in -> $out");
 
 			ninja.WriteLine ("rule cpifdiffex");
-			ninja.WriteLine ($"  command = {commandPrefix} if(Test-Path '$in') {{ {cpCommand} '$in' '$out' }}");
-
-			ninja.WriteLine ("  restat = true");
-			ninja.WriteLine ("  description = [CPIFDIFFEX] $in -> $out");
+			ninja.WriteLine ($"  command = cmd /V:ON /c set \"in1=$in\" & set \"in2=!in1:/=\\!\" & set \"out1=$out\" & set \"out2=!out1:/=\\!\" & if exist !in2! copy /y !in2! !out2! 1> NUL");
+			ninja.WriteLine ( "  restat = true");
+			ninja.WriteLine ( "  description = [CPIFDIFFEX] $in -> $out");
 		}
 
 		var emcc_shell_prefix = is_windows
