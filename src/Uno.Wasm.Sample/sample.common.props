@@ -11,6 +11,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
+		<PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,7 +57,10 @@
 		<Error Condition="!exists('$(WasmShellOutputPackagePath)\managed\pt-BR\System.Web.Services.Description.resources.clr')"
 			   Text="managed\pt-BR\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputPackagePath)" />
 
-		<Error Condition="$(_monoConfigJson.Contains('System.IO.Pipes.dll'))" Text="mono-config.json is incorrectly filtered" />
+		<Error Condition="$(_monoConfigJson.Contains('System.IO.Pipes.dll'))"
+			   Text="mono-config.json is incorrectly filtered (System.IO.Pipes.dll)" />
+		<Error Condition="$(_monoConfigJson.Contains('Microsoft.CodeAnalysis.resources.dll')) and '$(WasmShellILLinkerEnabled)'=='true' and '$(WasmShellEnableLogProfiler)'!='true'"
+			   Text="mono-config.json is incorrectly filtered (Microsoft.CodeAnalysis.resources.dll)" />
 
 		<Error Condition="$(_duplicateValidation.Contains(';'))" Text="Duplicate System.Private.CoreLib.clr detected" />
 
@@ -74,6 +78,10 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj" />
 	</ItemGroup>
 
 </Project>
