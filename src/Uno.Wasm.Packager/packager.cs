@@ -1394,7 +1394,7 @@ class Driver {
 		}
 		else
 		{
-			ninja.WriteLine($"emsdk_env = cd");
+			ninja.WriteLine($"emsdk_env = emsdkenv.cmd");
 		}
 
 		if (add_binding) {
@@ -1511,8 +1511,16 @@ class Driver {
 			? "powershell"
 			: "";
 
-		ninja.WriteLine ("rule create-emsdk-env");
-		ninja.WriteLine ($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
+		ninja.WriteLine("rule create-emsdk-env");
+
+		if (is_windows)
+		{
+			ninja.WriteLine($"  command = cmd /c \"$emscripten_sdkdir/emsdk.bat\" construct_env > $out");
+		}
+		else
+		{
+			ninja.WriteLine($"  command = {tools_shell_prefix} \"$emscripten_sdkdir/emsdk\" construct_env > $out");
+		}
 
 		ninja.WriteLine ("rule emcc");
 		ninja.WriteLine ($"  command = {emcc_shell_prefix} \"$emcc $emcc_flags $flags -Oz -c -o $out $in\"");
