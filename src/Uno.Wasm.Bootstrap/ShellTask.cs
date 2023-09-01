@@ -942,7 +942,7 @@ namespace Uno.Wasm.Bootstrap
 				}
 
 				var ninjaResult = EnableEmscriptenWindows
-					? RunProcess("cmd", $"/c \"{emsdkPath}\\emsdk_env.bat 2>&1 && {ninjaPath} {NinjaAdditionalParameters}\" -v", workAotPath, environmentVariables)
+					? RunProcess("cmd", $"/c call \"{emsdkPath}\\emsdk_env.bat\" 2>&1 && {ninjaPath} {NinjaAdditionalParameters} -v", workAotPath, environmentVariables)
 					: RunProcess("ninja", $"{NinjaAdditionalParameters} -v", workAotPath, environmentVariables);
 
 				if (ninjaResult.exitCode != 0)
