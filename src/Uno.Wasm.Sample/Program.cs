@@ -25,6 +25,7 @@ namespace Uno.Wasm.Sample
     public static class Program
     {
 		private static Timer _t;
+		private static Uno.Wasm.Sample.Library.ClassLibrary01 _unused;
 
 		static void Main(string[] args)  
 		{
