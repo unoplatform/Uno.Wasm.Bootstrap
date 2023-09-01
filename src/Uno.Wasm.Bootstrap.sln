@@ -131,6 +131,23 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Root", "_Root", "{70AAFC96
 		..\Readme.md = ..\Readme.md
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.AbsoluteIntermediate", "Uno.Wasm.Tests.AbsoluteIntermediate\Uno.Wasm.Tests.AbsoluteIntermediate.csproj", "{6584CC1B-2628-4872-851A-E85C0E572D39}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.StaticLinking.Embedded", "Uno.Wasm.StaticLinking.Embedded\Uno.Wasm.StaticLinking.Embedded.csproj", "{B7270680-8BCF-4246-834C-0F7CAF48FBB9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{D9443716-A385-4210-80A3-06B8688EDD96}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\scripts\run-tests-csp.sh = ..\build\scripts\run-tests-csp.sh
+		..\build\scripts\run-tests-server.sh = ..\build\scripts\run-tests-server.sh
+		..\build\scripts\run-tests-swa.sh = ..\build\scripts\run-tests-swa.sh
+		..\build\scripts\run-tests-windows-server.ps1 = ..\build\scripts\run-tests-windows-server.ps1
+		..\build\scripts\run-tests-windows.ps1 = ..\build\scripts\run-tests-windows.ps1
+		..\build\scripts\run-tests.sh = ..\build\scripts\run-tests.sh
+		..\build\scripts\server.py = ..\build\scripts\server.py
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Sample.Library", "Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj", "{42FC5421-72BC-41EA-A1C4-FF88A2DC820A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -317,6 +334,18 @@ Global
 		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0527B6ED-6050-4B55-A602-31DD46CF5999}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6584CC1B-2628-4872-851A-E85C0E572D39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6584CC1B-2628-4872-851A-E85C0E572D39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6584CC1B-2628-4872-851A-E85C0E572D39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6584CC1B-2628-4872-851A-E85C0E572D39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7270680-8BCF-4246-834C-0F7CAF48FBB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7270680-8BCF-4246-834C-0F7CAF48FBB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7270680-8BCF-4246-834C-0F7CAF48FBB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7270680-8BCF-4246-834C-0F7CAF48FBB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42FC5421-72BC-41EA-A1C4-FF88A2DC820A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42FC5421-72BC-41EA-A1C4-FF88A2DC820A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42FC5421-72BC-41EA-A1C4-FF88A2DC820A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42FC5421-72BC-41EA-A1C4-FF88A2DC820A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -364,6 +393,11 @@ Global
 		{FC27FD88-F96B-4A00-8B8D-9B20B28A7A9C} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
 		{2829B1BF-47C7-4284-9EAF-DEB48C4A0209} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{227B4962-4978-4712-8C52-630E2371A869} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
+		{A7F3B4BF-A73D-4769-A78D-5F3CAC362AAF} = {84D19B91-8728-4EBD-A6B2-D51F3B0EAB31}
+		{6584CC1B-2628-4872-851A-E85C0E572D39} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
+		{B7270680-8BCF-4246-834C-0F7CAF48FBB9} = {5F914B7D-AFA2-4145-9548-B1B3A16D77AE}
+		{D9443716-A385-4210-80A3-06B8688EDD96} = {70AAFC96-05F5-43A3-959A-95FB32CDE202}
+		{42FC5421-72BC-41EA-A1C4-FF88A2DC820A} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA350FE9-9316-4846-8145-356F9A0ACBC7}
