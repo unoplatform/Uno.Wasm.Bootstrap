@@ -117,6 +117,23 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  # Static linking test with dual obfuscation enabled
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet6-dual-win.binlog
+    displayName: Build StaticLinking.Aot.Net6 Sample (dual obfuscation)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
+      "http://localhost:8000/"
+
+    displayName: StaticLinking.Aot.Net6 Tests (net6 with dual obfuscation)
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
   # Static linking test (net5)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net5
