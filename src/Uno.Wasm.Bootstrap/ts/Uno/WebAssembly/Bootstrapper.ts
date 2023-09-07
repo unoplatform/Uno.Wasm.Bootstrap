@@ -61,7 +61,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 		
 		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(".dll")) {
+			const assemblyFileSuffix = this._unoConfig.assemblyFileNameObfuscationMode !== "NoDots" ?
+				this._unoConfig.assemblyFileExtension :
+					this._unoConfig.assemblyFileExtension.replace(".", "_");
+
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(assemblyFileSuffix)) {
 				const responseValue = await response;
 
 				if (responseValue) {
@@ -412,42 +416,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			return init;
 		}
 
-<<<<<<< HEAD
-=======
-		private loadResource(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors):
-			string | Promise<Response | void> | null | undefined {
-
-			if (type == "dotnetjs") {
-				return defaultUri;
-			}
-
-			return this.deobfuscateFile(name, this.fetchFile(defaultUri));
-		}
-
-		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			const assemblyFileSuffix = this._unoConfig.assemblyFileNameObfuscationMode !== "NoDots" ?
-				this._unoConfig.assemblyFileExtension :
-					this._unoConfig.assemblyFileExtension.replace(".", "_");
-
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(assemblyFileSuffix)) {
-				const responseValue = await response;
-
-				if (responseValue) {
-					var data = new Uint8Array(await responseValue.arrayBuffer());
-					var key = this._unoConfig.assemblyObfuscationKey;
-
-					for (var i = 0; i < data.length; i++) {
-						data[i] ^= key.charCodeAt(i % key.length);
-					}
-
-					return new Response(data, { "status": 200, headers: responseValue.headers });
-				}
-			}
-
-			return response;
-		}
-
->>>>>>> 4aaf7eb (fix: Ensure filename obfuscation works with obfuscation)
 		private fetchWithProgress(url: string, progressCallback: Function) : Promise<void | Response> {
 
 			if (!this.loader) {
