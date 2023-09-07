@@ -436,7 +436,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(this._unoConfig.assemblyFileExtension)) {
+			const assemblyFileSuffix = this._unoConfig.assemblyFileNameObfuscationMode !== "NoDots" ?
+				this._unoConfig.assemblyFileExtension :
+					this._unoConfig.assemblyFileExtension.replace(".", "_");
+
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(assemblyFileSuffix)) {
 				const responseValue = await response;
 
 				if (responseValue) {
