@@ -65,31 +65,34 @@ namespace Uno.Wasm.Bootstrap
 				var excludedAssemblies = MixedModeExcludedAssembly?.ToDictionary(i => i.ItemSpec, i => i.ItemSpec)
 					?? new Dictionary<string, string>();
 
-				// LoadIntoBufferAsync uses exception filtering
-				excludedMethodsList.AddRange(DefaultAOTProfileExcludedMethods);
-
-				TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
-
-				var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
-
-				var q = from m in profile.Methods
-						where !excludedMethods.Any(e => e.Match(m.Type.FullName + '.' + m.Name).Success)
-							&& !excludedAssemblies.ContainsKey(m.Type.Module.Name)
-						select m;
-
-				profile.Methods = q.ToArray();
-
-				TryDumpProfileMethods(profile, "AOTProfileDump.Filtered.txt");
-
-				var writer = new Mono.Profiler.Aot.ProfileWriter();
-
-				var outputFile = Path.Combine(IntermediateOutputPath, "aot-filtered.profile");
-				using (var outStream = File.Create(outputFile))
+				if (excludedMethodsList.Any() || excludedAssemblies.Any())
 				{
-					writer.WriteAllData(outStream, profile);
-				}
+					// LoadIntoBufferAsync uses exception filtering
+					excludedMethodsList.AddRange(DefaultAOTProfileExcludedMethods);
 
-				return outputFile;
+					TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
+
+					var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
+
+					var q = from m in profile.Methods
+							where !excludedMethods.Any(e => e.Match(m.Type.FullName + '.' + m.Name).Success)
+								&& !excludedAssemblies.ContainsKey(m.Type.Module.Name)
+							select m;
+
+					profile.Methods = q.ToArray();
+
+					TryDumpProfileMethods(profile, "AOTProfileDump.Filtered.txt");
+
+					var writer = new Mono.Profiler.Aot.ProfileWriter();
+
+					var outputFile = Path.Combine(IntermediateOutputPath, "aot-filtered.profile");
+					using (var outStream = File.Create(outputFile))
+					{
+						writer.WriteAllData(outStream, profile);
+					}
+
+					return outputFile;
+				}
 			}
 
 			return profilePath;

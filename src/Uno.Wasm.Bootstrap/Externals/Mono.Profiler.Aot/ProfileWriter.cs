@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+// source https://github.com/mono/mono/commits/a44926a5be1c648deec836e9cdda3c93e25f9a51
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -28,8 +29,8 @@ namespace Mono.Profiler.Aot {
 
         private void WriteString (string str)
         {
-            WriteInt32 (str.Length);
             var buf = Encoding.UTF8.GetBytes (str);
+            WriteInt32 (buf.Length);
             s_stream!.Write (buf, 0, buf.Length);
         }
 
