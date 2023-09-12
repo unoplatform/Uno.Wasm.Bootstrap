@@ -1195,11 +1195,9 @@ class Driver {
 		if (enable_threads)
 		{
 			emcc_link_flags.Add("-s USE_PTHREADS=1");
-			emcc_link_flags.Add("-s PTHREAD_POOL_SIZE=2");
 			emcc_link_flags.Add("-Wno-pthreads-mem-growth");
 
 			emcc_flags += "-s USE_PTHREADS=1 ";
-			emcc_flags += "-s PTHREAD_POOL_SIZE=2 ";
 			emcc_flags += "-Wno-pthreads-mem-growth ";
 
 			aot_compiler_options += " --wasm-gc-safepoints ";
