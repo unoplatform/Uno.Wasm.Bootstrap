@@ -43,15 +43,17 @@ If the bitcode file to be added is named `libTest.bc` or `libTest.a`, the follow
 | `libTest.bc/2.0.9/st/libTest.bc`      | Emscripten 2.0.9 and later, single threaded                                                           |
 | `libTest.bc/2.0.6/mt/libTest.bc`      | Emscripten 2.0.6 and later, multi threaded                                                            |
 | `libTest.bc/2.0.9/mt/libTest.bc`      | Emscripten 2.0.9 and later, multi threaded                                                            |
+| `libTest.bc/2.0.6/st,simd/libTest.bc` | Emscripten 2.0.6 and later, single threaded with SIMD                                                 |
+| `libTest.bc/2.0.9/st,simd/libTest.bc` | Emscripten 2.0.9 and later, single threaded with SIMD                                                 |
+| `libTest.bc/2.0.6/mt,simd/libTest.bc` | Emscripten 2.0.6 and later, multi threaded with SIMD                                                  |
+| `libTest.bc/2.0.9/mt,simd/libTest.bc` | Emscripten 2.0.9 and later, multi threaded with SIMD                                                  |
 
 Based on the emscripten version used by the .NET runtime and the enabled runtime features, the bootstrapper will choose the closest matching version.
 
-As of bootstrapper 8.0, the following runtime features are supported:
+As of bootstrapper 7.0, the following runtime features are supported:
 - `st` for Single Threaded runtime
 - `mt` for Multi Threaded runtime
-
-## Deprecated features
-`simd` is deprecated for .NET 8 and is always enabled
+- `simd` for SIMD enabled runtime
 
 #### Static Linking additional emcc flags
 Static linking may also require some additional emscripten flags, for instance when using libpng. In such a case, add the following to your project:

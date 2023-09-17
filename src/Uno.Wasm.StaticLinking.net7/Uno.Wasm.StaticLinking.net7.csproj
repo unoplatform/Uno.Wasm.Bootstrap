@@ -10,6 +10,7 @@
 		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<WasmShellEnableSimd>true</WasmShellEnableSimd>
 	</PropertyGroup>
 
 	<ItemGroup>

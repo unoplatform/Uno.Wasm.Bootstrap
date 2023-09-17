@@ -50,6 +50,9 @@ namespace Uno.Wasm.Bootstrap
 		[Microsoft.Build.Framework.Required]
 		public bool EnableThreads { get; set; }
 		
+		[Microsoft.Build.Framework.Required]
+		public bool EnableSimd { get; set; }
+
 		public bool EnableEmscriptenWindows { get; set; } = true;
 
 		[Microsoft.Build.Framework.Required]
@@ -108,6 +111,11 @@ namespace Uno.Wasm.Bootstrap
 			if (EnableThreads)
 			{
 				sdkUri = sdkUri.Replace(".zip", "-threads.zip");
+			}
+
+			if (EnableSimd)
+			{
+				sdkUri = sdkUri.Replace(".zip", "-simd.zip");
 			}
 
 			var sdkName = Path.GetFileNameWithoutExtension(new Uri(sdkUri).AbsolutePath.Replace('/', Path.DirectorySeparatorChar));

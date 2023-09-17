@@ -200,6 +200,9 @@ namespace Uno.Wasm.Bootstrap
 		public int PThreadsPoolSize { get; set; } = 4;
 
 		[Microsoft.Build.Framework.Required]
+		public bool EnableSimd { get; set; }
+
+		[Microsoft.Build.Framework.Required]
 		public bool RuntimeDebuggerEnabled { get; set; }
 
 		public int BrotliCompressionQuality { get; set; } = 7;
@@ -795,6 +798,7 @@ namespace Uno.Wasm.Bootstrap
 
 			var runtimeConfigurationParam = $"--runtime-config={RuntimeConfiguration.ToLowerInvariant()}"
 				+ (EnableThreads ? "-threads" : "") + " "
+				+ (EnableSimd ? "-simd" : "") + " "
 				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
 				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
 
@@ -1407,6 +1411,11 @@ namespace Uno.Wasm.Bootstrap
 				{
 					EnableThreads ? "mt" : "st"
 				};
+
+				if (EnableSimd)
+				{
+					features.Add("simd");
+				}
 
 				Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
 
