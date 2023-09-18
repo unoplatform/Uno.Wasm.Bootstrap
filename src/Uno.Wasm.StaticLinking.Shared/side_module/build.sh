@@ -4,7 +4,7 @@ emcc main.cpp -s MAIN_MODULE=1 -o hello.html -s WASM=1 -s EXPORT_ALL=1 --pre-js 
 
 buildSideModule(){
 	mkdir -p `dirname $2`
-	emcc $1 -std=c++17 -s LEGALIZE_JS_FFI=0 -r -o $2 -s WASM=1 -fwasm-exceptions -msimd128 -DCUSTOM_VERSION="\"$3\"" $5 -DCUSTOM_FUNCTION_NAME="$4_getCustomVersion"
+	emcc $1 -std=c++17 -s LEGALIZE_JS_FFI=0 -r -o $2 -s WASM=1 -fwasm-exceptions -msimd128 -s USE_LIBPNG=1 -DCUSTOM_VERSION="\"$3\"" $5 -DCUSTOM_FUNCTION_NAME="$4_getCustomVersion"
 }
 
 buildSideModule "mysideModule.cpp" "../native/side.bc/1.2/side.bc" "1.2" "side" ""
