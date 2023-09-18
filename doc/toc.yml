@@ -40,6 +40,8 @@ items:
       href: features-memory-corruption-troubleshooting.md
     - name: Module Linking
       href: features-module-linking.md
+    - name: SIMD Support
+      href: features-simd.md
     - name: Profiling
       href: features-profiling.md
     - name: Node JS
