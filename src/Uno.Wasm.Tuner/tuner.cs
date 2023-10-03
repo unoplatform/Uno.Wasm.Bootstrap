@@ -1,3 +1,9 @@
+#nullable enable
+#pragma warning disable IDE0011
+#pragma warning disable IDE0270
+#pragma warning disable IDE0021
+#pragma warning disable IDE0022
+
 //
 // tuner.cs: WebAssembly build time helpers
 //
@@ -10,10 +16,16 @@ using System.Json;
 using System.Collections.Generic;
 using Mono.Cecil;
 using System.Diagnostics;
+using System.Reflection;
+using System.Threading;
 
 public class WasmTuner
 {
-	public static int Main (String[] args) {
+	// Avoid sharing this cache with all the invocations of this task throughout the build
+	private readonly Dictionary<string, string> _symbolNameFixups = new();
+	private static readonly char[] s_charsToReplace = new[] { '.', '-', '+' };
+
+	public static int Main (string[] args) {
 		return new WasmTuner ().Run (args);
 	}
 
@@ -26,7 +38,7 @@ public class WasmTuner
 		Console.WriteLine ("--gen-empty-assemblies <filenames>.");
 	}
 
-	int Run (String[] args)
+	int Run (string[] args)
 	{
 		if (args.Length < 1) {
 			Usage ();
@@ -77,30 +89,42 @@ public class WasmTuner
 				.ToArray();
 		}
 
-		var outputFile = args[1];
-		var icallTable = args[3];
+		var PInvokeOutputPath = args[1];
+		var RuntimeIcallTableFile = args[3];
+		var InterpToNativeOutputPath = Path.Combine(Path.GetDirectoryName(PInvokeOutputPath)!, "wasm_m2n_invoke.g.h");
 
-		var modules = new Dictionary<string, string> ();
+		var modules = new List<string> ();
 		foreach (var module in args [2].Split (','))
 		{
-			modules [module] = module;
+			modules.Add(module);
 		}
+		var PInvokeModules = modules.ToArray();
 
-		var files = args.Skip(4).ToArray();
+		var managedAssemblies = args.Skip(4).ToArray();
 
-		var generator = new PInvokeTableGenerator();
+		var Log = new TaskLoggingHelper();
 
-		Console.WriteLine($"Generating to {outputFile}");
-		var PInvokeOutputFile = outputFile;
-		var pInvokeCookiesList = generator.Generate(modules.Keys.ToArray(), files.ToArray(), PInvokeOutputFile);
+		var pinvoke = new PInvokeTableGenerator(FixupSymbolName, Log);
+		var icall = new IcallTableGenerator(RuntimeIcallTableFile, FixupSymbolName, Log);
 
-		var icallGenerator = new IcallTableGenerator();
-		var iCallCookiesList = icallGenerator.Generate(icallTable, files, Path.GetTempFileName());
+		var resolver = new PathAssemblyResolver(managedAssemblies);
+		using var mlc = new MetadataLoadContext(resolver, "System.Private.CoreLib");
 
-		var m2nInvoke = Path.Combine(Path.GetDirectoryName(PInvokeOutputFile), "wasm_m2n_invoke.g.h");
-		Console.WriteLine($"Generating interp to native to {m2nInvoke}");
-		var interpNativeGenerator = new InterpToNativeGenerator();
-		interpNativeGenerator.Generate(pInvokeCookiesList.Concat(iCallCookiesList), m2nInvoke);
+		managedAssemblies.AsParallel().ForAll(
+		asmPath =>
+		{
+			Log.LogMessage(MessageImportance.Low, $"[{Thread.CurrentThread.ManagedThreadId}] Loading {asmPath} to scan for pinvokes, and icalls");
+			Assembly asm = mlc.LoadFromAssemblyPath(asmPath);
+			pinvoke.ScanAssembly(asm);
+			icall.ScanAssembly(asm);
+		});
+
+		IEnumerable<string> cookies = Enumerable.Concat(
+			pinvoke.Generate(PInvokeModules, PInvokeOutputPath),
+			icall.Generate(Path.GetTempFileName()));
+
+		var m2n = new InterpToNativeGenerator(Log);
+		m2n.Generate(cookies, InterpToNativeOutputPath);
 
 		return 0;
 	}
@@ -110,23 +134,42 @@ public class WasmTuner
 		Environment.Exit (1);
 	}
 
+	public string FixupSymbolName(string name)
+	{
+		if (_symbolNameFixups.TryGetValue(name, out string? fixedName))
+			return fixedName;
+		UTF8Encoding utf8 = new();
+		byte[] bytes = utf8.GetBytes(name);
+		StringBuilder sb = new();
+		foreach (byte b in bytes)
+		{
+			if ((b >= (byte)'0' && b <= (byte)'9') ||
+				(b >= (byte)'a' && b <= (byte)'z') ||
+				(b >= (byte)'A' && b <= (byte)'Z') ||
+				(b == (byte)'_'))
+			{
+				sb.Append((char)b);
+			}
+			else if (s_charsToReplace.Contains((char)b))
+			{
+				sb.Append('_');
+			}
+			else
+			{
+				sb.Append($"_{b:X}_");
+			}
+		}
+		fixedName = sb.ToString();
+		_symbolNameFixups[name] = fixedName;
+		return fixedName;
+	}
 
 	//
 	// Given the runtime generated icall table, and a set of assemblies, generate
 	// a smaller linked icall table mapping tokens to C function names
 	//
 	int GenIcallTable(string[] args) {
-		var icall_table_filename = args [2];
-		var fileNames = args.Skip (3).ToArray ();
-
-#if NETFRAMEWORK
-		throw new NotSupportedException($"icall table generation is not supported for netstandard2.0");
-#else
-		Console.WriteLine($"Generating to {args[1]}");
-
-		var generator = new IcallTableGenerator();
-		generator.Generate(icall_table_filename, fileNames, args[2]);
-#endif
+		// Unused, work is done in GenPinvokeTable.
 
 		return 0;
 	}
