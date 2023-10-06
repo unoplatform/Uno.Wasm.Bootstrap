@@ -25,6 +25,7 @@
 		<WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
 		<WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
 		<WasmShellEnableSimd Condition="'$(WasmShellEnableSimd)'==''">true</WasmShellEnableSimd>
+		<WasmShellPrintAOTSkippedMethods Condition="'$(WasmShellPrintAOTSkippedMethods)'==''">false</WasmShellPrintAOTSkippedMethods>
 
 		<!-- 
         Force all applicable references to be present in the ReferenceCopyLocalPaths property.

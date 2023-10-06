@@ -167,6 +167,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfileDebugList { get; set; } = false;
 
+		public bool PrintAOTSkippedMethods { get; set; } = false;
+
 		public Microsoft.Build.Framework.ITaskItem[]? CompressedExtensions { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
@@ -800,6 +802,7 @@ namespace Uno.Wasm.Bootstrap
 				+ (EnableThreads ? "-threads" : "") + " "
 				+ (EnableSimd ? "-simd" : "") + " "
 				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
+				+ (PrintAOTSkippedMethods ? "-print-skipped-aot-methods" : "") + " "
 				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
 
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
