@@ -256,6 +256,7 @@
 			AssembliesFileNameObfuscationMode="$(WasmShellAssembliesFileNameObfuscationMode)"
 			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
 			ProjectDir="$(ProjectDir)"
+			PrintAOTSkippedMethods="$(WasmShellPrintAOTSkippedMethods)"
 			PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
