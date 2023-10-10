@@ -444,6 +444,7 @@ class Driver {
 		public bool EnableThreads;
 		public bool EnableJiterpreter;
 		public bool Simd;
+		public bool PrintSkippedAOTMethods;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
@@ -483,6 +484,7 @@ class Driver {
 		bool is_netcore = false;
 		bool is_windows = Environment.OSVersion.Platform == PlatformID.Win32NT;
 		bool enable_simd = false;
+		bool print_skipped_aot_methods = false;
 		var il_strip = false;
 		var linker_verbose = false;
 		var runtimeTemplate = "runtime.js";
@@ -589,6 +591,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("enable-fs", "enable filesystem support (through Emscripten's file_packager.py in a later phase)", opts.EnableFS, b => opts.EnableFS = b));
 		AddFlag (p, new BoolFlag ("threads", "enable threads", opts.EnableThreads, b => opts.EnableThreads = b));
 		AddFlag (p, new BoolFlag ("jiterpreter", "enable jiterpreter", opts.EnableJiterpreter, b => opts.EnableJiterpreter = b));
+		AddFlag (p, new BoolFlag ("print-skipped-aot-methods", "enable jiterpreter", opts.PrintSkippedAOTMethods, b => opts.PrintSkippedAOTMethods = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
@@ -638,6 +641,7 @@ class Driver {
 		enable_threads = opts.EnableThreads;
 		enable_dynamic_runtime = opts.EnableDynamicRuntime;
 		enable_simd = opts.Simd;
+		print_skipped_aot_methods = opts.PrintSkippedAOTMethods;
 		invariant_globalization = opts.InvariantGlobalization;
 
 		// Dedup is disabled by default https://github.com/dotnet/runtime/issues/48814
@@ -1370,6 +1374,12 @@ class Driver {
 			emcc_flags += "-msimd128 ";
 			emcc_flags += "-DCONFIGURATION_COMPILE_OPTIONS=\"-msimd128\" -DCONFIGURATION_INTERPSIMDTABLES_LIB=\"simd\" ";
 		}
+
+		if (print_skipped_aot_methods)
+		{
+			aot_args += "print-skipped,";
+		}
+
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
 

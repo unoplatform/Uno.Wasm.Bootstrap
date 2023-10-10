@@ -133,6 +133,20 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
 
+### Troubleshooting Mixed AOT/Interpreter Mode
+When using the Mixed AOT/Interpreter mode, it is possible that some methods may not be compiled to 
+WebAssembly for a variety of reasons. This can cause performance issues, as the interpreter is slower 
+than the AOT generated code.
+
+In order to determine which methods are still using the interpreter, you can use the following property:
+```xml
+<PropertyGroup>
+	<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
+</PropertyGroup>
+```
+
+The logs from the AOT compiler can be found in [binlogs generated](https://aka.platform.uno/msbuild-troubleshoot) from the build.
+
 ## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
 
 ### Native windows tooling
