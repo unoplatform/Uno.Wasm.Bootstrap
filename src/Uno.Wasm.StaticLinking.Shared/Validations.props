@@ -26,7 +26,7 @@
 			<_compressedItemsValidation>@(_compressedItems)</_compressedItemsValidation>
 		</PropertyGroup>
 
-		<Error Condition="'$(WasmShellAssembliesFileNameObfuscationMode)'=='NoDots' and !$(_duplicateValidation.Contains(';'))"
+		<Error Condition="'$(WasmShellAssembliesFileNameObfuscationMode)'=='NoDots' and !$(_compressedItemsValidation.Contains(';'))"
 			   Text="Compressed files cannot found found with obfuscation mode NoDots enabled" />
 	</Target>
 

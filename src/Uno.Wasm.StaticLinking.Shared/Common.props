@@ -14,4 +14,9 @@
 		<WasmShellExtraEmccFlags Include="-s LEGACY_GL_EMULATION=1" />
 		<WasmShellExtraEmccFlags Include="-s USE_CLOSURE_COMPILER=1" />
 	</ItemGroup>
+
+	<PropertyGroup>
+		<!-- Used for validating file compression -->
+		<WasmShellCompressionLayoutMode>InPlace</WasmShellCompressionLayoutMode>
+	</PropertyGroup>
 </Project>
