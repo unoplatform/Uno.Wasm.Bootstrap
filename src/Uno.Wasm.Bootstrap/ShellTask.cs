@@ -445,6 +445,13 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage(MessageImportance.Low, $"Compressing {string.Join(", ", compressibleExtensions)}");
 
 				var filesToCompress = compressibleExtensions
+					.Select(e => {
+						if (_assembliesFileNameObfuscationMode == FileNameObfuscationMode.NoDots)
+						{
+							e = e.Replace(".", "_");
+						}
+						return e;
+					})
 					.SelectMany(e => Directory.GetFiles(_finalPackagePath, "*" + e, SearchOption.AllDirectories))
 					.Where(f => !Path.GetDirectoryName(f).Contains("_compressed_"))
 					.Distinct()
