@@ -16,12 +16,13 @@
 	<LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
-<<<<<<< HEAD
+
   <PropertyGroup>
 	<IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
 	<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
   </PropertyGroup>
-=======
+
+
 	<PropertyGroup>
 		<!--
 		Disable build acceleration until up-to-date checks can be improved to
@@ -37,7 +38,6 @@
 		<IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
 		<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
 	</PropertyGroup>
->>>>>>> d9fa566 (fix: Opt out of VS build acceleration)
 
   <Choose>
 	<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
