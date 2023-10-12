@@ -833,24 +833,26 @@ class Driver {
 				Directory.CreateDirectory (builddir);
 		}
 
-		if (!emit_ninja) {
-			if (!Directory.Exists (out_prefix))
-				Directory.CreateDirectory (out_prefix);
-			var bcl_dir = Path.Combine (out_prefix, assembly_root);
-			if (Directory.Exists (bcl_dir))
-				Directory.Delete (bcl_dir, true);
-			Directory.CreateDirectory (bcl_dir);
-			foreach (var f in file_list) {
+		if (!emit_ninja)
+		{
+			if (!Directory.Exists(out_prefix))
+				Directory.CreateDirectory(out_prefix);
+			var bcl_dir = Path.Combine(out_prefix, assembly_root);
+			if (Directory.Exists(bcl_dir))
+				Directory.Delete(bcl_dir, true);
+			Directory.CreateDirectory(bcl_dir);
 
+			file_list.AsParallel().ForAll(f =>
+			{
 				var fileName = Path.GetFileName(f);
 
-				if(IsResourceAssembly(f, out var culture))
+				if (IsResourceAssembly(f, out var culture))
 				{
 					fileName = Path.Combine(culture, fileName);
 				}
 
-				CopyFile(f, Path.Combine (bcl_dir, fileName), copyType);
-			}
+				CopyFile(f, Path.Combine(bcl_dir, fileName), copyType);
+			});
 		}
 
 		if (assembly_root.EndsWith ("/"))
@@ -1042,10 +1044,11 @@ class Driver {
 						   Path.Combine (out_prefix, fname));
 			}
 
-			foreach(var asset in assets) {
-				CopyFile (asset,
-						Path.Combine (out_prefix, Path.GetFileName (asset)), copyType, "Asset: ");
-			}
+			assets.AsParallel().ForAll(asset =>
+			{
+				CopyFile(asset,
+						Path.Combine(out_prefix, Path.GetFileName(asset)), copyType, "Asset: ");
+			});
 		}
 
 		if (!emit_ninja)
