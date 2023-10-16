@@ -16,10 +16,28 @@
 	<LangVersion>11.0</LangVersion>
   </PropertyGroup>
 
+
   <PropertyGroup>
 	<IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
 	<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
   </PropertyGroup>
+
+
+	<PropertyGroup>
+		<!--
+		Disable build acceleration until up-to-date checks can be improved to
+		use input/output targets properly. See https://aka.ms/vs-build-acceleration
+		and https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/782.
+		This property here only applies to the bootstrapper solution, the projects using
+		the nuget package use BuildAccelerationIncompatiblePackage insnstead.
+		-->
+		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
+		<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
+	</PropertyGroup>
 
   <Choose>
 	<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
