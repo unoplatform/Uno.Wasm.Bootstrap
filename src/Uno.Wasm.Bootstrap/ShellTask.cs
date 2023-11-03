@@ -362,7 +362,7 @@ namespace Uno.Wasm.Bootstrap
 			var workerBody = File.ReadAllText(workerFilePath);
 
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_remoteBasePackagePath));
-			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath + "/");
+			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
 
