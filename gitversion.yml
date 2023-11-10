@@ -1,6 +1,7 @@
 assembly-versioning-scheme: MajorMinorPatch
 mode: Mainline
-next-version: 7.0.0
+
+# next-version: 7.0.0
 
 branches:
   main:
