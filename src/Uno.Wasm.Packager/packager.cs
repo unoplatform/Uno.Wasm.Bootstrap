@@ -1587,7 +1587,7 @@ class Driver {
 
 		var tunerCommand = $"dotnet " +
 			(string.IsNullOrEmpty(wasm_tuner_path)
-				? $"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll"
+				? $"\"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll\""
 				: wasm_tuner_path);
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
