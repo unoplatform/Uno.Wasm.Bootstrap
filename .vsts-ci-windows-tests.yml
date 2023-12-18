@@ -199,8 +199,8 @@ jobs:
       
   # nuget path with space test
   - pwsh: |
-      mkdir $env:Temp\nuget with a space
-      $env:NUGET_PACKAGES=$env:Temp\nuget with a space
+      mkdir "$env:Temp\nuget with a space"
+      $env:NUGET_PACKAGES="$env:Temp\nuget with a space"
 
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
