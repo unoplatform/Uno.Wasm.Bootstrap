@@ -196,6 +196,16 @@ jobs:
     displayName: StaticLinking.Aot Tests net7
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+      
+  # nuget path with space test
+  - pwsh: |
+      mkdir $env:Temp\nuget with a space
+      $env:NUGET_PACKAGES=$env:Temp\nuget with a space
+
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-nuget-space.binlog
+    displayName: Build StaticLinking with nuget space
     
     # Embedded mode test (net6)
   - pwsh: |
