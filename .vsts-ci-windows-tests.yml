@@ -201,7 +201,8 @@ jobs:
   - pwsh: |
       mkdir "$env:Temp\nuget with a space"
       $env:NUGET_PACKAGES="$env:Temp\nuget with a space"
-      rmdir -f $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/obj
+      # Delete the obj folder to force a restore
+      rm $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/obj -r -force
 
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
       dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
