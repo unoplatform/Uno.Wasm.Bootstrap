@@ -1589,7 +1589,7 @@ class Driver {
 				? $"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll"
 				: wasm_tuner_path;
 
-		var tunerCommand = $"dotnet \"{tunerBinary}\"";
+		var tunerCommand = $"dotnet '{tunerBinary}'";
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
