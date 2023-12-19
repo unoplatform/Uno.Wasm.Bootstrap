@@ -1585,10 +1585,11 @@ class Driver {
 
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
-		var tunerCommand = $"dotnet " +
-			(string.IsNullOrEmpty(wasm_tuner_path)
-				? $"\"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll\""
-				: wasm_tuner_path);
+		var tunerBinary = string.IsNullOrEmpty(wasm_tuner_path)
+				? $"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll"
+				: wasm_tuner_path;
+
+		var tunerCommand = $"dotnet '{tunerBinary}'";
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
