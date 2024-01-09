@@ -771,7 +771,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(workAotPath))
 			{
-				Directory.Delete(workAotPath, true);
+				DirectoryDelete(workAotPath);
 			}
 
 			DirectoryCreateDirectory(workAotPath);
@@ -988,7 +988,7 @@ namespace Uno.Wasm.Bootstrap
 
 					if (Directory.Exists(linkerInput))
 					{
-						Directory.Delete(linkerInput, true);
+						DirectoryDelete(linkerInput);
 					}
 
 					Directory.Move(_managedPath, linkerInput);
@@ -1579,7 +1579,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(_distPath))
 			{
-				Directory.Delete(_distPath, true);
+				DirectoryDelete(_distPath);
 			}
 
 			try
@@ -1605,6 +1605,9 @@ namespace Uno.Wasm.Bootstrap
 
 			TryObfuscateAssemblies(Path.Combine(_finalPackagePath, Path.GetFileName(_managedPath)));
 		}
+
+		private void DirectoryDelete(string path)
+			=> PathHelper.DeleteDirectory(path);
 
 		private static void MoveFileSafe(string source, string target)
 		{
@@ -1688,12 +1691,12 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(_workDistPath))
 			{
-				Directory.Delete(_workDistPath, true);
+				DirectoryDelete(_workDistPath);
 			}
 
 			if (Directory.Exists(_workDistRootPath))
 			{
-				Directory.Delete(_workDistRootPath, true);
+				DirectoryDelete(_workDistRootPath);
 			}
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
