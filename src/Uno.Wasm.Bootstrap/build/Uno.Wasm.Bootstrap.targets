@@ -310,13 +310,7 @@
 			<WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
 		</PropertyGroup>
 
-		<ItemGroup>
-			<_DistFilesToDelete Include="$(OutputPath)dist\**" />
-			<_DistDirToDelete Include="$([System.IO.Directory]::GetDirectories(&quot;$(WasmShellDistPath)&quot;))" Condition="exists('$(WasmShellDistPath)')" />
-		</ItemGroup>
-
-		<Delete Files="@(_DistFilesToDelete)" />
-		<RemoveDir Directories="@(_DistDirToDelete)" />
+		<RemoveDirTask_v0 Path="$(WasmShellDistPath)" />
 	</Target>
 
 	<Target Name="_ValidateLegacyCLIPackage" BeforeTargets="CoreCompile">

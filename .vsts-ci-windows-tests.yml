@@ -30,6 +30,10 @@ jobs:
       includePreviewVersions: true
 
   - pwsh: |
+        attrib +r "$(build.sourcesdirectory)/src" /s /d
+    displayName: Set all repo files as readonly
+
+  - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
     displayName: Build bootstrap
