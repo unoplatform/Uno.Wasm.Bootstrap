@@ -118,10 +118,12 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
 
 	<Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
 		<!-- 

@@ -39,6 +39,11 @@ jobs:
     displayName: Build bootstrap
 
   - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
+    displayName: Build bootstrap
+
+  - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet6
       $customMonoTempPath="$env:temp\with a space\test"
       mkdir $customMonoTempPath
