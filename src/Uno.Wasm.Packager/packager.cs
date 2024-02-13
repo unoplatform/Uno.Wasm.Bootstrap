@@ -1930,7 +1930,7 @@ class Driver {
 			} else {
 				foreach (var assembly in root_assemblies) {
 					string filename = Path.GetFileName (assembly);
-					linker_args.Add($"-a linker-in/{filename} ");
+					linker_args.Add($"-a linker-in/{filename} {(IsSupportAssembly(filename) ? string.Empty : "entrypoint")} ");
 				}
 			}
 
@@ -1981,6 +1981,16 @@ class Driver {
 		culture = null;
 		return false;
 	}
+
+	private static bool IsSupportAssembly(string filename)
+		=>
+			filename switch
+			{
+				"Uno.Wasm.AotProfiler.dll" => true,
+				"Uno.Wasm.LogProfiler.dll" => true,
+				"Uno.Wasm.MetadataUpdater.dll" => true,
+				_ => false
+			};
 
 	static void CopyFile(string sourceFileName, string destFileName, CopyType copyType, string typeFile = "")
 	{
