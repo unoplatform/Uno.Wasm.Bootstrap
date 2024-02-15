@@ -1022,7 +1022,7 @@ namespace Uno.Wasm.Bootstrap
 					linkerParams.Add("--keep-metadata all ");
 
 					linkerParams.Add(GetLinkerFeatureConfiguration());
-					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
+					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" entrypoint -d \"{_managedPath}\"");
 					linkerParams.Add($"-out \"{_managedPath}\"");
 
 					File.WriteAllLines(linkerResponse, linkerParams);
