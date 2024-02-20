@@ -47,6 +47,10 @@
 		<GenerateDependencyFile>false</GenerateDependencyFile>
 		<IsWebConfigTransformDisabled>true</IsWebConfigTransformDisabled>
 
+		<!-- Mark the project as linkable so that the reference to Microsoft.NET.ILLink.Tasks can be used -->
+		<!-- Reference: https://github.com/xamarin/xamarin-macios/blob/fa0db16209b8cdeb0050d647a0f930b6b898c56c/dotnet/targets/Xamarin.Shared.Sdk.props#L84-L85 -->
+		<_RequiresILLinkPack>true</_RequiresILLinkPack>
+
 		<UnoWasmPublishDistDir>$(AssemblyName)/dist/</UnoWasmPublishDistDir>
 
 		<!-- Possible values: Interpreter, FullAOT, InterpreterAndAOT -->
