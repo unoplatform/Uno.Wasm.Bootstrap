@@ -47,9 +47,9 @@
 		<GenerateDependencyFile>false</GenerateDependencyFile>
 		<IsWebConfigTransformDisabled>true</IsWebConfigTransformDisabled>
 
-		<!-- Mark the project as linkable so that the reference to Microsoft.NET.ILLink.Tasks can be used -->
+		<!-- Mark the project as linkable so that the reference to Microsoft.NET.ILLink.Tasks can be used for net8 and later -->
 		<!-- Reference: https://github.com/xamarin/xamarin-macios/blob/fa0db16209b8cdeb0050d647a0f930b6b898c56c/dotnet/targets/Xamarin.Shared.Sdk.props#L84-L85 -->
-		<_RequiresILLinkPack>true</_RequiresILLinkPack>
+		<_RequiresILLinkPack Condition="'$(TargetFrameworkVersion.Substring(1))'&gt;='8.0'">true</_RequiresILLinkPack>
 
 		<UnoWasmPublishDistDir>$(AssemblyName)/dist/</UnoWasmPublishDistDir>
 
