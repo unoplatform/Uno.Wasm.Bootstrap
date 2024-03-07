@@ -2289,7 +2289,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
 		{
-			if (_shellMode == ShellMode.Browser)
+			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}uno-config.js\" />");
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.js\" />");
@@ -2298,13 +2298,10 @@ namespace Uno.Wasm.Bootstrap
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.native.js\" />");
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.runtime.js\" />");
 
-				if (GeneratePrefetchHeaders)
+				var distName = Path.GetFileName(_managedPath);
+				foreach (var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
 				{
-					var distName = Path.GetFileName(_managedPath);
-					foreach (var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
-					{
-						extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
-					}
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
 				}
 			}
 		}
