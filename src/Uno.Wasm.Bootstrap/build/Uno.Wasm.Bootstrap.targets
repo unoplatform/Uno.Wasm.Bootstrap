@@ -25,6 +25,7 @@
 		<WasmShellEmccLinkOptimization Condition="'$(WasmShellEmccLinkOptimization)'=='' and '$(Configuration)'=='Release'">true</WasmShellEmccLinkOptimization>
 		<WasmShellEnableThreads Condition="'$(WasmShellEnableThreads)'==''">false</WasmShellEnableThreads>
 		<WasmShellEnableSimd Condition="'$(WasmShellEnableSimd)'==''">true</WasmShellEnableSimd>
+		<WasmShellPrintAOTSkippedMethods Condition="'$(WasmShellPrintAOTSkippedMethods)'==''">false</WasmShellPrintAOTSkippedMethods>
 
 		<!-- 
         Force all applicable references to be present in the ReferenceCopyLocalPaths property.
@@ -45,6 +46,10 @@
 		<RazorCompileOnPublish>false</RazorCompileOnPublish>
 		<GenerateDependencyFile>false</GenerateDependencyFile>
 		<IsWebConfigTransformDisabled>true</IsWebConfigTransformDisabled>
+
+		<!-- Mark the project as linkable so that the reference to Microsoft.NET.ILLink.Tasks can be used for net8 and later -->
+		<!-- Reference: https://github.com/xamarin/xamarin-macios/blob/fa0db16209b8cdeb0050d647a0f930b6b898c56c/dotnet/targets/Xamarin.Shared.Sdk.props#L84-L85 -->
+		<_RequiresILLinkPack Condition="'$(TargetFrameworkVersion)'!='' and '$(TargetFrameworkVersion.Substring(1))'&gt;='8.0'">true</_RequiresILLinkPack>
 
 		<UnoWasmPublishDistDir>$(AssemblyName)/dist/</UnoWasmPublishDistDir>
 
@@ -117,10 +122,12 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UnoInstallSDKTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
 
 	<Target Name="_GenerateLinkerDescriptor" BeforeTargets="PrepareForBuild">
 		<!-- 
@@ -255,6 +262,7 @@
 			AssembliesFileNameObfuscationMode="$(WasmShellAssembliesFileNameObfuscationMode)"
 			PackagerBinPath="$(_UnoMonoPackagerBinPath)"
 			ProjectDir="$(ProjectDir)"
+			PrintAOTSkippedMethods="$(WasmShellPrintAOTSkippedMethods)"
 			PThreadsPoolSize="$(WasmShellPThreadsPoolSize)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
@@ -308,13 +316,7 @@
 			<WasmShellDistPath Condition="'$(WasmShellDistPath)'==''">$(OutputPath)/dist</WasmShellDistPath>
 		</PropertyGroup>
 
-		<ItemGroup>
-			<_DistFilesToDelete Include="$(OutputPath)dist\**" />
-			<_DistDirToDelete Include="$([System.IO.Directory]::GetDirectories(&quot;$(WasmShellDistPath)&quot;))" Condition="exists('$(WasmShellDistPath)')" />
-		</ItemGroup>
-
-		<Delete Files="@(_DistFilesToDelete)" />
-		<RemoveDir Directories="@(_DistDirToDelete)" />
+		<RemoveDirTask_v0 Path="$(WasmShellDistPath)" />
 	</Target>
 
 	<Target Name="_ValidateLegacyCLIPackage" BeforeTargets="CoreCompile">

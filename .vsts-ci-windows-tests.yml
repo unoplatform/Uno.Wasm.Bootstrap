@@ -26,8 +26,17 @@ jobs:
     displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: 8.0.100-preview.7.23376.3
+      version: 8.0.100
       includePreviewVersions: true
+
+  - pwsh: |
+        attrib +r "$(build.sourcesdirectory)/src" /s /d
+    displayName: Set all repo files as readonly
+
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
+    displayName: Build bootstrap
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
@@ -196,6 +205,18 @@ jobs:
     displayName: StaticLinking.Aot Tests net7
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+      
+  # nuget path with space test
+  - pwsh: |
+      mkdir "$env:Temp\nuget with a space"
+      $env:NUGET_PACKAGES="$env:Temp\nuget with a space"
+      # Delete the obj folder to force a restore
+      rm $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/obj -r -force
+
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-nuget-space.binlog
+    displayName: Build StaticLinking with nuget space
     
     # Embedded mode test (net6)
   - pwsh: |

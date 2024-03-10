@@ -1,4 +1,11 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+﻿// Based on https://github.com/dotnet/runtime/commit/711447a
+
+#nullable enable
+#pragma warning disable IDE0011
+#pragma warning disable IDE0270
+#pragma warning disable IDE0021
+
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;

@@ -167,6 +167,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfileDebugList { get; set; } = false;
 
+		public bool PrintAOTSkippedMethods { get; set; } = false;
+
 		public Microsoft.Build.Framework.ITaskItem[]? CompressedExtensions { get; set; }
 
 		public Microsoft.Build.Framework.ITaskItem[]? ExtraEmccFlags { get; set; }
@@ -360,7 +362,7 @@ namespace Uno.Wasm.Bootstrap
 			var workerBody = File.ReadAllText(workerFilePath);
 
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Path.GetFileName(_remoteBasePackagePath));
-			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath + "/");
+			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", _remoteBasePackagePath);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 			workerBody += $"\r\n\r\n// {Path.GetFileName(_managedPath)}";
 
@@ -443,6 +445,13 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogMessage(MessageImportance.Low, $"Compressing {string.Join(", ", compressibleExtensions)}");
 
 				var filesToCompress = compressibleExtensions
+					.Select(e => {
+						if (_assembliesFileNameObfuscationMode == FileNameObfuscationMode.NoDots)
+						{
+							e = e.Replace(".", "_");
+						}
+						return e;
+					})
 					.SelectMany(e => Directory.GetFiles(_finalPackagePath, "*" + e, SearchOption.AllDirectories))
 					.Where(f => !Path.GetDirectoryName(f).Contains("_compressed_"))
 					.Distinct()
@@ -762,7 +771,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(workAotPath))
 			{
-				Directory.Delete(workAotPath, true);
+				DirectoryDelete(workAotPath);
 			}
 
 			DirectoryCreateDirectory(workAotPath);
@@ -800,6 +809,7 @@ namespace Uno.Wasm.Bootstrap
 				+ (EnableThreads ? "-threads" : "") + " "
 				+ (EnableSimd ? "-simd" : "") + " "
 				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
+				+ (PrintAOTSkippedMethods ? "-print-skipped-aot-methods" : "") + " "
 				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
 
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
@@ -978,7 +988,7 @@ namespace Uno.Wasm.Bootstrap
 
 					if (Directory.Exists(linkerInput))
 					{
-						Directory.Delete(linkerInput, true);
+						DirectoryDelete(linkerInput);
 					}
 
 					Directory.Move(_managedPath, linkerInput);
@@ -1012,7 +1022,7 @@ namespace Uno.Wasm.Bootstrap
 					linkerParams.Add("--keep-metadata all ");
 
 					linkerParams.Add(GetLinkerFeatureConfiguration());
-					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" -d \"{_managedPath}\"");
+					linkerParams.Add($"--verbose -b true -a \"{assemblyPath}\" entrypoint -d \"{_managedPath}\"");
 					linkerParams.Add($"-out \"{_managedPath}\"");
 
 					File.WriteAllLines(linkerResponse, linkerParams);
@@ -1569,7 +1579,7 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(_distPath))
 			{
-				Directory.Delete(_distPath, true);
+				DirectoryDelete(_distPath);
 			}
 
 			try
@@ -1595,6 +1605,9 @@ namespace Uno.Wasm.Bootstrap
 
 			TryObfuscateAssemblies(Path.Combine(_finalPackagePath, Path.GetFileName(_managedPath)));
 		}
+
+		private void DirectoryDelete(string path)
+			=> PathHelper.DeleteDirectory(path);
 
 		private static void MoveFileSafe(string source, string target)
 		{
@@ -1678,12 +1691,12 @@ namespace Uno.Wasm.Bootstrap
 
 			if (Directory.Exists(_workDistPath))
 			{
-				Directory.Delete(_workDistPath, true);
+				DirectoryDelete(_workDistPath);
 			}
 
 			if (Directory.Exists(_workDistRootPath))
 			{
-				Directory.Delete(_workDistRootPath, true);
+				DirectoryDelete(_workDistRootPath);
 			}
 
 			Log.LogMessage($"Creating managed path {_managedPath}");
@@ -2276,7 +2289,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePrefetchHeaderContent(StringBuilder extraBuilder)
 		{
-			if (_shellMode == ShellMode.Browser)
+			if (_shellMode == ShellMode.Browser && GeneratePrefetchHeaders)
 			{
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}uno-config.js\" />");
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.js\" />");
@@ -2285,13 +2298,10 @@ namespace Uno.Wasm.Bootstrap
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.native.js\" />");
 				extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}dotnet.runtime.js\" />");
 
-				if (GeneratePrefetchHeaders)
+				var distName = Path.GetFileName(_managedPath);
+				foreach (var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
 				{
-					var distName = Path.GetFileName(_managedPath);
-					foreach (var file in Directory.GetFiles(_managedPath, "*.clr", SearchOption.AllDirectories))
-					{
-						extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
-					}
+					extraBuilder.AppendLine($"<link rel=\"prefetch\" href=\"{WebAppBasePath}{distName}/{Path.GetFileName(file)}\" />");
 				}
 			}
 		}

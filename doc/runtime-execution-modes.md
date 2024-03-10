@@ -133,6 +133,38 @@ At this time, it is only possible to exclude assemblies from being compiled to W
 ```
 Adding assemblies to this list will exclude them from being compiled to WebAssembly.
 
+### Troubleshooting Mixed AOT/Interpreter Mode
+When using the Mixed AOT/Interpreter mode, it is possible that some methods may not be compiled to 
+WebAssembly for a variety of reasons. This can cause performance issues, as the interpreter is slower 
+than the AOT generated code.
+
+In order to determine which methods are still using the interpreter, you can use the following property:
+```xml
+<PropertyGroup>
+	<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
+</PropertyGroup>
+```
+
+The logs from the AOT compiler can be found in [binlogs generated](https://aka.platform.uno/msbuild-troubleshoot) from the build.
+
+### Increasing the Initial Memory Size
+
+When building with Mixed AOT/Interpreter modes, the initial memory may need to be adjusted in the project configuration if the following error message appears:
+
+```
+wasm-ld: error: initial memory too small, 17999248 bytes needed
+```
+
+In order to fix this, you'll need to set the [`INITIAL_MEMORY`](https://emscripten.org/docs/tools_reference/settings_reference.html?highlight=initial_memory#initial-memory) emscripten parameter, this way:
+
+```xml
+<ItemGroup>
+  <WasmShellExtraEmccFlags Include="-s INITIAL_MEMORY=64MB" />
+</ItemGroup>
+```
+
+which will set the initial memory size accordingly. Note that setting this value to a sufficiently large value (based on your app's usual memory consumption) can improve the startup performance.
+
 ## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
 
 ### Native windows tooling

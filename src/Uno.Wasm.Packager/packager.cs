@@ -444,6 +444,7 @@ class Driver {
 		public bool EnableThreads;
 		public bool EnableJiterpreter;
 		public bool Simd;
+		public bool PrintSkippedAOTMethods;
 		public bool EnableDynamicRuntime;
 		public bool LinkerExcludeDeserialization;
 		public bool EnableCollation;
@@ -483,6 +484,7 @@ class Driver {
 		bool is_netcore = false;
 		bool is_windows = Environment.OSVersion.Platform == PlatformID.Win32NT;
 		bool enable_simd = false;
+		bool print_skipped_aot_methods = false;
 		var il_strip = false;
 		var linker_verbose = false;
 		var runtimeTemplate = "runtime.js";
@@ -589,6 +591,7 @@ class Driver {
 		AddFlag (p, new BoolFlag ("enable-fs", "enable filesystem support (through Emscripten's file_packager.py in a later phase)", opts.EnableFS, b => opts.EnableFS = b));
 		AddFlag (p, new BoolFlag ("threads", "enable threads", opts.EnableThreads, b => opts.EnableThreads = b));
 		AddFlag (p, new BoolFlag ("jiterpreter", "enable jiterpreter", opts.EnableJiterpreter, b => opts.EnableJiterpreter = b));
+		AddFlag (p, new BoolFlag ("print-skipped-aot-methods", "enable jiterpreter", opts.PrintSkippedAOTMethods, b => opts.PrintSkippedAOTMethods = b));
 		AddFlag (p, new BoolFlag ("dedup", "enable dedup pass", opts.EnableDedup, b => opts.EnableDedup = b));
 		AddFlag (p, new BoolFlag ("dynamic-runtime", "enable dynamic runtime (support for Emscripten's dlopen)", opts.EnableDynamicRuntime, b => opts.EnableDynamicRuntime = b));
 		AddFlag (p, new BoolFlag ("simd", "enable SIMD support", opts.Simd, b => opts.Simd = b));
@@ -638,6 +641,7 @@ class Driver {
 		enable_threads = opts.EnableThreads;
 		enable_dynamic_runtime = opts.EnableDynamicRuntime;
 		enable_simd = opts.Simd;
+		print_skipped_aot_methods = opts.PrintSkippedAOTMethods;
 		invariant_globalization = opts.InvariantGlobalization;
 
 		// Dedup is disabled by default https://github.com/dotnet/runtime/issues/48814
@@ -829,24 +833,26 @@ class Driver {
 				Directory.CreateDirectory (builddir);
 		}
 
-		if (!emit_ninja) {
-			if (!Directory.Exists (out_prefix))
-				Directory.CreateDirectory (out_prefix);
-			var bcl_dir = Path.Combine (out_prefix, assembly_root);
-			if (Directory.Exists (bcl_dir))
-				Directory.Delete (bcl_dir, true);
-			Directory.CreateDirectory (bcl_dir);
-			foreach (var f in file_list) {
+		if (!emit_ninja)
+		{
+			if (!Directory.Exists(out_prefix))
+				Directory.CreateDirectory(out_prefix);
+			var bcl_dir = Path.Combine(out_prefix, assembly_root);
+			if (Directory.Exists(bcl_dir))
+				Directory.Delete(bcl_dir, true);
+			Directory.CreateDirectory(bcl_dir);
 
+			file_list.AsParallel().ForAll(f =>
+			{
 				var fileName = Path.GetFileName(f);
 
-				if(IsResourceAssembly(f, out var culture))
+				if (IsResourceAssembly(f, out var culture))
 				{
 					fileName = Path.Combine(culture, fileName);
 				}
 
-				CopyFile(f, Path.Combine (bcl_dir, fileName), copyType);
-			}
+				CopyFile(f, Path.Combine(bcl_dir, fileName), copyType);
+			});
 		}
 
 		if (assembly_root.EndsWith ("/"))
@@ -1038,10 +1044,11 @@ class Driver {
 						   Path.Combine (out_prefix, fname));
 			}
 
-			foreach(var asset in assets) {
-				CopyFile (asset,
-						Path.Combine (out_prefix, Path.GetFileName (asset)), copyType, "Asset: ");
-			}
+			assets.AsParallel().ForAll(asset =>
+			{
+				CopyFile(asset,
+						Path.Combine(out_prefix, Path.GetFileName(asset)), copyType, "Asset: ");
+			});
 		}
 
 		if (!emit_ninja)
@@ -1370,6 +1377,12 @@ class Driver {
 			emcc_flags += "-msimd128 ";
 			emcc_flags += "-DCONFIGURATION_COMPILE_OPTIONS=\"-msimd128\" -DCONFIGURATION_INTERPSIMDTABLES_LIB=\"simd\" ";
 		}
+
+		if (print_skipped_aot_methods)
+		{
+			aot_args += "print-skipped,";
+		}
+
 		if (is_netcore) {
 			emcc_flags += $"-DGEN_PINVOKE -I{src_prefix} ";
 
@@ -1572,10 +1585,11 @@ class Driver {
 
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
-		var tunerCommand = $"dotnet " +
-			(string.IsNullOrEmpty(wasm_tuner_path)
+		var tunerBinary = string.IsNullOrEmpty(wasm_tuner_path)
 				? $"$tools_dir{Path.DirectorySeparatorChar}wasm-tuner.dll"
-				: wasm_tuner_path);
+				: wasm_tuner_path;
+
+		var tunerCommand = $"dotnet '{tunerBinary}'";
 
 		var exitCommand = is_windows ? failOnError : "|| exit 1";
 
@@ -1916,7 +1930,7 @@ class Driver {
 			} else {
 				foreach (var assembly in root_assemblies) {
 					string filename = Path.GetFileName (assembly);
-					linker_args.Add($"-a linker-in/{filename} ");
+					linker_args.Add($"-a linker-in/{filename} {(IsSupportAssembly(filename) ? string.Empty : "entrypoint")} ");
 				}
 			}
 
@@ -1967,6 +1981,16 @@ class Driver {
 		culture = null;
 		return false;
 	}
+
+	private static bool IsSupportAssembly(string filename)
+		=>
+			filename switch
+			{
+				"Uno.Wasm.AotProfiler.dll" => true,
+				"Uno.Wasm.LogProfiler.dll" => true,
+				"Uno.Wasm.MetadataUpdater.dll" => true,
+				_ => false
+			};
 
 	static void CopyFile(string sourceFileName, string destFileName, CopyType copyType, string typeFile = "")
 	{
