@@ -15,7 +15,7 @@
 		<WasmGenerateAppBundle>false</WasmGenerateAppBundle>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition=" '$(UsingUnoSdk)' != 'true' ">
 		<ProjectCapability Include="WebAssembly" />
 		<ProjectCapability Include="SupportsHotReload" />
 
