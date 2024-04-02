@@ -907,12 +907,16 @@ namespace Uno.Wasm.Bootstrap
 
 				var extraEmccFlagsPararm = string.Join(" ", extraEmccFlags).Replace("\\", "\\\\");
 
+				// Handle the `net8.0-browserwasm` case. The target framework is only
+				// used to generate the temporary aot classes, so the base TF is enough.
+				var baseTargetFramework = GetBaseTargetFramework();
+
 				packagerParams.Add(appDirParm);
 				packagerParams.Add(debugOption);
 				packagerParams.Add(monovmparams);
 				packagerParams.Add("--zlib");
 				packagerParams.Add($"--illinker-path=\"{_linkerBinPath}\"");
-				packagerParams.Add($"--target-framework=\"{TargetFramework}\"");
+				packagerParams.Add($"--target-framework=\"{baseTargetFramework}\"");
 				packagerParams.Add("--enable-fs ");
 				packagerParams.Add($"--extra-emccflags=\"{extraEmccFlagsPararm} -l idbfs.js\" ");
 				packagerParams.Add($"--extra-linkerflags=\"{extraLinkerFlags}\"");
@@ -1055,6 +1059,16 @@ namespace Uno.Wasm.Bootstrap
 					AdjustMonoConfigJson(deletedFiles);
 				}
 			}
+		}
+
+		private string GetBaseTargetFramework()
+		{
+			var platformIndex = TargetFramework.IndexOf("-");
+			var baseTargetFramework = platformIndex > -1
+				? TargetFramework.Substring(0, platformIndex)
+				: TargetFramework;
+
+			return baseTargetFramework;
 		}
 
 		private void CleanupLinkerRemovedFiles(string workAotPath)
