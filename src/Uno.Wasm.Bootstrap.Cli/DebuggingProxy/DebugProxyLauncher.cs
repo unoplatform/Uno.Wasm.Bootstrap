@@ -157,6 +157,7 @@ namespace Uno.Wasm.Bootstrap.Cli
 
 		private static string LocateDebugProxyExecutable(IWebHostEnvironment environment, IConfiguration configuration)
 		{
+			var platform = configuration.GetValue<string>("platform") ?? "";
 			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
 			var targetFramework = configuration.GetValue<string>("targetframework") ?? "";
 			var intermediatePath = configuration.GetValue<string>("intermediateoutputpath") ?? "";
@@ -166,7 +167,7 @@ namespace Uno.Wasm.Bootstrap.Cli
 				// This is defined in when the boostrapper is referenced through nuget
 				? Path.Combine(contentRoot, intermediatePath, "wasm-debugger")
 				// Used as a fallback inside the bootstrapper solution
-				: Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework, "wasm-debugger");
+				: Path.Combine(contentRoot, "obj", platform, buildConfiguration, targetFramework, "wasm-debugger");
 
 			var debuggerInfoFile = Path.Combine(debuggerInfoRoot, ".debuggerinfo");
 			if (!File.Exists(debuggerInfoFile))
