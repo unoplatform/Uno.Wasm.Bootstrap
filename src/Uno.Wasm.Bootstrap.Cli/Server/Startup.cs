@@ -156,11 +156,12 @@ namespace Uno.Wasm.Bootstrap.Cli.Server
 
 		private static bool ShouldUseSecureMode(IWebHostEnvironment environment, IConfiguration configuration)
 		{
+			var platform = configuration.GetValue<string>("platform") ?? "";
 			var buildConfiguration = configuration.GetValue<string>("configuration") ?? "";
 			var targetFramework = configuration.GetValue<string>("targetframework") ?? "";
 
 			var contentRoot = environment.ContentRootPath;
-			var debuggerInfoRoot = Path.Combine(contentRoot, "obj", buildConfiguration, targetFramework);
+			var debuggerInfoRoot = Path.Combine(contentRoot, "obj", platform, buildConfiguration, targetFramework);
 
 			var featuresInfoFile = Path.Combine(debuggerInfoRoot, ".unoappfeatures");
 			if (File.Exists(featuresInfoFile))
