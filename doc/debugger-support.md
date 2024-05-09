@@ -65,7 +65,7 @@ reload the debugged page.
 
 ### AOT Debugging and mono tracing (.NET 5 only)
 
-When running with PG-AOT/FullAOT, exceptions generally do not provide stack traces, as WebAssembly as of the MVP does not yet support stack walking.
+When running with PG-AOT, exceptions generally do not provide stack traces, as WebAssembly as of the MVP does not yet support stack walking.
 
 For the time being, it's still possible view browser stack traces in the log by enabling mono tracing.
 

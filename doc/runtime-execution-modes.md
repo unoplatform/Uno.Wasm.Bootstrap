@@ -50,12 +50,10 @@ Finally, runtime statistics are maintained by the jiterpreter and can be display
 
 This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
 
-This mode is generally prefered to FullAOT as it allows to load arbitrary assemblies and execute their code through the interpreter.
-
 > [!IMPORTANT]
-> These modes are not supported on macOS as of .NET 6 (Bootstrapper 3.x), and .NET 7 (Bootstrapper 4.x). You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
+> This mode are not supported on macOS. You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
 
-## Required configuration for AOT, Mixed Mode or static linking on Linux
+## Required configuration for Mixed AOT Mode or static linking on Linux
 
 - Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
@@ -241,6 +239,6 @@ The integration with WSL provides a way for using AOT, Mixed mode or external bi
 
 This feature is active only if one of those condition is true:
 
-- The `WasmShellMonoRuntimeExecutionMode` property is `FullAOT` or `InterpreterAndAOT
+- The `WasmShellMonoRuntimeExecutionMode` property is `InterpreterAndAOT
 - There is a `*.bc` or `*.a` file in the `Content` item group
 - The `WasmShellForceUseWSL` is set to `true`
