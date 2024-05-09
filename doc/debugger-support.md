@@ -67,7 +67,7 @@ reload the debugged page.
 
 When running with PG-AOT, exceptions generally do not provide stack traces, as WebAssembly as of the MVP does not yet support stack walking.
 
-For the time being, it's still possible view browser stack traces in the log by enabling mono tracing.
+For the time being, it's still possible to view browser stack traces in the log by enabling mono tracing.
 
 First, you'll need to add the following class to your app:
 

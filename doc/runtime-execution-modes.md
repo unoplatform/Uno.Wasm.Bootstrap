@@ -3,7 +3,7 @@ uid: Uno.Wasm.Bootstrap.Runtime.Execution
 ---
 # Runtime Execution Modes
 
-The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT (Ahead of Time) and Mixed Mode Interpreter/AOT.
+The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT (Ahead of Time), and Mixed Mode Interpreter/AOT.
 
 The execution mode can be set as follows:
 
@@ -20,7 +20,7 @@ To setup your machine to use AOT modes on Windows, you will need to install [Pyt
 
 ### Interpreter mode
 
-This mode is the slowest, but allows for great flexibility and debugging, as well as an efficient payload size.
+This mode is the slowest but allows for great flexibility and debugging, as well as an efficient payload size.
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
 
@@ -36,7 +36,7 @@ To enable this mode, use the following option:
 </PropertyGroup>
 ```
 
-Additionally, some options can be used to fine tune the Jiterpreter mode, using options found [in this file](https://github.com/dotnet/runtime/blob/6a047a9aec7a36039cffac61186b04bd3f16dbe0/src/mono/mono/utils/options-def.h#L86-L114):
+Additionally, some options can be used to fine-tune the Jiterpreter mode, using options found [in this file](https://github.com/dotnet/runtime/blob/6a047a9aec7a36039cffac61186b04bd3f16dbe0/src/mono/mono/utils/options-def.h#L86-L114):
 
 ```xml
 <PropertyGroup>
@@ -48,10 +48,10 @@ Finally, runtime statistics are maintained by the jiterpreter and can be display
 
 ### Mixed Interpreter and AOT Mode
 
-This mode enable AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
+This mode enables AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
 
 > [!IMPORTANT]
-> This mode are not supported on macOS. You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
+> This mode is not supported on macOS. You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
 
 ## Required configuration for Mixed AOT Mode or static linking on Linux
 
@@ -71,7 +71,7 @@ This feature is used in two passes:
 - The first pass needs the creation of a profiled interpreter build, which records any methods invoked during the profiling session.
 - The second pass rebuilds the application using the Mixed AOT/Interpreter mode augmented by the recording created during the first pass.
 
-This mode gives very good results, where the RayTracer sample of this repository goes from an uncomressed size of 5.5MB to 2.9MB.
+This mode gives very good results, where the RayTracer sample of this repository goes from an uncompressed size of 5.5MB to 2.9MB.
 
 To create a profiled build:
 
@@ -88,7 +88,7 @@ To create a profiled build:
   ```
 
 - Run the application once, without the debugger (e.g. Ctrl+F5)
-- Navigate throughout the application in high usage places.
+- Navigate throughout the application in high-usage places.
 - Once done, either:
   - Press the `Alt+Shift+P` key sequence
   - Launch App.saveProfile()
@@ -129,7 +129,7 @@ The `WasmShellAOTProfileExcludedMethods` property specifies a semi-colon separat
 
 The `MixedModeExcludedAssembly` is also used to filter the profile for assemblies, see below for more information.
 
-Dumping the whole list of original and filtered list is possible by adding:
+Dumping the whole list of the original and filtered lists is possible by adding:
 
 ```xml
 <PropertyGroup>
@@ -141,7 +141,7 @@ This will generate files named `AOTProfileDump.*.txt` in the `obj` folder for in
 
 ### Mixed AOT/Interpreter Mode
 
-This modes allows for the WebAssembly generation of parts of the referenced assemblies, and falls back to the interpreter for code that was excluded or not known at build time.
+This mode allows for the WebAssembly generation of parts of the referenced assemblies and falls back to the interpreter for code that was excluded or not known at build time.
 
 This allows for a fine balance between payload size and execution performance.
 
@@ -157,7 +157,7 @@ Adding assemblies to this list will exclude them from being compiled to WebAssem
 
 ### Troubleshooting Mixed AOT/Interpreter Mode
 
-When using the Mixed AOT/Interpreter mode, it is possible that some methods may not be compiled to WebAssembly for a variety of reasons. This can cause performance issues, as the interpreter is slower than the AOT generated code.
+When using the Mixed AOT/Interpreter mode, it is possible that some methods may not be compiled to WebAssembly for a variety of reasons. This can cause performance issues, as the interpreter is slower than the AOT-generated code.
 
 In order to determine which methods are still using the interpreter, you can use the following property:
 
@@ -187,17 +187,17 @@ In order to fix this, you'll need to set the [`INITIAL_MEMORY`](https://emscript
 
 which will set the initial memory size accordingly. Note that setting this value to a sufficiently large value (based on your app's usual memory consumption) can improve the startup performance.
 
-## Required configuration for AOT, Mixed Mode or external bitcode support compilation on Windows 10
+## Required configuration for AOT, Mixed Mode, or external bitcode support compilation on Windows 10
 
 ### Native windows tooling
 
 This is the default mode on Windows. It requires installing [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
-This mode is compatible with CI servers which have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
+This mode is compatible with CI servers that have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
 
 #### Powershell setup
 
-The bootstrapper needs to use powershell, and configuration is needed.
+The bootstrapper needs to use PowerShell, and configuration is needed.
 
 You'll need to run the following command in an elevated (administrator) PowerShell prompt:
 
@@ -235,10 +235,10 @@ The boostrapper uses its own installation of emscripten, installed by default in
 
 ### WSL Integration for Windows 10
 
-The integration with WSL provides a way for using AOT, Mixed mode or external bitcode support using Windows 10.
+The integration with WSL provides a way to use AOT, Mixed mode, or external bitcode support using Windows 10.
 
 This feature is active only if one of those condition is true:
 
-- The `WasmShellMonoRuntimeExecutionMode` property is `InterpreterAndAOT
+- The `WasmShellMonoRuntimeExecutionMode` property is `InterpreterAndAOT`
 - There is a `*.bc` or `*.a` file in the `Content` item group
 - The `WasmShellForceUseWSL` is set to `true`
