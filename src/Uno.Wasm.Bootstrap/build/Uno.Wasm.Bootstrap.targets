@@ -53,7 +53,7 @@
 
 		<UnoWasmPublishDistDir>$(AssemblyName)/dist/</UnoWasmPublishDistDir>
 
-		<!-- Possible values: Interpreter, FullAOT, InterpreterAndAOT -->
+		<!-- Possible values: Interpreter, InterpreterAndAOT -->
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(WasmShellMonoRuntimeExecutionMode)'==''">Interpreter</WasmShellMonoRuntimeExecutionMode>
 
 		<!-- Compatibility with previous version of the task using WasmShellEnableAOT -->
