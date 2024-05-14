@@ -71,6 +71,28 @@
 		<_WasmBootstrapOriginalPublishDir>$(PublishDir)</_WasmBootstrapOriginalPublishDir>
 	</PropertyGroup>
 
+	<Choose>
+		<When Condition="
+			'$(WasmShellLinkerPath)'==''
+			and '$(TargetFrameworkIdentifier)'=='.NETCoreApp'
+			and $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '5.0'))
+			and '$(ILLinkTasksAssembly)'!=''">
+
+			<Choose>
+				<When Condition="$([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '8.0'))">
+					<PropertyGroup>
+						<WasmShellLinkerPath>$([System.IO.Path]::GetDirectoryName($(ILLinkTasksAssembly)))\..\net$(TargetFrameworkVersion.Substring(1))</WasmShellLinkerPath>
+					</PropertyGroup>
+				</When>
+				<Otherwise>
+					<PropertyGroup>
+						<WasmShellLinkerPath>$([System.IO.Path]::GetDirectoryName($(ILLinkTasksAssembly)))\..\net7.0</WasmShellLinkerPath>
+					</PropertyGroup>
+				</Otherwise>
+			</Choose>
+		</When>
+	</Choose>
+
 	<!--
     ============================================================
     WasmBootstrapAdjustFrameworkReference
@@ -176,15 +198,6 @@
 
 			<_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'!='true'">net462</_WasmShellToolSuffix>
 			<_WasmShellToolSuffix Condition="'$(_WasmShellIsNetCore)'=='true'">net5.0</_WasmShellToolSuffix>
-
-			<WasmShellLinkerPath
-				Condition="
-				'$(WasmShellLinkerPath)'==''
-				and '$(TargetFrameworkIdentifier)'=='.NETCoreApp'
-				and $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '6.0'))
-				and '$(ILLinkTasksAssembly)'!=''"
-			>$([System.IO.Path]::GetDirectoryName($(ILLinkTasksAssembly)))\..\net$(BundledNETCoreAppTargetFrameworkVersion)</WasmShellLinkerPath>
-
 		</PropertyGroup>
 
 		<UnoInstallSDKTask_v0
