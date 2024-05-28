@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.Debugger
+---
+
 ## .NET for WebAssembly Debugger Support
 
 Debugging is supported through the integration of a .NET Core CLI component, which acts as a static files server, as well as a debugger proxy for Chrome (other browsers are not supported).

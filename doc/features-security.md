@@ -1,6 +1,7 @@
 ---
-uid: Uno.Wasm.Bootstrap.Security
+uid: Uno.Wasm.Bootstrap.Features.Security
 ---
+
 # Security
 
 ## CSP Support

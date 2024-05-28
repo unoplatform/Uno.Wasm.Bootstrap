@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.NodeJS
+---
+
 ### Node.js support
 
 The bootstrapper supports having a project loaded as part of a node application. To do so:

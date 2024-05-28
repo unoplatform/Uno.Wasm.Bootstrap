@@ -1,4 +1,6 @@
-
+---
+uid: UnoWasmBootstrap.Features.PWA
+---
 
 ### Support for PWA Manifest File
 A **Progressive Web App** manifest link definition can be added to the index.html file's head:

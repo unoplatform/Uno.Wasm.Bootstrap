@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.Prefetch
+---
+
 ### Support for Content prefetching
 The `WashShellGeneratePrefetchHeaders` controls the generation of `<link rel="prefetch" />` nodes in the index.html header.
 

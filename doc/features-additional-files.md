@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.AdditionalFiles
+---
+
 ### Index.html content override
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 

@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.MemoryTroubleshooting
+---
+
 ## Native memory troubleshooting
 
 To enable native memory troubleshooting, it is possible to use [LLVM's sanitizer](https://emscripten.org/docs/debugging/Sanitizers.html) feature.

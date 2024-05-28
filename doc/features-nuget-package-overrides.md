@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.PackageOverrides
+---
+
 ### Nuget package runtime overrides
 By default, when presented with an assembly present in both the runtime and a nuget package, the bootstrapper will favor the runtime's version of the assembly. This is generally required to avoid internal consistency errors with the runtime.
 

@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.HttpRequestExtensions
+---
+
 ## Support for HttpRequestMessage Extensions
 As of .NET 7, the BCL [does not provide a way](https://github.com/dotnet/runtime/issues/77904) to set the `fetch` API options for a `HttpRequestMessage`. This feature is provided as part of Blazor, which cannot be integrated into Uno Bootstrapper Applications at this time.
 

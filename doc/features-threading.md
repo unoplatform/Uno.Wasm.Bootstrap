@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.Threading
+---
+
 ## Support for WebAssembly Threads
 
 Starting from .NET 7, experimental support for [WebAssembly threads](https://github.com/WebAssembly/threads/blob/master/proposals/threads/Overview.md) has been included. This support is provided by the boostrapper 7.0 and later, for interpreter and AOT modes. The following documentation explains how to enable threading.

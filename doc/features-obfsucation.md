@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.Obfuscation
+---
+
 ## Assemblies obfuscation
 
 The Bootstrapper provides a way to obfuscate served assemblies in order to avoid incorrect flagging by anti-virus and firewalls.

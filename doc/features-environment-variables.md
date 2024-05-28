@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.EnvironmentVariables
+---
+
 
 ## Environment variables
 Mono provides the ability to configure some features at initialization, such as logging or GC.

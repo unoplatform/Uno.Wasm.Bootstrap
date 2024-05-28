@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.SplashScreen
+---
+
 ## Splash screen customization
 
 The default configuration for the bootstrapper is to show the Uno Platform logo. This can be changed, along with the background color and progress bar color by doing the following:

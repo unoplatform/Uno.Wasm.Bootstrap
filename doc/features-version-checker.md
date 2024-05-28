@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.VersionChecker
+---
+
 # Uno.Wasm.VersionChecker
 
 This is a tool to extract the version of _dotnet assemblies_ used on a Uno.UI application. Should also work with most applications built on _Uno Bootstrapper_.

@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.DependencyManagement
+---
+
 ### Dependency management
 The Uno Bootstrapper uses RequireJS for dependency management, allowing for dependencies to be resolved in a stable manner. 
 
