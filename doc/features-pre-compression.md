@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.PreCompression
+---
+
 ### Pre-Compression support
 
 Pre-compression has two modes: 

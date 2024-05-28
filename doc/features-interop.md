@@ -1,6 +1,7 @@
 ---
 uid: Uno.Wasm.Bootstrap.JSInterop
 ---
+
 ## Interoperating with Javascript
 
 The Uno boostrapper provides the ability to interoperate from and to Javascript from .NET.

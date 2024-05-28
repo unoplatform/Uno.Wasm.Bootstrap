@@ -1,3 +1,6 @@
+---
+uid: UnoWasmBootstrap.Features.Publish
+---
 
 ## Publishing the build results
 The easiest way to publish the build results is to use the Visual Studio publish menu on your project. This will allow to use all the features provided by the standard experience, as described in the [Deploy to Azure App Service](https://docs.microsoft.com/en-us/visualstudio/deployment/quickstart-deploy-to-azure?view=vs-2017).

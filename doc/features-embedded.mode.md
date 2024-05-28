@@ -1,3 +1,6 @@
+---
+uid: UnoWasmBootstrap.Features.EmbeddedMode
+---
 
 ### Browser Embedded mode
 

@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.Overview
+---
+
 ## Support for SIMD
 
 Starting from .NET 7, support for SIMD is available through the following property:

@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.4gb
+---
+
 ### 4GB memory support
 
 The support for 4GB memory space is available by adding the following configuration:

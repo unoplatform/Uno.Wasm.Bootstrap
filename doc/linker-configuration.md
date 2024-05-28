@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.LinkerConfig
+---
+
 
 ## Linker configuration
 The .NET tooling uses the [ILLinker](https://github.com/mono/linker/tree/master/), and can be configured using a linker directives file.

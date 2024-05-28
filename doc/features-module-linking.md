@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.ModuleLinking
+---
+
 ### WebAssembly Module Linking support
 
 #### Static Linking overview

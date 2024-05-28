@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Overview
+---
+
 Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
 
 It is a standalone .NET Web Assembly (Wasm) sdk bootstrapper taking the form of a nuget package.

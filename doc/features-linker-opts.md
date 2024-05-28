@@ -1,3 +1,7 @@
+---
+uid: UnoWasmBootstrap.Features.LinkerOpts
+---
+
 ## Emscripten Linker optimizations flags
 
 When building with AOT or using static linking of bitcode files, the emscripten linker step is enabled and runs optimizations on the generated code.
