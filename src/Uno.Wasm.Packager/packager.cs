@@ -1846,9 +1846,12 @@ class Driver {
 			ofiles += $" {a.o_path}";
 		}
 
+		if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+		{
+			ninja.WriteLine("build $builddir/icall-table.json: gen-runtime-icall-table");
+		}
 
 		if (link_icalls) {
-			ninja.WriteLine ("build $builddir/icall-table.json: gen-runtime-icall-table");
 
 			string icall_assemblies = "";
 			foreach (var a in assemblies.Where(a => a.culture is null)) {
