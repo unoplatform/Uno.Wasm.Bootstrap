@@ -810,7 +810,15 @@ namespace Uno.Wasm.Bootstrap
 				+ (EnableSimd ? "-simd" : "") + " "
 				+ (EnableJiterpreter ? "-jiterpreter" : "") + " "
 				+ (PrintAOTSkippedMethods ? "-print-skipped-aot-methods" : "") + " "
-				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ");
+				+ (string.IsNullOrWhiteSpace(RuntimeOptions) ? "" : $"--runtime-options \"{RuntimeOptions}\" ")
+
+				// Disable icalls generation on macOS, as it's using the cross-compiler that is not available
+				+ (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "--no-link-icalls" : "");
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && IsRuntimeAOT())
+			{
+				throw new Exception("Building with AOT is not supported on macOS");
+			}
 
 			var pthreadPoolSizeParam = $"--pthread-pool-size={PThreadsPoolSize}";
 
