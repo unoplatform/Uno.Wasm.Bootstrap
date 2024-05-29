@@ -23,11 +23,7 @@ jobs:
       version: 8.0.100
       includePreviewVersions: true
 
-  - bash: |
-      cd $(Agent.WorkFolder)
-      wget https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip
-      unzip ninja-mac.zip -d ninja-mac
-     
+  - bash: brew install ninja
     displayName: 'Install Ninja'
 
   # - bash: |
@@ -55,6 +51,21 @@ jobs:
       cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet6
       dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet6-mac.binlog
     displayName: Build NetCore-Wasm Sample
+
+  # Static linking test (net5) without the linker
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-macos.binlog
+    displayName: Build StaticLinking.Interpreter Sample (net5 without linker)
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/run-tests.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
+    displayName: StaticLinking Interpreter Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - task: PublishBuildArtifacts@1
     condition: always()

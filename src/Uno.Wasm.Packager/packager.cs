@@ -6,6 +6,7 @@ using Mono.Cecil;
 using Mono.Options;
 using Mono.Cecil.Cil;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 //
 // Google V8 style options:
@@ -1845,9 +1846,13 @@ class Driver {
 			ofiles += $" {a.o_path}";
 		}
 
-		ninja.WriteLine ("build $builddir/icall-table.json: gen-runtime-icall-table");
+		if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+		{
+			ninja.WriteLine("build $builddir/icall-table.json: gen-runtime-icall-table");
+		}
 
 		if (link_icalls) {
+
 			string icall_assemblies = "";
 			foreach (var a in assemblies.Where(a => a.culture is null)) {
 				if (a.name == "mscorlib" || a.name == "System")
@@ -1856,13 +1861,20 @@ class Driver {
 			ninja.WriteLine ($"build $builddir/icall-table.h: gen-icall-table {icall_assemblies}");
 			ninja.WriteLine ($"  runtime_table=$builddir/icall-table.json");
 		}
+		else
+		{
+			// Fake a command so that __static_icalls__ gets to the tuner
+			ninja.WriteLine ("build __static_icalls__: mkdir");
+		}
 		if (gen_pinvoke) {
 			string pinvoke_assemblies = "";
 			foreach (var a in assemblies.Where(a => a.culture is null))
 				pinvoke_assemblies += $"{a.linkout_path} ";
 
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
-			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table $builddir/icall-table.json {pinvoke_assemblies}");
+
+			var icallTable = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "__static_icalls__" : "$builddir/icall-table.json";
+			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {icallTable} {pinvoke_assemblies}");
 
 			if (is_netcore)
 			{
