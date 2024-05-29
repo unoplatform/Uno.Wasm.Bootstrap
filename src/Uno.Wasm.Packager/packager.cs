@@ -1863,7 +1863,7 @@ class Driver {
 
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
 
-			var icallTable = link_icalls ? "$builddir/icall-table.json" : "";
+			var icallTable = link_icalls ? "$builddir/icall-table.json" : "__static_icalls__";
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {icallTable} {pinvoke_assemblies}");
 
 			if (is_netcore)

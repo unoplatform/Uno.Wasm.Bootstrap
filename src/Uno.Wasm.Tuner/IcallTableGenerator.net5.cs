@@ -33,6 +33,38 @@ internal sealed class IcallTableGenerator
 	private TaskLoggingHelper Log { get; set; }
 	private readonly Func<string, string> _fixupSymbolName;
 
+	/// <summary>
+	/// This table is an extract of net8's icalls table, in order to avoid
+	/// having to compute it on macOS, which cannot run mono-aot-cross on that platform.
+	/// </summary>
+	string[] _staticSignatures = new[] {
+		"III",
+		"IIIIIIIII",
+		"IIIIIIIIII",
+		"IIIIIII",
+		"IIIIII",
+		"IIII",
+		"VIIIIIII",
+		"VIIIIIIII",
+		"VIIIII",
+		"II",
+		"VIII",
+		"VII",
+		"VIIII",
+		"IIIII",
+		"I",
+		"VIIL",
+		"L",
+		"VI",
+		"VIIIIII",
+		"DD",
+		"DDD",
+		"DDI",
+		"LILL",
+		"LIL",
+		"V"
+	};
+
 	//
 	// Given the runtime generated icall table, and a set of assemblies, generate
 	// a smaller linked icall table mapping tokens to C function names
@@ -43,8 +75,15 @@ internal sealed class IcallTableGenerator
 	{
 		Log = log;
 		_fixupSymbolName = fixupSymbolName;
-		if (runtimeIcallTableFile != null)
+		if (runtimeIcallTableFile != null && !runtimeIcallTableFile.Equals("__static_icalls__"))
 			ReadTable(runtimeIcallTableFile);
+		else
+		{
+			foreach (var sig in _staticSignatures)
+			{
+				_signatures.Add(sig);
+			}
+		}
 	}
 
 	public void ScanAssembly(Assembly asm)
@@ -71,6 +110,17 @@ internal sealed class IcallTableGenerator
 			finally
 			{
 				File.Delete(tmpFileName);
+			}
+		}
+
+		Log.LogMessage(MessageImportance.Low, $"Icalls signatures: " + string.Join(",", _signatures));
+
+		// validate that the _signatures are in the _staticSignatures table
+		foreach (var sig in _signatures)
+		{
+			if (!_staticSignatures.Contains(sig))
+			{
+				throw new Exception("Icall signature '{sig}' is not in the static icall signatures table");
 			}
 		}
 
