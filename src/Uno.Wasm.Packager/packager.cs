@@ -1856,6 +1856,11 @@ class Driver {
 			ninja.WriteLine ($"build $builddir/icall-table.h: gen-icall-table {icall_assemblies}");
 			ninja.WriteLine ($"  runtime_table=$builddir/icall-table.json");
 		}
+		else
+		{
+			// Fake a command so that __static_icalls__ gets to the tuner
+			ninja.WriteLine ("build __static_icalls__: mkdir");
+		}
 		if (gen_pinvoke) {
 			string pinvoke_assemblies = "";
 			foreach (var a in assemblies.Where(a => a.culture is null))
