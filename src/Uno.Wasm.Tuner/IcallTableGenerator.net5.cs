@@ -62,6 +62,7 @@ internal sealed class IcallTableGenerator
 		"DDI",
 		"LILL",
 		"LIL",
+		"VL",
 		"V"
 	};
 
