@@ -77,7 +77,18 @@ internal sealed class IcallTableGenerator
 		Log = log;
 		_fixupSymbolName = fixupSymbolName;
 		if (runtimeIcallTableFile != null && !runtimeIcallTableFile.Equals("__static_icalls__"))
+		{
 			ReadTable(runtimeIcallTableFile);
+
+			// validate that the _signatures are in the _staticSignatures table
+			foreach (var sig in _signatures)
+			{
+				if (!_staticSignatures.Contains(sig))
+				{
+					throw new Exception($"Icall signature '{sig}' is not in the static icall signatures table");
+				}
+			}
+		}
 		else
 		{
 			Log.LogMessage(MessageImportance.Low, $"Using static signatures");
@@ -117,15 +128,6 @@ internal sealed class IcallTableGenerator
 		}
 
 		Log.LogMessage(MessageImportance.Low, $"Icalls signatures: " + string.Join(",", _signatures));
-
-		// validate that the _signatures are in the _staticSignatures table
-		foreach (var sig in _signatures)
-		{
-			if (!_staticSignatures.Contains(sig))
-			{
-				throw new Exception($"Icall signature '{sig}' is not in the static icall signatures table");
-			}
-		}
 
 		return _signatures;
 	}
