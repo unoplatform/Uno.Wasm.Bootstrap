@@ -6,6 +6,7 @@ using Mono.Cecil;
 using Mono.Options;
 using Mono.Cecil.Cil;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 //
 // Google V8 style options:
@@ -1869,7 +1870,7 @@ class Driver {
 
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h: cpifdiff $builddir/pinvoke-table.h.tmp");
 
-			var icallTable = "__static_icalls__"; // RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "__static_icalls__" : "$builddir/icall-table.json";
+			var icallTable = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "__static_icalls__" : "$builddir/icall-table.json";
 			ninja.WriteLine ($"build $builddir/pinvoke-table.h.tmp: gen-pinvoke-table {icallTable} {pinvoke_assemblies}");
 
 			if (is_netcore)
