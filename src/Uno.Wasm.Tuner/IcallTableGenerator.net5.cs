@@ -79,6 +79,8 @@ internal sealed class IcallTableGenerator
 			ReadTable(runtimeIcallTableFile);
 		else
 		{
+			Log.LogMessage(MessageImportance.Low, $"Using static signatures");
+
 			foreach (var sig in _staticSignatures)
 			{
 				_signatures.Add(sig);
@@ -120,7 +122,7 @@ internal sealed class IcallTableGenerator
 		{
 			if (!_staticSignatures.Contains(sig))
 			{
-				throw new Exception("Icall signature '{sig}' is not in the static icall signatures table");
+				throw new Exception($"Icall signature '{sig}' is not in the static icall signatures table");
 			}
 		}
 
