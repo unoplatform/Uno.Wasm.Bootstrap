@@ -57,3 +57,6 @@ If you need to enable any of those features, you can set the following in your c
 ```
 
 Setting `InvariantGlobalization` to true will remove all satellite assemblies from the final package. 
+
+### LinkerConfig.xml on WASM
+For WASM the Uno-App already contains a 'LinkerConfig.xml' in the folder `Platforms\WebAssembly\LinkerConfig.xml'.
