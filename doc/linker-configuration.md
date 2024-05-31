@@ -20,7 +20,7 @@ The Bootstrapper searches for a file placed in an ItemGroup named `LinkerDescrip
 </linker>
 ```
 
-The documentation for this file [can be found here](https://github.com/mono/linker/blob/master/docs/data-formats.md#xml-examples).
+The documentation for this file [can be found here](https://github.com/dotnet/runtime/blob/9fca0c3dbd3874ed0245b1bdb10547d0ba769d66/docs/tools/illink/data-formats.md).
 
 ### Reference in project file
 
