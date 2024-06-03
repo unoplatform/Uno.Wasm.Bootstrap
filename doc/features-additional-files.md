@@ -9,7 +9,7 @@ This file should contain the following markers, for the runtime to initialize pr
 - `$(ADDITIONAL_CSS)`
 - `$(ADDITIONAL_HEAD)`
 
-Use the this file as an example:
+Use this file as an example:
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/main/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 8.x.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/7.0/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 7.x.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/3.3/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 3.x.
