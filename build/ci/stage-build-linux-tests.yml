@@ -22,8 +22,8 @@ jobs:
   - checkout: self
     clean: true
 
-  - template: build/ci/gitversion.yml
-  - template: build/ci/dotnet-install.yml
+  - template: gitversion.yml
+  - template: dotnet-install.yml
 
   - task: UseDotNet@2
     displayName: 'Use .NET SDK'

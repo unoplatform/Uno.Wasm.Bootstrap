@@ -1,6 +1,6 @@
 # Uno.Wasm.Bootstrap
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap) 
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap)
 
 Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
 
@@ -13,6 +13,7 @@ This package only provides the bootstrapping features to run a .NET assembly and
 This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
 ## Documentation
+
 - [Using the bootstrapper](doc/using-the-bootstrapper.md)
 - [Debugger support](doc/debugger-support.md)
 - [Deploy and publish](doc/deploy-and-publish.md)
@@ -35,11 +36,11 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   - [Profiling](doc/features-profiling.md)
   - [Node JS](doc/features-node-js.md)
   - [Nuget package overrides](doc/features-nuget-package-overrides.md)
-  - [Prefechting](doc/features-prefetch.md)
+  - [Prefetching](doc/features-prefetch.md)
   - [PWA Support](doc/features-pwa.md)
   - [4GB Support](doc/features-4gb.md)
   - [HttpRequestMessage Extensions](doc/features-httprequestmessage-extensions.md)
-  - [Assemblies obfuscation](doc/features-obfsucation.md)
+  - [Assemblies obfuscation](doc/features-obfuscation.md)
 - Tools
   - [Uno Version Checker](doc/features-version-checker.md)
 - [Contributing](doc/contributing.md)

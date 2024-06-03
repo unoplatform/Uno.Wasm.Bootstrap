@@ -1,6 +1,7 @@
+<!-- markdownlint-disable MD041 -->
 Copyright (c) Uno Platform Inc
 
-All rights reserved. 
+All rights reserved.
 
 # Apache 2.0 License
 

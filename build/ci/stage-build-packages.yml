@@ -18,8 +18,8 @@ jobs:
       version: 8.0.100
       includePreviewVersions: true
 
-  - template: build/ci/gitversion.yml
-  - template: build/ci/dotnet-install.yml
+  - template: gitversion.yml
+  - template: dotnet-install.yml
 
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2

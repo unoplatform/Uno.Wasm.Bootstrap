@@ -4,14 +4,14 @@ uid: UnoWasmBootstrap.Features.DeepLinking
 
 # Support for deep-linking (routes)
 
-Deep-linking enables the path part of the URI to indicate a location that should be navigated to. 
+Deep-linking enables the path part of the URI to indicate a location that should be navigated to.
 
 > [!TIP]
 > This feature is colloquially referred to as _routing_ in the web development world.
 
 ## Use in Uno Platform applications
 
-Apps using deep-linking typically parse the URI as part of a robust navigation system. No longer is access to resources on discrete pages complicated by repetitive UI steps. Instead, these areas can be navigated directly from a link in an email, a bookmark, or another website. When planning the capabilities of your application, it is essential to decide whether common scenarios necessitate deep-linking. 
+Apps using deep-linking typically parse the URI as part of a robust navigation system. No longer is access to resources on discrete pages complicated by repetitive UI steps. Instead, these areas can be navigated directly from a link in an email, a bookmark, or another website. When planning the capabilities of your application, it is essential to decide whether common scenarios necessitate deep-linking.
 
 If so, consider a navigation [system](xref:Overview.Navigation) that allows mapping route names to specific sectors of UI elements.
 
