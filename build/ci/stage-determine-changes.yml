@@ -1,0 +1,74 @@
+jobs:
+- job: evaluate_changes
+  displayName: 'Check for Doc Only Changes'
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - powershell: |
+      # Determine the context of the build (PR or push) and set the target branch accordingly
+      $isPR = "$(Build.Reason)" -eq "PullRequest"
+
+      # Normalize the target branch name for PR builds or default to 'master' for push builds
+      $targetBranchName = $isPR ? "$(System.PullRequest.TargetBranch)" -replace 'refs/heads/', '' : "master"
+      Write-Host "Build context determined: $(if ($isPR) { 'Pull Request targeting ' + $targetBranchName } else { 'Push' })"
+
+      # Fetch the target or default base branch and determine the merge base
+      git fetch origin $targetBranchName
+      $mergeBase = git merge-base HEAD "origin/$targetBranchName"
+      Write-Host "Merge base with '$targetBranchName' identified at $mergeBase"
+
+      Write-Host "Comparing changes from $mergeBase..."
+      $gitDiffCommand = "git diff $mergeBase --name-only"
+      $changedFiles = Invoke-Expression $gitDiffCommand
+      $docsOnly = $false
+      $nonDocsOnly = $false
+      $mixedChanges = $false
+      $docFiles = 0
+      $nonDocFiles = 0
+
+      if ($changedFiles) {
+          Write-Host "Changed files:"
+          Write-Host $changedFiles
+      } else {
+          Write-Host "No files have changed."
+      }
+
+      foreach ($file in $changedFiles -split "`n") {
+        # Identifying changes as documentation:
+          $isDoc = $file.StartsWith("doc/") -or               # Files in the 'doc/' directory
+            ($file -match "^[^/]+\.md$") -or                  # Markdown files at the root level (with no subdirectories involved)
+            ($file -match "^\.github/.*\.md$") -or            # Markdown files within the .github folder (including its subdirectories)
+            ($file -match "^\.(markdownlint|cspell)\.json$")  # Specific JSON files: .markdownlint.json and cspell.json
+  
+          if ($isDoc) {
+              $docFiles++
+          } else {
+              $nonDocFiles++
+          }
+      }
+
+      Write-Host "Documentation files changed: $docFiles"
+      Write-Host "Non-documentation files changed: $nonDocFiles"
+
+      if ($docFiles -gt 0 -and $nonDocFiles -eq 0) {
+          $docsOnly = $true
+          Write-Host "All changes are documentation-only."
+      } elseif ($docFiles -gt 0 -and $nonDocFiles -gt 0) {
+          $mixedChanges = $true
+          Write-Host "Mixed changes detected: Both documentation and non-documentation files have been modified."
+      } elseif ($nonDocFiles -gt 0) {
+          $nonDocsOnly = $true
+          Write-Host "Non-documentation changes detected."
+      }
+
+      # Explicitly write the final values for clarity
+      Write-Host "Final values:"
+      Write-Host "docsOnly: $docsOnly"
+      Write-Host "nonDocsOnly: $nonDocsOnly"
+      Write-Host "mixedChanges: $mixedChanges"
+
+      # Output the results as pipeline variables
+      Write-Host "##vso[task.setvariable variable=docsOnly;isOutput=true]$docsOnly"
+      Write-Host "##vso[task.setvariable variable=nonDocsOnly;isOutput=true]$nonDocsOnly"
+      Write-Host "##vso[task.setvariable variable=mixedChanges;isOutput=true]$mixedChanges"
+    name: DetermineChanges

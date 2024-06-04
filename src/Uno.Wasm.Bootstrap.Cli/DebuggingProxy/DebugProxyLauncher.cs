@@ -164,7 +164,7 @@ namespace Uno.Wasm.Bootstrap.Cli
 
 			var contentRoot = environment.ContentRootPath;
 			var debuggerInfoRoot = intermediatePath is { Length: > 0 }
-				// This is defined in when the boostrapper is referenced through nuget
+				// This is defined in when the bootstrapper is referenced through nuget
 				? Path.Combine(contentRoot, intermediatePath, "wasm-debugger")
 				// Used as a fallback inside the bootstrapper solution
 				: Path.Combine(contentRoot, "obj", platform, buildConfiguration, targetFramework, "wasm-debugger");

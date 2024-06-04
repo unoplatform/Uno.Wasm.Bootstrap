@@ -11,7 +11,7 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	
-	<Target Name="CopyToBoostrapDev" AfterTargets="Build">
+	<Target Name="CopyToBootstrapDev" AfterTargets="Build">
 		<ItemGroup>
 			<_BinaryOutputFiles Include="$(TargetDir)\Uno.Wasm.AotProfiler.*" />
 		</ItemGroup>

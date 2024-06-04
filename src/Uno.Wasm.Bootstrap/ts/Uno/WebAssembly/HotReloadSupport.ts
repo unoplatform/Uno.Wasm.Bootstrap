@@ -33,7 +33,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
 			// from the "BrowserLink" feature.
-			const boostrapContext = this._context;
+			const bootstrapContext = this._context;
 
 			(function (Blazor) {
 				Blazor._internal = {
@@ -51,7 +51,7 @@ namespace Uno.WebAssembly.Bootstrap {
 						var aspnetCoreBrowserTools = hotreloadConfigResponse.headers.get('ASPNETCORE-BROWSER-TOOLS');
 
 						if (modifiableAssemblies) {
-							boostrapContext.MONO.mono_wasm_setenv('DOTNET_MODIFIABLE_ASSEMBLIES', modifiableAssemblies);
+							bootstrapContext.MONO.mono_wasm_setenv('DOTNET_MODIFIABLE_ASSEMBLIES', modifiableAssemblies);
 						}
 
 						// To uncomment once https://github.com/dotnet/aspnetcore/issues/37357#issuecomment-941237000 is released
@@ -80,7 +80,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			})((<any>window).Blazor || ((<any>window).Blazor = {}));
 				
 			// Apply pending updates caused by a browser refresh
-			(<any>window).Blazor._internal.initialize(boostrapContext.BINDING);
+			(<any>window).Blazor._internal.initialize(bootstrapContext.BINDING);
 			await (<any>window).Blazor._internal.applyExisting();
 		}
 	}

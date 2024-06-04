@@ -19,13 +19,13 @@ The possible values are:
 
 To setup your machine to use AOT modes on Windows, you will need to install [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
-### Interpreter mode
+## Interpreter mode
 
 This mode is the slowest but allows for great flexibility and debugging, as well as an efficient payload size.
 
 The linker mode can also be completely disabled for troubleshooting, as this will not impact the wasm payload size.
 
-### Jiterpreter mode
+## Jiterpreter mode
 
 This mode is a hybrid between the interpreter and the AOT modes, where the interpreter is used to execute the code, but the JIT engine is used to generate some WebAssembly code on the fly. This mode is generally faster than the interpreter, but slower than the AOT mode.
 
@@ -47,14 +47,14 @@ Additionally, some options can be used to fine-tune the Jiterpreter mode, using 
 
 Finally, runtime statistics are maintained by the jiterpreter and can be displayed by running `INTERNAL.jiterpreter_dump_stats()` in the browser debugger console.
 
-### Mixed Interpreter and AOT Mode
+## Mixed Interpreter and AOT Mode
 
 This mode enables AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
 
 > [!IMPORTANT]
 > This mode is not supported on macOS. You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
 
-## Required configuration for Mixed AOT Mode or static linking on Linux
+### Required configuration for Mixed AOT Mode or static linking on Linux
 
 - Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
@@ -226,13 +226,13 @@ Requirements:
 - ninja: `apt-get install ninja-build` in WSL
 
 If you have another distribution installed make sure that the 20.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
-Note that WSL 2 is considerably slower than WSL 1 for the boostrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
+Note that WSL 2 is considerably slower than WSL 1 for the bootstrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
 
 During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](/src/Uno.Wasm.Bootstrap/build/scripts/dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
 
 The emscripten installation is automatically done as part of the build.
 
-The boostrapper uses its own installation of emscripten, installed by default in `$HOME/.uno/emsdk` in the WSL filesystem. This can be globally overriden by setting the `WASMSHELL_WSLEMSDK` environment variable.
+The bootstrapper uses its own installation of emscripten, installed by default in `$HOME/.uno/emsdk` in the WSL filesystem. This can be globally overridden by setting the `WASMSHELL_WSLEMSDK` environment variable.
 
 ### WSL Integration for Windows 10
 

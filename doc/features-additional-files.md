@@ -2,33 +2,38 @@
 uid: UnoWasmBootstrap.Features.AdditionalFiles
 ---
 
-### Index.html content override
+# Index.html content override
+
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
-This file should contain the following markers, for the runtime to initialize properly: 
+This file should contain the following markers, for the runtime to initialize properly:
+
 - `$(ADDITIONAL_CSS)`
 - `$(ADDITIONAL_HEAD)`
 
 Use this file as an example:
+
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/main/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 8.x.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/7.0/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 7.x.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/3.3/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 3.x.
 - [Templates/index.html](https://github.com/unoplatform/Uno.Wasm.Bootstrap/blob/release/stable/2.1/src/Uno.Wasm.Bootstrap/Templates/index.html) for bootstrapper 2.x.
 
-### Support for additional JS files
+## Support for additional JS files
 
 Providing additional JS files is done through the inclusion of `EmbeddedResource`  msbuild item  files, in a project folder named `WasmScripts`.
 Files are processed as embedded resources to allow for libraries to provide javascript files.
 
-### Support for additional CSS files
+## Support for additional CSS files
+
 Additional CSS files are supported through the inclusion of `EmbeddedResource`  msbuild item files, in a project folder named `WasmCSS`.
 
-### Support for additional Content files
+## Support for additional Content files
+
 Additional Content files are supported through the inclusion of `Content` files. The folder structure is preserved in the output `dist` folder. There is 3 deployment modes for content files:
 
-* `Package`: files using `UnoDeploy="Package"` mode will be deployed in the `dist\package_<hash>` folder and the folder structure will be preserved. This is the default mode for most files (see exclusions below).
-* `Root`: files using `UnoDeploy="Root"` mode will be deployed directly in the `dist\` folder and the folder structure will be preserved.
-* `None`: files using the `UnoDeploy="None"` mode will be ignored and won't be deployed.
+- `Package`: files using `UnoDeploy="Package"` mode will be deployed in the `dist\package_<hash>` folder and the folder structure will be preserved. This is the default mode for most files (see exclusions below).
+- `Root`: files using `UnoDeploy="Root"` mode will be deployed directly in the `dist\` folder and the folder structure will be preserved.
+- `None`: files using the `UnoDeploy="None"` mode will be ignored and won't be deployed.
 
 Exclusions:
 
@@ -55,4 +60,3 @@ Asset files: `dist/package_XXXX/uno-assets.txt` contains the package relative pa
 
 A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.bc`.
  `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
-

@@ -12,7 +12,7 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	
-	<Target Name="CopyToBoostrapDev" AfterTargets="Build">
+	<Target Name="CopyToBootstrapDev" AfterTargets="Build">
 		<ItemGroup>
 			<_MetadataUpdaterOutputFiles Include="$(TargetDir)\Uno.Wasm.MetadataUpdater.*" />
 		</ItemGroup>

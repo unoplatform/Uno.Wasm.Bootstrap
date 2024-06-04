@@ -1890,7 +1890,7 @@ namespace Uno.Wasm.Bootstrap
 			if (_resourceSearchList == null)
 			{
 				var sourceList = new List<string> {
-					// Add the boostrapper assembly first, so the css defined there can be overriden.
+					// Add the bootstrapper assembly first, so the css defined there can be overridden.
 					GetType().Assembly.Location
 				};
 

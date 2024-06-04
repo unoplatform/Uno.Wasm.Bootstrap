@@ -1,0 +1,42 @@
+﻿jobs:
+- job: spell_checking
+  displayName: 'Spell Checking Validation'
+
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - checkout: self
+    fetchDepth: 1
+    clean: true
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+
+  - bash: npm install -g cspell
+    displayName: Install cSpell
+
+  - bash: cspell --config $(Build.SourcesDirectory)/build/ci/cspell.json "**/*.md" "**/toc.yml" --no-progress
+    displayName: Run Spell Checking
+
+- job: markdown_link
+  displayName: 'Markdown Validation'
+
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - checkout: self
+    fetchDepth: 1
+    clean: true
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+
+  - bash: npm install -g markdownlint-cli
+    displayName: Install markdownlint-cli
+
+  - bash: markdownlint -c $(Build.SourcesDirectory)/build/ci/.markdownlint.json "**/*.md"
+    displayName: Run Markdown Linter

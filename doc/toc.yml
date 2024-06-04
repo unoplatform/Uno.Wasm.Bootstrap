@@ -48,7 +48,7 @@ items:
       href: features-node-js.md
     - name: Nuget package overrides
       href: features-nuget-package-overrides.md
-    - name: Prefechting
+    - name: Prefetching
       href: features-prefetch.md
     - name: PWA Support
       href: features-pwa.md
@@ -57,7 +57,7 @@ items:
     - name: HttpRequestMessage Extensions
       href: features-httprequestmessage-extensions.md
     - name: Assemblies obfuscation
-      href: features-obfsucation.md
+      href: features-obfuscation.md
 
 - name: Tools
   items:

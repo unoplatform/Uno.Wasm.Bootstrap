@@ -7,9 +7,10 @@ uid: UnoWasmBootstrap.Features.VersionChecker
 This is a tool to extract the version of _dotnet assemblies_ used on a Uno.UI application. Should also work with most applications built on _Uno Bootstrapper_.
 
 ## Installation
+
 Install the executable using the following command:
 
-``` shell
+```shell
 > dotnet tool install -g Uno.Wasm.VersionChecker
 ```
 
@@ -17,13 +18,13 @@ Install the executable using the following command:
 
 Start the executable using the URI of your Uno application.
 
-``` shell
+```shell
 > uno-wasm-version nuget.info
 ```
 
-You should see the result as
+You should see the result as:
 
-```
+```console
 Uno Version Checker v2.0.0
 Checking website at address nuget.info/.
 Trying to find Uno bootstrapper configuration...
