@@ -43,6 +43,19 @@ Note that as of .NET 6:
 - The support for any timer based profiling is not supported, because of the lack of threading support in .NET
 - The support for remote control of the profiler is not supported
 
+## Memory Layout of a WebAssembly app
+
+A WebAssembly app has multiple categories of allocated memory:
+
+- The managed memory usage, which is a smaller portion of the overall used memory. This is the memory directly allocated by object allocations from managed code. It is the memory reported by the mprof-report or the Xamarin Profiler. This memory can be queried by using the [`GC.GetTotalMemory`](https://learn.microsoft.com/en-us/dotnet/api/system.gc.gettotalmemory).
+- The WebAssembly module memory usage, which is the overall app memory usage as far as WebAssembly is concerned. This is similar to the committed memory in a Windows app. This contains:
+  - The runtime's own native memory allocations
+  - The Garbage Collector memory, which is [directly impacted](xref:Uno.Development.Performance#webassembly-specifics) by the [GC parameters](https://learn.microsoft.com/xamarin/android/internals/garbage-collection#configuration).
+  - All the files located in the `Package_xxxx/managed` folder. Each assembly file is directly loaded in memory by the .NET runtime, regardless of it being used or not. Reducing the assemblies file sizes can be acheived by configuring the [IL Linker](xref:uno.articles.features.illinker).
+  
+  The WebAssembly memory can be queried using the following JavaScript expression: `globalThis.Module.HEAPU8.length`, which gives the allocated memory in bytes. You can use [`JSImport`](xref:Uno.Wasm.Bootstrap.JSInterop#invoking-javascript-code-from-c) to read it from managed code.
+- The javascript memory, which is mostly about the HTML DOM rendering and the browser's own runtime memory. Those two categories can be analyzed using the [browser's own debugging tooling](https://developer.chrome.com/docs/devtools/memory-problems).
+
 ## CPU Profiling
 
 To enable the profiling of the WebAssembly code, set te following parameter:
