@@ -108,7 +108,7 @@ public class StaticWebAssetsResolverTask_v0 : Microsoft.Build.Utilities.Task
 	// https://github.com/dotnet/sdk/blob/cc17704acfbee4b2ef49a82aa6f65aaa9cafffef/src/StaticWebAssetsSdk/Tasks/Data/StaticWebAsset.cs#L233-L248
 	private static (string fingerprint, string integrity) ComputeFingerprintAndIntegrity(string identity, string originalItemSpec)
 	{
-		var file = File.Exists(identity) ?
+		using var file = File.Exists(identity) ?
 			File.OpenRead(identity) :
 			(File.Exists(originalItemSpec) ?
 				File.OpenRead(originalItemSpec) :
