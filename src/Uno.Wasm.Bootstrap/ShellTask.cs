@@ -2339,7 +2339,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{WebAppBasePath}{PWAManifestFile}\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
