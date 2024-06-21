@@ -3,6 +3,7 @@
 	<ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true'">
 		<Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
+		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />

@@ -1888,7 +1888,7 @@ class Driver {
 		if (build_wasm) {
 			string zlibhelper = enable_zlib ? "$builddir/zlib-helper.o" : "";
 
-			var native_compile_params = string.Join("", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
+			var native_compile_params = string.Join(" ", native_compile.Select(f => $"$builddir/{Path.GetFileNameWithoutExtension(f)}.o"));
 
 			ninja.WriteLine ($"build $appdir/dotnet.native.js $appdir/dotnet.native.wasm: emcc-link $builddir/driver.o $builddir/pinvoke.o {native_compile_params} {zlibhelper} {wasm_core_bindings} {ofiles} {profiler_libs} {extra_link_libs} {runtime_libs} | {EscapePath(src_prefix)}/es6/dotnet.es6.lib.js {wasm_core_support} $emsdk_env");
 			ninja.WriteLine ($"  out_wasm=$appdir/dotnet.native.wasm");
