@@ -86,6 +86,7 @@ namespace Uno.Wasm.Sample
 			var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);
 
 			var additionalNativeAdd = AdditionalImportTest.additional_native_add(21, 21);
+			var additionalNativeAdd2 = AdditionalImportTest.additional_native_add2(21, 21);
 
 			var resManager = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
 			var s1 = resManager.GetString("WebDescriptionMissing", new CultureInfo("en-US"));
@@ -137,6 +138,8 @@ namespace Uno.Wasm.Sample
 		internal static extern int chmod(string pathname, int mode);
 		[DllImport("__Native")]
 		internal static extern int additional_native_add(int left, int right);
+		[DllImport("__Native")]
+		internal static extern int additional_native_add2(int left, int right);
 	}
 
 	class SideModule1

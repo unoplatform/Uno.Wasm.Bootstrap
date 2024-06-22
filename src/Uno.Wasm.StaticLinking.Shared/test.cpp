@@ -20,4 +20,5 @@ WASM_EXPORT int test_gl() {
 	GLuint programObject;
 	glGetString(GL_VENDOR);
 	SDL_Init(SDL_INIT_VIDEO);
+	return 0;
 }
