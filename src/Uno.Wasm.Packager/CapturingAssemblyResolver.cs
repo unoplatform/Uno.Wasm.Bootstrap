@@ -29,7 +29,7 @@ class CapturingAssemblyResolver : DefaultAssemblyResolver
 			// Fill all the known references first, so they get resolved
 			// using compilation paths.
 			var explicitAssembliesPaths = new Dictionary<string, string>();
-			foreach(var asmReferencePath in _assembly_references)
+			foreach (var asmReferencePath in _assembly_references)
 			{
 				if (Path.GetFileNameWithoutExtension(asmReferencePath) is { } asmName)
 				{
@@ -42,6 +42,7 @@ class CapturingAssemblyResolver : DefaultAssemblyResolver
 
 			_files.Add(explicitAssembliesPaths);
 
+			// Use all other search paths
 			string[] extensions = new[] { ".winmd", ".dll", ".exe", ".dll" };
 
 			foreach (var directory in directories.Where(Directory.Exists))
@@ -62,6 +63,7 @@ class CapturingAssemblyResolver : DefaultAssemblyResolver
 					}
 				}
 
+				_files.Add(map);
 			}
 		}
 
