@@ -61,6 +61,7 @@ class Driver {
 	static List<string>  file_list = new List<string> ();
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
+	static List<string> assembly_references = new List<string>();
 	static CapturingAssemblyResolver resolver;
 
 	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
@@ -278,7 +279,7 @@ class Driver {
 
 		if (resolver == null)
 		{
-			resolver = new CapturingAssemblyResolver();
+			resolver = new CapturingAssemblyResolver(assembly_references);
 			root_search_paths.ForEach(resolver.AddSearchDirectory);
 			foreach (var prefix in bcl_prefixes)
 				resolver.AddSearchDirectory(prefix);
@@ -554,6 +555,7 @@ class Driver {
 				{ "template=", s => runtimeTemplate = s },
 				{ "asset=", s => assets.Add(s) },
 				{ "search-path=", s => root_search_paths.Add(s) },
+				{ "asm-ref=", s => assembly_references.Add(s) },
 				{ "profile=", s => profilers.Add (s) },
 				{ "copy=", s => copyTypeParm = s },
 				{ "aot-assemblies=", s => aot_assemblies = s },
