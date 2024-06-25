@@ -1586,6 +1586,7 @@ class Driver {
 		ninja.WriteLine ("rule linker");
 		var linkerBin = "dotnet \'$linker_dir/illink.dll\'";
 
+		var assemblyRefPaths = assembly_references.Distinct().Select(p => $"-reference \"{p}\" ");
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
 		var tunerBinary = string.IsNullOrEmpty(wasm_tuner_path)
@@ -1599,6 +1600,7 @@ class Driver {
 		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
 		linker_args.Add($"--strip-link-attributes");
 		linker_args.Add(extra_linkerflags);
+		linker_args.AddRange(assemblyRefPaths);
 		linker_args.AddRange(linkerSearchPaths);
 
 		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies \'@$builddir/tuner.rsp\'");
