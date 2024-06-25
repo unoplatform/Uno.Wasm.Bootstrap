@@ -10,6 +10,12 @@ using Mono.Cecil;
 class CapturingAssemblyResolver : DefaultAssemblyResolver
 {
 	private List<Dictionary<string, string>> _files;
+	private List<string> _assembly_references;
+
+	public CapturingAssemblyResolver(List<string> assembly_references)
+	{
+		_assembly_references = assembly_references;
+	}
 
 	protected override AssemblyDefinition SearchDirectory(AssemblyNameReference name, IEnumerable<string> directories, ReaderParameters parameters)
 	{
@@ -19,6 +25,24 @@ class CapturingAssemblyResolver : DefaultAssemblyResolver
 			// paying the cost of File.Exists
 
 			_files = new List<Dictionary<string, string>>();
+
+			// Fill all the known references first, so they get resolved
+			// using compilation paths.
+			var explicitAssembliesPaths = new Dictionary<string, string>();
+			foreach (var asmReferencePath in _assembly_references)
+			{
+				if (Path.GetFileNameWithoutExtension(asmReferencePath) is { } asmName)
+				{
+					if (!explicitAssembliesPaths.ContainsKey(asmName))
+					{
+						explicitAssembliesPaths.Add(asmName, asmReferencePath);
+					}
+				}
+			}
+
+			_files.Add(explicitAssembliesPaths);
+
+			// Use all other search paths
 			string[] extensions = new[] { ".winmd", ".dll", ".exe", ".dll" };
 
 			foreach (var directory in directories.Where(Directory.Exists))

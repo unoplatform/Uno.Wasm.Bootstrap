@@ -61,6 +61,7 @@ class Driver {
 	static List<string>  file_list = new List<string> ();
 	static HashSet<string> assemblies_with_dbg_info = new HashSet<string> ();
 	static List<string> root_search_paths = new List<string>();
+	static List<string> assembly_references = new List<string>();
 	static CapturingAssemblyResolver resolver;
 
 	const string BINDINGS_ASM_NAME_MONO = "WebAssembly.Bindings";
@@ -278,7 +279,7 @@ class Driver {
 
 		if (resolver == null)
 		{
-			resolver = new CapturingAssemblyResolver();
+			resolver = new CapturingAssemblyResolver(assembly_references);
 			root_search_paths.ForEach(resolver.AddSearchDirectory);
 			foreach (var prefix in bcl_prefixes)
 				resolver.AddSearchDirectory(prefix);
@@ -554,6 +555,7 @@ class Driver {
 				{ "template=", s => runtimeTemplate = s },
 				{ "asset=", s => assets.Add(s) },
 				{ "search-path=", s => root_search_paths.Add(s) },
+				{ "asm-ref=", s => assembly_references.Add(s) },
 				{ "profile=", s => profilers.Add (s) },
 				{ "copy=", s => copyTypeParm = s },
 				{ "aot-assemblies=", s => aot_assemblies = s },
@@ -1584,6 +1586,7 @@ class Driver {
 		ninja.WriteLine ("rule linker");
 		var linkerBin = "dotnet \'$linker_dir/illink.dll\'";
 
+		var assemblyRefPaths = assembly_references.Distinct().Select(p => $"-reference \"{p}\" ");
 		var linkerSearchPaths = root_search_paths.Concat(bcl_prefixes).Distinct().Select(p => $"-d \"{p}\" ");
 
 		var tunerBinary = string.IsNullOrEmpty(wasm_tuner_path)
@@ -1597,6 +1600,7 @@ class Driver {
 		linker_args.Add($"-out ./linker-out --deterministic --disable-opt unreachablebodies");
 		linker_args.Add($"--strip-link-attributes");
 		linker_args.Add(extra_linkerflags);
+		linker_args.AddRange(assemblyRefPaths);
 		linker_args.AddRange(linkerSearchPaths);
 
 		ninja.WriteLine ($"  command = {tools_shell_prefix} {linkerBin} \'@{linkerResponse}\' {exitCommand}; {tunerCommand} --gen-empty-assemblies \'@$builddir/tuner.rsp\'");
