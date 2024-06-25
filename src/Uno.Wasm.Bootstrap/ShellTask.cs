@@ -1015,6 +1015,11 @@ namespace Uno.Wasm.Bootstrap
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
+					// Use explicit assemby references first
+					var referenceAssemblyPaths = _referencedAssemblies.Distinct().Select(p => $"-reference \"{p}\" ");
+					linkerParams.AddRange(referenceAssemblyPaths);
+
+					// Then search for other known paths
 					var linkerSearchPaths = _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" ");
 					linkerParams.AddRange(linkerSearchPaths);
 					linkerParams.Add($"-d \"{_bclPath}\"");
