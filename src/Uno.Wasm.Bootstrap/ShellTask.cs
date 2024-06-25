@@ -776,7 +776,13 @@ namespace Uno.Wasm.Bootstrap
 
 			DirectoryCreateDirectory(workAotPath);
 
-			var referencePathsParameter = string.Join(" ", _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
+			var referencePathsParameter = string.Join(
+				" "
+				, _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(r => $"--search-path=\"{AlignPath(r)}\""));
+
+			var referenceAssembliesParameter = string.Join(
+				" "
+				, _referencedAssemblies.Distinct().Select(r => $"--asm-ref=\"{AlignPath(r)}\""));
 
 			var metadataUpdaterPath = Path.Combine(BuildTaskBasePath, "..", "tools", "support", "Uno.Wasm.MetadataUpdater.dll");
 
@@ -824,7 +830,7 @@ namespace Uno.Wasm.Bootstrap
 
 			var enableICUParam = EnableNetCoreICU ? "--icu" : "";
 			var monovmparams = $"--framework=net5 --runtimepack-dir=\"{AlignPath(MonoWasmSDKPath)}\" {enableICUParam} {pthreadPoolSizeParam} --illinker-path=\"{_linkerBinPath}\"";
-			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
+			var pass1ResponseContent = $"{runtimeConfigurationParam} {appDirParm} {monovmparams} --zlib {debugOption} {referenceAssembliesParameter} {referencePathsParameter} \"{AlignPath(TryConvertLongPath(Path.GetFullPath(Assembly)))}\"";
 
 			var packagerPass1ResponseFile = Path.Combine(workAotPath, "packager-pass1.rsp");
 			File.WriteAllText(packagerPass1ResponseFile, pass1ResponseContent);
@@ -935,6 +941,7 @@ namespace Uno.Wasm.Bootstrap
 				packagerParams.Add(EmccLinkOptimization ? "--emcc-link-optimization" : "");
 				packagerParams.Add(MonoILLinker ? "--linker --link-mode=all" : "");
 				packagerParams.Add(referencePathsParameter);
+				packagerParams.Add(referenceAssembliesParameter);
 				packagerParams.Add(GenerateAOTProfile ? "--profile=aot" : "");
 				packagerParams.Add(EnableLogProfiler ? "--profile=log" : "");
 				packagerParams.Add(!string.IsNullOrEmpty(WasmTunerBinPath) ? $"\"--wasm-tuner-path={AlignPath(Path.GetFullPath(WasmTunerBinPath))}\"" : "");
@@ -1008,6 +1015,11 @@ namespace Uno.Wasm.Bootstrap
 
 					var assemblyPath = Path.Combine(linkerInput, Path.GetFileName(Assembly));
 
+					// Use explicit assemby references first
+					var referenceAssemblyPaths = _referencedAssemblies.Distinct().Select(p => $"-reference \"{p}\" ");
+					linkerParams.AddRange(referenceAssemblyPaths);
+
+					// Then search for other known paths
 					var linkerSearchPaths = _referencedAssemblies.Select(Path.GetDirectoryName).Distinct().Select(p => $"-d \"{p}\" ");
 					linkerParams.AddRange(linkerSearchPaths);
 					linkerParams.Add($"-d \"{_bclPath}\"");
