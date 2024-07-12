@@ -2206,6 +2206,8 @@ namespace Uno.Wasm.Bootstrap
 			}
 			html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 
+			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
+
 			w.Write(html);
 
 			Log.LogMessage($"HTML {htmlPath}");
@@ -2339,7 +2341,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
