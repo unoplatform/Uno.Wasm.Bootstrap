@@ -462,10 +462,10 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (!this.loader) {
 				// No active loader, simply use the fetch API directly...
-				return fetch(url, this.getFetchInit(url));
+				return fetch(url, {credentials: "same-origin"}, this.getFetchInit(url));
 			}
 
-			return fetch(url, this.getFetchInit(url))
+			return fetch(url, {credentials: "same-origin"}, this.getFetchInit(url))
 				.then(response => {
 					if (!response.ok) {
 						throw Error(`${response.status} ${response.statusText}`);
@@ -567,7 +567,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				}
 
-				return fetch(asset);
+				return fetch(asset, {credentials: "same-origin"});
 			}
 		}
 
