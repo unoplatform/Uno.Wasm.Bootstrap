@@ -416,7 +416,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private getFetchInit(url: string): RequestInit {
 			const fileName = url.substring(url.lastIndexOf("/") + 1);
 
-			const init: RequestInit = { credentials: "omit" };
+			const init: RequestInit = { credentials: "same-origin" };
 
 			if (this._unoConfig.files_integrity.hasOwnProperty(fileName)) {
 				init.integrity = this._unoConfig.files_integrity[fileName];
@@ -462,10 +462,10 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (!this.loader) {
 				// No active loader, simply use the fetch API directly...
-				return fetch(url, {credentials: "same-origin"}, this.getFetchInit(url));
+				return fetch(url, this.getFetchInit(url));
 			}
 
-			return fetch(url, {credentials: "same-origin"}, this.getFetchInit(url))
+			return fetch(url, this.getFetchInit(url))
 				.then(response => {
 					if (!response.ok) {
 						throw Error(`${response.status} ${response.statusText}`);
