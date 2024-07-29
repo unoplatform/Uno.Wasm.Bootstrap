@@ -416,7 +416,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private getFetchInit(url: string): RequestInit {
 			const fileName = url.substring(url.lastIndexOf("/") + 1);
 
-			const init: RequestInit = { credentials: "omit" };
+			const init: RequestInit = { credentials: "same-origin" };
 
 			if (this._unoConfig.files_integrity.hasOwnProperty(fileName)) {
 				init.integrity = this._unoConfig.files_integrity[fileName];
@@ -567,7 +567,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				}
 
-				return fetch(asset);
+				return fetch(asset, {credentials: "same-origin"});
 			}
 		}
 
