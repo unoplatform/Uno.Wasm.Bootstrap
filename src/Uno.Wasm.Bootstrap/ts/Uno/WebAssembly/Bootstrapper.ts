@@ -57,6 +57,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			globalThis.Uno = Uno;
 		}
 
+		public static invokeJS(value: string) {
+			return eval(value);
+		}
+
 		public static async bootstrap(): Promise<void> {
 
 			try {
@@ -105,6 +109,10 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				);
 
+				// Capture the module instance and publish to globalThis.
+				bootstrapper._context.Module = dotnetRuntime.Module;
+				(<any>globalThis).Module = bootstrapper._context.Module;
+
 				bootstrapper._runMain = dotnetRuntime.runMain;
 				bootstrapper.setupExports(dotnetRuntime);
 			}
@@ -135,14 +143,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		public configure(context: DotnetPublicAPI) {
 			this._context = context;
 
-			// Module may not be initialized yet (.NET 8 and later)
-			(<any>this._context).Module = this._context.Module || {};
-
-			this.setupRequire();
 			this.setupEmscriptenPreRun();
 
-			// Module is not exposed in the context in net8+
-			(<any>globalThis).Module = this._context.Module;
 
 			// Required for hot reload (browser-link provided javascript file)
 			(<any>globalThis).BINDING = this._context.BINDING;
@@ -198,6 +200,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		private RuntimeReady() {
 			this.configureGlobal();
+			this.setupRequire();
 
 			this.initializeRequire();
 			this._aotProfiler = AotProfilerSupport.initialize(this._context, this._unoConfig);
@@ -210,7 +213,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			thatGlobal.config = this._unoConfig;
 
 			// The module instance is modified by the runtime, merge the changes
-			Object.assign(globalThis.Module, globalThis.Module, this._context.Module)
+			thatGlobal.Module = this._context.Module;
 
 			// global exports from emscripten that are not exposed
 			// as .NET is initialized in a module
