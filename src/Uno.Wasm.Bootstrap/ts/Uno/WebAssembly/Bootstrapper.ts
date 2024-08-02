@@ -99,7 +99,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`./_framework/dotnet.js`);
 
-				// Change the global loadBootResource
+				// UNO TODO move to use load progress reports from the runtime
 				// m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
 
 				const dotnetRuntime = await m.default(
