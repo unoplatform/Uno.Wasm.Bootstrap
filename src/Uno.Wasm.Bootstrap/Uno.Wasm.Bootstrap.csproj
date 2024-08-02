@@ -3,14 +3,13 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<DefineConstants>NET_CORE</DefineConstants>
-		<NoWarn>1701;1702;1705;649;NU5128</NoWarn>
+		<NoWarn>1701;1702;1705;649;NU5128;NU1903</NoWarn>
 		<AssemblyName>Uno.Wasm.Bootstrap.v0</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
 		<Version>2.0.1-test.8</Version>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
-		<LangVersion>10.0</LangVersion>
 		<Nullable>enable</Nullable>
 	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
@@ -49,18 +48,6 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
-		<Content Include="build/CustomDebuggerProxy/**">
-			<Pack>true</Pack>
-			<PackagePath>build/CustomDebuggerProxy</PackagePath>
-		</Content>
-		<Content Include="build/linker/**">
-			<Pack>true</Pack>
-			<PackagePath>build/linker</PackagePath>
-		</Content>
-		<Content Include="build/cilstrip/**">
-			<Pack>true</Pack>
-			<PackagePath>build/cilstrip</PackagePath>
-		</Content>
 		<Content Include="build/scripts/**">
 			<Pack>true</Pack>
 			<PackagePath>build/scripts</PackagePath>
@@ -69,18 +56,7 @@
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)/brotlisharplib/0.3.3/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/system.runtime.compilerservices.unsafe/4.5.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
+		
 		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
@@ -88,27 +64,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<Visible>false</Visible>
 		</Content>
-		<Content Include="$(NuGetPackageRoot)/mono.options/5.3.0.1/lib/netstandard1.3/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/newtonsoft.json/13.0.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/System.Memory/4.5.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
+
 	</ItemGroup>
 
 	<ItemGroup>
@@ -130,11 +86,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
@@ -146,16 +97,6 @@
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.Tuner\Uno.Wasm.Tuner.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.Packager\Uno.Wasm.Packager.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
@@ -185,50 +126,6 @@
 	<Target Name="RemoveGeneratedJavascriptAsContent" AfterTargets="GetTypeScriptOutputForPublishing">
 		<ItemGroup>
 			<Content Remove="@(GeneratedJavascript)" />
-		</ItemGroup>
-	</Target>
-
-	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
-		<ItemGroup>
-			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-			<Content Include="./tools/support/Uno.Wasm.LogProfiler.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-			<Content Include="./tools/support/Uno.Wasm.MetadataUpdater.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-		</ItemGroup>
-	</Target>
-
-	<Target Name="_BootstrapperUpdateExternalTools" BeforeTargets="CoreCompile">
-		<ItemGroup>
-			<_PackagerNet5Files Include="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/packager.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/wasm-tuner.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/Mono.Cecil.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Json.dll" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Reflection.MetadataLoadContext.dll" />
-		</ItemGroup>
-
-		<Copy SourceFiles="@(_PackagerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
-		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
-
-		<Copy SourceFiles="@(_TunerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net5.0" />
-
-		<!-- Update the item group with generated files -->
-		<ItemGroup>
-			<Content Include="./build/packager/**">
-				<Pack>true</Pack>
-				<PackagePath>build/packager</PackagePath>
-			</Content>
-			<Content Include="./build/wasm-tuner/**">
-				<Pack>true</Pack>
-				<PackagePath>build/wasm-tuner</PackagePath>
-			</Content>
 		</ItemGroup>
 	</Target>
 

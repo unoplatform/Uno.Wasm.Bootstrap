@@ -48,7 +48,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
 
 			this.disableDotnet6Compatibility = false;
-			this.configSrc = `mono-config.json`;
+			this.configSrc = `blazor.boot.json`;
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
 			this.onAbort = () => this.runtimeAbort();
@@ -93,10 +93,10 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 
 				//@ts-ignore
-				var m = await import(`./dotnet.js`);
+				var m = await import(`./_framework/dotnet.js`);
 
 				// Change the global loadBootResource
-				m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
+				// m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -116,14 +116,15 @@ namespace Uno.WebAssembly.Bootstrap {
 		private setupExports(dotnetRuntime: any) {
 			this._getAssemblyExports = dotnetRuntime.getAssemblyExports;
 			(<any>this._context.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
+			(<any>globalThis.Module).getAssemblyExports = dotnetRuntime.getAssemblyExports;
         }
 
 		public asDotnetConfig(): DotnetModuleConfig {
 			return <DotnetModuleConfig>{
 				disableDotnet6Compatibility: this.disableDotnet6Compatibility,
 				configSrc: this.configSrc,
-				baseUrl: this._unoConfig.uno_app_base + "/",
-				mainScriptPath: "dotnet.js",
+				baseUrl: this._unoConfig.uno_app_base,
+				mainScriptPath: "_framework/dotnet.js",
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
@@ -179,15 +180,6 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		private wasmRuntimePreRun() {
 
-			if (this._unoConfig.environmentVariables) {
-				for (let key in this._unoConfig.environmentVariables) {
-					if (this._unoConfig.environmentVariables.hasOwnProperty(key)) {
-						if (this._monoConfig.debugLevel) console.log(`Setting ${key}=${this._unoConfig.environmentVariables[key]}`);
-						this._monoConfig.environmentVariables[key] = this._unoConfig.environmentVariables[key];
-					}
-				}
-			}
-
 			this.timezonePreSetup();
 
 			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
@@ -205,8 +197,6 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private RuntimeReady() {
-			MonoRuntimeCompatibility.initialize();
-
 			this.configureGlobal();
 
 			this.initializeRequire();
@@ -218,7 +208,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			var thatGlobal = (<any>globalThis);
 
 			thatGlobal.config = this._unoConfig;
-			thatGlobal.MonoRuntime = MonoRuntimeCompatibility;
+
+			// The module instance is modified by the runtime, merge the changes
+			Object.assign(globalThis.Module, globalThis.Module, this._context.Module)
 
 			// global exports from emscripten that are not exposed
 			// as .NET is initialized in a module
@@ -229,11 +221,30 @@ namespace Uno.WebAssembly.Bootstrap {
 			thatGlobal.stringToUTF8 = (<any>this._context.Module).stringToUTF8;
 			thatGlobal.UTF8ToString = (<any>this._context.Module).UTF8ToString;
 			thatGlobal.UTF8ArrayToString = (<any>this._context.Module).UTF8ArrayToString;
+
+			thatGlobal.IDBFS = (<any>this._context.Module).IDBFS;
+			thatGlobal.FS = (<any>this._context.Module).FS;
+
+			// copy properties from this._unoConfig.emcc_exported_runtime_methods into globalThis
+			if (this._unoConfig.emcc_exported_runtime_methods) {
+				this._unoConfig.emcc_exported_runtime_methods.forEach((name: string) => {
+					thatGlobal[name] = (<any>this._context.Module)[name];
+				});
+			}
 		}
 
 		// This is called during emscripten `preInit` event, after we fetched config.
 		private configLoaded(config: MonoConfig) {
 			this._monoConfig = config;
+
+			if (this._unoConfig.environmentVariables) {
+				for (let key in this._unoConfig.environmentVariables) {
+					if (this._unoConfig.environmentVariables.hasOwnProperty(key)) {
+						if (this._monoConfig.debugLevel) console.log(`Setting ${key}=${this._unoConfig.environmentVariables[key]}`);
+						this._monoConfig.environmentVariables[key] = this._unoConfig.environmentVariables[key];
+					}
+				}
+			}
 
 			if (this._unoConfig.generate_aot_profile) {
 				this._monoConfig.aotProfilerOptions = <AOTProfilerOptions>{
@@ -257,13 +268,15 @@ namespace Uno.WebAssembly.Bootstrap {
 		public preInit() {
 			this.body = document.getElementById("uno-body");
 
-			this.initProgress();
+			// this.initProgress();
 		}
 
 		private async mainInit(): Promise<void> {
 			try {
 				this.attachDebuggerHotkey();
-				await this.setupHotReload();
+
+				console.error("UNO TODO HOT RELOAD IS DISABLED");
+				//await this.setupHotReload();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();

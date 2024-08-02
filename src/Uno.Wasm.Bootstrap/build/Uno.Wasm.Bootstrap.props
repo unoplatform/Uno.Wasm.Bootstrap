@@ -1,30 +1,37 @@
 <Project>
-	<PropertyGroup Condition="'$(WasmShellEnableMetadataUpdates)'=='true'">
-		<UseMonoRuntime>true</UseMonoRuntime>
 
-		<!--
-		  Needed by Visual Studio 2022 to detect that the
-		  app can do metadata updates through browserlink
-		-->
-		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-
-		<!-- Don't include browser-wasm in the output path -->
-		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-
-		<!-- Disable appbundle generation for the browser-wasm RID -->
+	<!-- Property overrides -->
+	<PropertyGroup>
+		<WasmNativeWorkload>false</WasmNativeWorkload>
+		
+		<WasmGenerateAppBundleTarget>_WasmGenerateAppBundle</WasmGenerateAppBundleTarget>
+		<IsBrowserWasmProject>true</IsBrowserWasmProject>
+		
 		<WasmGenerateAppBundle>false</WasmGenerateAppBundle>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		
+		<!-- only for non-blazor projects -->
+		<WasmEmitSymbolMap Condition="'$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' and '$(UsingMicrosoftNETSdkWebAssembly)' != 'true' and '$(WasmEmitSymbolMap)' == '' and '$(RunAOTCompilation)' != 'true'">true</WasmEmitSymbolMap>
+
+		<!--<WasmAppDir>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), 'bin', '$(Configuration)', '$(TargetFramework)', 'AppBundle'))</WasmAppDir>-->
+		<RunCommand>dotnet</RunCommand>
+		<!--<_AppBundleDirForRunCommand>$(WasmAppDir)</_AppBundleDirForRunCommand>
+		<_RuntimeConfigJsonPath>$([MSBuild]::NormalizePath($(WasmAppDir), '$(AssemblyName).runtimeconfig.json'))</_RuntimeConfigJsonPath>-->
 	</PropertyGroup>
 
-	<ItemGroup Condition=" '$(UsingUnoSdk)' != 'true' ">
-		<ProjectCapability Include="WebAssembly" />
-		<ProjectCapability Include="SupportsHotReload" />
+	<PropertyGroup>
+		<_WasmRuntimePackVersion>1.0</_WasmRuntimePackVersion>
+		<IsBrowserWasmProject>true</IsBrowserWasmProject>
+		<EnableDefaultWasmAssembliesToBundle>true</EnableDefaultWasmAssembliesToBundle>
 
-		<!-- Allow running/debugging from VS (see https://github.com/dotnet/runtime/pull/75986/files#diff-cace638214185dee3296b4f9f79db1f0187d338f393a75d9fb1fda13bf93d533R120) -->
-		<ProjectCapability Include="DotNetCoreWeb"/>
-	</ItemGroup>
+		<_MonoAotCrossCompilerPath>$([MSBuild]::NormalizePath($(MicrosoftNetCoreAppRuntimePackDir), 'native', 'cross', 'browser-wasm', 'mono-aot-cross'))</_MonoAotCrossCompilerPath>
+		<_MonoAotCrossCompilerPath Condition="$([MSBuild]::IsOSPlatform('WINDOWS'))">$(_MonoAotCrossCompilerPath).exe</_MonoAotCrossCompilerPath>
+	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- opt out of build acceleration https://aka.ms/vs-build-acceleration -->
-		<BuildAccelerationIncompatiblePackage Include="Uno.Wasm.Bootstrap" />
+		<MonoAotCrossCompiler Include="$(_MonoAotCrossCompilerPath)" RuntimeIdentifier="$(TargetOS)-$(TargetArchitecture.ToLowerInvariant())" />
+
+		<FrameworkReference Remove="Microsoft.AspNetCore.App" IsImplicitlyDefined="true" />
 	</ItemGroup>
+
 </Project>

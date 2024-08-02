@@ -8,10 +8,10 @@
 async function initializeExports() {
     if (Module.getAssemblyExports !== undefined) {
         try {
-            globalThis.samplesNetExports = await Module.getAssemblyExports("Uno.Wasm.SampleNet");
+            globalThis.samplesNetExports = await Module.getAssemblyExports("Uno.Wasm.SampleNet7");
         }
         catch (e) {
-            log.error(e);
+            console.error(e);
         }
     }
 }
@@ -27,12 +27,13 @@ function isRequireAvailable() {
 }
 
 function testCallback() {
+
     try {
         if (Module.getAssemblyExports !== undefined && samplesNetExports.hasOwnProperty('Uno')) {
             return samplesNetExports.Uno.Wasm.Sample.Exports.MyExportedMethod1();
         }
         else {
-            return Module.mono_bind_static_method("[Uno.Wasm.SampleNet] Uno.Wasm.Sample.Exports:MyExportedMethod2")();
+            return Module.mono_bind_static_method("[Uno.Wasm.SampleNet7] Uno.Wasm.Sample.Exports:MyExportedMethod2")();
         }
     }
     catch (e) {

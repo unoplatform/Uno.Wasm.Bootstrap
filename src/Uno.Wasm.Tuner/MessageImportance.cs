@@ -1,4 +1,0 @@
-﻿internal enum MessageImportance
-{
-	Low
-}
