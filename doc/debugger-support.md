@@ -44,7 +44,7 @@ For the time being, you will also need to make sure that mscorlib is disabled in
 ```
 
 .NET for WebAssembly now has integrated **preliminary** support for in-browser debugging. Refer to
-[this document for up-to-date information](https://github.com/mono/mono/tree/master/sdks/wasm#debugging) on how to set up the debugging.
+[this document for up-to-date information](https://github.com/dotnet/runtime/blob/main/docs/workflow/debugging/mono/wasm-debugging.md) on how to set up the debugging.
 
 ## How to use the Browser debugger
 
