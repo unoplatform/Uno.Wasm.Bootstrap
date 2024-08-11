@@ -28,7 +28,7 @@ items:
       href: features-splash-screen.md
     - name: Threading
       href: features-threading.md
-    - name: Deep linking
+    - name: Deep linking (routing)
       href: features-deep-linking.md
     - name: Pre-compression
       href: features-pre-compression.md
