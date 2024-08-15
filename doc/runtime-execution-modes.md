@@ -228,7 +228,7 @@ Requirements:
 If you have another distribution installed make sure that the 20.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
 Note that WSL 2 is considerably slower than WSL 1 for the bootstrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
 
-During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](/src/Uno.Wasm.Bootstrap/build/scripts/dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
+During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](xref:dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
 
 The emscripten installation is automatically done as part of the build.
 
