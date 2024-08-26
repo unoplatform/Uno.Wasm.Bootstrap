@@ -2355,8 +2355,8 @@ namespace Uno.Wasm.Bootstrap
 
 				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
-				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
-				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
+				// See https://stackoverflow.com/a/27951414
+				extraBuilder.AppendLine($"<meta name=\"mobile-web-app-capable\" content=\"yes\">");
 
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
