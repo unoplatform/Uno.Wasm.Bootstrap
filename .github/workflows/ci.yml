@@ -38,12 +38,19 @@ jobs:
           useConfigFile: true
           configFilePath: gitversion.yml
           
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1.7.2
-        with:
-          dotnet-version: '9.0.100-rc.2.24430.10'
-          dotnet-quality: 'daily'
-          include-prerelease: true
+      - run: |
+          wget https://dot.net/v1/dotnet-install.sh
+          chmod +x dotnet-install.sh
+          ./dotnet-install.sh -c 9.0 -q daily
+
+        name: Setup .NET
+
+      #- name: Setup .NET
+      #  uses: actions/setup-dotnet@v1.7.2
+      #  with:
+      #    dotnet-version: '9.0.100-rc.2.24430.10'
+      #    dotnet-quality: 'daily'
+      #    include-prerelease: true
     
       - run: |
           dotnet publish -c Release /p:DISABLE_CLIHOST_NET6=true src/Uno.Wasm.Bootstrap/Uno.Wasm.Bootstrap.csproj /bl:./artifacts-logs/build.binlog
