@@ -47,6 +47,7 @@ jobs:
         name: Setup .NET
           
       - run: |
+          cd src
           dotnet workload install wasm-tools
 
         name: Setup Workloads
