@@ -15,7 +15,7 @@ jobs:
     displayName: 'Use .NET SDK'
     inputs:
       packageType: sdk
-      version: 8.0.100
+      version: 9.0.100-rc.2.24430.10
       includePreviewVersions: true
 
   - template: gitversion.yml

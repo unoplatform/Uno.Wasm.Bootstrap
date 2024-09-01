@@ -1,9 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
-		<OutputType>Exe</OutputType>
-		<IsPackable>false</IsPackable>
+		<TargetFramework>net9.0</TargetFramework>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>
 		<!--<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>-->
@@ -13,6 +11,8 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<InvariantGlobalization>false</InvariantGlobalization>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -27,5 +27,9 @@
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Uno.Wasm.Sample.Server.Net7\Uno.Wasm.Sample.Server.Net7.csproj" />
 	</ItemGroup>
 </Project>
