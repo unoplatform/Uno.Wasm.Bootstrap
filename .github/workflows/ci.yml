@@ -43,9 +43,13 @@ jobs:
           chmod +x dotnet-install.sh
           ./dotnet-install.sh -c 9.0 -q daily
           echo ~/.dotnet >> $GITHUB_PATH
-          cat $GITHUB_PATH
 
         name: Setup .NET
+          
+      - run: |
+          dotnet workload install wasm-tools
+
+        name: Setup Workloads
 
       #- name: Setup .NET
       #  uses: actions/setup-dotnet@v1.7.2
