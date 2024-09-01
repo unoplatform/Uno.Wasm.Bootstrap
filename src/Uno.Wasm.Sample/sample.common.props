@@ -2,7 +2,6 @@
 <Project>
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
-	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
 
 	<ItemGroup>
 		<None Include="WasmScripts\**\*.js" />
@@ -20,7 +19,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<AssemblyName>Uno.Wasm.SampleNet</AssemblyName>
+		<AssemblyName>Uno.Wasm.SampleNet7</AssemblyName>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -29,50 +28,7 @@
 		<WasmShellMonoEnvironment Include="MONO_LOG_MASK" Value="gc" />
 	</ItemGroup>
 
-	<Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
-		<ItemGroup>
-			<_AdditionalFile1 Include="SomeContent01.txt" />
-			<_AdditionalFile1 Include="SomeContent02.txt" />
-			<_AdditionalFile1 Include=".editorconfig" />
-			<_AdditionalFile1 Include="nuget.config" />
-
-			<_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />
-		</ItemGroup>
-
-		<PropertyGroup>
-			<_monoConfigJson>$([System.IO.File]::ReadAllText('$(WasmShellOutputPackagePath)\mono-config.json'))</_monoConfigJson>
-			<_duplicateValidation>@(_duplicateValidationItems)</_duplicateValidation>
-		</PropertyGroup>
-
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) does not exist in $(WasmShellOutputPackagePath)" />
-		<Error Condition="exists('$(WasmShellOutputPackagePath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.tx should not exist in $(WasmShellOutputPackagePath)" />
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\..\web.config')" Text="web.config should exist in $(WasmShellOutputPackagePath)\.." />
-
-		<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) should not exist in $(WasmShellOutputDistPath)" />
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent03.txt')" Text="AdditionalContent/SomeContent03.txt does not exist in $(WasmShellOutputDistPath)" />
-		<Error Condition="exists('$(WasmShellOutputDistPath)\AdditionalContent\SomeContent04.txt')" Text="AdditionalContent/SomeContent04.txt should not exist in $(WasmShellOutputDistPath)" />
-
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\managed\fr\System.Web.Services.Description.resources.clr')"
-			   Text="managed\fr\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputPackagePath)" />
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\managed\pt-BR\System.Web.Services.Description.resources.clr')"
-			   Text="managed\pt-BR\System.Web.Services.Description.resources.clr does not exist in $(WasmShellOutputPackagePath)" />
-
-		<Error Condition="$(_monoConfigJson.Contains('System.IO.Pipes.dll'))"
-			   Text="mono-config.json is incorrectly filtered (System.IO.Pipes.dll)" />
-		<Error Condition="$(_monoConfigJson.Contains('Microsoft.CodeAnalysis.resources.dll')) and '$(WasmShellILLinkerEnabled)'=='true' and '$(WasmShellEnableLogProfiler)'!='true'"
-			   Text="mono-config.json is incorrectly filtered (Microsoft.CodeAnalysis.resources.dll)" />
-
-		<Error Condition="$(_duplicateValidation.Contains(';'))" Text="Duplicate System.Private.CoreLib.clr detected" />
-
-		<Message Importance="high" Text="Output dist validated" />
-	</Target>
-
 	<ItemGroup>
-		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>

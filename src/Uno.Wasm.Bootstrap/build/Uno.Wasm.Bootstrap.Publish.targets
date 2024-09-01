@@ -1,33 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Project>
 
-  <Target Name="_UnoWasmGetCopyToPublishDirectory"
-      BeforeTargets="GetCopyToPublishDirectoryItems"
-      Condition="'$(OutputType.ToLowerInvariant())'=='exe'">
-    
-    <ItemGroup>
-      <!-- net6+: Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
-      <_ResolvedCopyLocalPublishAssets Remove="@(_ResolvedCopyLocalPublishAssets)" />
-      <!-- Remove all wwwroot content as it is already included in the dist folder -->
-      <ContentWithTargetPath Remove="@(ContentWithTargetPath)" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <!-- net5: Don't want to publish the assemblies from the regular 'bin' dir. Instead we publish ones from 'dist'. -->
-      <ResolvedAssembliesToPublish Remove="@(ResolvedAssembliesToPublish)" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <_UnoWasmDistFiles Include="$(OutputPath)dist/**"/>
-      <_UnoWasmDist Include="@(_UnoWasmDistFiles)">
-        <TargetPath>$([System.String]::Copy('%(Identity)').Replace('$(OutputPath)dist$([System.IO.Path]::DirectorySeparatorChar)', 'wwwroot/'))</TargetPath>
-      </_UnoWasmDist>
-
-      <ContentWithTargetPath Include="@(_UnoWasmDist)">
-        <TargetPath>%(TargetPath)</TargetPath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </ContentWithTargetPath>
-    </ItemGroup>
-  </Target>
 
 </Project>

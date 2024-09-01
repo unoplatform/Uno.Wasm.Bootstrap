@@ -38,10 +38,10 @@ jobs:
           useConfigFile: true
           configFilePath: gitversion.yml
           
-      - name: Setup dotnet 8.0.100
+      - name: Setup .NET
         uses: actions/setup-dotnet@v1.7.2
         with:
-          dotnet-version: '8.0.100'
+          dotnet-version: '9.0.100-rc.2.24430.10'
           include-prerelease: true
     
       - run: |

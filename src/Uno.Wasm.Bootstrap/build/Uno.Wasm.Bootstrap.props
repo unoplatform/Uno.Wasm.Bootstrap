@@ -1,19 +1,4 @@
 <Project>
-	<PropertyGroup Condition="'$(WasmShellEnableMetadataUpdates)'=='true'">
-		<UseMonoRuntime>true</UseMonoRuntime>
-
-		<!--
-		  Needed by Visual Studio 2022 to detect that the
-		  app can do metadata updates through browserlink
-		-->
-		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-
-		<!-- Don't include browser-wasm in the output path -->
-		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-
-		<!-- Disable appbundle generation for the browser-wasm RID -->
-		<WasmGenerateAppBundle>false</WasmGenerateAppBundle>
-	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(UsingUnoSdk)' != 'true' ">
 		<ProjectCapability Include="WebAssembly" />
@@ -23,8 +8,4 @@
 		<ProjectCapability Include="DotNetCoreWeb"/>
 	</ItemGroup>
 
-	<ItemGroup>
-		<!-- opt out of build acceleration https://aka.ms/vs-build-acceleration -->
-		<BuildAccelerationIncompatiblePackage Include="Uno.Wasm.Bootstrap" />
-	</ItemGroup>
 </Project>

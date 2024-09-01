@@ -8,3 +8,4 @@ internal sealed class Interop
 		public static extern string InvokeJS(string str, out int exceptional_result);
 	}
 }
+
