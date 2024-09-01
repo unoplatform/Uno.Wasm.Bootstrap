@@ -42,6 +42,7 @@ jobs:
           wget https://dot.net/v1/dotnet-install.sh
           chmod +x dotnet-install.sh
           ./dotnet-install.sh -c 9.0 -q daily
+          echo ~/.dotnet >> $GITHUB_PATH
 
         name: Setup .NET
 
