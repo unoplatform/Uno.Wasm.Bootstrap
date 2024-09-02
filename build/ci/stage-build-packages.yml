@@ -11,6 +11,15 @@ jobs:
   - checkout: self
     clean: true
 
+  # - task: UseDotNet@2
+  #   displayName: 'Use .NET SDK'
+  #   inputs:
+  #     packageType: sdk
+  #     version: 9.0.100-rc.2.24430.10
+  #     includePreviewVersions: true
+
+  - template: gitversion.yml
+
   - pwsh: |
       $DotNetRoot = "$env:ProgramFiles\dotnet\"
       Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
@@ -23,16 +32,6 @@ jobs:
       dotnet workload install wasm-tools
 
     displayName: Setup Workloads
-
-  # - task: UseDotNet@2
-  #   displayName: 'Use .NET SDK'
-  #   inputs:
-  #     packageType: sdk
-  #     version: 9.0.100-rc.2.24430.10
-  #     includePreviewVersions: true
-
-  - template: gitversion.yml
-  - template: dotnet-install.yml
 
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2
