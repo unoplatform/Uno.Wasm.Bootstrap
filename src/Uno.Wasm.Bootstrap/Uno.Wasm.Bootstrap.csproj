@@ -174,7 +174,7 @@
 
 					if(!output.Contains(SHAVersion))
 					{
-						Log.LogMessage("Updating : " + FilePath);
+						Log.LogMessage("Updating " + FilePath + " with " + SHAVersion);
 						File.WriteAllText(FilePath, output.Replace("v0", SHAVersion));
 					}
 					else
