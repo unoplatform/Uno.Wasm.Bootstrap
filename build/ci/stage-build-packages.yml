@@ -14,7 +14,7 @@ jobs:
   - pwsh: |
       Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
       & ./build/installcli.ps1 -c 9.0 -q daily
-      echo "##vso[task.setvariable variable=PATH;]~/.dotnet;$env:PATH";
+      echo "##vso[task.setvariable variable=PATH;]$env:LOCALAPPDATA\Microsoft\dotnet;$env:PATH";
 
     displayName: Setup .NET
 
