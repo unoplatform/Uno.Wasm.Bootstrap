@@ -12,6 +12,7 @@ jobs:
     clean: true
 
   - pwsh: |
+      $DotNetRoot = "$env:ProgramFiles\dotnet\"
       Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
       & ./build/installcli.ps1 -c 9.0 -q daily -InstallDir $DotNetRoot
 
