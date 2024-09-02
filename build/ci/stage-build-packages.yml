@@ -12,9 +12,8 @@ jobs:
     clean: true
 
   - bash: |
-      wget https://dot.net/v1/dotnet-install.sh
-      chmod +x dotnet-install.sh
-      ./dotnet-install.sh -c 9.0 -q daily
+      Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
+      & ./build/installcli.ps1 -c 9.0 -q daily
       echo "##vso[task.setvariable variable=PATH;]$PATH;~/.dotnet";
 
     displayName: Setup .NET
@@ -25,12 +24,12 @@ jobs:
 
     displayName: Setup Workloads
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 9.0.100-rc.2.24430.10
-      includePreviewVersions: true
+  # - task: UseDotNet@2
+  #   displayName: 'Use .NET SDK'
+  #   inputs:
+  #     packageType: sdk
+  #     version: 9.0.100-rc.2.24430.10
+  #     includePreviewVersions: true
 
   - template: gitversion.yml
   - template: dotnet-install.yml
