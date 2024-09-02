@@ -60,11 +60,11 @@ jobs:
       #    include-prerelease: true
     
       - run: |
-          dotnet publish /nr:false -c Release /p:DISABLE_CLIHOST_NET6=true src/Uno.Wasm.Bootstrap/Uno.Wasm.Bootstrap.csproj /bl:./artifacts-logs/build.binlog
+          dotnet build -c Release src/Uno.Wasm.Bootstrap/Uno.Wasm.Bootstrap.csproj /bl:./artifacts-logs/build.binlog
         name: Build Bootstrap
     
       - run: |
-          dotnet publish /nr:false -c Release /p:DISABLE_CLIHOST_NET6=true src/Uno.Wasm.Sample.RayTracer/Uno.Wasm.Sample.RayTracer.csproj /bl:./artifacts-logs/build-sample.binlog
+          dotnet publish -c Release src/Uno.Wasm.Sample.RayTracer/Uno.Wasm.Sample.RayTracer.csproj /bl:./artifacts-logs/build-sample.binlog
         name: Build WebAssembly app
 
       - uses: actions/upload-artifact@v4
