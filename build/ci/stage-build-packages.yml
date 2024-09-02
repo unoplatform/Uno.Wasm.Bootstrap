@@ -55,7 +55,7 @@ jobs:
 
   - script: |
       cd $(build.sourcesdirectory)\src
-      dotnet msbuild Uno.Wasm.Bootstrap-paclages-only.slnf /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-packages.binlog
+      dotnet msbuild Uno.Wasm.Bootstrap-packages-only.slnf /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-packages.binlog
     displayName: Build packages
 
   - script: |
