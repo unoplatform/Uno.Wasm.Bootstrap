@@ -84,6 +84,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string? PWAManifestFile { get; set; }
 
+		public string EmscriptenVersion { get; set; } = "";
+
 		public string? ContentExtensionsToExclude { get; set; }
 
 		public string CSPConfiguration { get; set; } = "";
@@ -92,10 +94,15 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; }
 
+		public bool EnableThreads { get; set; }
+
 		public Microsoft.Build.Framework.ITaskItem[]? ReferencePath { get; set; }
 
 		[Microsoft.Build.Framework.Output]
 		public Microsoft.Build.Framework.ITaskItem[]? StaticWebContent { get; set; } = [];
+
+		[Microsoft.Build.Framework.Output]
+		public Microsoft.Build.Framework.ITaskItem[]? NativeFileReference { get; set; } = [];
 
 		public override bool Execute()
 		{
@@ -107,6 +114,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				BuildReferencedAssembliesList();
 				CopyContent();
+				GenerateBitcodeFiles();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GenerateIndexHtml();
@@ -644,6 +652,28 @@ namespace Uno.Wasm.Bootstrap
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta http-equiv=\"Content-Security-Policy\" content=\"{CSPConfiguration}\" />\r\n");
 			}
+		}
+
+		private void GenerateBitcodeFiles()
+		{
+			var bitcodeFiles = Assets
+				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
+				.Select(a => GetFilePaths(a).fullPath)
+				.ToArray()
+				?? [];
+
+			List<string> features = new()
+			{
+				EnableThreads ? "mt" : "st",
+				"simd"
+			};
+
+			Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
+
+			var list = BitcodeFilesSelector.Filter(new(EmscriptenVersion), features.ToArray(), bitcodeFiles);
+
+			NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
 		}
 
 		private string TryConvertLongPath(string path)

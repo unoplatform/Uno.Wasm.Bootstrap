@@ -37,7 +37,7 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="_UnoInjectPInvokeModules"
+	<Target Name="_UnoAdjustCompatibility"
 			BeforeTargets="ResolveRuntimePackAssets">
 		<ItemGroup>
 			<!-- PInvoke compat -->
@@ -47,6 +47,10 @@
 			<!-- Native files compat -->
 			<NativeFileReference Include="@(WasmShellNativeCompile)" />
 		</ItemGroup>
+
+		<PropertyGroup>
+			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
+		</PropertyGroup>
 	</Target>
 
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
@@ -83,6 +87,8 @@
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
+			EmscriptenVersion="@(EmscriptenVersion)"
+			EnableThreads="@(WasmEnableThreads)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
@@ -92,6 +98,7 @@
 			WebAppBasePath="$(WasmShellWebAppBasePath)"
 			>
 			<Output TaskParameter="StaticWebContent" ItemName="Content" />
+			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 		</ShellTask_v0>
 	</Target>
 
