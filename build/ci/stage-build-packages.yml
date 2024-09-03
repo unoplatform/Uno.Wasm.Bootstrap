@@ -19,19 +19,7 @@ jobs:
   #     includePreviewVersions: true
 
   - template: gitversion.yml
-
-  - pwsh: |
-      $DotNetRoot = "$env:ProgramFiles\dotnet\"
-      Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
-      & ./build/installcli.ps1 -c 9.0 -q daily -InstallDir $DotNetRoot
-
-    displayName: Setup .NET
-
-  - pwsh: |
-      cd src
-      dotnet workload install wasm-tools
-
-    displayName: Setup Workloads
+  - template: dotnet-install.yml
 
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2

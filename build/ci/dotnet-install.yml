@@ -3,8 +3,30 @@ parameters:
 
 steps:
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET 6 SDK'
-    inputs:
-      version: ${{ parameters.DotNetVersion }}
-      includePreviewVersions: true
+  # - task: UseDotNet@2
+  #   displayName: 'Use .NET 6 SDK'
+  #   inputs:
+  #     version: ${{ parameters.DotNetVersion }}
+  #     includePreviewVersions: true
+
+  - pwsh: |
+      $DotNetRoot = "$env:ProgramFiles\dotnet\"
+      Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
+      & ./build/installcli.ps1 -c 9.0 -q daily -InstallDir $DotNetRoot
+
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+    displayName: 'Setup .NET (Windows)'
+
+  - pwsh: |
+      wget https://dot.net/v1/dotnet-install.sh
+      chmod +x dotnet-install.sh
+      ./dotnet-install.sh -c 9.0 -q daily
+
+    condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
+    displayName: 'Setup .NET (Linux/macOS)'
+
+  - pwsh: |
+      cd src
+      dotnet workload install wasm-tools
+
+    displayName: Setup Workloads
