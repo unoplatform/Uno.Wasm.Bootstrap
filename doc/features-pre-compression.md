@@ -40,6 +40,6 @@ makes the serving of static files inefficient.
 
 The Bootstrapper tooling will generate two folders `_compressed_gz` and `_compressed_br` which contain compressed versions of the main files. A set IIS rewriting rules are used to redirect the queries to the requested pre-compressed files, with a preference for Brotli.
 
-When building an application, place [the following file](src/Uno.Wasm.SampleNet6/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
+When building an application, place [the following file](src/Uno.Wasm.SampleNet7/wwwroot/web.config) in the `wwwroot` folder to automatically enable the use of pre-compressed files.
 
 Note that the pre-compressed files are optional, and if the rewriting rules are removed or not used (because the site is served without IIS), the original files are available at their normal locations.
