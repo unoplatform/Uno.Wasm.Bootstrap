@@ -86,6 +86,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string EmscriptenVersion { get; set; } = "";
 
+		public Microsoft.Build.Framework.ITaskItem[]? EmccExportedRuntimeMethods { get; set; }
+
 		public string? ContentExtensionsToExclude { get; set; }
 
 		public string CSPConfiguration { get; set; } = "";
@@ -462,9 +464,9 @@ namespace Uno.Wasm.Bootstrap
 				//var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 				//var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
-				//var emccExportedRuntimeMethodsParams = string.Join(
-				//	",",
-				//	GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
+				var emccExportedRuntimeMethodsParams = string.Join(
+					",",
+					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
 
 				config.AppendLine($"let config = {{}};");
 				//config.AppendLine($"config.uno_remote_managedpath = \"{Path.GetFileName(_managedPath)}\";");
@@ -676,6 +678,10 @@ namespace Uno.Wasm.Bootstrap
 
 			NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
 		}
+
+		private IEnumerable<string> GetEmccExportedRuntimeMethods()
+			=> (EmccExportedRuntimeMethods ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
+
 
 		private string TryConvertLongPath(string path)
 			=> Environment.OSVersion.Platform == PlatformID.Win32NT

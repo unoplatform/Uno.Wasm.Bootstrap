@@ -110,6 +110,7 @@
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
+			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
