@@ -43,10 +43,15 @@
 		<Exec Command="mklink /J &quot;$(TMP)\emsdk&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
 		
 		<PropertyGroup>
-			<EmscriptenSdkToolsPath>$(TMP)\emsdk</EmscriptenSdkToolsPath>
+			<EmscriptenSdkToolsPath>$(TMP)\emsdk\</EmscriptenSdkToolsPath>
 			<EmscriptenUpstreamBinPath>$(EmscriptenSdkToolsPath)bin\</EmscriptenUpstreamBinPath>
 			<EmscriptenUpstreamEmscriptenPath>$(EmscriptenSdkToolsPath)emscripten\</EmscriptenUpstreamEmscriptenPath>
 		</PropertyGroup>
+		
+		<ItemGroup>
+			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamBinPath)" />
+			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamEmscriptenPath)" />
+		</ItemGroup>
 
 	</Target>
 
