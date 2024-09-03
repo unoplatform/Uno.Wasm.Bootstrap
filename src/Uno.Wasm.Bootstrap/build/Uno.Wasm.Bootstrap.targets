@@ -39,6 +39,7 @@
 
 	<Target Name="_UnoAdjustCompatibility"
 			BeforeTargets="ResolveStaticWebAssetsConfiguration">
+
 		<ItemGroup>
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
@@ -53,7 +54,7 @@
 
 		<PropertyGroup>
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-			<WasmBuildNative Condition=" @(_WasmPInvokeModules->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count())">true</WasmBuildNative>
+			<WasmBuildNative Condition=" @(WasmShellAdditionalPInvokeLibrary->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count())">true</WasmBuildNative>
 		</PropertyGroup>
 
 		<ItemGroup>
