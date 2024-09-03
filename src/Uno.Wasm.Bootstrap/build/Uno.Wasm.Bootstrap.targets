@@ -66,6 +66,8 @@
 				OR @(_NativeAssetsFiltered->Count()) > 0
 				OR @(EmccExportedRuntimeMethod->Count()) > 0
 				">true</WasmBuildNative>
+
+			<WasmCachePath>$(IntermediateOutputPath)/emsdk-cache</WasmCachePath>
 		</PropertyGroup>
 
 		<ItemGroup>
