@@ -41,8 +41,8 @@ jobs:
     displayName: Build bootstrap
 
   - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet6
-      dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet6-mac.binlog
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet7
+      dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet7-mac.binlog
     displayName: Build NetCore-Wasm Sample
 
   # Static linking test (net5) without the linker
