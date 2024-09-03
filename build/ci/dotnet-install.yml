@@ -24,7 +24,7 @@ steps:
       echo "[task.setvariable variable=PATH;]${env:PATH}:$env:HOME/.dotnet"
       echo "[task.setvariable variable=DOTNET_ROOT;]$env:HOME/.dotnet"
 
-      echo "##vso[task.setvariable variable=PATH;]${env:PATH}:$env:HOME/.dotnet"
+      echo "##vso[task.setvariable variable=PATH;]$env:HOME/.dotnet:${env:PATH}"
       echo "##vso[task.setvariable variable=DOTNET_ROOT;]$env:HOME/.dotnet"
 
     condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
