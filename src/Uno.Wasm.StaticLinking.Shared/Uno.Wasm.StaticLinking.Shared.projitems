@@ -32,7 +32,7 @@
     <None Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true' or '$(WasmShellEnableLogProfiler)'=='true'">
-    <Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
+    <Content Include="$(MSBuildThisFileDirectory)native/**/*.a" />
     <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
     <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
   </ItemGroup>
