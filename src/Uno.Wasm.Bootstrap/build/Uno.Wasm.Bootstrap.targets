@@ -28,10 +28,24 @@
 		<WasmBuildNative>true</WasmBuildNative>
 	</PropertyGroup>
 
-	<Target Name="_UnoInjectAOTSupport" BeforeTargets="ResolveRuntimePackAssets">
+	<Target Name="_UnoInjectAOTSupport"
+			BeforeTargets="ResolveRuntimePackAssets"
+			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
 		<ItemGroup>
 			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.AotProfiler.dll" CopyToOutputDirectory="Always" PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="_UnoInjectPInvokeModules"
+			BeforeTargets="ResolveRuntimePackAssets">
+		<ItemGroup>
+			<!-- PInvoke compat -->
+			<_WasmPInvokeModules Include="__Native" />
+			<_WasmPInvokeModules Include="@(WasmShellAdditionalPInvokeLibrary)" />
+
+			<!-- Native files compat -->
+			<NativeFileReference Include="@(WasmShellNativeCompile)" />
 		</ItemGroup>
 	</Target>
 
