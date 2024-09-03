@@ -25,13 +25,6 @@ jobs:
   - template: gitversion.yml
   - template: dotnet-install.yml
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 8.0.100
-      includePreviewVersions: true
-
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
       dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
