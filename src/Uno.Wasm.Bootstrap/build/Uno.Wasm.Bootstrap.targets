@@ -83,6 +83,7 @@
 		<ShellTask_v0
 			AssemblyName="$(AssemblyName)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
+			Assets="@(Content)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
