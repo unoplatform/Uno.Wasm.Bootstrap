@@ -37,7 +37,7 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="_WorkaroundEmscriptenPathLength" Condition=" '$(OS)' == 'Windows_NT' ">
+	<Target Name="_WorkaroundEmscriptenPathLength" Condition=" '$(OS)' == 'Windows_NT' " BeforeTargets="_SetupEmscripten">
 
 		<!-- Create a hard link for $(MSBuildThisFileDirectory)..\tools\ to $(TMP)\emsdk -->
 		<Exec Command="mklink /J &quot;$(TMP)\emsdk&quot; &quot;$(EmscriptenSdkToolsPath)&quot;" ContinueOnError="true" />
