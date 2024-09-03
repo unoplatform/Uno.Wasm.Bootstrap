@@ -67,7 +67,7 @@
 				OR @(EmccExportedRuntimeMethod->Count()) > 0
 				">true</WasmBuildNative>
 
-			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache')</WasmCachePath>
+			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
 		</PropertyGroup>
 
 		<ItemGroup>
