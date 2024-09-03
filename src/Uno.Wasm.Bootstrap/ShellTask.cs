@@ -112,6 +112,7 @@ namespace Uno.Wasm.Bootstrap
 
 			try
 			{
+				ParseProperties();
 				BuildReferencedAssembliesList();
 				CopyContent();
 				GenerateBitcodeFiles();
