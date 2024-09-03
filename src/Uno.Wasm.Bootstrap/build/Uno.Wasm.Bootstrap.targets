@@ -68,6 +68,12 @@
 				">true</WasmBuildNative>
 
 			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
+
+			<!-- Adjust the cache on windows if the root folder is not the same -->
+			<WasmCachePath Condition="
+				'$(OS)' == 'Windows_NT'
+				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
+				">$([System.IO.Path]::GetTempPath())/emsdk-cache</WasmCachePath>
 		</PropertyGroup>
 
 		<ItemGroup>
