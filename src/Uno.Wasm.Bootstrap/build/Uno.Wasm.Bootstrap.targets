@@ -54,7 +54,7 @@
 
 		<PropertyGroup>
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-			<WasmBuildNative Condition=" @(WasmShellAdditionalPInvokeLibrary->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count())">true</WasmBuildNative>
+			<WasmBuildNative Condition=" @(WasmShellAdditionalPInvokeLibrary->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count()) > 0">true</WasmBuildNative>
 		</PropertyGroup>
 
 		<ItemGroup>
