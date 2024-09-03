@@ -68,13 +68,11 @@
 				">true</WasmBuildNative>
 
 			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
-
-			<!-- Adjust the cache on windows if the root folder is not the same -->
-			<WasmCachePath Condition="
-				'$(OS)' == 'Windows_NT'
-				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
-				">C:\emsdk-cache</WasmCachePath>
 		</PropertyGroup>
+
+		<Warning
+		  Condition="'$(registry:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem@LongPathsEnabled)'!='1' and '$(UnoUIDisableLongPathWarning)'==''"
+		  Text="Windows LongPath support is not enabled, you may experience build errors. You can avoid these by enabling LongPath with &quot;reg ADD HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1&quot;, or disable this warning by setting UnoUIDisableLongPathWarning to true."/>
 
 		<ItemGroup>
 			<_NativeAssetsFiltered Remove="@(_NativeAssetsFiltered)" />
