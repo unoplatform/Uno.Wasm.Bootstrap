@@ -21,6 +21,7 @@ steps:
       wget https://dot.net/v1/dotnet-install.sh
       chmod +x dotnet-install.sh
       ./dotnet-install.sh -c 9.0 -q daily
+      echo "##vso[task.setvariable variable=DOTNET_ROOT;]$HOME/.dotnet"
 
     condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
     displayName: 'Setup .NET (Linux/macOS)'
