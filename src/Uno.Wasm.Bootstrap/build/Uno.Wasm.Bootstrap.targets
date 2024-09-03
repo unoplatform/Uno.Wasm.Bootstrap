@@ -38,7 +38,7 @@
 	</Target>
 
 	<Target Name="_UnoAdjustCompatibility"
-			BeforeTargets="BeforeBuild">
+			BeforeTargets="ResolveStaticWebAssetsConfiguration">
 		<ItemGroup>
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
