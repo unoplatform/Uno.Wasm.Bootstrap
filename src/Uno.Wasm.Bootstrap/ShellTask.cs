@@ -50,7 +50,7 @@ namespace Uno.Wasm.Bootstrap
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string DeployMetadataName = "UnoDeploy";
 
-		private static readonly string _wwwwroot = "wwwroot" + Path.DirectorySeparatorChar;
+		private static readonly string _wwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
 		private ShellMode _shellMode;
 		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
@@ -193,7 +193,7 @@ namespace Uno.Wasm.Bootstrap
 					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
 
 					// Files in "wwwroot" folder will get deployed to root by default
-					var defaultDeployMode = relativePath.Contains(_wwwwroot) ? DeployMode.None : DeployMode.Package;
+					var defaultDeployMode = relativePath.Contains(_wwwroot) ? DeployMode.None : DeployMode.Package;
 					var deployModeSource = "Default";
 
 					var matchedExtension = _contentExtensionsToExclude
@@ -204,7 +204,7 @@ namespace Uno.Wasm.Bootstrap
 						deployModeSource = "Excluded extension";
 					}
 
-					relativePath = PathHelper.FixupPath(relativePath).Replace(_wwwwroot, "");
+					relativePath = PathHelper.FixupPath(relativePath).Replace(_wwwroot, "");
 
 					if (relativePath.StartsWith(WasmScriptsFolder))
 					{
