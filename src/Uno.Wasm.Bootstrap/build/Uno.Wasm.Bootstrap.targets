@@ -38,7 +38,7 @@
 	</Target>
 
 	<Target Name="_UnoAdjustCompatibility"
-			BeforeTargets="ResolveRuntimePackAssets">
+			BeforeTargets="BeforeBuild">
 		<ItemGroup>
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
@@ -47,11 +47,18 @@
 
 			<!-- Native files compat -->
 			<NativeFileReference Include="@(WasmShellNativeCompile)" />
+
+			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
 		</ItemGroup>
 
 		<PropertyGroup>
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
+			<WasmBuildNative Condition=" @(_WasmPInvokeModules->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count())">true</WasmBuildNative>
 		</PropertyGroup>
+
+		<ItemGroup>
+			<_NativeAssetsFiltered Remove="@(_NativeAssetsFiltered)" />
+		</ItemGroup>
 	</Target>
 
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
