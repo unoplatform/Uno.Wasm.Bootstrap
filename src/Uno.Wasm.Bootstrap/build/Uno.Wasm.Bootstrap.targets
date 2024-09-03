@@ -37,6 +37,19 @@
 		</ItemGroup>
 	</Target>
 
+	<Target Name="_WorkaroundEmscriptenPathLength" Condition=" '$(OS)' == 'Windows_NT' ">
+
+		<!-- Create a hard link for $(MSBuildThisFileDirectory)..\tools\ to $(TMP)\emsdk -->
+		<Exec Command="mklink /J &quot;$(TMP)\emsdk&quot; &quot;$(EmscriptenSdkToolsPath)&quot;" ContinueOnError="true" />
+		
+		<PropertyGroup>
+			<EmscriptenSdkToolsPath>$(TMP)\emsdk</EmscriptenSdkToolsPath>
+			<EmscriptenUpstreamBinPath>$(EmscriptenSdkToolsPath)bin\</EmscriptenUpstreamBinPath>
+			<EmscriptenUpstreamEmscriptenPath>$(EmscriptenSdkToolsPath)emscripten\</EmscriptenUpstreamEmscriptenPath>
+		</PropertyGroup>
+
+	</Target>
+
 	<Target Name="_UnoAdjustCompatibility"
 			BeforeTargets="ResolveStaticWebAssetsConfiguration">
 
