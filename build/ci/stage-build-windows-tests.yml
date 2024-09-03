@@ -14,6 +14,7 @@ jobs:
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
     NETCORE_VERSION: ${{ parameters.netcore_version }}
+    EMCC_DEBUG: 1
 
   steps:
   - checkout: self
@@ -28,27 +29,20 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
-    displayName: Build bootstrap
-
-  - pwsh: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet msbuild /r /p:Configuration=Release 
     displayName: Build bootstrap
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet7
-      $customMonoTempPath="$env:temp\with a space\test"
-      mkdir $customMonoTempPath
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish /p:Configuration=Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-temp-with-space.binlog
+      dotnet clean -c Release 
+      dotnet publish /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
   # Standalone Server publish
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleServerNet7-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleServerNet7-win.binlog
     displayName: Build Standalone Server publish (net5)
 
   - pwsh: |
@@ -69,13 +63,13 @@ jobs:
       $customMonoTempPath="$env:temp\with a space\test2"
       mkdir $customMonoTempPath
       dotnet clean -c Release
-      dotnet publish -c Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath" /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
+      dotnet publish -c Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath"  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build Raytracer Sample
 
   - pwsh: |
@@ -91,8 +85,8 @@ jobs:
   # Static linking test (net5) without the linker
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
     displayName: Build StaticLinking.Interpreter Sample (net5 without linker)
 
   # Static linking test (net5) emsdk path with space test
@@ -100,15 +94,15 @@ jobs:
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
       mkdir "emsdk test"
       $env:WASMSHELL_WSLEMSDK="$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/emsdk test"
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-emsdk-space.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-emsdk-space.binlog
     displayName: Build StaticLinking.Interpreter Sample (emsdk path with space test)
 
   # Static linking test with obsfucation enabled
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /bl:$(build.artifactstagingdirectory)/SampleNet6-nolinker-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /bl:$(build.artifactstagingdirectory)/SampleNet6-nolinker-win.binlog
     displayName: Build StaticLinking.StaticLinking.Aot.Net6 Sample (net6 with obfuscation)
 
   - pwsh: |
@@ -124,8 +118,8 @@ jobs:
   # Static linking test with file name obsfucation enabled
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-win.binlog
     displayName: Build StaticLinking.StaticLinking.Aot.Net5 Sample (net5 with file name obfuscation)
 
   - pwsh: |
@@ -151,8 +145,8 @@ jobs:
   # Static linking test with dual obfuscation enabled
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet6-dual-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /p:WasmShellObfuscateAssemblies=true /p:WasmShellAssembliesFileNameObfuscationMode=NoDots /bl:$(build.artifactstagingdirectory)/SampleNet6-dual-win.binlog
     displayName: Build StaticLinking.Aot.Net6 Sample (dual obfuscation)
 
   - pwsh: |
@@ -168,8 +162,8 @@ jobs:
   # Static linking test (net5)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet5-win.binlog
     displayName: Build StaticLinking.Aot Sample (net5)
 
   - pwsh: |
@@ -185,8 +179,8 @@ jobs:
   # Static linking test (net7)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win.binlog
     displayName: Build StaticLinking.Aot Sample (net7)
 
   - pwsh: |
@@ -207,15 +201,15 @@ jobs:
       rm $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/obj -r -force
 
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-nuget-space.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-nuget-space.binlog
     displayName: Build StaticLinking with nuget space
     
     # Embedded mode test (net6)
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Embedded
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleEmbedded-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleEmbedded-win.binlog
     displayName: Build StaticLinking.Embedded Sample (net6)
 
   - pwsh: |
@@ -231,15 +225,15 @@ jobs:
   # Thread test Debug build for emscripten LTO issue
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
-      dotnet clean -c Debug /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Debug /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-debug.binlog
+      dotnet clean -c Debug 
+      dotnet publish -c Debug /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-debug.binlog
     displayName: Build Threading Sample
 
   # Thread test
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-release.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win-release.binlog
     displayName: Build Threading Sample
 
   - pwsh: |
@@ -255,8 +249,8 @@ jobs:
   # Thread AOT test
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.threads-win.binlog
     displayName: Build Threading AOT Sample
 
   - pwsh: |
