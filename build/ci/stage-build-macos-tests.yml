@@ -16,13 +16,6 @@ jobs:
   - template: gitversion.yml
   - template: dotnet-install.yml
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 8.0.100
-      includePreviewVersions: true
-
   - bash: brew install ninja
     displayName: 'Install Ninja'
 

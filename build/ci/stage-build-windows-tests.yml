@@ -22,13 +22,6 @@ jobs:
   - template: gitversion.yml
   - template: dotnet-install.yml
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 8.0.100
-      includePreviewVersions: true
-
   - pwsh: |
         attrib +r "$(build.sourcesdirectory)/src" /s /d
     displayName: Set all repo files as readonly

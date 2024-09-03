@@ -54,4 +54,3 @@ stages:
       parameters:
         jobName: macOS_Tests
         vmImage: macOS-12
-    - template: build/ci/stage-build-wsl-tests.yml
