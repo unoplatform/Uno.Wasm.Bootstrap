@@ -42,6 +42,7 @@
 		<ItemGroup>
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
+			<_WasmPInvokeModules Include="__Internal" />
 			<_WasmPInvokeModules Include="@(WasmShellAdditionalPInvokeLibrary)" />
 
 			<!-- Native files compat -->
