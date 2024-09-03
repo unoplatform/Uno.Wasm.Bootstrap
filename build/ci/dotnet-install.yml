@@ -32,6 +32,8 @@ steps:
 
   - pwsh: |
       cd src
+      dotnet --version
+      dotnet --list-sdks
       dotnet workload install wasm-tools
 
     displayName: Setup Workloads
