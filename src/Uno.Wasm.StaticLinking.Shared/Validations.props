@@ -4,6 +4,7 @@
 	<PropertyGroup>
 		<!-- Used for validating file compression -->
 		<WasmShellCompressionLayoutMode>InPlace</WasmShellCompressionLayoutMode>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

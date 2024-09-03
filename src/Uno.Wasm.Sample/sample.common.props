@@ -20,6 +20,7 @@
 
 	<PropertyGroup>
 		<AssemblyName>Uno.Wasm.SampleNet7</AssemblyName>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
