@@ -1,13 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
-	<ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true'">
+	<ItemGroup Condition="'$(WasmBuildNative)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true'">
 		<Content Include="$(MSBuildThisFileDirectory)native/**/*.bc" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
 	</ItemGroup>
+	
 	<ItemGroup>
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
 	</ItemGroup>
+	
 	<ItemGroup>
 		<WasmShellEmccExportedRuntimeMethod Include="GL" />
 
@@ -16,7 +18,7 @@
 		<WasmShellExtraEmccFlags Include="-s USE_CLOSURE_COMPILER=1" />
 	</ItemGroup>
 	
-	<ItemGroup Condition="'$(UseAOT)'=='true'">
+	<ItemGroup Condition="'$(WasmBuildNative)'=='true'">
 		<WasmShellAdditionalPInvokeLibrary Include="libc" />
 		<WasmShellAdditionalPInvokeLibrary Include="libc.so" />
 	</ItemGroup>
