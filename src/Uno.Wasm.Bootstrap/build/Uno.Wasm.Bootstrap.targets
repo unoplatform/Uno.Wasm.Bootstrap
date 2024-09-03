@@ -73,7 +73,7 @@
 			<WasmCachePath Condition="
 				'$(OS)' == 'Windows_NT'
 				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
-				">$([System.IO.Path]::GetTempPath())emsdk-cache</WasmCachePath>
+				">$(TEMP)\emsdk-cache</WasmCachePath>
 		</PropertyGroup>
 
 		<ItemGroup>
