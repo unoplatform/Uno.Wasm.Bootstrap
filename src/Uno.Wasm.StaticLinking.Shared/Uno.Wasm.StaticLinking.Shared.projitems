@@ -31,16 +31,6 @@
     <None Include="$(MSBuildThisFileDirectory)test2.cpp" />
     <None Include="$(MSBuildThisFileDirectory)test.cpp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true' or '$(WasmShellEnableLogProfiler)'=='true'">
-    <Content Include="$(MSBuildThisFileDirectory)native/**/*.a" />
-    <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
-    <WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <WasmShellEmccExportedRuntimeMethod Include="GL" />
-    <WasmShellExtraEmccFlags Include="-s LEGACY_GL_EMULATION=1" />
-    <WasmShellExtraEmccFlags Include="-s USE_CLOSURE_COMPILER=1" />
-  </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)native\" />
   </ItemGroup>
