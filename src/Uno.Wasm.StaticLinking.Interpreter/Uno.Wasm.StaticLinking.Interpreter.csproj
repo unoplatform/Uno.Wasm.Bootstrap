@@ -8,7 +8,7 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 
-		<WasmBuildNative>true</WasmBuildNative>
+		<UseAOT>true</UseAOT>
 		<WasmShellMonoRuntimeExecutionMode>Interpreter</WasmShellMonoRuntimeExecutionMode>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
