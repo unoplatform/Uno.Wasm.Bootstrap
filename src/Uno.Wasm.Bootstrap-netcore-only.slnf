@@ -11,7 +11,6 @@
       "Uno.Wasm.Sample.RayTracer\\Uno.Wasm.Sample.RayTracer.csproj",
       "Uno.Wasm.Sample.Server.Net7\\Uno.Wasm.Sample.Server.Net7.csproj",
       "Uno.Wasm.SampleNet6.Aot\\Uno.Wasm.SampleNet6.Aot.csproj",
-      "Uno.Wasm.SampleNet6\\Uno.Wasm.SampleNet6.csproj",
       "Uno.Wasm.SampleNet7\\Uno.Wasm.SampleNet7.csproj",
       "Uno.Wasm.Sample\\Uno.Wasm.Sample.shproj",
       "Uno.Wasm.Static Linking\\Uno.Wasm.StaticLinking.csproj",

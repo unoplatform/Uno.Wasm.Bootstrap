@@ -74,8 +74,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Bootstrap.UnitTest
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Uno.Wasm.Sample", "Uno.Wasm.Sample\Uno.Wasm.Sample.shproj", "{ADEFF1C4-A1B5-4FE8-9EB0-A1D81B65B995}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.SampleNet6", "Uno.Wasm.SampleNet6\Uno.Wasm.SampleNet6.csproj", "{2477F160-939B-4B9F-B9CD-9100FCD24E34}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Embedded", "Embedded", "{DF5C402A-5CB7-4692-BDB3-93F734E214FA}"
 	ProjectSection(SolutionItems) = preProject
 		Uno.Wasm.SampleNet7\web.config = Uno.Wasm.SampleNet7\web.config
@@ -111,12 +109,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.VersionChecker", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Root", "_Root", "{70AAFC96-05F5-43A3-959A-95FB32CDE202}"
 	ProjectSection(SolutionItems) = preProject
-		..\.vsts-ci-linux.yml = ..\.vsts-ci-linux.yml
-		..\.vsts-ci-macos.yml = ..\.vsts-ci-macos.yml
-		..\.vsts-ci-windows-tests.yml = ..\.vsts-ci-windows-tests.yml
-		..\.vsts-ci-wsl-tests.yml = ..\.vsts-ci-wsl-tests.yml
-		..\.vsts-ci.yml = ..\.vsts-ci.yml
+		..\build\ci\.markdownlint.json = ..\build\ci\.markdownlint.json
+		..\build\ci\cspell.json = ..\build\ci\cspell.json
+		..\build\ci\dotnet-install.yml = ..\build\ci\dotnet-install.yml
+		..\build\ci\gitversion.yml = ..\build\ci\gitversion.yml
 		..\Readme.md = ..\Readme.md
+		..\build\ci\stage-build-linux-tests.yml = ..\build\ci\stage-build-linux-tests.yml
+		..\build\ci\stage-build-macos-tests.yml = ..\build\ci\stage-build-macos-tests.yml
+		..\build\ci\stage-build-packages.yml = ..\build\ci\stage-build-packages.yml
+		..\build\ci\stage-build-windows-tests.yml = ..\build\ci\stage-build-windows-tests.yml
+		..\build\ci\stage-determine-changes.yml = ..\build\ci\stage-determine-changes.yml
+		..\build\ci\stage-docs-validations.yml = ..\build\ci\stage-docs-validations.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.Wasm.Tests.AbsoluteIntermediate", "Uno.Wasm.Tests.AbsoluteIntermediate\Uno.Wasm.Tests.AbsoluteIntermediate.csproj", "{6584CC1B-2628-4872-851A-E85C0E572D39}"
@@ -234,10 +237,6 @@ Global
 		{E1458920-4A5A-4D54-882D-304A46359BEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1458920-4A5A-4D54-882D-304A46359BEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1458920-4A5A-4D54-882D-304A46359BEC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2477F160-939B-4B9F-B9CD-9100FCD24E34}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -336,7 +335,6 @@ Global
 		{B27FC2DE-70CA-4287-9FC1-D108F115D8AA} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{B474457D-DBCD-4795-A2AB-EC3F09E53198} = {B27FC2DE-70CA-4287-9FC1-D108F115D8AA}
 		{ADEFF1C4-A1B5-4FE8-9EB0-A1D81B65B995} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
-		{2477F160-939B-4B9F-B9CD-9100FCD24E34} = {00F3A4D2-5534-44AF-B655-6209355E32A9}
 		{DF5C402A-5CB7-4692-BDB3-93F734E214FA} = {35E84E5F-1C9B-4168-8333-216B456C12DF}
 		{EF3A95B2-32EE-4CAA-8235-B2AD6C540389} = {DF5C402A-5CB7-4692-BDB3-93F734E214FA}
 		{B401928C-600E-4450-ADFF-20EADC7CE3EC} = {DF5C402A-5CB7-4692-BDB3-93F734E214FA}
@@ -362,7 +360,6 @@ Global
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
 		Uno.Wasm.Threads.Shared\Uno.Wasm.Threads.Shared.projitems*{1ca3aa29-a8fc-4cb3-8803-5bd739f2bec7}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{237820d2-9ebd-4e55-b5c3-9b50e628b8d3}*SharedItemsImports = 13
-		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{2477f160-939b-4b9f-b9cd-9100fcd24e34}*SharedItemsImports = 5
 		Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems*{286b5778-da8b-4965-9fc6-bc6f4258e155}*SharedItemsImports = 13
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{2df55561-12dd-4325-bdbf-f42ac72fc284}*SharedItemsImports = 5
