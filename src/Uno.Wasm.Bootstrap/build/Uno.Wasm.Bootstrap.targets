@@ -87,7 +87,7 @@
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
-			EmscriptenVersion="@(EmscriptenVersion)"
+			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
