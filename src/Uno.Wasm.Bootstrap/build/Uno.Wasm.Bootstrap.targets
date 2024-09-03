@@ -52,6 +52,7 @@
 		</PropertyGroup>
 		
 		<ItemGroup>
+			<EmscriptenPrependPATH Remove="@(EmscriptenPrependPATH)" />
 			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamBinPath)" />
 			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamEmscriptenPath)" />
 		</ItemGroup>
