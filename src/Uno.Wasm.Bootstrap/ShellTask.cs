@@ -45,7 +45,7 @@ using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
-	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
+	public partial class ShellTask_v0 : Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string DeployMetadataName = "UnoDeploy";
@@ -61,36 +61,45 @@ namespace Uno.Wasm.Bootstrap
 		private string[]? _additionalStyles;
 		private string _intermediateAssetsPath = "";
 		private string[]? _contentExtensionsToExclude;
+		private RuntimeExecutionMode _runtimeExecutionMode;
 
 		[Required]
 		public string AssemblyName { get; private set; } = "";
 
-		[Microsoft.Build.Framework.Required]
+		[Required]
 		public string IndexHtmlPath { get; set; } = "";
 
-		[Microsoft.Build.Framework.Required]
+		[Required]
 		public string Assembly { get; set; } = "";
 
-		[Microsoft.Build.Framework.Required]
+		[Required]
 		public string CurrentProjectPath { get; set; } = "";
 
-		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
+		public ITaskItem[]? Assets { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[] EmbeddedResources { get; set; } = [];
+		public ITaskItem[] EmbeddedResources { get; set; } = [];
 
-		[Microsoft.Build.Framework.Required]
+		[Required]
 		public string IntermediateOutputPath { get; set; } = "";
-		public Microsoft.Build.Framework.ITaskItem[]? MonoEnvironment { get; set; }
+		public ITaskItem[]? MonoEnvironment { get; set; }
 
 		public string? PWAManifestFile { get; set; }
 
 		public string EmscriptenVersion { get; set; } = "";
 
-		public Microsoft.Build.Framework.ITaskItem[]? EmccExportedRuntimeMethod { get; set; }
+		public ITaskItem[]? EmccExportedRuntimeMethod { get; set; }
 
 		public string? ContentExtensionsToExclude { get; set; }
 
 		public string CSPConfiguration { get; set; } = "";
+
+		public string AotProfile { get; set; } = "";
+
+		public bool RunAOTCompilation { get; set; }
+
+		public bool WasmBuildNative { get; set; }
+
+		public bool PublishTrimmed { get; set; }
 
 		public string WebAppBasePath { get; set; } = "./";
 
@@ -98,13 +107,13 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableThreads { get; set; }
 
-		public Microsoft.Build.Framework.ITaskItem[]? ReferencePath { get; set; }
+		public ITaskItem[]? ReferencePath { get; set; }
 
-		[Microsoft.Build.Framework.Output]
-		public Microsoft.Build.Framework.ITaskItem[]? StaticWebContent { get; set; } = [];
+		[Output]
+		public ITaskItem[]? StaticWebContent { get; set; } = [];
 
-		[Microsoft.Build.Framework.Output]
-		public Microsoft.Build.Framework.ITaskItem[]? NativeFileReference { get; set; } = [];
+		[Output]
+		public ITaskItem[]? NativeFileReference { get; set; } = [];
 
 		public override bool Execute()
 		{
@@ -133,6 +142,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private void ParseProperties()
 		{
+			_runtimeExecutionMode
+				= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
+
 			_contentExtensionsToExclude =
 				ContentExtensionsToExclude
 					?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
@@ -483,7 +495,7 @@ namespace Uno.Wasm.Bootstrap
 				//config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				//config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
-				//config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				//if (ObfuscateAssemblies)
 				//{
@@ -507,11 +519,11 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				//var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+				var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", PublishTrimmed.ToString());
 				//AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
 				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
 				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
@@ -682,6 +694,8 @@ namespace Uno.Wasm.Bootstrap
 		private IEnumerable<string> GetEmccExportedRuntimeMethods()
 			=> (EmccExportedRuntimeMethod ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
 
+		private bool UseAotProfile
+			=> !string.IsNullOrEmpty(AotProfile) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
 		private string TryConvertLongPath(string path)
 			=> Environment.OSVersion.Platform == PlatformID.Win32NT

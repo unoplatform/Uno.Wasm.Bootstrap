@@ -103,6 +103,7 @@
 		</ItemGroup>
 
 		<ShellTask_v0
+			AotProfile="$(WasmAotProfilePath)"
 			AssemblyName="$(AssemblyName)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			Assets="@(Content)"
@@ -117,9 +118,12 @@
 			IntermediateOutputPath="$(IntermediateOutputPath)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
+			PublishTrimmed="$(PublishTrimmed)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
+			RunAOTCompilation="$(RunAOTCompilation)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)"
+			WasmBuildNative="$(WasmBuildNative)"
 			>
 			<Output TaskParameter="StaticWebContent" ItemName="Content" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
