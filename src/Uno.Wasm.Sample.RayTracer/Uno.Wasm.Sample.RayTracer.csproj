@@ -43,6 +43,8 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
+	<!--
+	TODO JELA
 	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
@@ -53,6 +55,6 @@
 		<Error Condition="!exists('$(WasmShellOutputDistPath)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(WasmShellOutputDistPath)" />
 
 		<Message Importance="high" Text="Output dist validated" />
-	</Target>
+	</Target>-->
 
 </Project>

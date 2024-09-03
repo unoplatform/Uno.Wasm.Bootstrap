@@ -7,6 +7,7 @@
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<WasmShellEnableThreads>true</WasmShellEnableThreads>
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 	</PropertyGroup>
