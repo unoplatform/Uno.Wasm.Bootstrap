@@ -5,6 +5,7 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<AssemblyName>Uno.Wasm.Threads</AssemblyName>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<WasmShellEnableThreads>true</WasmShellEnableThreads>

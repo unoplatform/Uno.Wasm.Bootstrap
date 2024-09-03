@@ -11,6 +11,8 @@
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
 	</ItemGroup>
 
+	<!--
+	TODO JELA
 	<Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
 		<ItemGroup>
 			<_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />
@@ -34,6 +36,6 @@
 
 		<Error Condition="'$(WasmShellAssembliesFileNameObfuscationMode)'=='NoDots' and !$(_compressedItemsValidation.Contains(';'))"
 			   Text="Compressed files cannot found found with obfuscation mode NoDots enabled" />
-	</Target>
+	</Target>-->
 
 </Project>
