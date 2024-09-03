@@ -86,7 +86,7 @@ namespace Uno.Wasm.Bootstrap
 
 		public string EmscriptenVersion { get; set; } = "";
 
-		public Microsoft.Build.Framework.ITaskItem[]? EmccExportedRuntimeMethods { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? EmccExportedRuntimeMethod { get; set; }
 
 		public string? ContentExtensionsToExclude { get; set; }
 
@@ -680,7 +680,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		private IEnumerable<string> GetEmccExportedRuntimeMethods()
-			=> (EmccExportedRuntimeMethods ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
+			=> (EmccExportedRuntimeMethod ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
 
 
 		private string TryConvertLongPath(string path)
