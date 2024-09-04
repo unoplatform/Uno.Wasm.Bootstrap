@@ -112,6 +112,23 @@
 		</ProjectReference>
 	</ItemGroup>
 
+	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
+		<ItemGroup>
+			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
+			<Content Include="./tools/support/Uno.Wasm.LogProfiler.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
+			<Content Include="./tools/support/Uno.Wasm.MetadataUpdater.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
+		</ItemGroup>
+	</Target>
+	
 	<!-- Run the typescript compiler before resources resolution -->
 	<Target Name="GenerateJavascriptBeforeCompile" BeforeTargets="ResolveProjectReferences" DependsOnTargets="CompileTypeScriptWithTSConfig">
 
