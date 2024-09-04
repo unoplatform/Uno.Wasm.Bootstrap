@@ -102,6 +102,8 @@
 			<NativeFileReference Include="@(WasmShellNativeCompile)" />
 
 			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
+
+			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
 		</ItemGroup>
 
 		<PropertyGroup>
@@ -113,9 +115,12 @@
 				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0 
 				OR @(NativeFileReference->Count()) > 0 
 				OR @(_NativeAssetsFiltered->Count()) > 0
-				OR @(EmccExportedRuntimeMethod->Count()) > 0
+				OR @(EmccExportedRuntimeMethod
+				->Count()) > 0
 				">true</WasmBuildNative>
 
+			<!-- Compatibility mode that forces trimming when a linker descriptor is provided -->
+			<PublishTrimmed Condition=" '@(LinkerDescriptor)' != '' ">true</PublishTrimmed>
 		</PropertyGroup>
 
 		<!--
