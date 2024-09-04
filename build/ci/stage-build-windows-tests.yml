@@ -47,7 +47,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows-server.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net7.0\publish" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net9.0\publish\wwwroot" `
       "Uno.Wasm.StaticLinking.Server.net7.exe" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
@@ -60,8 +60,6 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
-      $customMonoTempPath="$env:temp\with a space\test2"
-      mkdir $customMonoTempPath
       dotnet clean -c Release
       dotnet publish -c Release /m:1 "/p:WasmShellMonoTempFolder=$customMonoTempPath"  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/aottest-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
@@ -74,7 +72,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net6.0\publish\wwwroot" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\WasmAot.UITests" `
       "http://localhost:8000/"
 
@@ -107,7 +105,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -124,7 +122,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -134,7 +132,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://127.0.0.1:8000/"
 
@@ -151,7 +149,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -168,7 +166,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.Net6\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -185,7 +183,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Net7\bin\Release\net7.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Net7\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -214,7 +212,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Embedded\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Embedded\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
 
@@ -238,7 +236,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads\bin\Release\net8.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
       "http://localhost:8000/"
 
@@ -255,7 +253,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads.Aot\bin\Release\net6.0\dist" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.Threads.Aot\bin\Release\net9.0\publish\wwwroot" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
       "http://localhost:8000/"
     displayName: Threading AOT Tests
