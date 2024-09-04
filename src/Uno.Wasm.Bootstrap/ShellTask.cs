@@ -91,11 +91,15 @@ namespace Uno.Wasm.Bootstrap
 
 		public string EmscriptenVersion { get; set; } = "";
 
+		public ITaskItem[]? EmccFlags { get; set; }
+
 		public ITaskItem[]? EmccExportedRuntimeMethod { get; set; }
 
 		public string? ContentExtensionsToExclude { get; set; }
 
 		public string CSPConfiguration { get; set; } = "";
+
+		public bool Optimize { get; set; }
 
 		public string AotProfile { get; set; } = "";
 
@@ -489,19 +493,10 @@ namespace Uno.Wasm.Bootstrap
 						&& !d.EndsWith("uno-bootstrap.js")
 						&& !d.EndsWith("service-worker.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
-				//var entryPoint = DiscoverEntryPoint();
 
 				var config = new StringBuilder();
 
-				//var (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity) = GetFilesDetails();
-				//var assembliesSize = string.Join(
-				//	",",
-				//	assemblyFiles.Select(ass => $"\"{ass.fileName}\":{ass.length}"));
-				//var filesIntegrityStr = string.Join(
-				//	",",
-				//	filesIntegrity.Select(f => $"\"{f.fileName}\":\"{f.integrity}\""));
-
-				//var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
+				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 				//var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
 				var emccExportedRuntimeMethodsParams = string.Join(
@@ -512,23 +507,10 @@ namespace Uno.Wasm.Bootstrap
 				//config.AppendLine($"config.uno_remote_managedpath = \"{Path.GetFileName(_managedPath)}\";");
 				//config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
-				//config.AppendLine($"config.uno_main = \"{entryPoint.DeclaringType.Module.Assembly.Name.Name}\";");
-				//config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
-				//config.AppendLine($"config.assemblyFileNameObfuscationMode = \"{_assembliesFileNameObfuscationMode}\";");
-				//config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
-				//config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
-				//config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
-				//config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
-				//config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
-				//config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
-
-				//if (ObfuscateAssemblies)
-				//{
-				//	config.AppendLine($"config.assemblyObfuscationKey = \"{Encoding.ASCII.GetString(_obfuscationKey)}\";");
-				//}
 
 				if (GenerateAOTProfile)
 				{
@@ -552,22 +534,17 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", PublishTrimmed.ToString());
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
-				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
-				//if (EnableThreads)
-				//{
-				//	AddEnvironmentVariable("UNO_BOOTSTRAP_MAX_THREADS", PThreadsPoolSize.ToString());
-				//}
-
-				//if (ExtraEmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
-				//{
-				//	// Detects the use of the 4GB flag: https://v8.dev/blog/4gb-wasm-memory
-				//	AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
-				//}
+				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
+				{
+					// Detects the use of the 4GB flag: https://v8.dev/blog/4gb-wasm-memory
+					AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
+				}
 
 				//if (EnableLogProfiler)
 				//{
@@ -834,6 +811,9 @@ namespace Uno.Wasm.Bootstrap
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
+
+		private string BuildRuntimeFeatures()
+			=> EnableThreads ? "threads" : "";
 
 		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
 		{
