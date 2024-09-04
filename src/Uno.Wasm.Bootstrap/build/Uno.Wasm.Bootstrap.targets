@@ -13,6 +13,8 @@
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
+		
+		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
