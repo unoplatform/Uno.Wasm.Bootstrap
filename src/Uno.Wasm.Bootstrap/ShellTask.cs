@@ -97,6 +97,12 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool RunAOTCompilation { get; set; }
 
+		public string AOTProfileExcludedMethods { get; set; } = "";
+
+		public bool GenerateAOTProfileDebugList { get; set; } = false;
+
+		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
+
 		public bool WasmBuildNative { get; set; }
 
 		public bool PublishTrimmed { get; set; }
@@ -115,6 +121,9 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public ITaskItem[]? NativeFileReference { get; set; } = [];
 
+		[Output]
+		public string? FilteredAotProfile { get; set; } = "";
+
 		public override bool Execute()
 		{
 			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
@@ -129,6 +138,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateBitcodeFiles();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
+				GeneratedAOTProfile();
 				GenerateIndexHtml();
 				GenerateConfig();
 			}
@@ -140,6 +150,17 @@ namespace Uno.Wasm.Bootstrap
 			return true;
 		}
 
+		private void GeneratedAOTProfile()
+		{
+			var useAotProfile = !GenerateAOTProfile && UseAotProfile;
+
+			if (useAotProfile)
+			{
+				// If the profile was transformed, we need to use the transformed profile
+				FilteredAotProfile = TransformAOTProfile();
+			}
+		}
+
 		private void ParseProperties()
 		{
 			_runtimeExecutionMode
@@ -148,7 +169,7 @@ namespace Uno.Wasm.Bootstrap
 			_contentExtensionsToExclude =
 				ContentExtensionsToExclude
 					?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-				?? new string[0];
+				?? [];
 
 			Log.LogMessage($"Ignoring content files with following extensions:\n\t{string.Join("\n\t", _contentExtensionsToExclude)}");
 		}

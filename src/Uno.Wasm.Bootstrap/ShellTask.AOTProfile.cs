@@ -42,6 +42,96 @@ namespace Uno.Wasm.Bootstrap
 {
 	public partial class ShellTask_v0
 	{
+		/// <summary>
+		/// Applies a temporary workaround for https://github.com/mono/mono/issues/19824
+		/// </summary>
+		private string? TransformAOTProfile()
+		{
+			var profilePath = AotProfile;
 
+			if (profilePath != null)
+			{
+				var reader = new Mono.Profiler.Aot.ProfileReader();
+				Mono.Profiler.Aot.ProfileData profile;
+				using (FileStream stream = File.OpenRead(profilePath))
+				{
+					profile = reader.ReadAllData(stream);
+				}
+
+				var excludedMethodsList = AOTProfileExcludedMethods
+					.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+					.ToList();
+
+				var excludedAssemblies = MixedModeExcludedAssembly?.ToDictionary(i => i.ItemSpec, i => i.ItemSpec)
+					?? new Dictionary<string, string>();
+
+				if (excludedMethodsList.Any() || excludedAssemblies.Any())
+				{
+					// LoadIntoBufferAsync uses exception filtering
+					excludedMethodsList.AddRange(DefaultAOTProfileExcludedMethods);
+
+					TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
+
+					var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
+
+					var q = from m in profile.Methods
+							where !excludedMethods.Any(e => e.Match(m.Type.FullName + '.' + m.Name).Success)
+								&& !excludedAssemblies.ContainsKey(m.Type.Module.Name)
+							select m;
+
+					profile.Methods = q.ToArray();
+
+					TryDumpProfileMethods(profile, "AOTProfileDump.Filtered.txt");
+
+					var writer = new Mono.Profiler.Aot.ProfileWriter();
+
+					var outputFile = Path.Combine(IntermediateOutputPath, "aot-filtered.profile");
+					using (var outStream = File.Create(outputFile))
+					{
+						writer.WriteAllData(outStream, profile);
+					}
+
+					return outputFile;
+				}
+			}
+
+			return profilePath;
+		}
+
+		private IEnumerable<string> DefaultAOTProfileExcludedMethods =>
+			new[]
+			{
+				@"ManifestBasedResourceGroveler\.InternalGetSatelliteAssembly", // https://github.com/dotnet/runtime/issues/45698
+
+				@"System\.Reflection\.Assembly\.GetExecutingAssembly", // https://github.com/dotnet/runtime/issues/47996
+				@"System\.RuntimeType\.GetType",
+				@"System\.RuntimeTypeHandle\.internal_from_name",
+				@"System\.RuntimeTypeHandle\.GetTypeByName",
+				@"System\.Type\.GetType",
+				@"System\.Runtime\.Loader\.AssemblyLoadContext\.InternalLoadFromPath",
+				@"System\.Runtime\.Loader\.AssemblyLoadContext\.InternalLoadFile",
+				@"System\.Runtime\.Loader\.AssemblyLoadContext\.LoadFromAssemblyName",
+				@"System\.Reflection\.Assembly\.Load",
+				@"System\.Reflection\.Assembly\.InternalLoad",
+				@"System\.Reflection\.RuntimeAssembly\.InternalGetSatelliteAssembly",
+				@"System\.Reflection\.RuntimeAssembly\.InternalLoad",
+			};
+
+		private void TryDumpProfileMethods(Mono.Profiler.Aot.ProfileData profile, string filePath)
+		{
+			if (GenerateAOTProfileDebugList)
+			{
+				var sb = new StringBuilder();
+
+				foreach (var method in profile.Methods)
+				{
+					var genericParameters = string.Join("|", method.GenericInst?.Types.Select(t => t.ToString()) ?? []);
+
+					sb.AppendLine($"{method.Type.Module.Name};{method.Type.FullName}.{method.Name};{method.GenericInst?.Id};{genericParameters}");
+				}
+
+				File.WriteAllText(Path.Combine(IntermediateOutputPath, filePath), sb.ToString());
+			}
+		}
 	}
 }

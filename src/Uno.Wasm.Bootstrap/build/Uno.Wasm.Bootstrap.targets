@@ -196,7 +196,14 @@
 			>
 			<Output TaskParameter="StaticWebContent" ItemName="Content" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
+			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 		</ShellTask_v0>
+
+		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
+			<!-- Override the user's profile with the filtered one -->
+			<WasmAotProfilePath>$(_FilteredAotProfile)</WasmAotProfilePath>
+		</PropertyGroup>
+		
 	</Target>
 
 </Project>
