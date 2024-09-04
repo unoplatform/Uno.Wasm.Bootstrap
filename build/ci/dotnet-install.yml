@@ -3,11 +3,11 @@ parameters:
 
 steps:
 
-  # - task: UseDotNet@2
-  #   displayName: 'Use .NET 6 SDK'
-  #   inputs:
-  #     version: ${{ parameters.DotNetVersion }}
-  #     includePreviewVersions: true
+  - task: UseDotNet@2
+    displayName: 'Use .NET SDK'
+    inputs:
+      version: ${{ parameters.DotNetVersion }}
+      includePreviewVersions: true
 
   - pwsh: |
       $DotNetRoot = "$env:ProgramFiles\dotnet\"
