@@ -45,7 +45,9 @@
 			<_emsdkOriginalPackagePath>$([System.IO.Path]::GetFullPath('$(EmscriptenSdkToolsPath)..'))</_emsdkOriginalPackagePath>
 			<_targetEMSDKPath>$(USERPROFILE)\.uno\emsdk\$([System.IO.Path]::GetFileName('$(_emsdkOriginalPackagePath)'))</_targetEMSDKPath>
 		</PropertyGroup>
-		
+
+		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_targetEMSDKPath)'))" />
+
 		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
 		
 		<PropertyGroup>
