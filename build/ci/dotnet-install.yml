@@ -3,14 +3,14 @@ parameters:
 
 steps:
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      version: ${{ parameters.DotNetVersion }}
-      includePreviewVersions: true
+  # - task: UseDotNet@2
+  #   displayName: 'Use .NET SDK'
+  #   inputs:
+  #     version: ${{ parameters.DotNetVersion }}
+  #     includePreviewVersions: true
 
   - pwsh: |
-      $DotNetRoot = "$env:ProgramFiles\dotnet\"
+      $DotNetRoot = "C:\hostedtoolcache\windows\dotnet"
       Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
       & ./build/installcli.ps1 -c 9.0 -q daily -InstallDir $DotNetRoot
 
