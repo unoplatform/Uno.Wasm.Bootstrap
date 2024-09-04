@@ -270,8 +270,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			try {
 				this.attachDebuggerHotkey();
 
-				console.error("UNO TODO HOT RELOAD IS DISABLED");
-				//await this.setupHotReload();
+				await this.setupHotReload();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();

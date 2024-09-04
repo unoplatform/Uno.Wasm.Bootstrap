@@ -32,8 +32,21 @@
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
 		<ItemGroup>
-			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.AotProfiler.dll" CopyToOutputDirectory="Always" PostProcessAssembly="true" />
+			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.AotProfiler.dll"
+					   CopyToOutputDirectory="Always"
+					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="_UnoInjectHotReloadSupport"
+			BeforeTargets="ResolveRuntimePackAssets"
+			Condition=" '$(Optimize)' != 'true' ">
+		<ItemGroup>
+			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.MetadataUpdater.dll"
+					   CopyToOutputDirectory="Always"
+					   PostProcessAssembly="true" />
+			<TrimmerRootAssembly Include="Uno.Wasm.MetadataUpdater" />
 		</ItemGroup>
 	</Target>
 
@@ -110,6 +123,7 @@
 			<!-- Adjust the cache on windows if the drive is not the same -->
 			<WasmCachePath Condition="
 				'$(OS)' == 'Windows_NT'
+				AND '$(EmscriptenSdkToolsPath)' != ''
 				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
 				">$(TMP)\emsdk-cache</WasmCachePath>
 

@@ -686,9 +686,16 @@ namespace Uno.Wasm.Bootstrap
 
 			Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
 
-			var list = BitcodeFilesSelector.Filter(new(EmscriptenVersion), features.ToArray(), bitcodeFiles);
+			if (Version.TryParse(EmscriptenVersion, out var emsdkVersion))
+			{
+				var list = BitcodeFilesSelector.Filter(emsdkVersion, features.ToArray(), bitcodeFiles);
 
-			NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
+				NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
+			}
+			else
+			{
+				Log.LogMessage(MessageImportance.Low, $"EmscriptenVersion is not set, skipping native assets");
+			}
 		}
 
 		private IEnumerable<string> GetEmccExportedRuntimeMethods()
