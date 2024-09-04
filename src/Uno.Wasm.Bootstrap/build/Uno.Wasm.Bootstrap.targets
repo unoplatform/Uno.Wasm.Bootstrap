@@ -28,6 +28,11 @@
 		<WasmBuildNative>true</WasmBuildNative>
 	</PropertyGroup>
 
+	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' ">
+		<RunAOTCompilation>true</RunAOTCompilation>
+		<WasmBuildNative>true</WasmBuildNative>
+	</PropertyGroup>
+
 	<Target Name="_UnoInjectAOTSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
