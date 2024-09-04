@@ -41,7 +41,8 @@
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
 		<ItemGroup>
-			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.AotProfiler.dll"
+			<Reference Include="Uno.Wasm.AotProfiler"
+					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '.., 'tools', 'support'))Uno.Wasm.AotProfiler.dll"
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
@@ -52,12 +53,14 @@
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(Optimize)' != 'true' ">
 		<ItemGroup>
-			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.MetadataUpdater.dll"
+			<Reference Include="Uno.Wasm.MetadataUpdater"
+					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.MetadataUpdater.dll"
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.MetadataUpdater" />
 		</ItemGroup>
 	</Target>
+
 
 	<Target Name="_WorkaroundEmscriptenPathLength"
 			Condition=" '$(OS)' == 'Windows_NT' "
