@@ -48,7 +48,9 @@
 
 		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_targetEMSDKPath)'))" />
 
-		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
+		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;"
+			  ContinueOnError="true"
+			  Condition="!exists($(_targetEMSDKPath))"/>
 		
 		<PropertyGroup>
 			<EmscriptenSdkToolsPath>$(_targetEMSDKPath)\</EmscriptenSdkToolsPath>
@@ -94,9 +96,18 @@
 				OR @(EmccExportedRuntimeMethod->Count()) > 0
 				">true</WasmBuildNative>
 
+		</PropertyGroup>
+
+		<!--
+			Override the cache path if it's not yet been set to use project
+			local folder, in order to avoid the frozen cache of the runtime's
+			emsdk.
+		-->
+		<PropertyGroup Condition=" '$(WasmCachePath)' == '$(EmscriptenCacheSdkCacheDir)' ">
+
 			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
 			
-			<!-- Adjust the cache on windows if the root folder is not the same -->
+			<!-- Adjust the cache on windows if the drive is not the same -->
 			<WasmCachePath Condition="
 				'$(OS)' == 'Windows_NT'
 				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
@@ -131,7 +142,8 @@
 	</Target>
 
 	<Target Name="GenerateUnoAssets"
-		BeforeTargets="ResolveStaticWebAssetsConfiguration;_UnoWasmNativeForBuild">
+		BeforeTargets="ResolveStaticWebAssetsConfiguration;_UnoWasmNativeForBuild"
+		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
 			<!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
