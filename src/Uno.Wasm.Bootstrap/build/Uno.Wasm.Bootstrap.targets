@@ -37,10 +37,13 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="_WorkaroundEmscriptenPathLength" Condition=" '$(OS)' == 'Windows_NT' " BeforeTargets="_SetupEmscripten">
+	<Target Name="_WorkaroundEmscriptenPathLength"
+			Condition=" '$(OS)' == 'Windows_NT' "
+			BeforeTargets="_SetupEmscripten">
 
 		<PropertyGroup>
-			<_targetEMSDKPath>$(TMP)\$([System.Guid]::NewGuid())</_targetEMSDKPath>
+			<_emsdkOriginalPackagePath>$([System.IO.Path]::GetFullPath('$(EmscriptenSdkToolsPath)..'))</_emsdkOriginalPackagePath>
+			<_targetEMSDKPath>$(USERPROFILE)\.uno\emsdk\$([System.IO.Path]::GetDirectoryName('$(_emsdkOriginalPackagePath)'))</_targetEMSDKPath>
 		</PropertyGroup>
 		
 		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
