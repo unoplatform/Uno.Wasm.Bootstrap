@@ -47,7 +47,7 @@ jobs:
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows-server.ps1 `
-      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net9.0\publish\wwwroot" `
+      "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net9.0\publish" `
       "Uno.Wasm.StaticLinking.Server.net7.exe" `
       "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Aot.UITests" `
       "http://localhost:8000/"
