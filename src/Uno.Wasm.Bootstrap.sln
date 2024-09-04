@@ -381,6 +381,7 @@ Global
 		Uno.Wasm.Sample\Uno.Wasm.Sample.projitems*{d348ee61-e4d1-4daf-a84f-086ba6ad659b}*SharedItemsImports = 5
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{da82ef90-d444-414a-9dce-4db27ff72daa}*SharedItemsImports = 5
+		Uno.Wasm.StaticLinking.Shared\Common.props*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
 		Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems*{ebcb3142-593e-4815-915d-3b88b75161c1}*SharedItemsImports = 5
 		Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems*{fc27fd88-f96b-4a00-8b8d-9b20b28a7a9c}*SharedItemsImports = 5
