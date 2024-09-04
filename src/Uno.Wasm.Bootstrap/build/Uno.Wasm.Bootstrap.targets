@@ -39,18 +39,18 @@
 
 	<Target Name="_WorkaroundEmscriptenPathLength" Condition=" '$(OS)' == 'Windows_NT' " BeforeTargets="_SetupEmscripten">
 
-		<!-- Create a hard link for $(MSBuildThisFileDirectory)..\tools\ to $(TMP)\emsdk -->
-		<Exec Command="mklink /J &quot;$(TMP)\emsdk&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
-
-		<!-- Copy the contents of $(EmscriptenSdkToolsPath)..\tools to $(TMP)\emsdk -->
-		<!--<Exec Command="xcopy &quot;$(EmscriptenSdkToolsPath)..\tools\&quot; &quot;$(TMP)\emsdk\&quot; /E /Y" ContinueOnError="true" />-->
+		<PropertyGroup>
+			<_targetEMSDKPath>$(TMP)\$([System.Guid]::NewGuid())</_targetEMSDKPath>
+		</PropertyGroup>
+		
+		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;" ContinueOnError="true" />
 		
 		<PropertyGroup>
-			<EmscriptenSdkToolsPath>$(TMP)\emsdk\</EmscriptenSdkToolsPath>
+			<EmscriptenSdkToolsPath>$(_targetEMSDKPath)\</EmscriptenSdkToolsPath>
 			<EmscriptenUpstreamBinPath>$(EmscriptenSdkToolsPath)bin\</EmscriptenUpstreamBinPath>
 			<EmscriptenUpstreamEmscriptenPath>$(EmscriptenSdkToolsPath)emscripten\</EmscriptenUpstreamEmscriptenPath>
 		</PropertyGroup>
-		
+
 		<ItemGroup>
 			<EmscriptenPrependPATH Remove="@(EmscriptenPrependPATH)" />
 			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamBinPath)" />

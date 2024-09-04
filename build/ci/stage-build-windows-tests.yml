@@ -14,7 +14,7 @@ jobs:
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
     NETCORE_VERSION: ${{ parameters.netcore_version }}
-    EMCC_DEBUG: 1
+    # EMCC_DEBUG: 1
 
   steps:
   - checkout: self
