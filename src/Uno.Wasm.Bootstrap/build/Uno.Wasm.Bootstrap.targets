@@ -13,7 +13,7 @@
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-		
+
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 	</PropertyGroup>
 
@@ -30,9 +30,12 @@
 
 		<!-- Ensure that emcc is running so the log profiler is included -->
 		<WasmBuildNative>true</WasmBuildNative>
+
+		<!-- Trimming must not be used for the profiler support assembly to be used -->
+		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' ">
+	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' AND '$(WasmShellGenerateAOTProfile)' != 'true' ">
 		<RunAOTCompilation>true</RunAOTCompilation>
 		<WasmBuildNative>true</WasmBuildNative>
 	</PropertyGroup>
@@ -76,7 +79,7 @@
 		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;"
 			  ContinueOnError="true"
 			  Condition="!exists($(_targetEMSDKPath))"/>
-		
+
 		<PropertyGroup>
 			<EmscriptenSdkToolsPath>$(_targetEMSDKPath)\</EmscriptenSdkToolsPath>
 			<EmscriptenUpstreamBinPath>$(EmscriptenSdkToolsPath)bin\</EmscriptenUpstreamBinPath>
@@ -115,7 +118,7 @@
 			<EmccFlags>$(EmccFlags);@(WasmShellExtraEmccFlags)</EmccFlags>
 
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-			
+
 			<WasmBuildNative Condition=" 
 				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0 
 				OR @(NativeFileReference->Count()) > 0 
@@ -125,7 +128,7 @@
 				">true</WasmBuildNative>
 
 			<!-- Compatibility mode that forces trimming when a linker descriptor is provided -->
-			<PublishTrimmed Condition=" '@(LinkerDescriptor)' != '' ">true</PublishTrimmed>
+			<PublishTrimmed Condition=" '$(PublishTrimmed)' == '' AND '@(LinkerDescriptor)' != '' AND '$(WasmShellILLinkerEnabled)' != 'false' ">true</PublishTrimmed>
 		</PropertyGroup>
 
 		<!--
@@ -136,7 +139,7 @@
 		<PropertyGroup Condition=" '$(WasmCachePath)' == '$(EmscriptenCacheSdkCacheDir)' ">
 
 			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
-			
+
 			<!-- Adjust the cache on windows if the drive is not the same -->
 			<WasmCachePath Condition="
 				'$(OS)' == 'Windows_NT'
@@ -218,7 +221,7 @@
 			<!-- Override the user's profile with the filtered one -->
 			<WasmAotProfilePath>$(_FilteredAotProfile)</WasmAotProfilePath>
 		</PropertyGroup>
-		
+
 	</Target>
 
 </Project>
