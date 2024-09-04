@@ -11,6 +11,8 @@
 		<WasmShellIndexHtmlPath Condition="Exists('$(_UnoBootstrapTaskBinary)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
+
+		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
