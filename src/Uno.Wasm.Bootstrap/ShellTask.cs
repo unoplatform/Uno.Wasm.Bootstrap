@@ -77,6 +77,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public ITaskItem[]? Assets { get; set; }
 
+		[Required]
+		public string WasmShellMode { get; set; } = "";
+
+
 		public ITaskItem[] EmbeddedResources { get; set; } = [];
 
 		[Required]
@@ -140,6 +144,7 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				GeneratedAOTProfile();
 				GenerateIndexHtml();
+				GenerateEmbeddedJs();
 				GenerateConfig();
 			}
 			finally
@@ -163,6 +168,8 @@ namespace Uno.Wasm.Bootstrap
 
 		private void ParseProperties()
 		{
+			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
+
 			_runtimeExecutionMode
 				= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
 
@@ -515,7 +522,7 @@ namespace Uno.Wasm.Bootstrap
 				//config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
 				//config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
-				//config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
+				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				//if (ObfuscateAssemblies)
@@ -725,6 +732,100 @@ namespace Uno.Wasm.Bootstrap
 		private bool UseAotProfile
 			=> !string.IsNullOrEmpty(AotProfile) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
+		private void GenerateEmbeddedJs()
+		{
+			if (_shellMode != ShellMode.BrowserEmbedded)
+			{
+				return;
+			}
+
+			var scriptPath = Path.Combine(IntermediateOutputPath, "shell-embedded.js");
+
+			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
+			const string javascriptTemplate =
+				"""
+				(async function () {
+
+					const executingScript = document.currentScript;
+					if(!executingScript) {
+						console.err(""embedded.js MUST be run using a <script> tag in the current version."");
+						return;
+					}
+
+					const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
+
+					const package = ""$(PACKAGE_PATH)"";
+					const absolutePath = (new URL(package, executingScriptAbsolutePath)).href;
+
+					const styles = [$(STYLES)];
+
+					styles.forEach(s => {
+						const scriptElement = document.createElement(""link"");
+						scriptElement.setAttribute(""href"", `${absolutePath}/${s}`);
+						scriptElement.setAttribute(""rel"", ""stylesheet"");
+						document.head.appendChild(scriptElement);
+					});
+
+					document.baseURI = absolutePath;
+					document.uno_app_base_override = absolutePath;
+					const baseElement = document.createElement(""base"");
+					baseElement.setAttribute(""href"", absolutePath);
+					document.head.appendChild(baseElement);
+
+					const html = ""<div id='uno-body' class='container-fluid uno-body'><div class='uno-loader' loading-position='bottom' loading-alert='none'><img class='logo' src='' /><progress></progress><span class='alert'></span></div></div>"";
+
+					if(typeof unoRootElement !== 'undefined') {
+						unoRootElement.innerHTML = html;
+					} else {
+						var rootDiv = document.createElement(""div"");
+						rootDiv.innerHTML = html;
+						document.body.appendChild(rootDiv);
+					}
+
+					const loadScript = s => new Promise((ok, err) => {
+						const scriptElement = document.createElement(""script"");
+						scriptElement.setAttribute(""src"", `${absolutePath}/${s}.js`);
+						scriptElement.setAttribute(""type"", ""text/javascript"");
+						scriptElement.onload = () => ok();
+						scriptElement.onerror = () => err(""err loading "" + s);
+						document.head.appendChild(scriptElement);
+					});
+
+					// Preload RequireJS dependency
+					await loadScript(""require"");
+
+					// Launch the bootstrapper
+					await import(absolutePath + ""/uno-bootstrap.js"");
+
+					// Yield to the browser to render the splash screen
+					await new Promise(r => setTimeout(r, 0));
+
+					// Dispatch the DOMContentLoaded event
+					const loadedEvent = new Event(""DOMContentLoaded"");
+					document.dispatchEvent(loadedEvent);
+				})();
+				""";
+
+			var stylesString = string.Join(",", _additionalStyles?.Select(s => $"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
+
+			var javascript = javascriptTemplate
+				.Replace("$(PACKAGE_PATH)", _remoteBasePackagePath)
+				.Replace("$(STYLES)", stylesString);
+			w.Write(javascript);
+			w.Flush();
+
+			// Write index.html loading the javascript as a helper
+			var htmlPath = Path.Combine(IntermediateOutputPath, "shell-embedded-index.html");
+			using var w2 = new StreamWriter(htmlPath, append: false, _utf8Encoding);
+
+			const string html = "<html><body><script src=\"embedded.js\" type=\"text/javascript\"></script>\n";
+			w2.Write(html);
+			w2.Flush();
+
+			AddStaticAsset("embedded.js", scriptPath);
+			AddStaticAsset("index.html", htmlPath);
+		}
+
 		private string TryConvertLongPath(string path)
 			=> Environment.OSVersion.Platform == PlatformID.Win32NT
 				&& !string.IsNullOrEmpty(path)
@@ -733,5 +834,17 @@ namespace Uno.Wasm.Bootstrap
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
+
+		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
+		{
+			if (Enum.TryParse(stringValue, true, out value))
+			{
+				Log.LogMessage(MessageImportance.Low, $"{name}={value}");
+			}
+			else
+			{
+				throw new NotSupportedException($"The {name} {stringValue} is not supported");
+			}
+		}
 	}
 }

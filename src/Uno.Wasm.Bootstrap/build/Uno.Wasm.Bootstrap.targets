@@ -175,8 +175,8 @@
 
 		<ShellTask_v0
 			AotProfile="$(WasmAotProfilePath)"
-			AssemblyName="$(AssemblyName)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
+			AssemblyName="$(AssemblyName)"
 			Assets="@(Content)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
@@ -185,16 +185,17 @@
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
+			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
-			PWAManifestFile="$(WasmPWAManifestFile)"
 			PublishTrimmed="$(PublishTrimmed)"
+			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
 			RunAOTCompilation="$(RunAOTCompilation)"
-			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
-			WebAppBasePath="$(WasmShellWebAppBasePath)"
 			WasmBuildNative="$(WasmBuildNative)"
+			WasmShellMode="$(WasmShellMode)"
+			WebAppBasePath="$(WasmShellWebAppBasePath)"
 			>
 			<Output TaskParameter="StaticWebContent" ItemName="Content" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
