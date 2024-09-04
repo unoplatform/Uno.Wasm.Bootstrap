@@ -32,7 +32,8 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
-      
+
+	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Common.props" Label="Shared" />
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
