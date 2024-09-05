@@ -135,6 +135,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
 				exports: ["IDBFS", "FS"].concat(this._unoConfig.emcc_exported_runtime_methods),
+				onDownloadResourceProgress: (resourcesLoaded: number, totalResources: number) => this.reportDownloadResourceProgress(resourcesLoaded, totalResources),
 			};
 		}
 
@@ -263,7 +264,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		public preInit() {
 			this.body = document.getElementById("uno-body");
 
-			// this.initProgress();
+			this.initProgress();
 		}
 
 		private async mainInit(): Promise<void> {
@@ -297,6 +298,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
+		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
+
+			this.progress.max = totalResources;
+			(<any>this.progress).value = resourcesLoaded;
+		}
+
 		private initProgress() {
 			this.loader = this.body.querySelector(".uno-loader");
 
@@ -304,7 +311,6 @@ namespace Uno.WebAssembly.Bootstrap {
 				this.loader.id = "loading";
 				const totalBytesToDownload = this._unoConfig.mono_wasm_runtime_size + this._unoConfig.total_assemblies_size;
 				const progress = this.loader.querySelector("progress");
-				progress.max = totalBytesToDownload;
 				(<any>progress).value = ""; // indeterminate
 				this.progress = progress;
 
@@ -378,18 +384,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
-		private reportProgressWasmLoading(loaded: number) {
-			if (this.progress) {
-				this.progress.value = loaded;
-			}
-		}
-
-		private reportAssemblyLoading(adding: number) {
-			if (this.progress) {
-				this.progress.value += adding;
-			}
-		}
-
 		private raiseLoadingError(err: any) {
 			this.loader.setAttribute("loading-alert", "error");
 
@@ -418,164 +412,6 @@ namespace Uno.WebAssembly.Bootstrap {
 				title = `${msg}`;
 			}
 			alert.setAttribute("title", title);
-		}
-
-		private getFetchInit(url: string): RequestInit {
-			const fileName = url.substring(url.lastIndexOf("/") + 1);
-
-			const init: RequestInit = { credentials: "same-origin" };
-
-			if (this._unoConfig.files_integrity.hasOwnProperty(fileName)) {
-				init.integrity = this._unoConfig.files_integrity[fileName];
-			}
-
-			return init;
-		}
-
-		private loadResource(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors):
-			string | Promise<Response | void> | null | undefined {
-
-			if (type == "dotnetjs") {
-				return defaultUri;
-			}
-
-			return this.deobfuscateFile(name, this.fetchFile(defaultUri));
-		}
-
-		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
-			const assemblyFileSuffix = this._unoConfig.assemblyFileNameObfuscationMode !== "NoDots" ?
-				this._unoConfig.assemblyFileExtension :
-				this._unoConfig.assemblyFileExtension.replace(".", "_");
-
-			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(assemblyFileSuffix)) {
-				const responseValue = await response;
-
-				if (responseValue) {
-					var data = new Uint8Array(await responseValue.arrayBuffer());
-					var key = this._unoConfig.assemblyObfuscationKey;
-
-					for (var i = 0; i < data.length; i++) {
-						data[i] ^= key.charCodeAt(i % key.length);
-					}
-
-					return new Response(data, { "status": 200, headers: responseValue.headers });
-				}
-			}
-
-			return response;
-		}
-
-		private fetchWithProgress(url: string, progressCallback: Function): Promise<void | Response> {
-
-			if (!this.loader) {
-				// No active loader, simply use the fetch API directly...
-				return fetch(url, this.getFetchInit(url));
-			}
-
-			return fetch(url, this.getFetchInit(url))
-				.then(response => {
-					if (!response.ok) {
-						throw Error(`${response.status} ${response.statusText}`);
-					}
-
-					try {
-						let loaded = 0;
-
-						// Wrap original stream with another one, while reporting progress.
-						const stream = new ReadableStream({
-							start(ctl) {
-								const reader = response.body.getReader();
-
-								read();
-
-								function read() {
-									reader.read()
-										.then(
-											({ done, value }) => {
-												if (done) {
-													ctl.close();
-													return;
-												}
-												loaded += value.byteLength;
-												progressCallback(loaded, value.byteLength);
-												ctl.enqueue(value);
-												read();
-											})
-										.catch(error => {
-											console.error(error);
-											ctl.error(error);
-										});
-								}
-							}
-						});
-
-						// We copy the previous response to keep original headers.
-						// Not only the WebAssembly will require the right content-type,
-						// but we also need it for streaming optimizations:
-						// https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
-						return new Response(stream, response);
-					}
-					catch (ex) {
-						// ReadableStream may not be supported (Edge as of 42.17134.1.0)
-						return response;
-					}
-				})
-				.catch(err => this.raiseLoadingError(err));
-		}
-
-		private fetchFile(asset: string): Promise<void | Response> {
-
-			if (asset.lastIndexOf(".dll") !== -1) {
-				asset = asset.replace(".dll", this._unoConfig.assemblyFileExtension);
-
-				if (this._unoConfig.assemblyFileNameObfuscationMode == "NoDots") {
-					asset = asset.replace(/\/([^\/]*)$/, function (match, p1) {
-						return "/" + p1.replace(/\./g, "_");
-					});
-				}
-			}
-
-			if (asset.startsWith("icudt") && asset.endsWith(".dat")) {
-				asset = `${this._unoConfig.uno_app_base}/${asset}`;
-			}
-
-			asset = asset.replace("/managed/", `/${this._unoConfig.uno_remote_managedpath}/`);
-
-			if (Bootstrapper.ENVIRONMENT_IS_NODE) {
-				var fs = require('fs');
-
-				console.log('Loading... ' + asset);
-				var binary = fs.readFileSync(asset);
-				var resolve_func2 = function (resolve: any, reject: any) {
-					resolve(new Uint8Array(binary));
-				};
-				var resolve_func1 = function (resolve: any, reject: any) {
-					var response = {
-						ok: true,
-						url: asset,
-						arrayBuffer: function () {
-							return new Promise(resolve_func2);
-						}
-					};
-					resolve(response);
-				};
-				return new Promise(resolve_func1);
-			} else {
-				if (!this._unoConfig.enable_debugging) {
-					// Assembly fetch streaming is disabled during debug, it seems to
-					// interfere with the ability for mono or the chrome debugger to
-					// initialize the debugging session properly. Streaming in debug is
-					// not particularly interesting, so we can skip it.
-
-					const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
-					if (this._unoConfig.assemblies_with_size.hasOwnProperty(assemblyName)) {
-						return this
-							.fetchWithProgress(asset, (loaded: any, adding: any) => this.reportAssemblyLoading(adding));
-					}
-				}
-
-				return fetch(asset, { credentials: "same-origin" });
-			}
 		}
 
 		private isElectron() {
