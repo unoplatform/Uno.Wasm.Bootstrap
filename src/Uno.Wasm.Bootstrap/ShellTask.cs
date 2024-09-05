@@ -201,7 +201,14 @@ namespace Uno.Wasm.Bootstrap
 			// This is for project-local defined content
 			var baseSourceFile = item.GetMetadata("DefiningProjectDirectory");
 
-			if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
+			if (item.GetMetadata("TargetPath") is { } targetPath && !string.IsNullOrEmpty(targetPath))
+			{
+				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
+
+				// This is used for item remapping
+				return (fullPath, targetPath);
+			}
+			else if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
 			{
 				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
 
@@ -281,7 +288,7 @@ namespace Uno.Wasm.Bootstrap
 						AddStaticAsset(relativePath, fullSourcePath);
 					}
 
-					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}]");
+					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}, ]");
 				}
 			}
 
