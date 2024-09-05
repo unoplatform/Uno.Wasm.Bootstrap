@@ -189,7 +189,7 @@
 		<ItemGroup>
 			<_UnoAssetsToProcess Include="@(Content)" />
 			<_UnoAssetsToProcess Include="@(_AllChildProjectItemsWithTargetPath)"
-								 Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' != 'Never' " />
+								 Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
 		</ItemGroup>
 
 		<ShellTask_v0
