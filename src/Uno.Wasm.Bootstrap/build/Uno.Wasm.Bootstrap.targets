@@ -176,7 +176,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoAssets"
-		BeforeTargets="ResolveStaticWebAssetsConfiguration;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveProjectStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
