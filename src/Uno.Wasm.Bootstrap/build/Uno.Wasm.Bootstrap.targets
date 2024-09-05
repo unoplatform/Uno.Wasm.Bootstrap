@@ -175,7 +175,7 @@
 			ContentTypeMappings="@(StaticWebAssetContentTypeMapping)" />
 	</Target>
 
-	<Target Name="GenerateUnoAssets"
+	<Target Name="GenerateUnoWasmAssets"
 		BeforeTargets="ResolveProjectStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
