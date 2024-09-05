@@ -204,6 +204,7 @@
 			IntermediateOutputPath="$(IntermediateOutputPath)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
+			RunILLink="$(RunILLink)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
 			RunAOTCompilation="$(RunAOTCompilation)"

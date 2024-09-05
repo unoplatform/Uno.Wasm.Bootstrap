@@ -115,6 +115,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool PublishTrimmed { get; set; }
 
+		public bool RunILLink { get; set; }
+
 		public string WebAppBasePath { get; set; } = "./";
 
 		public bool GenerateAOTProfile { get; set; }
@@ -540,7 +542,7 @@ namespace Uno.Wasm.Bootstrap
 
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", PublishTrimmed.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", (PublishTrimmed && RunILLink).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
