@@ -331,7 +331,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (relativePath.Contains("WasmScripts"))
 				{
-					var scriptName = Path.GetFileName(fullSourcePath);
+					var scriptName = Path.GetFileName(relativePath);
 
 					Log.LogMessage($"Embedded resources JS {scriptName}");
 
@@ -368,7 +368,7 @@ namespace Uno.Wasm.Bootstrap
 
 				if (relativePath.Contains("WasmCSS"))
 				{
-					var cssName = Path.GetFileName(fullSourcePath);
+					var cssName = Path.GetFileName(relativePath);
 
 					Log.LogMessage($"Embedded CSS {cssName}");
 
