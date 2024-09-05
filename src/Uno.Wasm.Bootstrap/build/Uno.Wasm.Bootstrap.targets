@@ -186,11 +186,17 @@
 			  Condition="'%(Extension)' == '.dll'" />
 		</ItemGroup>
 
+		<ItemGroup>
+			<_UnoAssetsToProcess Include="@(Content)" />
+			<_UnoAssetsToProcess Include="@(_AllChildProjectItemsWithTargetPath)"
+								 Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' != 'Never' " />
+		</ItemGroup>
+
 		<ShellTask_v0
 			AotProfile="$(WasmAotProfilePath)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			AssemblyName="$(AssemblyName)"
-			Assets="@(Content)"
+			Assets="@(_UnoAssetsToProcess)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
