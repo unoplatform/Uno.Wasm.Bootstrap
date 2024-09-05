@@ -187,16 +187,16 @@
 		</ItemGroup>
 
 		<ItemGroup>
-			<_UnoAssetsToProcess Include="@(Content)" />
-			<_UnoAssetsToProcess Include="@(_AllChildProjectItemsWithTargetPath)"
-								 Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
+			<_UnoWasmCopyToOutputAssets
+				Include="@(_AllChildProjectItemsWithTargetPath)"
+				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
 		</ItemGroup>
 
 		<ShellTask_v0
 			AotProfile="$(WasmAotProfilePath)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			AssemblyName="$(AssemblyName)"
-			Assets="@(_UnoAssetsToProcess)"
+			Assets="@(Content);@(_UnoWasmCopyToOutputAssets)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
