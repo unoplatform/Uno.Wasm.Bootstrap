@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<EmbeddedResource Include="LinkerConfig.xml">
+			<LogicalName>$(AssemblyName).xml</LogicalName>
+		</EmbeddedResource>
+	</ItemGroup>
+	
+	<Target Name="CopyToBootstrapDev" AfterTargets="Build">
+		<ItemGroup>
+			<_BinaryOutputFiles Include="$(TargetDir)\Uno.Wasm.LogProfiler.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_BinaryOutputFiles)" DestinationFolder="..\Uno.Wasm.Bootstrap\tools\support" />
+	</Target>
+
+	<ItemGroup>
+	  <PackageReference Include="System.Memory" Version="4.5.2" />
+	</ItemGroup>
+</Project>

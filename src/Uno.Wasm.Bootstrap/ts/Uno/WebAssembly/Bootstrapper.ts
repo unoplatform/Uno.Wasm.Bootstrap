@@ -18,6 +18,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _getAssemblyExports: any;
 
 		private _hotReloadSupport?: HotReloadSupport;
+		private _logProfiler?: LogProfilerSupport;
 		private _aotProfiler?: AotProfilerSupport;
 
 		private _runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
@@ -49,7 +50,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.configSrc = `blazor.boot.json`;
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
-			this.onAbort = () => this.runtimeAbort();
 
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
@@ -97,8 +97,9 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`./_framework/dotnet.js`);
 
-				// UNO TODO move to use load progress reports from the runtime
-				// m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
+				m.dotnet.withModuleConfig({
+					preRun: () => bootstrapper.wasmRuntimePreRun(),
+				})
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -142,9 +143,6 @@ namespace Uno.WebAssembly.Bootstrap {
 		public configure(context: DotnetPublicAPI) {
 			this._context = context;
 
-			this.setupEmscriptenPreRun();
-
-
 			// Required for hot reload (browser-link provided javascript file)
 			(<any>globalThis).BINDING = this._context.BINDING;
 		}
@@ -155,16 +153,6 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
 			}
-		}
-
-		private setupEmscriptenPreRun() {
-			if (!this._context.preRun) {
-				this._context.preRun = [];
-			}
-			else if (typeof this._context.preRun === "function") {
-				this._context.preRun = [];
-			}
-			(<any>this._context.preRun).push(() => this.wasmRuntimePreRun());
 		}
 
 		/**
@@ -180,16 +168,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private wasmRuntimePreRun() {
-			this.timezonePreSetup();
-		}
-
-		private timezonePreSetup() {
-			let timeZone = 'UTC';
-			try {
-				timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-				// eslint-disable-next-line no-empty
-			} catch { }
-			this._monoConfig.environmentVariables['TZ'] = timeZone || 'UTC';
+			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
+				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
+			}
 		}
 
 		private RuntimeReady() {
@@ -255,10 +236,6 @@ namespace Uno.WebAssembly.Bootstrap {
 					configuration: logProfilerConfig
 				};
 			}
-		}
-
-		private runtimeAbort() {
-			// set_exit_code(1, error);
 		}
 
 		public preInit() {
@@ -382,36 +359,6 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				}
 			}
-		}
-
-		private raiseLoadingError(err: any) {
-			this.loader.setAttribute("loading-alert", "error");
-
-			const alert = this.loader.querySelector(".alert");
-
-			let title = alert.getAttribute("title");
-			if (title) {
-				title += `\n${err}`;
-			} else {
-				title = `${err}`;
-			}
-			alert.setAttribute("title", title);
-		}
-
-		private raiseLoadingWarning(msg: string) {
-			if (this.loader.getAttribute("loading-alert") !== "error") {
-				this.loader.setAttribute("loading-alert", "warning");
-			}
-
-			const alert = this.loader.querySelector(".alert");
-
-			let title = alert.getAttribute("title");
-			if (title) {
-				title += `\n${msg}`;
-			} else {
-				title = `${msg}`;
-			}
-			alert.setAttribute("title", title);
 		}
 
 		private isElectron() {

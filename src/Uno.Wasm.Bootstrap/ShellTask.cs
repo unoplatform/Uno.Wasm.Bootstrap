@@ -117,6 +117,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool RunILLink { get; set; }
 
+		public bool EnableLogProfiler { get; set; }
+
+		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
+
 		public string WebAppBasePath { get; set; } = "./";
 
 		public bool GenerateAOTProfile { get; set; }
@@ -555,10 +559,10 @@ namespace Uno.Wasm.Bootstrap
 					AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
 				}
 
-				//if (EnableLogProfiler)
-				//{
-				//	AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
-				//}
+				if (EnableLogProfiler)
+				{
+					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
+				}
 
 				config.AppendLine("export { config };");
 

@@ -34,6 +34,24 @@
 		<!-- Trimming must not be used for the profiler support assembly to be used -->
 		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
+	
+	<!-- Log profiler support -->
+	<PropertyGroup Condition=" '$(WasmShellEnableLogProfiler)' == 'true' ">
+		<!-- Enable AOT profiling using a single property -->
+		<WasmProfilers>$(WasmProfilers);log;</WasmProfilers>
+
+		<!-- Make the build faster by disabling compression -->
+		<DisableBuildCompression>true</DisableBuildCompression>
+
+		<!-- Disable AOT Compilation, log profiler can't trace calls in that mode -->
+		<RunAOTCompilation>false</RunAOTCompilation>
+
+		<!-- Ensure that emcc is running so the log profiler is included -->
+		<WasmBuildNative>true</WasmBuildNative>
+
+		<!-- Trimming must not be used for the profiler support assembly to be used -->
+		<PublishTrimmed>false</PublishTrimmed>
+	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' AND '$(WasmShellGenerateAOTProfile)' != 'true' ">
 		<RunAOTCompilation>true</RunAOTCompilation>
@@ -49,6 +67,18 @@
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="_UnoInjectLogProfilerSupport"
+			BeforeTargets="ResolveRuntimePackAssets"
+			Condition=" '$(WasmShellEnableLogProfiler)' == 'true' ">
+		<ItemGroup>
+			<Reference Include="Uno.Wasm.LogProfiler"
+					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '.., 'tools', 'support'))Uno.Wasm.LogProfiler.dll"
+					   CopyToOutputDirectory="Always"
+					   PostProcessAssembly="true" />
+			<TrimmerRootAssembly Include="Uno.Wasm.LogProfiler" />
 		</ItemGroup>
 	</Target>
 
@@ -204,10 +234,12 @@
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmccFlags="@(EmccFlags)"
 			EmscriptenVersion="$(EmscriptenVersion)"
+			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
 			EnableThreads="@(WasmEnableThreads)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
+			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
 			RunILLink="$(RunILLink)"
