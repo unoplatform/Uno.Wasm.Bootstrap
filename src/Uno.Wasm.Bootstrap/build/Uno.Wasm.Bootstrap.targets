@@ -72,7 +72,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="
-			and '$(TargetFrameworkIdentifier)'=='.NETCoreApp'
+			'$(TargetFrameworkIdentifier)'=='.NETCoreApp'
 			and $([MSBuild]::VersionGreaterThanOrEquals($(NETCoreSdkVersion), '9.0'))">
 
 		<!-- .NET 9 SDK Compatibility -->
