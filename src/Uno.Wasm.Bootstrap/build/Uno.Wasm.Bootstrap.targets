@@ -71,6 +71,14 @@
 		<_WasmBootstrapOriginalPublishDir>$(PublishDir)</_WasmBootstrapOriginalPublishDir>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="
+			'$(TargetFrameworkIdentifier)'=='.NETCoreApp'
+			AND $([MSBuild]::VersionGreaterThanOrEquals($(NETCoreSdkVersion), '9.0'))">
+
+		<!-- .NET 9 SDK Compatibility -->
+		<EnableDefaultCompressedItems>false</EnableDefaultCompressedItems>
+	</PropertyGroup>
+
 	<Choose>
 		<When Condition="
 			'$(WasmShellLinkerPath)'==''
@@ -190,6 +198,10 @@
 			  Include="@(ReferenceCopyLocalPaths)"
 			  Condition="'%(Extension)' == '.dll'" />
 		</ItemGroup>
+
+		<Error
+			Condition="$([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '9.0')) AND '$(UnoDisableNet9Validation)' != 'true' "
+			Text="This version of the Uno.Wasm.Bootstrap package does not support the net9.0 target framework and later, starting from the .NET 9.0 SDK Preview 7. The net8.0 TargetFramework is supported." />
 
 		<PropertyGroup>
 			<!-- Defined here because OutputPath is defined late -->
