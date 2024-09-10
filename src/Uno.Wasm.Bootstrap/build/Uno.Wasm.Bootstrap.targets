@@ -15,6 +15,8 @@
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
+		
+		<BlazorWebAssemblyJiterpreter>false</BlazorWebAssemblyJiterpreter>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -33,6 +35,7 @@
 
 		<!-- Trimming must not be used for the profiler support assembly to be used -->
 		<PublishTrimmed>false</PublishTrimmed>
+
 	</PropertyGroup>
 	
 	<!-- Log profiler support -->
