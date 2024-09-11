@@ -146,11 +146,12 @@
 
 			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
 
-			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' " Include="--profiling" />
 		</ItemGroup>
 
 		<PropertyGroup>
 			<EmccFlags>$(EmccFlags);@(WasmShellExtraEmccFlags)</EmccFlags>
+			
+			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' ">$(EmccFlags);--profiling</EmccFlags>
 
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
