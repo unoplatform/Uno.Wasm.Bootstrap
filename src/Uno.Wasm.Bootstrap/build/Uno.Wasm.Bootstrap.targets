@@ -16,7 +16,7 @@
 
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 		
-		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.2')) ">false</BlazorWebAssemblyJiterpreter>
+		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
