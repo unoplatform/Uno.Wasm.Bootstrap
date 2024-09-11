@@ -498,7 +498,7 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}/";
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}";
 				var dependencies = string.Join(", ", _dependencies
 					.Where(d =>
 						!d.EndsWith("require.js")
