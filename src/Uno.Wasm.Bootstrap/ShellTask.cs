@@ -517,8 +517,8 @@ namespace Uno.Wasm.Bootstrap
 					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
 
 				config.AppendLine($"let config = {{}};");
-				//config.AppendLine($"config.uno_remote_managedpath = \"{Path.GetFileName(_managedPath)}\";");
-				//config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
+				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
+				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
