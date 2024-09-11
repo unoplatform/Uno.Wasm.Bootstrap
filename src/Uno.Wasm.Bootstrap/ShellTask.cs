@@ -54,7 +54,6 @@ namespace Uno.Wasm.Bootstrap
 
 		private ShellMode _shellMode;
 		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
-		private string _remoteBasePackagePath = ".";
 		private readonly List<string> _dependencies = new List<string>();
 		private List<AssemblyDefinition>? _resourceSearchList;
 		private List<string> _referencedAssemblies = new List<string>();
@@ -499,7 +498,7 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{_remoteBasePackagePath}/";
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}/";
 				var dependencies = string.Join(", ", _dependencies
 					.Where(d =>
 						!d.EndsWith("require.js")
@@ -518,7 +517,7 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
+				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
@@ -550,7 +549,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
+				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", "./");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
 				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
@@ -606,9 +605,9 @@ namespace Uno.Wasm.Bootstrap
 			html = html.Replace("mono.js\"", "dotnet.js\"");
 			if (WebAppBasePath != "./")
 			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}/");
 			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}/");
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
@@ -744,8 +743,7 @@ namespace Uno.Wasm.Bootstrap
 
 					const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
 
-					const package = "$(PACKAGE_PATH)";
-					const absolutePath = (new URL(package, executingScriptAbsolutePath)).href;
+					const absolutePath = (new URL("./", executingScriptAbsolutePath)).href;
 
 					const styles = [$(STYLES)];
 
@@ -799,7 +797,6 @@ namespace Uno.Wasm.Bootstrap
 			var stylesString = string.Join(",", _additionalStyles?.Select(s => $"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
 
 			var javascript = javascriptTemplate
-				.Replace("$(PACKAGE_PATH)", _remoteBasePackagePath)
 				.Replace("$(STYLES)", stylesString);
 			w.Write(javascript);
 			w.Flush();
