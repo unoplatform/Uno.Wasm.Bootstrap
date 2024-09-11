@@ -194,18 +194,18 @@ namespace Uno.WebAssembly.Bootstrap {
 			// List of possible exports: https://github.com/emscripten-core/emscripten/blob/c834ef7d69ccb4100239eeba0b0f6573fed063bc/src/modules.js#L391
 			// Needs to be aligned with exports in https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly/blob/f7294fe410705bc220e63fc51d44bdffe4093a5d/patches/fix-additional-emscripten-exports.patch#L19
 			// And in the packager's list of exports.
-			thatGlobal.lengthBytesUTF8 = (<any>this._context.Module).lengthBytesUTF8;
-			thatGlobal.stringToUTF8 = (<any>this._context.Module).stringToUTF8;
-			thatGlobal.UTF8ToString = (<any>this._context.Module).UTF8ToString;
-			thatGlobal.UTF8ArrayToString = (<any>this._context.Module).UTF8ArrayToString;
+			let anyModule = <any>this._context.Module;
+			thatGlobal.lengthBytesUTF8 = anyModule.lengthBytesUTF8;
+			thatGlobal.UTF8ToString = anyModule.UTF8ToString;
+			thatGlobal.UTF8ArrayToString = anyModule.UTF8ArrayToString;
 
-			thatGlobal.IDBFS = (<any>this._context.Module).IDBFS;
-			thatGlobal.FS = (<any>this._context.Module).FS;
+			thatGlobal.IDBFS = anyModule.IDBFS;
+			thatGlobal.FS = anyModule.FS;
 
 			// copy properties from this._unoConfig.emcc_exported_runtime_methods into globalThis
 			if (this._unoConfig.emcc_exported_runtime_methods) {
 				this._unoConfig.emcc_exported_runtime_methods.forEach((name: string) => {
-					thatGlobal[name] = (<any>this._context.Module)[name];
+					thatGlobal[name] = anyModule[name];
 				});
 			}
 		}
