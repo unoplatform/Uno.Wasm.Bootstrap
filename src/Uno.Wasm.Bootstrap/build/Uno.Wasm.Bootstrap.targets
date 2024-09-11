@@ -145,6 +145,8 @@
 			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
 
 			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
+
+			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' " Include="--profiling" />
 		</ItemGroup>
 
 		<PropertyGroup>
@@ -153,8 +155,8 @@
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 			<WasmBuildNative Condition=" 
-				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0 
-				OR @(NativeFileReference->Count()) > 0 
+				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0
+				OR @(NativeFileReference->Count()) > 0
 				OR @(_NativeAssetsFiltered->Count()) > 0
 				OR @(EmccExportedRuntimeMethod
 				->Count()) > 0
