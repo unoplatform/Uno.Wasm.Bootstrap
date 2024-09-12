@@ -614,9 +614,9 @@ namespace Uno.Wasm.Bootstrap
 			html = html.Replace("mono.js\"", "dotnet.js\"");
 			if (WebAppBasePath != "./")
 			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}/");
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}");
 			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}/");
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}");
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
