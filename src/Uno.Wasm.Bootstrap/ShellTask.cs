@@ -100,6 +100,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool Optimize { get; set; }
 
+		public bool EnableTracing { get; set; }
+
 		public string AotProfile { get; set; } = "";
 
 		public bool RunAOTCompilation { get; set; }
@@ -527,6 +529,8 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
+				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				if (GenerateAOTProfile)

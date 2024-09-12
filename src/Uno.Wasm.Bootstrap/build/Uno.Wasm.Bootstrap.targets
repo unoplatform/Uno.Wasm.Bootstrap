@@ -145,6 +145,8 @@
 			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
 
 			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
+
+			<_AOT_InternalForceInterpretAssemblies Include="@(MonoRuntimeMixedModeExcludedAssembly->'%(Filename).dll')" />
 		</ItemGroup>
 
 		<PropertyGroup>
@@ -248,6 +250,7 @@
 			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
 			EnableThreads="@(WasmEnableThreads)"
+			EnableTracing="@(WasmEnableTracing)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"

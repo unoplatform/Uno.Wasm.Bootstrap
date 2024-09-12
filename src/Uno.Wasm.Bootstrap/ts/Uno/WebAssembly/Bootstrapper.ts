@@ -372,21 +372,21 @@ namespace Uno.WebAssembly.Bootstrap {
 			// But when run with NodeJS or Electron, it's using CommonJS instead of AMD
 			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (Bootstrapper.ENVIRONMENT_IS_NODE || this.isElectron());
 
-			if (this._unoConfig.enable_debugging) console.log("Done loading the BCL");
+			if (this._unoConfig.uno_enable_tracing) console.log("Done loading the BCL");
 
 			if (this._unoConfig.uno_dependencies && this._unoConfig.uno_dependencies.length !== 0) {
 				let pending = this._unoConfig.uno_dependencies.length;
 
 				const checkDone = (dependency: string) => {
 					--pending;
-					if (this._unoConfig.enable_debugging) console.log(`Loaded dependency (${dependency}) - remains ${pending} other(s).`);
+					if (this._unoConfig.uno_enable_tracing) console.log(`Loaded dependency (${dependency}) - remains ${pending} other(s).`);
 					if (pending === 0) {
 						this.mainInit();
 					}
 				};
 
 				this._unoConfig.uno_dependencies.forEach((dependency) => {
-					if (this._unoConfig.enable_debugging) console.log(`Loading dependency (${dependency})`);
+					if (this._unoConfig.uno_enable_tracing) console.log(`Loading dependency (${dependency})`);
 
 					let processDependency = (instance: any) => {
 
@@ -395,7 +395,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 							const existingInitializer = instance.onRuntimeInitialized;
 
-							if (this._unoConfig.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
+							if (this._unoConfig.uno_enable_tracing) console.log(`Waiting for dependency (${dependency}) initialization`);
 
 							instance.onRuntimeInitialized = () => {
 								checkDone(dependency);
@@ -440,7 +440,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private hasDebuggingEnabled() {
-			return this._hasReferencedPdbs && this._currentBrowserIsChrome;
+			return this._unoConfig.uno_debugging_enabled && this._currentBrowserIsChrome;
 		}
 
 		private attachDebuggerHotkey() {

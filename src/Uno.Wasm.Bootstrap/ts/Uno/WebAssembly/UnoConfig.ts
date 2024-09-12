@@ -27,7 +27,9 @@
 
 		generate_aot_profile?: boolean;
 
-		enable_debugging?: boolean;
+		uno_enable_tracing?: boolean;
+
+		uno_debugging_enabled?: boolean;
 
 		uno_runtime_options?: string[];
 	}
