@@ -45,18 +45,21 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<!--
-	TODO JELA
-	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
+	<Target Name="AfterPublishValidation" AfterTargets="Publish">
+
+		<PropertyGroup>
+			<_appOutput>$(PublishDir)/wwwroot</_appOutput>
+		</PropertyGroup>
+		
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />
 		</ItemGroup>
 
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(WasmShellOutputPackagePath)" />
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(WasmShellOutputDistPath)" />
+		<Error Condition="!exists('$(_appOutput)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(_appOutput)" />
+		<Error Condition="!exists('$(_appOutput)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(_appOutput)" />
 
 		<Message Importance="high" Text="Output dist validated" />
-	</Target>-->
+	</Target>
 
 </Project>
