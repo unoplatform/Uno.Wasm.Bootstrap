@@ -533,7 +533,7 @@ namespace Uno.Wasm.Bootstrap
 					"" => ".",
 					"./" => ".",
 					"/" => "/.",
-					_ => WebAppBasePath + "/."
+					_ => WebAppBasePath.TrimEnd('/') + "/."
 				};
 
 				config.AppendLine($"config.uno_app_base = \"{unoAppBase}\";");
