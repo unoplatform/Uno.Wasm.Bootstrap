@@ -21,6 +21,8 @@
 	<PropertyGroup>
 		<AssemblyName>Uno.Wasm.SampleNet7</AssemblyName>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		
+		<WasmShellLoadAllSatelliteResources>true</WasmShellLoadAllSatelliteResources>
 	</PropertyGroup>
 
 	<ItemGroup>

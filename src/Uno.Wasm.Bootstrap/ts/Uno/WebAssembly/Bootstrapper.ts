@@ -101,7 +101,8 @@ namespace Uno.WebAssembly.Bootstrap {
 					.withModuleConfig({
 						preRun: () => bootstrapper.wasmRuntimePreRun(),
 					})
-					.withRuntimeOptions(config.config.uno_runtime_options);
+					.withRuntimeOptions(config.config.uno_runtime_options)
+					.withConfig({ loadAllSatelliteResources: config.config.uno_loadAllSatelliteResources });
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {

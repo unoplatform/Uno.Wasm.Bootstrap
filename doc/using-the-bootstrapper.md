@@ -88,6 +88,13 @@ Once done, make sure to install the WebAssembly tools from .NET:
 dotnet workload install wasm-tools
 ```
 
+By default, the .NET runtime does not load all resource assemblies, but if you want to load all resources regardless of the user's culture, you can add the following to your project file:
+```xml
+<PropertyGroup>
+    <WasmShellLoadAllSatelliteResources>true</WasmShellLoadAllSatelliteResources>
+</PropertyGroup>
+```
+
 ## Bootstrapper versions and .NET runtimes
 
 Each major version of the bootstrapper targets a different version of the .NET Runtime.
@@ -103,3 +110,8 @@ Each major version of the bootstrapper targets a different version of the .NET R
 >
 > [!NOTE]
 > Bootstrapper builds version 4.x-dev were based on developments builds of .NET 7 and were later versioned 7.x-dev to match the appropriate runtime.
+
+## Previous releases documentation
+- [8.0.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/8.0/doc)
+- [7.0.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/7.0/doc)
+- [3.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/3.3/doc)

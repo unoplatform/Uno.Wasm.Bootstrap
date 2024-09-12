@@ -254,6 +254,7 @@
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
+			LoadAllSatelliteResources="$(WasmShellLoadAllSatelliteResources)"
 			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"

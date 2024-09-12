@@ -32,5 +32,7 @@
 		uno_debugging_enabled?: boolean;
 
 		uno_runtime_options?: string[];
+
+		uno_load_all_satellite_resources?: string[];
 	}
 }

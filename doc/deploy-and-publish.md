@@ -14,6 +14,14 @@ dotnet publish
 
 The app will be located in the `bin/Release/net9.0/publish/wwwroot` folder. More information about `dotnet publish` can be [found in the Microsoft docs](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish).
 
+## Localization publishing
+By default, the .NET runtime does not load all resource assemblies, but if you want to load all resources regardless of the user's culture, you can add the following to your project file:
+```xml
+<PropertyGroup>
+    <WasmShellLoadAllSatelliteResources>true</WasmShellLoadAllSatelliteResources>
+</PropertyGroup>
+```
+
 ## Integration with ASP.NET Core
 
 ASP.NET Core hosting is supported through the `Uno.Wasm.Bootstrap.Server` package.

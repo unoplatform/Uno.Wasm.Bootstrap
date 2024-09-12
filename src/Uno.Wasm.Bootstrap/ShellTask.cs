@@ -102,6 +102,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableTracing { get; set; }
 
+		public bool LoadAllSatelliteResources { get; set; }
+
 		public string AotProfile { get; set; } = "";
 
 		public bool RunAOTCompilation { get; set; }
@@ -531,6 +533,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				if (GenerateAOTProfile)
