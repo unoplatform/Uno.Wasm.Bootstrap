@@ -97,9 +97,11 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`./_framework/dotnet.js`);
 
-				m.dotnet.withModuleConfig({
-					preRun: () => bootstrapper.wasmRuntimePreRun(),
-				})
+				m.dotnet
+					.withModuleConfig({
+						preRun: () => bootstrapper.wasmRuntimePreRun(),
+					})
+					.withRuntimeOptions(config.config.uno_runtime_options);
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -286,7 +288,6 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (this.loader) {
 				this.loader.id = "loading";
-				const totalBytesToDownload = this._unoConfig.mono_wasm_runtime_size + this._unoConfig.total_assemblies_size;
 				const progress = this.loader.querySelector("progress");
 				(<any>progress).value = ""; // indeterminate
 				this.progress = progress;

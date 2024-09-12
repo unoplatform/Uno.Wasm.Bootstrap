@@ -145,22 +145,28 @@
 			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
 
 			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
-
 		</ItemGroup>
 
 		<PropertyGroup>
+			<WasmEnableSIMD Condition=" '$(WasmShellEnableSimd)' != '' ">$(WasmShellEnableSimd)</WasmEnableSIMD>
+
+			<BlazorWebAssemblyJiterpreter Condition=" '$(WasmShellEnableJiterpreter)' != '' AND '$(BlazorWebAssemblyJiterpreter)' == '' ">$(WasmShellEnableJiterpreter)</BlazorWebAssemblyJiterpreter>
+			
 			<EmccFlags>$(EmccFlags);@(WasmShellExtraEmccFlags)</EmccFlags>
 			
 			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' ">$(EmccFlags);--profiling</EmccFlags>
 
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
+			<!-- https://github.com/dotnet/runtime/blob/1231a9addd0fb3cfb806c2a89cb45a3018c48bb2/src/mono/browser/build/BrowserWasmApp.targets#L125-L126 -->
+			<_WasmPThreadPoolInitialSize Condition=" '$(WasmShellPThreadsPoolSize)' == 'true' ">true</_WasmPThreadPoolInitialSize>
+
 			<WasmBuildNative Condition=" 
 				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0
 				OR @(NativeFileReference->Count()) > 0
 				OR @(_NativeAssetsFiltered->Count()) > 0
-				OR @(EmccExportedRuntimeMethod
-				->Count()) > 0
+				OR @(EmccExportedRuntimeMethod->Count()) > 0
+				OR @(WasmShellExtraEmccFlags->Count()) > 0
 				">true</WasmBuildNative>
 
 			<!-- Compatibility mode that forces trimming when a linker descriptor is provided -->
@@ -249,6 +255,7 @@
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
 			RunILLink="$(RunILLink)"
+			RuntimeOptions="$(WasmShellRuntimeOptions)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
 			RunAOTCompilation="$(RunAOTCompilation)"
