@@ -9,8 +9,6 @@ items:
   href: linker-configuration.md
 - name: Runtime Execution Modes
   href: runtime-execution-modes.md
-- name: Troubleshooting
-  href: troubleshooting.md
 
 - name: Features
   items:

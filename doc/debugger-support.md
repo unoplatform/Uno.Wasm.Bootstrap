@@ -4,7 +4,7 @@ uid: UnoWasmBootstrap.Features.Debugger
 
 # .NET for WebAssembly Debugger Support
 
-Debugging is support is provided by .NET, using the WasmApp host. 
+Debugging is support is provided by .NET, using the WasmApp host.
 
 ## AOT Debugging and mono tracing
 
