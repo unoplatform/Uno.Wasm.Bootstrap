@@ -4,32 +4,26 @@ uid: UnoWasmBootstrap.Overview
 
 # Using the bootstrapper
 
-Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
+The Uno.Wasm.Bootstrap provides a base bootstrapping of the Microsoft.NET.Sdk.WebAssembly SDK provided by .NET 9.
 
-It is a standalone .NET Web Assembly (Wasm) sdk bootstrapper taking the form of a nuget package.
+This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`. To write an app that provides UI functionalities, make sur to check out https://aka.platform.uno/get-started.
 
-Installing it on a .NET project (5, 6 or .NET Standard 2.0) with an entry point allows to publish it as part of a Wasm distribution folder, along with CSS, Javascript and content files.
+This work is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
-This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`.
+## How to use the Bootstrapper with .NET 9 and later
 
-This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
-
-## How to use the bootstrapper with .NET 5 and later
-
-- Create a .NET 5 Console Application, and update it with the following basic definition:
+- Create a .NET 9 Console Application, and update it with the following basic definition:
 
   ```xml
-  <Project Sdk="Microsoft.NET.Sdk.Web">
+  <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
     <PropertyGroup>
       <OutputType>Exe</OutputType>
-      <TargetFramework>net5.0</TargetFramework>
-      <MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
+      <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Uno.Wasm.Bootstrap" Version="2.1.0" />
-      <PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="2.1.0" PrivateAssets="all" />
+      <PackageReference Include="Uno.Wasm.Bootstrap" Version="9.0.*" />
   </ItemGroup>
 
   </Project>
@@ -47,15 +41,13 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   }
   ```
 
-- In Visual Studio 2019, press `Ctrl+F5` to start without the debugger (this will create the `launchSettings.json` needed below for debugging)
+- In Visual Studio 2022, press `F5` to start with the debugger
 - A browser window will appear with your application
 - The output of the Console.WriteLine will appear in the javascript debugging console
 
-## How to use the Visual Studio 2019/2022 Debugger
+## How to use the Visual Studio 2022 Debugger
 
-Starting from **Visual Studio 2019 16.6**, it is possible to debug a WebAssembly app.
-
-To enable the debugging, add the following line to your `launchSettings.json` file:
+To enable the debugging, make sure that the following line is present in your `Properties/launchSettings.json` file:
 
 ```json
 "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
@@ -77,30 +69,24 @@ Once installed, launch the server by using the following command:
 
 ```bash
 cd MyApp.Wasm
-dotnet serve -d bin\Debug\net5.0\dist -p 8000
+dotnet publish -c Debug
+dotnet serve -d bin\Debug\net9.0\publish\wwwroot -p 8000
 ```
 
 You application will be available `http://localhost:8000`.
 
 ## Upgrading from previous versions of the Uno.Wasm.Bootstrap package
 
-Previously, the suggested project structure was a .NET Standard 2.0 project using the non-web projects SDK. To enable debugging and easier deployment, the support for `Microsoft.NET.Sdk.Web` has been added.
+Moving from version 8.x to 9.x may require changing the used msbuild SDK for your project.
 
-To upgrade a project from 1.1 to 1.2:
+- If your project contains `Sdk="Uno.Sdk"`, you will need to update the Uno.Sdk to 5.5 or later.
+- If your project contains `Sdk="Microsoft.NET.Sdk.Web"`, you'll need to change it to `Sdk="Microsoft.NET.Sdk.WebAssembly"`.
 
-- If you had a `<DotNetCliToolReference />` line, remove it
-- Add the `<PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="1.2.0-dev.1" PrivateAssets="all" />` item in the same item group as the other nuget packages.
+Once done, make sure to install the WebAssembly tools from .NET:
 
-To upgrade a project from 1.0 to 1.1:
-
-- Change `Microsoft.NET.Sdk` to `Microsoft.NET.Sdk.Web` in the Sdk attribute of your project
-- Add the `<DotNetCliToolReference Include="Uno.Wasm.Bootstrap.Cli" Version="1.0.0-dev.1" />` item in the same item group as the other nuget packages.
-
-## Changing the .NET SDKs install location
-
-The SDKs are installed under `Path.GetTempPath()` by default, you may change this by setting the following msbuild property(or environment variable): `WasmShellMonoTempFolder`.
-
-For example, on Windows, setting `WasmShellMonoTempFolder` to `C:\MonoWasmSDKs`, the `mono-wasm-e351637985e` sdk would be installed under `C:\MonoWasmSDKs\mono-wasm-e351637985e`
+```bash
+dotnet workload install wasm-tools
+```
 
 ## Bootstrapper versions and .NET runtimes
 
@@ -109,10 +95,11 @@ Each major version of the bootstrapper targets a different version of the .NET R
 - 2.x: Mono runtime (https://github.com/mono/mono)
 - 3.x: .NET 6 (https://github.com/dotnet/runtime/commits/release/6.0)
 - 7.x: .NET 7 (https://github.com/dotnet/runtime/commits/release/7.0)
-- 8.x-dev: .NET 8 (https://github.com/dotnet/runtime/commits/main)
+- 8.0: .NET 8 (https://github.com/dotnet/runtime/commits/release/8.0)
+- 9.0: .NET 9 (https://github.com/dotnet/runtime/commits/release/9.0)
 
 > [!NOTE]
-> Starting from version 3.x, the bootstrapper uses a custom build of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly
+> Between version 3.x and 8.x, the bootstrapper is using custom builds of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly
 >
 > [!NOTE]
 > Bootstrapper builds version 4.x-dev were based on developments builds of .NET 7 and were later versioned 7.x-dev to match the appropriate runtime.

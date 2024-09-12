@@ -4,7 +4,7 @@ uid: Uno.Wasm.Bootstrap.Runtime.Execution
 
 # Runtime Execution Modes
 
-The mono for WebAssembly runtime provides three execution modes, Interpreter, AOT (Ahead of Time), and Mixed Mode Interpreter/AOT.
+The mono for WebAssembly runtime provides three execution modes, Interpreter, and Mixed Mode Interpreter/AOT (Ahead of Time).
 
 The execution mode can be set as follows:
 
@@ -16,8 +16,6 @@ The possible values are:
 
 - `Interpreter` (the default mode)
 - `InterpreterAndAOT`
-
-To setup your machine to use AOT modes on Windows, you will need to install [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
 
 ## Interpreter mode
 
@@ -51,17 +49,20 @@ Finally, runtime statistics are maintained by the jiterpreter and can be display
 
 This mode enables AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
 
-> [!IMPORTANT]
-> This mode is not supported on macOS. You'll need to use a [Linux container](https://hub.docker.com/r/unoplatform/wasm-build) to build with AOT, see below for more details.
+By default, this mode is only enabled when running `dotnet publish`.
+
+To enable AOT compilation on normal builds, use the following:
+
+```xml
+<PropertyGroup>
+  <RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>
+</PropertyGroup>
+```
 
 ### Required configuration for Mixed AOT Mode or static linking on Linux
 
-- Ubuntu 18.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
-- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
+- Ubuntu 20.04+ or a [container](https://hub.docker.com/r/unoplatform/wasm-build)
 - A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 6.0
-- ninja: `apt-get install ninja-build`
-
-The easiest is to build using the environment provided by the [unoplatform/wasm-build docker image](https://hub.docker.com/r/unoplatform/wasm-build).
 
 ## Profile Guided AOT
 
@@ -69,7 +70,7 @@ This mode allows for the AOT engine to selectively optimize methods to WebAssemb
 
 This feature is used in two passes:
 
-- The first pass needs the creation of a profiled interpreter build, which records any methods invoked during the profiling session.
+- The first pass needs the creation of a profiled interpreted build, which records any methods invoked during the profiling session.
 - The second pass rebuilds the application using the Mixed AOT/Interpreter mode augmented by the recording created during the first pass.
 
 This mode gives very good results, where the RayTracer sample of this repository goes from an uncompressed size of 5.5MB to 2.9MB.
@@ -80,12 +81,6 @@ To create a profiled build:
 
   ```xml
   <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
-  ```
-
-- In your `LinkerConfig.xml` file, add the following:
-
-  ```xml
-  <assembly fullname="WebAssembly.Bindings" />
   ```
 
 - Run the application once, without the debugger (e.g. Ctrl+F5)
@@ -187,59 +182,3 @@ In order to fix this, you'll need to set the [`INITIAL_MEMORY`](https://emscript
 ```
 
 which will set the initial memory size accordingly. Note that setting this value to a sufficiently large value (based on your app's usual memory consumption) can improve the startup performance.
-
-## Required configuration for AOT, Mixed Mode, or external bitcode support compilation on Windows 10
-
-### Native windows tooling
-
-This is the default mode on Windows. It requires installing [Python from Windows Store](https://www.microsoft.com/store/productId/9P7QFQMJRFP7), or manually through [Python's official site](https://www.python.org/downloads/).
-
-This mode is compatible with CI servers that have Python installed by default, such as [Azure Devops Hosted Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops).
-
-#### Powershell setup
-
-The bootstrapper needs to use PowerShell, and configuration is needed.
-
-You'll need to run the following command in an elevated (administrator) PowerShell prompt:
-
-```pwsh
-Set-ExecutionPolicy RemoteSigned -Force
-```
-
-You may also need to enable the developer mode for Windows 10 and 11 by using **Control panel** / **System** / **Privacy & Security** / **For developers** / **PowerShell** and setting **Change execution policy to allow local scripts to run without signing** to **On**.
-
-### Using Windows Subsystem for Linux
-
-This mode can be enabled by adding this property to the `csproj`:
-
-```xml
-<PropertyGroup>
-  <WasmShellEnableEmscriptenWindows>false</WasmShellEnableEmscriptenWindows>
-</PropertyGroup>
-```
-
-Requirements:
-
-- A Windows 10 machine with [WSL 1 or 2 with Ubuntu 20.04](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installed.
-- A [stable build of mono](https://www.mono-project.com/download/stable/#download-lin)
-- A [.NET SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu) >= 3.1
-- ninja: `apt-get install ninja-build` in WSL
-
-If you have another distribution installed make sure that the 20.04 is the default using `wslconfig /s "Ubuntu-20.04"`. You can list your active distributions with `wslconfig /l`
-Note that WSL 2 is considerably slower than WSL 1 for the bootstrapper scenario. You will need to set your distribution to version 1 using `wsl --set-version "Ubuntu-20.04" 1`.
-
-During the first use of WSL, if the environment is not properly setup, you will be guided to run the [`dotnet-setup.sh`](xref:dotnet-setup.sh) script that will install Mono, .NET Core and some additional dependencies.
-
-The emscripten installation is automatically done as part of the build.
-
-The bootstrapper uses its own installation of emscripten, installed by default in `$HOME/.uno/emsdk` in the WSL filesystem. This can be globally overridden by setting the `WASMSHELL_WSLEMSDK` environment variable.
-
-### WSL Integration for Windows 10
-
-The integration with WSL provides a way to use AOT, Mixed mode, or external bitcode support using Windows 10.
-
-This feature is active only if one of those condition is true:
-
-- The `WasmShellMonoRuntimeExecutionMode` property is `InterpreterAndAOT`
-- There is a `*.bc` or `*.a` file in the `Content` item group
-- The `WasmShellForceUseWSL` is set to `true`

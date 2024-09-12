@@ -42,6 +42,8 @@ It is also possible to provide the linker file as an embedded resource, which is
 
 The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` property to false. This property has no effect when building with AOT enabled.
 
+The .NET SDK configuration [options are also supported](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained).
+
 ## .NET 5 Feature Linker Configuration
 
 The bootstrapper supports the [feature switches configuration](https://github.com/dotnet/runtime/blob/master/docs/workflow/trimming/feature-switches.md) provided by .NET 5.

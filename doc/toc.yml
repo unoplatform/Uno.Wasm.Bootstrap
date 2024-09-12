@@ -44,20 +44,12 @@ items:
       href: features-simd.md
     - name: Profiling
       href: features-profiling.md
-    - name: Node JS
-      href: features-node-js.md
-    - name: Nuget package overrides
-      href: features-nuget-package-overrides.md
-    - name: Prefetching
-      href: features-prefetch.md
     - name: PWA Support
       href: features-pwa.md
     - name: 4GB Support
       href: features-4gb.md
     - name: HttpRequestMessage Extensions
       href: features-httprequestmessage-extensions.md
-    - name: Assemblies obfuscation
-      href: features-obfuscation.md
 
 - name: Tools
   items:

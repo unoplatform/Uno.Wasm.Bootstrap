@@ -20,6 +20,8 @@ With .NET 8, SIMD support is enabled by default and can be disabled using:
 </PropertyGroup>
 ```
 
+The .NET SDK [`WasmEnableSIMD`](https://learn.microsoft.com/en-us/aspnet/core/blazor/webassembly-build-tools-and-aot?view=aspnetcore-8.0#single-instruction-multiple-data-simd) property is also supported.
+
 [WebAssembly Support for SIMD](https://github.com/webassembly/simd) enables faster execution for specialized pieces of code, and .NET increasingly uses those instructions to make applications run faster.
 
 You can take a look at [this article](https://platform.uno/blog/safari-16-4-support-for-webassembly-fixed-width-simd-how-to-use-it-with-c/) for more information.
