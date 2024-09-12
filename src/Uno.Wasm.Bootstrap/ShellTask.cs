@@ -525,7 +525,18 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}\";");
+
+				// unoAppBase must not finish with a `/` to be backward
+				// compatible.
+				var unoAppBase = WebAppBasePath switch
+				{
+					"" => ".",
+					"./" => ".",
+					"/" => "/.",
+					_ => WebAppBasePath + "/."
+				};
+
+				config.AppendLine($"config.uno_app_base = \"{unoAppBase}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
