@@ -4,11 +4,19 @@ uid: UnoWasmBootstrap.Overview
 
 # Using the bootstrapper
 
-The Uno.Wasm.Bootstrap provides a base bootstrapping of the Microsoft.NET.Sdk.WebAssembly SDK provided by .NET 9.
+The Uno.Wasm.Bootstrap provides a base bootstrapping of the `Microsoft.NET.Sdk.WebAssembly` SDK provided by .NET 9.
 
 This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`. To write an app that provides UI functionalities, make sur to check out https://aka.platform.uno/get-started.
 
 This work is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
+
+## Prepare your machine
+
+On the command line, type the following to install the WebAssembly workload:
+
+```bash
+dotnet workload install wasm-tools
+```
 
 ## How to use the Bootstrapper with .NET 9 and later
 
@@ -77,7 +85,7 @@ You application will be available `http://localhost:8000`.
 
 ## Upgrading from previous versions of the Uno.Wasm.Bootstrap package
 
-Moving from version 8.x to 9.x may require changing the used msbuild SDK for your project.
+Moving from version 8.x to 9.x may require changing the used MSBuild SDK for your project.
 
 - If your project contains `Sdk="Uno.Sdk"`, you will need to update the Uno.Sdk to 5.5 or later.
 - If your project contains `Sdk="Microsoft.NET.Sdk.Web"`, you'll need to change it to `Sdk="Microsoft.NET.Sdk.WebAssembly"`.
@@ -95,6 +103,25 @@ By default, the .NET runtime does not load all resource assemblies, but if you w
     <WasmShellLoadAllSatelliteResources>true</WasmShellLoadAllSatelliteResources>
 </PropertyGroup>
 ```
+
+### Deprecated APIs
+
+- The `Uno.Wasm.Boostrap.DevServer` package is not needed anymore and can be removed
+- `WasmShellOutputPackagePath` has been removed. Use `$(PublishDir)`
+- `WasmShellOutputDistPath` has been removed. Use `$(PublishDir)`
+- `WasmShellBrotliCompressionQuality`, `WasmShellCompressedExtension` and `WasmShellGenerateCompressedFiles` have been removed, the compression is done by the .NET SDK
+- `WasmShellEnableAotGSharedVT` has been removed.
+- `WasmShellEnableEmscriptenWindows` has been removed, the .NET SDK manages emscripten
+- `WasmShellEnableLongPathSupport` has been removed, the .NET SDK manages the build
+- `WasmShellEnableNetCoreICU`has been removed, the .NET SDK manages localization
+- `WasmShellForceDisableWSL` and `WasmShellForceUseWSL` have been removed, Windows and Linux are supported natively by the .NET SDK.
+- `WashShellGeneratePrefetchHeaders` has been removed.
+- `WasmShellNinjaAdditionalParameters` has been removed, the .NET SDK manages the build
+- `WasmShellObfuscateAssemblies`, `WasmShellAssembliesExtension` and `AssembliesFileNameObfuscationMode` have been removed, the .NET SDK uses WebCIL to achieve the same result.
+- `WasmShellPrintAOTSkippedMethods` has been removed
+- `WasmShellPThreadsPoolSize` has been removed in favor of the official .NET SDK parameters
+- `MonoRuntimeDebuggerEnabled` has been removed, the .NET SDK manages the debugger
+- `WashShellUseFileIntegrity` has been removed, the .NET SDK manages the assets integrity
 
 ## Bootstrapper versions and .NET runtimes
 

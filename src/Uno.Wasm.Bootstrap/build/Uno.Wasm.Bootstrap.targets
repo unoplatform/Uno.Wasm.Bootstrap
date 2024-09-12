@@ -150,19 +150,36 @@
 		</ItemGroup>
 
 		<PropertyGroup>
+			<!-- SIMD compatibility-->
 			<WasmEnableSIMD Condition=" '$(WasmShellEnableSimd)' != '' ">$(WasmShellEnableSimd)</WasmEnableSIMD>
 
+			<!-- Dedup compatibility -->
+			<WasmDedup Condition=" '$(WasmShellEnableAOTDeduplication)' != '' ">$(WasmShellEnableAOTDeduplication)</WasmDedup>
+
+			<!-- Linker performance compatibility -->
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'None' ">-O0</WasmLinkOptimizationFlag>
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Leve1' ">-O1</WasmLinkOptimizationFlag>
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Level2' ">-O2</WasmLinkOptimizationFlag>
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Level3' ">-O3</WasmLinkOptimizationFlag>
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Maximum' ">-Oz</WasmLinkOptimizationFlag>
+
+			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimization)' == 'false' ">-O0</WasmLinkOptimizationFlag>
+
+			<!-- Jiterpreter compatibility -->
 			<BlazorWebAssemblyJiterpreter Condition=" '$(WasmShellEnableJiterpreter)' != '' AND '$(BlazorWebAssemblyJiterpreter)' == '' ">$(WasmShellEnableJiterpreter)</BlazorWebAssemblyJiterpreter>
 			
+			<!-- EMCC flags compatibility -->
 			<EmccFlags>$(EmccFlags);@(WasmShellExtraEmccFlags)</EmccFlags>
 			
 			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' ">$(EmccFlags);--profiling</EmccFlags>
 
+			<!-- Threading compatibility -->
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 			<!-- https://github.com/dotnet/runtime/blob/1231a9addd0fb3cfb806c2a89cb45a3018c48bb2/src/mono/browser/build/BrowserWasmApp.targets#L125-L126 -->
 			<_WasmPThreadPoolInitialSize Condition=" '$(WasmShellPThreadsPoolSize)' == 'true' ">true</_WasmPThreadPoolInitialSize>
 
+			<!-- Native build compatibility -->
 			<WasmBuildNative Condition=" 
 				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0
 				OR @(NativeFileReference->Count()) > 0
