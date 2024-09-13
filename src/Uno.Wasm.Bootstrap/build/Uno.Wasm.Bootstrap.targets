@@ -251,6 +251,8 @@
 			<_UnoWasmCopyToOutputAssets
 				Include="@(_AllChildProjectItemsWithTargetPath)"
 				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
+
+			<Content Remove="$(WasmPWAManifestFile)" />
 		</ItemGroup>
 
 		<ShellTask_v0
@@ -294,7 +296,7 @@
 			<!-- Override the user's profile with the filtered one -->
 			<WasmAotProfilePath>$(_FilteredAotProfile)</WasmAotProfilePath>
 		</PropertyGroup>
-
+		
 	</Target>
 
 </Project>

@@ -48,7 +48,7 @@
 	<Target Name="AfterPublishValidation" AfterTargets="Publish">
 
 		<PropertyGroup>
-			<_appOutput>$(PublishDir)/wwwroot</_appOutput>
+			<_appOutput>$(PublishDir)wwwroot</_appOutput>
 		</PropertyGroup>
 		
 		<ItemGroup>

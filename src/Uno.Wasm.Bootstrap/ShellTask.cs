@@ -308,22 +308,6 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(Path.GetFileName(assetsFilePath), assetsFilePath);
 		}
 
-		private void FileCopy(string source, string dest, bool overwrite = false)
-		{
-			var sourceFileName = PathHelper.FixupPath(source);
-			var destFileName = PathHelper.FixupPath(dest);
-
-			try
-			{
-				File.Copy(sourceFileName, destFileName, overwrite);
-			}
-			catch (Exception ex)
-			{
-				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}: {ex.Message}");
-				throw;
-			}
-		}
-
 		private void ExtractAdditionalJS()
 		{
 			BuildResourceSearchList();
@@ -651,53 +635,53 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
 		{
-			//if (_shellMode != ShellMode.Browser)
-			//{
-			//	return;
-			//}
+			if (_shellMode != ShellMode.Browser)
+			{
+				return;
+			}
 
-			//if (!string.IsNullOrWhiteSpace(PWAManifestFile))
-			//{
-			//	var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
+			if (!string.IsNullOrWhiteSpace(PWAManifestFile))
+			{
+				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-			//	extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
+				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
-			//	// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
-			//	extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
+				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
+				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
 
-			//	if (manifestDocument["icons"] is JArray array
-			//		&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
-			//	{
-			//		extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
-			//	}
+				if (manifestDocument["icons"] is JArray array
+					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
+				{
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
+				}
 
-			//	if (manifestDocument["theme_color"]?.Value<string>() is string color)
-			//	{
-			//		extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
-			//	}
-			//	else
-			//	{
-			//		extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
-			//	}
+				if (manifestDocument["theme_color"]?.Value<string>() is string color)
+				{
+					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
+				}
+				else
+				{
+					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
+				}
 
-			//	// Transform the PWA assets
-			//	if (manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(_remoteBasePackagePath))
-			//	{
-			//		foreach (var icon in icons)
-			//		{
-			//			var originalSource = icon["src"]?.Value<string>();
+				// Transform the PWA assets
+				if (manifestDocument["icons"] is JArray icons)
+				{
+					foreach (var icon in icons)
+					{
+						var originalSource = icon["src"]?.Value<string>();
 
-			//			icon["src"] = originalSource switch
-			//			{
-			//				string s when s.StartsWith("./") => $"{WebAppBasePath}{_remoteBasePackagePath}/" + s.Substring(2),
-			//				string s => $"{_remoteBasePackagePath}/" + s,
-			//				_ => originalSource
-			//			};
-			//		}
-			//	}
+						icon["src"] = originalSource switch
+						{
+							string s when s.StartsWith("./") => $"{WebAppBasePath}/" + s.Substring(2),
+							string s => $"./" + s,
+							_ => originalSource
+						};
+					}
+				}
 
-			//	File.WriteAllText(Path.Combine(_distPath, Path.GetFileName(PWAManifestFile)), manifestDocument.ToString());
-			//}
+				AddStaticAsset(Path.GetFileName(PWAManifestFile), PWAManifestFile!);
+			}
 		}
 
 		private void GenerateCSPMeta(StringBuilder extraBuilder)
