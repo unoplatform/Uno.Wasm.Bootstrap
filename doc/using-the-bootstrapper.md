@@ -4,7 +4,7 @@ uid: UnoWasmBootstrap.Overview
 
 # Using the bootstrapper
 
-The Uno.Wasm.Bootstrap provides a base bootstrapping of the `Microsoft.NET.Sdk.WebAssembly` SDK provided by .NET 9.
+The Uno.Wasm.Bootstrap package provides a runtime bootstrapper of the `Microsoft.NET.Sdk.WebAssembly` SDK from .NET 9.
 
 This package only provides the bootstrapping features to run a .NET assembly and write to the javascript console, through `Console.WriteLine`. To write an app that provides UI functionalities, make sur to check out https://aka.platform.uno/get-started.
 
