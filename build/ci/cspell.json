@@ -206,6 +206,5 @@
 	],
 	"ignorePaths": [
 		"../doc/index.md",
-		"../THIRD-PARTY-NOTICES.md"
 	]
 }
