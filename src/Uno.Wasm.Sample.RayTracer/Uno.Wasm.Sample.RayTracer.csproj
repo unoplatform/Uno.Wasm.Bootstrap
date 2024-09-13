@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<UseAOT>true</UseAOT>
@@ -10,36 +10,33 @@
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
-		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>-->
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<PublishTrimmed>true</PublishTrimmed>
+		<RunAOTCompilation>true</RunAOTCompilation>
+		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
+		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
+		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
 	</PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 
+	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
-	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
+		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(UseAOT)'=='true'">
-		<WasmShellEnableAotProfile Include="aot.profile" />
 	</ItemGroup>
 
 	<ProjectExtensions>
@@ -48,14 +45,19 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
+	<Target Name="AfterPublishValidation" AfterTargets="Publish">
+
+		<PropertyGroup>
+			<_appOutput>$(PublishDir)wwwroot</_appOutput>
+		</PropertyGroup>
+		
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />
 		</ItemGroup>
 
-		<Error Condition="!exists('$(WasmShellOutputPackagePath)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(WasmShellOutputPackagePath)" />
-		<Error Condition="!exists('$(WasmShellOutputDistPath)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(WasmShellOutputDistPath)" />
+		<Error Condition="!exists('$(_appOutput)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(_appOutput)" />
+		<Error Condition="!exists('$(_appOutput)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(_appOutput)" />
 
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>

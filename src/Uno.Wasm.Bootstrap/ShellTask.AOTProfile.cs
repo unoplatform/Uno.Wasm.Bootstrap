@@ -47,7 +47,7 @@ namespace Uno.Wasm.Bootstrap
 		/// </summary>
 		private string? TransformAOTProfile()
 		{
-			var profilePath = AotProfile?.FirstOrDefault()?.GetMetadata("FullPath");
+			var profilePath = AotProfile;
 
 			if (profilePath != null)
 			{
@@ -125,7 +125,7 @@ namespace Uno.Wasm.Bootstrap
 
 				foreach (var method in profile.Methods)
 				{
-					var genericParameters = string.Join("|", method.GenericInst?.Types.Select(t => t.ToString()) ?? new string[0]);
+					var genericParameters = string.Join("|", method.GenericInst?.Types.Select(t => t.ToString()) ?? []);
 
 					sb.AppendLine($"{method.Type.Module.Name};{method.Type.FullName}.{method.Name};{method.GenericInst?.Id};{genericParameters}");
 				}

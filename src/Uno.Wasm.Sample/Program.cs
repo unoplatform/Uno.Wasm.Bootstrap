@@ -19,6 +19,8 @@ using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Globalization;
+using System.Runtime.InteropServices.JavaScript;
+using System.Threading.Tasks;
 
 namespace Uno.Wasm.Sample
 { 
@@ -59,13 +61,20 @@ namespace Uno.Wasm.Sample
 #endif
 			Console.WriteLine($"requireJSAvailable: {requireAvailable}");
 
+			Console.WriteLine($"CultureInfo.CurrentCulture: {CultureInfo.CurrentCulture}");
+			Console.WriteLine($"CultureInfo.CurrentUICulture: {CultureInfo.CurrentUICulture}");
+			Console.WriteLine($"Thread.CurrentThread.CurrentCulture: {Thread.CurrentThread.CurrentCulture}");
+			Console.WriteLine($"Thread.CurrentThread.CurrentUICulture: {Thread.CurrentThread.CurrentUICulture}");
+			Console.WriteLine($"CultureInfo.DefaultThreadCurrentCulture: { CultureInfo.DefaultThreadCurrentCulture?.ToString() ?? "<null>" }");
+			Console.WriteLine($"CultureInfo.DefaultThreadCurrentUICulture: { CultureInfo.DefaultThreadCurrentUICulture?.ToString() ?? "<null>"}");
+
 			Console.WriteLine($"Timezone: {TimeZoneInfo.Local.StandardName}");
 
 			Console.WriteLine(typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger));
 
 			var r = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
 			Console.WriteLine($"Res(en): {r.GetString("WebDescriptionMissing", new CultureInfo("en-US"))}");
-			Console.WriteLine($"Res(fr): {r.GetString("WebDescriptionMissing", new CultureInfo("fr-CA"))}");
+			Console.WriteLine($"Res(fr): {r.GetString("WebDescriptionMissing", new CultureInfo("fr"))}");
 
 			_t = new Timer(_ => {
 				Console.WriteLine("message");
@@ -84,6 +93,9 @@ namespace Uno.Wasm.Sample
 
 		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.isRequireAvailable")]
 		public static partial bool IsRequireAvailable();
+
+		[JSImport("INTERNAL.loadSatelliteAssemblies")]
+		internal static partial Task LoadSatelliteAssemblies(string[] culturesToLoad);
 	}
 #endif
 

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<PackageId>Uno.Wasm.Bootstrap.DevServer</PackageId>
+		<IsTool>true</IsTool>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Description>[Deprecated] This package is not needed anymore and can be removed</Description>
+	</PropertyGroup>
+
+</Project>

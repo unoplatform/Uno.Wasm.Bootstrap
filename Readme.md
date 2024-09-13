@@ -2,15 +2,11 @@
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/unoplatform/Uno.Wasm.Bootstrap)
 
-Uno.Wasm.Bootstrap provides a simple way to package C# .NET code, and run it from a compatible browser environment.
+The Uno.Wasm.Bootstrap package provides a runtime bootstrapper of the `Microsoft.NET.Sdk.WebAssembly` SDK from .NET 9.
 
-It is a standalone .NET Web Assembly (Wasm) sdk bootstrapper taking the form of a nuget package.
+This package only provides the bootstrapping features to run a .NET assembly and write to the JavaScript console, through `Console.WriteLine`. To write an app that provides UI functionalities, make sur to check out https://aka.platform.uno/get-started.
 
-Installing it on a .NET project (5, 6, 7, 8 or .NET Standard 2.0) with an entry point allows to publish it as part of a Wasm distribution folder, along with CSS, JavaScript and content files.
-
-This package only provides the bootstrapping features to run a .NET assembly and write to the JavaScript console, through `Console.WriteLine`.
-
-This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
+This work is based on the excellent work from @praeclarum's [OOui Wasm MSBuild task](https://github.com/praeclarum/Ooui).
 
 ## Documentation
 
@@ -28,15 +24,11 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   - [Splash screen](doc/features-splash-screen.md)
   - [Threading](doc/features-threading.md)
   - [Deep linking](doc/features-deep-linking.md)
-  - [Pre-compression](doc/features-pre-compression.md)
   - [Embedded mode](doc/features-embedded.mode.md)
   - [Native Linker Optimization](doc/features-linker-opts.md)
   - [Memory troubleshooting](doc/features-memory-corruption-troubleshooting.md)
   - [Module Linking](doc/features-module-linking.md)
   - [Profiling](doc/features-profiling.md)
-  - [Node JS](doc/features-node-js.md)
-  - [Nuget package overrides](doc/features-nuget-package-overrides.md)
-  - [Prefetching](doc/features-prefetch.md)
   - [PWA Support](doc/features-pwa.md)
   - [4GB Support](doc/features-4gb.md)
   - [HttpRequestMessage Extensions](doc/features-httprequestmessage-extensions.md)
@@ -45,3 +37,9 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   - [Uno Version Checker](doc/features-version-checker.md)
 - [Contributing](doc/contributing.md)
 - [Release procedure](doc/release-procedure.md)
+
+## Previous releases documentation
+
+- [8.0.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/8.0/doc)
+- [7.0.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/7.0/doc)
+- [3.x](https://github.com/unoplatform/Uno.Wasm.Bootstrap/tree/release/stable/3.3/doc)

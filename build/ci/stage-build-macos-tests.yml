@@ -16,40 +16,14 @@ jobs:
   - template: gitversion.yml
   - template: dotnet-install.yml
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 8.0.100
-      includePreviewVersions: true
-
-  - bash: brew install ninja
-    displayName: 'Install Ninja'
-
-  # - bash: |
-  #     source ~/emsdk/emsdk_env.sh
-  #     export PATH=$PATH:$(Agent.WorkFolder)/ninja-mac
-  #     msbuild /r /t:Publish /p:Configuration=Release src/Uno.Wasm.Bootstrap.sln
-  # 
-  #   displayName: MSBuild Validation
-
-  # - task: CopyFiles@2
-  #   inputs:
-  #     SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.AotTests/bin/Release/netstandard2.0/dist
-  #     Contents: '**/*.*'
-  #     TargetFolder: $(build.artifactstagingdirectory)
-  #     CleanTargetFolder: false
-  #     OverWrite: false
-  #     flattenFolders: false
-
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
       dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
 
   - bash: |
-      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet6
-      dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet6-mac.binlog
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet7
+      dotnet build -m:1 /bl:$(build.artifactstagingdirectory)/SampleNet7-mac.binlog
     displayName: Build NetCore-Wasm Sample
 
   # Static linking test (net5) without the linker
@@ -61,7 +35,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net5.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking Interpreter Test
     env:

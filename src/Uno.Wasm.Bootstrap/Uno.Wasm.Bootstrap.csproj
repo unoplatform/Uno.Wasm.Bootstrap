@@ -3,18 +3,18 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<DefineConstants>NET_CORE</DefineConstants>
-		<NoWarn>1701;1702;1705;649;NU5128</NoWarn>
+		<NoWarn>1701;1702;1705;649;NU5128;NU1903</NoWarn>
 		<AssemblyName>Uno.Wasm.Bootstrap.v0</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v0</RootNamespace>
 		<PackageId>Uno.Wasm.Bootstrap</PackageId>
 		<IsTool>true</IsTool>
 		<Version>2.0.1-test.8</Version>
 		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">true</GeneratePackageOnBuild>
-		<LangVersion>10.0</LangVersion>
 		<Nullable>enable</Nullable>
-	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<IsPublishable>false</IsPublishable>
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(GitVersion_Sha)'!=''">
 		<AssemblyName>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</AssemblyName>
 		<RootNamespace>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</RootNamespace>
@@ -41,75 +41,45 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="build/*.targets">
+		<None Include="build/*.targets">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
-		</Content>
-		<Content Include="build/*.props">
+		</None>
+		<None Include="build/*.props">
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
-		</Content>
-		<Content Include="build/CustomDebuggerProxy/**">
-			<Pack>true</Pack>
-			<PackagePath>build/CustomDebuggerProxy</PackagePath>
-		</Content>
-		<Content Include="build/linker/**">
-			<Pack>true</Pack>
-			<PackagePath>build/linker</PackagePath>
-		</Content>
-		<Content Include="build/cilstrip/**">
-			<Pack>true</Pack>
-			<PackagePath>build/cilstrip</PackagePath>
-		</Content>
-		<Content Include="build/scripts/**">
+		</None>
+		<None Include="build/scripts/**">
 			<Pack>true</Pack>
 			<PackagePath>build/scripts</PackagePath>
-		</Content>
-		<Content Include="Templates\index.html">
+		</None>
+		<None Include="Templates\index.html">
 			<Pack>true</Pack>
 			<PackagePath>tools/templates</PackagePath>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/brotlisharplib/0.3.3/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/system.runtime.compilerservices.unsafe/4.5.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll">
+		</None>
+
+		<None Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll">
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/mono.options/5.3.0.1/lib/netstandard1.3/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/newtonsoft.json/13.0.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
-		<Content Include="$(NuGetPackageRoot)/System.Memory/4.5.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
-			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Visible>false</Visible>
-		</Content>
+		</None>
+
 	</ItemGroup>
+
+	<Target Name="_CopyDevDependencies" AfterTargets="CoreCompile">
+		<!--
+			Copy dev dependencies manually to avoid having the AOT compiler
+			pick them up as transitive output content
+		-->
+		<ItemGroup>
+			<_UnoTaskDependencies Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll" />
+		</ItemGroup>
+		<Copy
+			SourceFiles="@(_UnoTaskDependencies)"
+			DestinationFolder="$(OutputPath)"
+			SkipUnchangedFiles="true" />
+	</Target>
 
 	<ItemGroup>
 		<EmbeddedResource Include="WasmCSS\*.css" />
@@ -122,19 +92,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <TypeScriptCompile Remove="obj\**\*.ts" />
+		<TypeScriptCompile Remove="obj\**\*.ts" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <UpToDateCheckInput Remove="ts\types\dotnet\mono.d.ts" />
+		<UpToDateCheckInput Remove="ts\types\dotnet\mono.d.ts" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Uno.Wasm.Bootstrap.Cli\Uno.Wasm.Bootstrap.Cli.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 		<ProjectReference Include="..\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
@@ -150,43 +115,7 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.Tuner\Uno.Wasm.Tuner.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.Packager\Uno.Wasm.Packager.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 	</ItemGroup>
-
-	<!-- Run the typescript compiler before resources resolution -->
-	<Target Name="GenerateJavascriptBeforeCompile" BeforeTargets="ResolveProjectReferences" DependsOnTargets="CompileTypeScriptWithTSConfig">
-
-		 <!--Delete the log files to avoid the TSC clean target to erase the output files before-->
-		<ItemGroup>
-			<TSOutputLogsToDelete Include="$(TSCompilerOutputLogDirectory)Tsc*.out" />
-		</ItemGroup>
-
-		<Delete Files="@(TSOutputLogsToDelete)" /> 
-	</Target>
-
-	<!-- Include generated javascript as EmbeddedResource -->
-	<Target Name="IncludeGeneratedJavascript" AfterTargets="CompileTypeScriptWithTSConfig">
-		<ItemGroup>
-			<EmbeddedResource Include="@(GeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
-			<Content Remove="@(GeneratedJavascript)" />
-		</ItemGroup>
-	</Target>
-
-	<!-- Include generated javascript as EmbeddedResource -->
-	<Target Name="RemoveGeneratedJavascriptAsContent" AfterTargets="GetTypeScriptOutputForPublishing">
-		<ItemGroup>
-			<Content Remove="@(GeneratedJavascript)" />
-		</ItemGroup>
-	</Target>
 
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>
@@ -204,31 +133,36 @@
 			</Content>
 		</ItemGroup>
 	</Target>
+	
+	<!-- Run the typescript compiler before resources resolution -->
+	<Target Name="GenerateJavascriptBeforeCompile" BeforeTargets="ResolveProjectReferences" DependsOnTargets="CompileTypeScriptWithTSConfig">
 
-	<Target Name="_BootstrapperUpdateExternalTools" BeforeTargets="CoreCompile">
+		<!--Delete the log files to avoid the TSC clean target to erase the output files before-->
 		<ItemGroup>
-			<_PackagerNet5Files Include="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/packager.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/wasm-tuner.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/Mono.Cecil.*" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Json.dll" />
-			<_TunerNet5Files Include="../Uno.Wasm.Tuner/bin/$(Configuration)/net5.0/System.Reflection.MetadataLoadContext.dll" />
+			<TSOutputLogsToDelete Include="$(TSCompilerOutputLogDirectory)Tsc*.out" />
 		</ItemGroup>
 
-		<Copy SourceFiles="@(_PackagerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
-		<Copy SourceFiles="../Uno.Wasm.Packager/bin/$(Configuration)/net5.0/Mono.Cecil.dll" DestinationFolder="$(MSBuildThisFileDirectory)build/packager/net5.0" />
+		<Delete Files="@(TSOutputLogsToDelete)" />
+	</Target>
 
-		<Copy SourceFiles="@(_TunerNet5Files)" DestinationFolder="$(MSBuildThisFileDirectory)build/wasm-tuner/net5.0" />
+	<!-- Include generated javascript as EmbeddedResource -->
+	<Target Name="IncludeGeneratedJavascript" AfterTargets="CompileTypeScriptWithTSConfig">
 
-		<!-- Update the item group with generated files -->
+		<CopyIfChanged SourceFiles="@(GeneratedJavascript)" DestinationFolder="$(IntermediateOutputPath)" />
+
 		<ItemGroup>
-			<Content Include="./build/packager/**">
-				<Pack>true</Pack>
-				<PackagePath>build/packager</PackagePath>
-			</Content>
-			<Content Include="./build/wasm-tuner/**">
-				<Pack>true</Pack>
-				<PackagePath>build/wasm-tuner</PackagePath>
-			</Content>
+			<_IntermediateGeneratedJavascript Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
+			<FileWrites Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
+
+			<EmbeddedResource Include="@(_IntermediateGeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
+			<Content Remove="@(_IntermediateGeneratedJavascript)" />
+		</ItemGroup>
+	</Target>
+
+	<!-- Include generated javascript as EmbeddedResource -->
+	<Target Name="RemoveGeneratedJavascriptAsContent" AfterTargets="GetTypeScriptOutputForPublishing">
+		<ItemGroup>
+			<Content Remove="@(GeneratedJavascript)" />
 		</ItemGroup>
 	</Target>
 
@@ -241,6 +175,7 @@
 		<ItemGroup>
 			<_Sha1Replace Include="ShellTask*.cs" />
 			<_Sha1Replace Include="*Task.cs" />
+			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.props" />
 			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.targets" />
 		</ItemGroup>
 
@@ -261,8 +196,9 @@
 
 					if(!output.Contains(SHAVersion))
 					{
-						Log.LogMessage("Updating : " + FilePath);
+						Log.LogMessage("Updating " + FilePath + " with " + SHAVersion);
 						File.WriteAllText(FilePath, output.Replace("v0", SHAVersion));
+						Log.LogMessage(File.ReadAllText(FilePath));
 					}
 					else
 					{
@@ -272,4 +208,37 @@
 			</Code>
 		</Task>
 	</UsingTask>
+
+	<!-- Create a UsingTask that will copy files only if their contents have changed, regardless of timestamp -->
+	<UsingTask TaskName="CopyIfChanged" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+
+		<ParameterGroup>
+			<SourceFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+			<DestinationFolder ParameterType="System.String" Required="true" />
+		</ParameterGroup>
+
+		<Task>
+			<Using Namespace="System" />
+			<Using Namespace="System.IO" />
+			<Code Type="Fragment" Language="cs">
+				<![CDATA[
+					foreach (var sourceFile in SourceFiles)
+					{
+						var destinationFile = Path.Combine(DestinationFolder, Path.GetFileName(sourceFile.ItemSpec));
+
+						if (!File.Exists(destinationFile) || !File.ReadAllBytes(sourceFile.ItemSpec).SequenceEqual(File.ReadAllBytes(destinationFile)))
+						{
+							Log.LogMessage($"Copying {sourceFile.ItemSpec} to {destinationFile}");
+							File.Copy(sourceFile.ItemSpec, destinationFile, true);
+						}
+						else
+						{
+							Log.LogMessage($"Skipping unchanged {sourceFile.ItemSpec} to {destinationFile}");
+						}
+					}
+				]]>
+			</Code>
+		</Task>
+	</UsingTask>
+
 </Project>

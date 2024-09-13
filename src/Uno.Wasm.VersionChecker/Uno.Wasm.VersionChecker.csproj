@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net5.0;net7.0</TargetFrameworks>
+		<TargetFrameworks>net9.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<RollForward>Major</RollForward>
 
@@ -20,6 +20,10 @@
 		<PackageReference Include="ConsoleTables" Version="2.4.2" />
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.34" />
 		<PackageReference Include="Mono.Cecil" Version="0.11.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Uno.Wasm.WebCIL\Uno.Wasm.WebCIL.csproj" />
 	</ItemGroup>
 
 </Project>

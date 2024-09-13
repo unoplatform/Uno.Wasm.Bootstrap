@@ -3,6 +3,7 @@
 	export class AotProfilerSupport {
 
 		private _context?: DotnetPublicAPI;
+		private _aotProfilerExports?: any;
 
 		private _unoConfig: UnoConfig;
 
@@ -13,15 +14,9 @@
 			// This will fail when CSP is enabled, but initialization of the profiler
 			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
 			// to keep using bind_static_method.
-			var initializeProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:Initialize");
-			if (initializeProfile) {
-				initializeProfile();
-				this.attachProfilerHotKey();
-			}
-			else {
-				throw `Unable to find AOT Profiler initialization method`;
-			}
+			this.attachProfilerHotKey();
 		}
+
 
 		public static initialize(context: DotnetPublicAPI, unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig): AotProfilerSupport {
 			if (Bootstrapper.ENVIRONMENT_IS_WEB && unoConfig.generate_aot_profile) {
@@ -45,13 +40,25 @@
 				});
 		}
 
-		public saveAotProfile() {
-			var stopProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.AotProfiler] Uno.AotProfilerSupport:StopProfile");
-			stopProfile();
+		private async initializeProfile() {
+			let anyContext = <any>this._context;
+
+			if (anyContext.getAssemblyExports !== undefined) {
+				this._aotProfilerExports = await anyContext.getAssemblyExports("Uno.Wasm.AotProfiler");
+			}
+			else {
+				throw `Unable to find getAssemblyExports`;
+			}
+		}
+
+		public async saveAotProfile() {
+			await this.initializeProfile();
+
+			this._aotProfilerExports.Uno.AotProfilerSupport.StopProfile();
 
 			// Export the file
 			var a = window.document.createElement('a');
-			var blob = new Blob([(<any>this._context.Module).aot_profile_data]);
+			var blob = new Blob([(<any>this._context.INTERNAL).aotProfileData]);
 			a.href = window.URL.createObjectURL(blob);
 			a.download = "aot.profile";
 

@@ -1,11 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
 	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
-		<WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>
+
+		<!-- NET 9 TODO -->
+		<!--<WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>-->
+
 		<!--<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>-->
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->
@@ -15,6 +18,8 @@
 		<WasmShellILLinkerEnabled>true</WasmShellILLinkerEnabled>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<InvariantGlobalization>false</InvariantGlobalization>
+		<WasmShellRuntimeOptions>--jiterpreter-stats-enabled</WasmShellRuntimeOptions>
 	</PropertyGroup>
 
 	<ItemGroup>

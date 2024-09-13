@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using RayTraceBenchmark;
 using WebAssembly;
 
@@ -10,8 +11,12 @@ namespace Uno.Wasm.Test.Empty
 {
 	class Program
 	{
-		static int Main(string[] args)
+		static async Task<int> Main(string[] args)
 		{
+			await Task.Yield();
+
+			Runtime.InvokeJS($"Interop.appendResult(\"test\")");
+
 			System.Console.WriteLine($"Mono Runtime Mode: " + Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE"));
 
 			var w = Stopwatch.StartNew();

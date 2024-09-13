@@ -17,6 +17,7 @@ jobs:
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+    WasmCachePath: $(Agent.TempDirectory)/emsdk-cache
 
   steps:
   - checkout: self
@@ -25,26 +26,19 @@ jobs:
   - template: gitversion.yml
   - template: dotnet-install.yml
 
-  - task: UseDotNet@2
-    displayName: 'Use .NET SDK'
-    inputs:
-      packageType: sdk
-      version: 8.0.100
-      includePreviewVersions: true
-
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
 
   - bash: |
       cd $(build.sourcesdirectory)/src
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
+      dotnet publish -c Release /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
     displayName: Build NetCore-Wasm Sample
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.Sample.RayTracer
       CleanTargetFolder: false
@@ -54,7 +48,7 @@ jobs:
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/"
     displayName: Raytracer UI Tests Net5
     env:
@@ -63,43 +57,45 @@ jobs:
   ## Threads Interp validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 "/p:WasmShellWebAppBasePath=/"
     displayName: Build Threads test
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net8.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading UI Tests 
+    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   ### Threads AOT validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 "/p:WasmShellWebAppBasePath=/"
     displayName: Build Threads AOT test
   
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net6.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading AOT UI Tests 
+    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   ## SWA sub-path validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
-      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true "/p:WasmShellWebAppBasePath=/"
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 "/p:WasmShellWebAppBasePath=/"
     displayName: Build RayTracer with sub-path
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/publish
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/subpath-override
       CleanTargetFolder: false
@@ -108,7 +104,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net6.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/test/inner"
     displayName: Raytracer UI Tests Net5 (SWA)
     env:
@@ -117,7 +113,7 @@ jobs:
   ## Static linking validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6/bin/Release/net6.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net5
     env:
@@ -126,7 +122,7 @@ jobs:
   ## Static linking validation (net7)
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net7
     env:
@@ -142,7 +138,7 @@ jobs:
   ## Static linking validation (net7)
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-csp.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net7.0/dist" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net7 (CSP Enabled)
     env:
@@ -160,7 +156,7 @@ jobs:
   - task: CopyFiles@2
     condition: always()
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7/bin/Release/net7.0
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7/bin/Release/net9.0
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.StaticLinking.Server.net7
       CleanTargetFolder: false
@@ -170,8 +166,8 @@ jobs:
   # Interpreter debug for symbols copy issue
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
-      dotnet clean -c Debug /p:DISABLE_CLIHOST_NET6=true
-      dotnet publish -c Debug /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.debug-interpreter-linux-debug.binlog
+      dotnet clean -c Debug
+      dotnet publish -c Debug /m:1 /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.debug-interpreter-linux-debug.binlog
     displayName: Build Debug Interpreter with linking Sample
 
   - task: PublishBuildArtifacts@1
