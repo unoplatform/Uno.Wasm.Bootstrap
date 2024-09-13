@@ -10,7 +10,8 @@
       "Uno.Wasm.HttpRequestMessageExtensions\\Uno.Wasm.HttpRequestMessageExtensions.csproj",
       "Uno.Wasm.LogProfiler\\Uno.Wasm.LogProfiler.csproj",
       "Uno.Wasm.MetadataUpdater\\Uno.Wasm.MetadataUpdater.csproj",
-      "Uno.Wasm.VersionChecker\\Uno.Wasm.VersionChecker.csproj"
+      "Uno.Wasm.VersionChecker\\Uno.Wasm.VersionChecker.csproj",
+      "Uno.Wasm.WebCIL\\Uno.Wasm.WebCIL.csproj"
     ]
   }
 }
