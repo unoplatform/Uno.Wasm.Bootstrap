@@ -252,7 +252,10 @@
 				Include="@(_AllChildProjectItemsWithTargetPath)"
 				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
 
-			<Content Remove="$(WasmPWAManifestFile)" />
+			<ContentWithTargetPath Remove="$(WasmPWAManifestFile)" />
+
+			<!-- Remove WasmPWAManifestFile from content using full path-->
+			<!--<ContentWithTargetPath Remove="$(MSBuildProjectDirectory)\$(WasmPWAManifestFile)" />-->
 		</ItemGroup>
 
 		<ShellTask_v0
