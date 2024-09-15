@@ -259,7 +259,7 @@
 			AotProfile="$(WasmAotProfilePath)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			AssemblyName="$(AssemblyName)"
-			Assets="@(Content);@(_UnoWasmCopyToOutputAssets)"
+			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"

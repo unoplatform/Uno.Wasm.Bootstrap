@@ -209,25 +209,31 @@ namespace Uno.Wasm.Bootstrap
 
 		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
 		{
-			// This is for project-local defined content
-			var baseSourceFile = item.GetMetadata("DefiningProjectDirectory");
-
-			if (item.GetMetadata("TargetPath") is { } targetPath && !string.IsNullOrEmpty(targetPath))
+			if (item.GetMetadata("RelativePath") is { } relativePath && !string.IsNullOrEmpty(relativePath))
 			{
-				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
+				Log.LogMessage(MessageImportance.Low, $"RelativePath '{relativePath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
+
+				// This case is mainly for shared projects and files out of the baseSourceFile path
+				return (item.GetMetadata("FullPath"), relativePath);
+			}
+			else if (item.GetMetadata("TargetPath") is { } targetPath && !string.IsNullOrEmpty(targetPath))
+			{
+				Log.LogMessage(MessageImportance.Low, $"TargetPath '{targetPath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
 
 				// This is used for item remapping
-				return (fullPath, targetPath);
+				return (item.GetMetadata("FullPath"), targetPath);
 			}
 			else if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
 			{
-				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
+				Log.LogMessage(MessageImportance.Low, $"Link '{link}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
 
 				// This case is mainly for shared projects and files out of the baseSourceFile path
-				return (fullPath, link);
+				return (item.GetMetadata("FullPath"), link);
 			}
 			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
 			{
+				Log.LogMessage(MessageImportance.Low, $"FullPath '{fullPath}' (ItemSpec: {item.ItemSpec})");
+
 				var sourceFilePath = item.ItemSpec;
 
 				if (sourceFilePath.StartsWith(CurrentProjectPath))
@@ -242,7 +248,9 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
-				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ItemSpec);
+				Log.LogMessage(MessageImportance.Low, $"Without metadata '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
+
+				return (item.GetMetadata("FullPath"), item.ItemSpec);
 			}
 		}
 
