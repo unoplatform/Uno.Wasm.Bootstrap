@@ -237,7 +237,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveProjectStaticWebAssets;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
@@ -287,10 +287,31 @@
 			WasmShellMode="$(WasmShellMode)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)"
 			>
-			<Output TaskParameter="StaticWebContent" ItemName="Content" />
+			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 		</ShellTask_v0>
+
+		<DefineStaticWebAssets
+		  CandidateAssets="@(_UnoStaticWebContent)"
+		  FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
+		  FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
+		  RelativePathPattern="wwwroot/**"
+		  SourceType="Discovered"
+		  SourceId="$(PackageId)"
+		  ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
+		  BasePath="$(StaticWebAssetBasePath)"
+		  AssetMergeSource="$(StaticWebAssetMergeTarget)">
+			<Output TaskParameter="Assets" ItemName="StaticWebAsset" />
+		</DefineStaticWebAssets>
+		
+		<DefineStaticWebAssetEndpoints
+			  CandidateAssets="@(StaticWebAsset)"
+			  ExistingEndpoints="@(StaticWebAssetEndpoint)"
+			  ContentTypeMappings="@(StaticWebAssetContentTypeMapping)"
+				>
+			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
+		</DefineStaticWebAssetEndpoints>
 
 		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
 			<!-- Override the user's profile with the filtered one -->
