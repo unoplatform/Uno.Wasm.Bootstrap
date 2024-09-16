@@ -145,7 +145,7 @@ namespace Uno.Wasm.Bootstrap
 
 		public override bool Execute()
 		{
-			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
+			IntermediateOutputPath = IntermediateOutputPath;
 			_intermediateAssetsPath = Path.Combine(IntermediateOutputPath, "unowwwrootassets");
 			Directory.CreateDirectory(_intermediateAssetsPath);
 
