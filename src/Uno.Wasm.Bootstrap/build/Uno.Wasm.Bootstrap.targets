@@ -237,7 +237,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
