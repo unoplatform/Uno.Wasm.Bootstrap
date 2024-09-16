@@ -229,7 +229,22 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
 
-	<Target Name="_UnoGenerateUnoAssetsManifest" BeforeTargets="ResolveBuildCompressedStaticWebAssetsConfiguration">
+	<PropertyGroup>
+		<UnoGenerateAssetsManifestDependsOn>
+			$(UnoGenerateAssetsManifestDependsOn);
+		</UnoGenerateAssetsManifestDependsOn>
+	</PropertyGroup>
+	
+	<PropertyGroup>
+		<UnoGenerateAssetsManifestBeforeTargets>
+			$(UnoGenerateAssetsManifestBeforeTargets);
+			ResolveBuildCompressedStaticWebAssetsConfiguration
+		</UnoGenerateAssetsManifestBeforeTargets>
+	</PropertyGroup>
+
+	<Target Name="UnoGenerateAssetsManifest"
+			BeforeTargets="$(UnoGenerateAssetsManifestBeforeTargets)"
+			DependsOnTargets="$(UnoGenerateAssetsManifestDependsOn)">
 		<GenerateUnoAssetsManifest_v0
 			StaticWebAsset="@(StaticWebAsset)"
 			IntermediateOutputPath="$(IntermediateOutputPath)">
@@ -237,22 +252,22 @@
 		</GenerateUnoAssetsManifest_v0>
 
 		<DefineStaticWebAssets
-		  CandidateAssets="@(_UnoAssetsManifest)"
-		  FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
-		  FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
-		  RelativePathPattern="wwwroot/**"
-		  SourceType="Discovered"
-		  SourceId="$(PackageId)"
-		  ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
-		  BasePath="$(StaticWebAssetBasePath)"
-		  AssetMergeSource="$(StaticWebAssetMergeTarget)">
+			CandidateAssets="@(_UnoAssetsManifest)"
+			FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
+			FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
+			RelativePathPattern="wwwroot/**"
+			SourceType="Discovered"
+			SourceId="$(PackageId)"
+			ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
+			BasePath="$(StaticWebAssetBasePath)"
+			AssetMergeSource="$(StaticWebAssetMergeTarget)">
 			<Output TaskParameter="Assets" ItemName="StaticWebAsset" />
 		</DefineStaticWebAssets>
 
 		<DefineStaticWebAssetEndpoints
-			  CandidateAssets="@(StaticWebAsset)"
-			  ExistingEndpoints="@(StaticWebAssetEndpoint)"
-			  ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+			CandidateAssets="@(StaticWebAsset)"
+			ExistingEndpoints="@(StaticWebAssetEndpoint)"
+			ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
 			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
 		</DefineStaticWebAssetEndpoints>
 	</Target>
