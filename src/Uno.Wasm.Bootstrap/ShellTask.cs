@@ -79,6 +79,7 @@ namespace Uno.Wasm.Bootstrap
 		[Required]
 		public string WasmShellMode { get; set; } = "";
 
+		public ITaskItem[] ExistingStaticWebAsset { get; set; } = [];
 
 		public ITaskItem[] EmbeddedResources { get; set; } = [];
 
@@ -161,6 +162,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateIndexHtml();
 				GenerateEmbeddedJs();
 				GenerateConfig();
+				RemoveDuplicateAssets();
 			}
 			finally
 			{
@@ -168,6 +170,26 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			return true;
+		}
+
+		private void RemoveDuplicateAssets()
+		{
+			// Remove duplicate assets from the list to be exported.
+			// They might have been imported from the build pass.
+
+			var existingAssets = StaticWebContent
+				.Where(s => ExistingStaticWebAsset.Any(e => e.ItemSpec == s.ItemSpec || e.GetMetadata("FullPath") == s.GetMetadata("FullPath")))
+				.ToArray();
+
+			foreach (var existingAsset in existingAssets)
+			{
+				Log.LogMessage(MessageImportance.Low, $"Existing asset to remove [{existingAsset.ItemSpec}]");
+			}
+
+			// remove existingAssets from StaticWebContent
+			StaticWebContent = StaticWebContent
+				.Where(s => !existingAssets.Contains(s))
+				.ToArray();
 		}
 
 		private void GeneratedAOTProfile()

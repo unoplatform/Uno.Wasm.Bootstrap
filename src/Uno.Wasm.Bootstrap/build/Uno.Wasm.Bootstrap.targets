@@ -282,6 +282,7 @@
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
 			RunAOTCompilation="$(RunAOTCompilation)"
+			ExistingStaticWebAsset="@(StaticWebAsset)"
 			Optimize="$(Optimize)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
