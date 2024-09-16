@@ -237,7 +237,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveProjectStaticWebAssets;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
@@ -252,14 +252,14 @@
 				Include="@(_AllChildProjectItemsWithTargetPath)"
 				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
 
-			<Content Remove="$(WasmPWAManifestFile)" />
+			<ContentWithTargetPath Remove="$(WasmPWAManifestFile)" />
 		</ItemGroup>
 
 		<ShellTask_v0
 			AotProfile="$(WasmAotProfilePath)"
 			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			AssemblyName="$(AssemblyName)"
-			Assets="@(Content);@(_UnoWasmCopyToOutputAssets)"
+			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
@@ -282,15 +282,37 @@
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
 			RunAOTCompilation="$(RunAOTCompilation)"
+			ExistingStaticWebAsset="@(StaticWebAsset)"
 			Optimize="$(Optimize)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)"
 			>
-			<Output TaskParameter="StaticWebContent" ItemName="Content" />
+			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 		</ShellTask_v0>
+
+		<DefineStaticWebAssets
+		  CandidateAssets="@(_UnoStaticWebContent)"
+		  FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
+		  FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
+		  RelativePathPattern="wwwroot/**"
+		  SourceType="Discovered"
+		  SourceId="$(PackageId)"
+		  ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
+		  BasePath="$(StaticWebAssetBasePath)"
+		  AssetMergeSource="$(StaticWebAssetMergeTarget)">
+			<Output TaskParameter="Assets" ItemName="StaticWebAsset" />
+		</DefineStaticWebAssets>
+		
+		<DefineStaticWebAssetEndpoints
+			  CandidateAssets="@(StaticWebAsset)"
+			  ExistingEndpoints="@(StaticWebAssetEndpoint)"
+			  ContentTypeMappings="@(StaticWebAssetContentTypeMapping)"
+				>
+			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
+		</DefineStaticWebAssetEndpoints>
 
 		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
 			<!-- Override the user's profile with the filtered one -->
