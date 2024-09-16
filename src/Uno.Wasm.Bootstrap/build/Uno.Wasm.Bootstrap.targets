@@ -237,7 +237,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
@@ -253,9 +253,6 @@
 				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
 
 			<ContentWithTargetPath Remove="$(WasmPWAManifestFile)" />
-
-			<!-- Remove WasmPWAManifestFile from content using full path-->
-			<!--<ContentWithTargetPath Remove="$(MSBuildProjectDirectory)\$(WasmPWAManifestFile)" />-->
 		</ItemGroup>
 
 		<ShellTask_v0
