@@ -184,7 +184,7 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var existingAsset in existingAssets)
 			{
 				Log.LogMessage(MessageImportance.Low, $"Existing asset to remove [{existingAsset.ItemSpec}]");
-			}
+			}	
 
 			// remove existingAssets from StaticWebContent
 			StaticWebContent = StaticWebContent
@@ -319,23 +319,14 @@ namespace Uno.Wasm.Bootstrap
 						deployMode = defaultDeployMode;
 					}
 
-					var dest = Path.Combine(_intermediateAssetsPath, relativePath);
-
 					if (deployMode != DeployMode.None)
 					{
-						// Add the file to the package assets manifest
-						assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
-
 						AddStaticAsset(relativePath, fullSourcePath);
 					}
 
-					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}, ]");
+					Log.LogMessage($"ContentFile {fullSourcePath} -> [Mode={deployMode} / by {deployModeSource}, {relativePath}]");
 				}
 			}
-
-			var assetsFilePath = Path.Combine(_intermediateAssetsPath, "uno-assets.txt");
-			File.WriteAllLines(assetsFilePath, assets);
-			AddStaticAsset(Path.GetFileName(assetsFilePath), assetsFilePath);
 		}
 
 		private void ExtractAdditionalJS()
