@@ -356,11 +356,11 @@ namespace Uno.Wasm.Bootstrap
 				{
 					if (relativePath.Contains(WasmScriptsFolder))
 					{
-						return WasmScriptsFolder;
+						return relativePath;
 					}
 					else if (fullSourcePath.Contains(WasmScriptsFolder))
 					{
-						return WasmScriptsFolder;
+						return fullSourcePath;
 					}
 					return null;
 				}
