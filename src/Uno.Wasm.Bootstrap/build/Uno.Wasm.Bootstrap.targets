@@ -211,7 +211,11 @@
 		</PropertyGroup>
 
 		<Warning
-		  Condition="'$(registry:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem@LongPathsEnabled)'!='1' and '$(UnoUIDisableLongPathWarning)'==''"
+		  Condition="
+		  	'$(registry:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem@LongPathsEnabled)'!='1' 
+			AND '$(UnoUIDisableLongPathWarning)'==''
+			AND $([MSBuild]::IsOSPlatform('Windows'))
+			"
 		  Text="Windows LongPath support is not enabled, you may experience build errors. You can avoid these by enabling LongPath with &quot;reg ADD HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1&quot;, or disable this warning by setting UnoUIDisableLongPathWarning to true."/>
 
 		<ItemGroup>
