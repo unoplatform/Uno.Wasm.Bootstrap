@@ -16,6 +16,8 @@
 	<ItemGroup>
 		<EmbeddedResource Include="WasmScripts\**\*.js" />
 		<EmbeddedResource Include="WasmCSS\**\*.css" />
+		
+		<Content Include="WasmScripts\**\*.js" />
 	</ItemGroup>
 
 	<PropertyGroup>

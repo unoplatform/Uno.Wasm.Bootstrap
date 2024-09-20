@@ -184,7 +184,7 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var existingAsset in existingAssets)
 			{
 				Log.LogMessage(MessageImportance.Low, $"Existing asset to remove [{existingAsset.ItemSpec}]");
-			}	
+			}		
 
 			// remove existingAssets from StaticWebContent
 			StaticWebContent = StaticWebContent
@@ -372,7 +372,7 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Embedded resources JS {scriptName}");
 
 					_dependencies.Add(scriptName);
-					AddStaticAsset(scriptName, fullSourcePath);
+					AddStaticAsset(scriptName, fullSourcePath, overrideExisting: true);
 				}
 			}
 		}
@@ -409,7 +409,7 @@ namespace Uno.Wasm.Bootstrap
 					Log.LogMessage($"Embedded CSS {cssName}");
 
 					additionalStyles.Add(cssName);
-					AddStaticAsset(cssName, fullSourcePath);
+					AddStaticAsset(cssName, fullSourcePath, overrideExisting: true);
 				}
 			}
 
@@ -431,7 +431,7 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(name, dest);
 		}
 
-		private void AddStaticAsset(string targetPath, string filePath)
+		private void AddStaticAsset(string targetPath, string filePath, bool overrideExisting = false)
 		{
 			var contentRoot = targetPath.StartsWith(_intermediateAssetsPath)
 						? _intermediateAssetsPath
@@ -445,7 +445,13 @@ namespace Uno.Wasm.Bootstrap
 					["Link"] = "wwwroot/" + targetPath,
 				});
 
-			StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
+			StaticWebContent = StaticWebContent
+
+				// We may be adding duplicate content if a file is present in both Assets and EmbeddedResources.
+				// This may happen when generating scripts from TypeScript, where the task includes the result as content.
+				.Where(f => overrideExisting ? !(f.ItemSpec == filePath || f.GetMetadata("FullPath") == filePath) : true)
+
+				.Concat([indexMetadata]).ToArray();
 		}
 
 		private void BuildResourceSearchList()
