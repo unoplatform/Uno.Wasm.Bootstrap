@@ -449,7 +449,7 @@ namespace Uno.Wasm.Bootstrap
 
 				// We may be adding duplicate content if a file is present in both Assets and EmbeddedResources.
 				// This may happen when generating scripts from TypeScript, where the task includes the result as content.
-				.Where(f => overrideExisting ? (f.ItemSpec == filePath || f.GetMetadata("FullPath") == filePath) : true)
+				.Where(f => overrideExisting ? !(f.ItemSpec == filePath || f.GetMetadata("FullPath") == filePath) : true)
 
 				.Concat([indexMetadata]).ToArray();
 		}
