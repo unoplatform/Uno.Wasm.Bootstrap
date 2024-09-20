@@ -352,7 +352,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				if (fullSourcePath.Contains("WasmScripts"))
+				if (relativePath.Contains("WasmScripts"))
 				{
 					var scriptName = Path.GetFileName(fullSourcePath);
 
@@ -389,7 +389,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				if (fullSourcePath.Contains("WasmCSS"))
+				if (relativePath.Contains("WasmCSS"))
 				{
 					var cssName = Path.GetFileName(fullSourcePath);
 
