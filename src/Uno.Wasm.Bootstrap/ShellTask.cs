@@ -352,9 +352,22 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				if (fullSourcePath.Contains("WasmScripts"))
+				string? getPath()
 				{
-					var scriptName = Path.GetFileName(fullSourcePath);
+					if (relativePath.Contains(WasmScriptsFolder))
+					{
+						return relativePath;
+					}
+					else if (fullSourcePath.Contains(WasmScriptsFolder))
+					{
+						return fullSourcePath;
+					}
+					return null;
+				}
+
+				if (getPath() is { Length: > 0 } path)
+				{
+					var scriptName = Path.GetFileName(path);
 
 					Log.LogMessage($"Embedded resources JS {scriptName}");
 
@@ -389,7 +402,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				if (fullSourcePath.Contains("WasmCSS"))
+				if (relativePath.Contains("WasmCSS") || fullSourcePath.Contains("WasmCSS"))
 				{
 					var cssName = Path.GetFileName(fullSourcePath);
 
