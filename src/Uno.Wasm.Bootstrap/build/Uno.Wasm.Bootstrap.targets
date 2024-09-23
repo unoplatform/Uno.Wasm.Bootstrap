@@ -66,7 +66,7 @@
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
 		<ItemGroup>
 			<Reference Include="Uno.Wasm.AotProfiler"
-					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '.., 'tools', 'support'))Uno.Wasm.AotProfiler.dll"
+					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.AotProfiler.dll"
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
@@ -78,7 +78,7 @@
 			Condition=" '$(WasmShellEnableLogProfiler)' == 'true' ">
 		<ItemGroup>
 			<Reference Include="Uno.Wasm.LogProfiler"
-					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '.., 'tools', 'support'))Uno.Wasm.LogProfiler.dll"
+					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.LogProfiler.dll"
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.LogProfiler" />
@@ -164,6 +164,9 @@
 			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Maximum' ">-Oz</WasmLinkOptimizationFlag>
 
 			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimization)' == 'false' ">-O0</WasmLinkOptimizationFlag>
+
+			<!-- Profiled AOT Compat -->
+			<WasmAotProfilePath Condition="@(WasmShellEnableAotProfile->Count()) > 0" >@(WasmShellEnableAotProfile)</WasmAotProfilePath
 
 			<!-- Jiterpreter compatibility -->
 			<BlazorWebAssemblyJiterpreter Condition=" '$(WasmShellEnableJiterpreter)' != '' AND '$(BlazorWebAssemblyJiterpreter)' == '' ">$(WasmShellEnableJiterpreter)</BlazorWebAssemblyJiterpreter>
@@ -348,7 +351,7 @@
 
 		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
 			<!-- Override the user's profile with the filtered one -->
-			<WasmAotProfilePath>$(_FilteredAotProfile)</WasmAotProfilePath>
+			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile))</WasmAotProfilePath>
 		</PropertyGroup>
 
 	</Target>
