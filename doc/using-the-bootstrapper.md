@@ -104,6 +104,11 @@ By default, the .NET runtime does not load all resource assemblies, but if you w
 </PropertyGroup>
 ```
 
+## Interop
+
+- `Module.mono_bind_static_method` is not available anymore, you'll need to use `Module.getAssemblyExports` instead.
+- `.bc` native files are not supported anymore. Use `.a` or `.o` extensions.
+
 ### Deprecated APIs
 
 - The `Uno.Wasm.Boostrap.DevServer` package is not needed anymore and can be removed
