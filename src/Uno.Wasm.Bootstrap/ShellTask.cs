@@ -736,7 +736,7 @@ namespace Uno.Wasm.Bootstrap
 		private void GenerateBitcodeFiles()
 		{
 			var bitcodeFiles = Assets
-				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+				?.Where(a => a.ItemSpec.EndsWith(".o") || a.ItemSpec.EndsWith(".a"))
 				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
 				.Select(a => GetFilePaths(a).fullPath)
 				.ToArray()
