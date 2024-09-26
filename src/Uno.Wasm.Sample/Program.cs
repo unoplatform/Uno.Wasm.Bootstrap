@@ -21,6 +21,11 @@ using System.Runtime.CompilerServices;
 using System.Globalization;
 using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
+using System.Reflection.Metadata;
+using Uno.Wasm.Sample;
+using System.Linq;
+
+[assembly: MetadataUpdateHandler(typeof(MyHandler))]
 
 namespace Uno.Wasm.Sample
 { 
@@ -80,6 +85,11 @@ namespace Uno.Wasm.Sample
 				Console.WriteLine("message");
 			}, null, 5000, 5000);
 		}
+	}
+	public static class MyHandler
+	{
+		internal static void ClearCache(Type[]? types) => Console.WriteLine("MyHandler.ClearCache");
+		internal static void UpdateApplication(Type[]? types) => Console.WriteLine($"MyHandler.UpdateApplication {types.Length} types: {string.Join(", ", types.Select(t => t.Name	))}");
 	}
 
 #if NET7_0_OR_GREATER
