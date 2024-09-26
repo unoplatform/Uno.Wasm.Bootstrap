@@ -31,10 +31,12 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 
-			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
-			// from the "BrowserLink" feature.
+			// This assumes that the runtime includes the header as an env var:
+			// https://github.com/dotnet/runtime/blob/79a71fc750652191eba18e19b3f98492e882cb5f/src/mono/browser/runtime/loader/config.ts#L336
 			const browserToolsVariable = (<any>this._context).config.environmentVariables['ASPNETCORE-BROWSER-TOOLS'];
 
+			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
+			// from the "BrowserLink" feature.
 			(function (Blazor) {
 				Blazor._internal = {
 					initialize: function () {
