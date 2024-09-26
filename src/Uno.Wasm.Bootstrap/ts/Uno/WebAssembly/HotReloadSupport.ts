@@ -72,9 +72,9 @@ namespace Uno.WebAssembly.Bootstrap {
 						return HotReloadSupport._getApplyUpdateCapabilitiesMethod();
 					},
 
-					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any) {
+					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any, updatedTypes: any) {
 						this.initialize();
-						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "");
+						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "", updatedTypes || []);
 					}
 				};
 			})((<any>window).Blazor || ((<any>window).Blazor = {}));
