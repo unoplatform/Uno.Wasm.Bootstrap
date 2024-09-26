@@ -31,10 +31,12 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 
+			// This assumes that the runtime includes the header as an env var:
+			// https://github.com/dotnet/runtime/blob/79a71fc750652191eba18e19b3f98492e882cb5f/src/mono/browser/runtime/loader/config.ts#L336
+			const browserToolsVariable = (<any>this._context).config.environmentVariables['ASPNETCORE-BROWSER-TOOLS'];
+
 			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
 			// from the "BrowserLink" feature.
-			const bootstrapContext = this._context;
-
 			(function (Blazor) {
 				Blazor._internal = {
 					initialize: function () {
@@ -45,21 +47,11 @@ namespace Uno.WebAssembly.Bootstrap {
 
 					applyExisting: async function (): Promise<void> {
 
-						var hotreloadConfigResponse = await fetch(`/_framework/unohotreload`);
-
-						var modifiableAssemblies = hotreloadConfigResponse.headers.get('DOTNET-MODIFIABLE-ASSEMBLIES');
-						var aspnetCoreBrowserTools = hotreloadConfigResponse.headers.get('ASPNETCORE-BROWSER-TOOLS');
-
-						if (modifiableAssemblies) {
-							bootstrapContext.MONO.mono_wasm_setenv('DOTNET_MODIFIABLE_ASSEMBLIES', modifiableAssemblies);
-						}
-
-						// To uncomment once https://github.com/dotnet/aspnetcore/issues/37357#issuecomment-941237000 is released
-						// if (aspnetCoreBrowserTools == "true")
+						if (browserToolsVariable == "true")
 						{
 							try {
 								var m = <any>await import(`/_framework/blazor-hotreload.js`);
-								m.receiveHotReload();
+								await m.receiveHotReloadAsync();
 							}
 							catch (e) {
 								console.error(`Failed to apply initial metadata delta ${e}`);
@@ -72,15 +64,15 @@ namespace Uno.WebAssembly.Bootstrap {
 						return HotReloadSupport._getApplyUpdateCapabilitiesMethod();
 					},
 
-					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any) {
+					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any, updatedTypes: any) {
 						this.initialize();
-						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "");
+						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "", updatedTypes || []);
 					}
 				};
 			})((<any>window).Blazor || ((<any>window).Blazor = {}));
 				
 			// Apply pending updates caused by a browser refresh
-			(<any>window).Blazor._internal.initialize(bootstrapContext.BINDING);
+			(<any>window).Blazor._internal.initialize();
 			await (<any>window).Blazor._internal.applyExisting();
 		}
 	}
