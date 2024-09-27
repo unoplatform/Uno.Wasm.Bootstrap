@@ -161,6 +161,7 @@ namespace Uno.Wasm.Bootstrap
 				GeneratedAOTProfile();
 				GenerateIndexHtml();
 				GenerateEmbeddedJs();
+				RemoveDuplicateAssets();
 				GenerateConfig();
 				RemoveDuplicateAssets();
 			}
@@ -184,7 +185,7 @@ namespace Uno.Wasm.Bootstrap
 			foreach (var existingAsset in existingAssets)
 			{
 				Log.LogMessage(MessageImportance.Low, $"Existing asset to remove [{existingAsset.ItemSpec}]");
-			}		
+			}
 
 			// remove existingAssets from StaticWebContent
 			StaticWebContent = StaticWebContent
@@ -342,7 +343,29 @@ namespace Uno.Wasm.Bootstrap
 				{
 					_dependencies.Add(name);
 
-					CopyResourceToOutput(name, resource);
+					if (
+						// Process the service worker file separately to adjust its contents
+						source.Name.Name.Equals(GetType().Assembly.GetName().Name, StringComparison.OrdinalIgnoreCase)
+						&& name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
+					{
+						using var resourceStream = resource.GetResourceStream();
+						using var reader = new StreamReader(resourceStream);
+
+						var worker = TouchServiceWorker(reader.ReadToEnd());
+						var memoryStream = new MemoryStream();
+
+						using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+						writer.Write(worker);
+						writer.Flush();
+
+						memoryStream.Position = 0;
+
+						CopyStreamToOutput(name, memoryStream);
+					}
+					else
+					{
+						CopyResourceToOutput(name, resource);
+					}
 
 					Log.LogMessage($"Additional JS {name}");
 				}
@@ -426,6 +449,18 @@ namespace Uno.Wasm.Bootstrap
 				{
 					srcs.CopyTo(dests);
 				}
+			}
+
+			AddStaticAsset(name, dest);
+		}
+
+		private void CopyStreamToOutput(string name, Stream stream)
+		{
+			var dest = Path.Combine(_intermediateAssetsPath, name);
+
+			using (var destStream = new FileStream(dest, FileMode.Create, FileAccess.Write))
+			{
+				stream.CopyTo(destStream);
 			}
 
 			AddStaticAsset(name, dest);
@@ -539,7 +574,14 @@ namespace Uno.Wasm.Bootstrap
 				var config = new StringBuilder();
 
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
-				//var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
+
+				var sanitizedOfflineFiles = StaticWebContent
+					.Select(f => f.GetMetadata("Link")
+						.Replace("\\", "/")
+						.Replace("wwwroot/", ""))
+					.Concat([$"uno-config.js", "_framework/blazor.boot.json", "."]);
+
+				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 
 				var emccExportedRuntimeMethodsParams = string.Join(
 					",",
@@ -564,7 +606,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
+				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
@@ -686,8 +728,7 @@ namespace Uno.Wasm.Bootstrap
 
 				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
-				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
-				extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
+				extraBuilder.AppendLine($"<meta name=\"mobile-web-app-capable\" content=\"yes\">");
 
 				if (manifestDocument["icons"] is JArray array
 					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
@@ -720,7 +761,11 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				AddStaticAsset(Path.GetFileName(PWAManifestFile), PWAManifestFile!);
+				var pwaManifestFileName = Path.GetFileName(PWAManifestFile);
+				var pwaManifestOutputPath = Path.Combine(_intermediateAssetsPath, pwaManifestFileName);
+				File.WriteAllText(pwaManifestOutputPath, manifestDocument.ToString());
+
+				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath);
 			}
 		}
 
@@ -858,6 +903,14 @@ namespace Uno.Wasm.Bootstrap
 
 			AddStaticAsset("embedded.js", scriptPath);
 			AddStaticAsset("index.html", htmlPath);
+		}
+
+		private string TouchServiceWorker(string workerBody)
+		{
+			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
+			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
+
+			return workerBody;
 		}
 
 		private string TryConvertLongPath(string path)

@@ -8,7 +8,7 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
-		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
+		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -25,6 +25,12 @@
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+	<ItemGroup>
+	  <None Remove="app.webmanifest" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Content Include="app.webmanifest" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
