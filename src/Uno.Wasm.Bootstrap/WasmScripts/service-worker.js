@@ -1,7 +1,9 @@
-﻿import { config } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
+﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)uno-config.js";
 
-if (config.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
+
+if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
     console.debug("[ServiceWorker] Initializing");
+    let uno_enable_tracing = unoConfig.uno_enable_tracing;
 
     self.addEventListener('install', function (e) {
         console.debug('[ServiceWorker] Installing offline worker');
@@ -11,13 +13,46 @@ if (config.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
 
                 // Add files one by one to avoid failed downloads to prevent the
                 // worker to fail installing.
-                for (var i = 0; i < config.offline_files.length; i++) {
+                for (var i = 0; i < unoConfig.offline_files.length; i++) {
                     try {
-                        await cache.add(config.offline_files[i]);
+                        if (uno_enable_tracing) {
+                            console.debug(`[ServiceWorker] cache ${key}`);
+                        }
+
+                        await cache.add(unoConfig.offline_files[i]);
                     }
                     catch (e) {
-                        console.debug(`[ServiceWorker] Failed to fetch ${config.offline_files[i]}`);
+                        console.debug(`[ServiceWorker] Failed to fetch ${unoConfig.offline_files[i]}`);
                     }
+                }
+
+                // Add the runtime's own files to the cache. We cannot use the
+                // existing cached content from the runtime as the keys contain a
+                // hash we cannot reliably compute.
+                var c = await fetch("$(REMOTE_WEBAPP_PATH)_framework/blazor.boot.json");
+                const monoConfigResources = (await c.json()).resources;
+
+                var entries = {
+                    ...(monoConfigResources.coreAssembly || {})
+                    , ...(monoConfigResources.assembly || {})
+                    , ...(monoConfigResources.lazyAssembly || {})
+                    , ...(monoConfigResources.jsModuleWorker || {})
+                    , ...(monoConfigResources.jsModuleGlobalization || {})
+                    , ...(monoConfigResources.jsModuleNative || {})
+                    , ...(monoConfigResources.jsModuleRuntime || {})
+                    , ...(monoConfigResources.wasmNative || {})
+                    , ...(monoConfigResources.icu || {})
+                    , ...(monoConfigResources.coreAssembly || {})
+                };
+
+                for (var key in entries) {
+                    var uri = `$(REMOTE_WEBAPP_PATH)_framework/${key}`;
+
+                    if (uno_enable_tracing) {
+                        console.debug(`[ServiceWorker] cache ${uri}`);
+                    }
+
+                    await cache.add(uri);
                 }
             })
         );
