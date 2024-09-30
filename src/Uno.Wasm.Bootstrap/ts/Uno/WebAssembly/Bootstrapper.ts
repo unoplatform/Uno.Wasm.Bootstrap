@@ -108,8 +108,8 @@ namespace Uno.WebAssembly.Bootstrap {
 						.withConfig({ loadAllSatelliteResources: config.config.uno_loadAllSatelliteResources });
 				}
 
-				var features = config.config.environmentVariables['UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES'];
-				if (features && features.includes('threads')) {
+				var features = config.config.environmentVariables['UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES'] || "";
+				if (features.includes('threads')) {
 					m.dotnet
 						.withConfig({ jsThreadBlockingMode: "DangerousAllowBlockingWait" });
 				}
