@@ -304,7 +304,7 @@
 			EmccFlags="@(EmccFlags)"
 			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
-			EnableThreads="@(WasmEnableThreads)"
+			EnableThreads="$(WasmEnableThreads)"
 			EnableTracing="@(WasmEnableTracing)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
