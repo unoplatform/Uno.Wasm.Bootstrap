@@ -15,6 +15,7 @@
 		<PublishTrimmed>true</PublishTrimmed>
 		<RunAOTCompilation>true</RunAOTCompilation>
 		<WasmShellEnableJiterpreter>true</WasmShellEnableJiterpreter>
+		<BlazorWebAssemblyJiterpreter>true</BlazorWebAssemblyJiterpreter>
 		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
