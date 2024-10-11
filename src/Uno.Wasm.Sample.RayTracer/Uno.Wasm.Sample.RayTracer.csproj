@@ -4,8 +4,6 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-		<UseAOT>true</UseAOT>
-		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
@@ -13,7 +11,6 @@
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublishTrimmed>true</PublishTrimmed>
-		<RunAOTCompilation>true</RunAOTCompilation>
 		<WasmShellEnableJiterpreter>true</WasmShellEnableJiterpreter>
 		<BlazorWebAssemblyJiterpreter>true</BlazorWebAssemblyJiterpreter>
 		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
