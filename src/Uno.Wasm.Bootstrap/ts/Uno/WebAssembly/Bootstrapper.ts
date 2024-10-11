@@ -102,7 +102,17 @@ namespace Uno.WebAssembly.Bootstrap {
 						preRun: () => bootstrapper.wasmRuntimePreRun(),
 					})
 					.withRuntimeOptions(config.config.uno_runtime_options)
-					.withConfig({ loadAllSatelliteResources: config.config.uno_loadAllSatelliteResources });
+
+				if (config.config.uno_loadAllSatelliteResources) {
+					m.dotnet
+						.withConfig({ loadAllSatelliteResources: config.config.uno_loadAllSatelliteResources });
+				}
+
+				var features = config.config.environmentVariables['UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES'] || "";
+				if (features.includes('threads')) {
+					m.dotnet
+						.withConfig({ jsThreadBlockingMode: "DangerousAllowBlockingWait" });
+				}
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
