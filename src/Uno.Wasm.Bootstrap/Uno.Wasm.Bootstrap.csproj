@@ -180,8 +180,7 @@
 		</PropertyGroup>
 
 		<ItemGroup>
-			<_Sha1Replace Include="ShellTask*.cs" />
-			<_Sha1Replace Include="*Task.cs" />
+			<_Sha1Replace Include="*Task*.cs" />
 			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.props" />
 			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.targets" />
 		</ItemGroup>
