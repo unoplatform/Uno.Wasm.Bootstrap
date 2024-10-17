@@ -61,6 +61,16 @@
 		<WasmBuildNative>true</WasmBuildNative>
 	</PropertyGroup>
 
+	<Target Name="_UnoWasmValidateCompatibleSdk"
+			BeforeTargets="BeforeBuild"
+			Condition=" '$(TargetFramework)' != '' AND '$(Disable_UnoWasmValidateCompatibleSdk)' != 'true' ">
+
+		<!-- Fail the build if the TargetFramework is below 9.0 -->
+		<Error Condition=" $([MSBuild]::VersionLessThan( $([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')), '9.0')) "
+			   Text="This version of Uno.Wasm.Bootstrap is not compatible with $(TargetFramework). Use net9.0 or later, see https://aka.platform.uno/wasm-net9-upgrade for more details." />
+
+	</Target>
+
 	<Target Name="_UnoInjectAOTSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
