@@ -247,6 +247,7 @@
 			DependsOnTargets="$(UnoGenerateAssetsManifestDependsOn)">
 		<GenerateUnoAssetsManifest_v0
 			StaticWebAsset="@(StaticWebAsset)"
+			OutputPackagePath="$(WasmShellOutputPackagePath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)">
 			<Output TaskParameter="UnoAssetsFile" ItemName="_UnoAssetsManifest" />
 		</GenerateUnoAssetsManifest_v0>
@@ -326,6 +327,7 @@
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
+			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>
 
 		<DefineStaticWebAssets

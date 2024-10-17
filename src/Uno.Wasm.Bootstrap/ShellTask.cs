@@ -49,6 +49,7 @@ namespace Uno.Wasm.Bootstrap
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string DeployMetadataName = "UnoDeploy";
+		private const string PackageTag = "%PACKAGE%";
 
 		private static readonly string _wwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
@@ -85,6 +86,7 @@ namespace Uno.Wasm.Bootstrap
 
 		[Required]
 		public string IntermediateOutputPath { get; set; } = "";
+
 		public ITaskItem[]? MonoEnvironment { get; set; }
 
 		public string? PWAManifestFile { get; set; }
@@ -136,7 +138,10 @@ namespace Uno.Wasm.Bootstrap
 		public ITaskItem[]? ReferencePath { get; set; }
 
 		[Output]
-		public ITaskItem[]? StaticWebContent { get; set; } = [];
+		public ITaskItem[] StaticWebContent { get; set; } = [];
+
+		[Output]
+		public string PackageAssetsFolder { get; set; } = "";
 
 		[Output]
 		public ITaskItem[]? NativeFileReference { get; set; } = [];
@@ -159,9 +164,10 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GeneratedAOTProfile();
-				GenerateIndexHtml();
 				GenerateEmbeddedJs();
 				RemoveDuplicateAssets();
+				GeneratePackageFolder();
+				GenerateIndexHtml();
 				GenerateConfig();
 				RemoveDuplicateAssets();
 			}
@@ -171,6 +177,36 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			return true;
+		}
+
+		private void GeneratePackageFolder()
+		{
+			IEnumerable<byte> ComputeHash(string file)
+			{
+				using var hashFunction = SHA1.Create();
+				using var s = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+				return hashFunction.ComputeHash(s);
+			}
+
+			var allBytes = StaticWebContent
+				.Select(c => c.ItemSpec)
+				.AsParallel()
+				.OrderBy(s => s)
+				.Select(ComputeHash)
+				.SelectMany(h => h)
+				.ToArray();
+
+			using var hashFunction = SHA1.Create();
+			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
+
+			foreach(var staticAsset in StaticWebContent)
+			{
+				var targetPath = staticAsset.GetMetadata("Link");
+
+				staticAsset.SetMetadata("Link", targetPath.Replace($"wwwroot/{PackageTag}/", $"wwwroot/package_{hash}/"));
+			}
+
+			PackageAssetsFolder = $"Package_{hash}";
 		}
 
 		private void RemoveDuplicateAssets()
@@ -322,7 +358,7 @@ namespace Uno.Wasm.Bootstrap
 
 					if (deployMode != DeployMode.None)
 					{
-						AddStaticAsset(relativePath, fullSourcePath);
+						AddStaticAsset(relativePath, fullSourcePath, deployMode);
 					}
 
 					Log.LogMessage($"ContentFile {fullSourcePath} -> [Mode={deployMode} / by {deployModeSource}, {relativePath}]");
@@ -466,18 +502,24 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(name, dest);
 		}
 
-		private void AddStaticAsset(string targetPath, string filePath, bool overrideExisting = false)
+		private void AddStaticAsset(
+			string targetPath
+			, string filePath
+			, DeployMode deployMode = DeployMode.Package
+			, bool overrideExisting = false)
 		{
 			var contentRoot = targetPath.StartsWith(_intermediateAssetsPath)
 						? _intermediateAssetsPath
 						: Path.GetDirectoryName(filePath);
+
+			var linkBase = deployMode == DeployMode.Root ? "" : $"{PackageTag}/";
 
 			TaskItem indexMetadata = new(
 				filePath, new Dictionary<string, string>
 				{
 					["CopyToOutputDirectory"] = "PreserveNewest",
 					["ContentRoot"] = contentRoot,
-					["Link"] = "wwwroot/" + targetPath,
+					["Link"] = $"wwwroot/{linkBase}{targetPath}",
 				});
 
 			StaticWebContent = StaticWebContent
@@ -563,7 +605,7 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}";
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{PackageAssetsFolder}/";
 				var dependencies = string.Join(", ", _dependencies
 					.Where(d =>
 						!d.EndsWith("require.js")
@@ -591,18 +633,7 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-
-				// unoAppBase must not finish with a `/` to be backward
-				// compatible.
-				var unoAppBase = WebAppBasePath switch
-				{
-					"" => ".",
-					"./" => ".",
-					"/" => "/.",
-					_ => WebAppBasePath.TrimEnd('/') + "/."
-				};
-
-				config.AppendLine($"config.uno_app_base = \"{unoAppBase}\";");
+				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
@@ -638,7 +669,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", "./");
+				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", PackageAssetsFolder);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
 				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
@@ -661,7 +692,7 @@ namespace Uno.Wasm.Bootstrap
 					{
 						["CopyToOutputDirectory"] = "PreserveNewest",
 						["ContentRoot"] = _intermediateAssetsPath,
-						["Link"] = "wwwroot/" + Path.GetFileName(unoConfigJsPath),
+						["Link"] = $"wwwroot/{PackageAssetsFolder}/" + Path.GetFileName(unoConfigJsPath),
 					});
 
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
@@ -694,9 +725,9 @@ namespace Uno.Wasm.Bootstrap
 			html = html.Replace("mono.js\"", "dotnet.js\"");
 			if (WebAppBasePath != "./")
 			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}");
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
 			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}");
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
@@ -835,7 +866,7 @@ namespace Uno.Wasm.Bootstrap
 
 					const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
 
-					const absolutePath = (new URL("./", executingScriptAbsolutePath)).href;
+					const absolutePath = (new URL("./$(PACKAGE_PATH)", executingScriptAbsolutePath)).href;
 
 					const styles = [$(STYLES)];
 
@@ -889,6 +920,7 @@ namespace Uno.Wasm.Bootstrap
 			var stylesString = string.Join(",", _additionalStyles?.Select(s => $"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
 
 			var javascript = javascriptTemplate
+				.Replace("$(PACKAGE_PATH)", PackageAssetsFolder)
 				.Replace("$(STYLES)", stylesString);
 			w.Write(javascript);
 			w.Flush();
