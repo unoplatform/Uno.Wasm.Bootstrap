@@ -165,6 +165,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateEmbeddedJs();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
+				BuildServiceWorker();
 				GenerateIndexHtml();
 				GenerateConfig();
 				RemoveDuplicateAssets();
@@ -317,6 +318,23 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private void BuildServiceWorker()
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.Embedded.service-worker.js");
+			using var reader = new StreamReader(resourceStream);
+
+			var worker = TouchServiceWorker(reader.ReadToEnd());
+			var memoryStream = new MemoryStream();
+
+			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+			writer.Write(worker);
+			writer.Flush();
+
+			memoryStream.Position = 0;
+
+			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+		}
+
 		private void ExtractAdditionalJS()
 		{
 			BuildResourceSearchList();
@@ -330,29 +348,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					_dependencies.Add(name);
 
-					if (
-						// Process the service worker file separately to adjust its contents
-						source.Name.Name.Equals(GetType().Assembly.GetName().Name, StringComparison.OrdinalIgnoreCase)
-						&& name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
-					{
-						using var resourceStream = resource.GetResourceStream();
-						using var reader = new StreamReader(resourceStream);
-
-						var worker = TouchServiceWorker(reader.ReadToEnd());
-						var memoryStream = new MemoryStream();
-
-						using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-						writer.Write(worker);
-						writer.Flush();
-
-						memoryStream.Position = 0;
-
-						CopyStreamToOutput(name, memoryStream, DeployMode.Root);
-					}
-					else
-					{
-						CopyResourceToOutput(name, resource);
-					}
+					CopyResourceToOutput(name, resource);
 
 					Log.LogMessage($"Additional JS {name}");
 				}
