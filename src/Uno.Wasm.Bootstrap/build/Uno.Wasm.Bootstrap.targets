@@ -229,12 +229,12 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
-	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
-	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -273,8 +273,20 @@
 		</DefineStaticWebAssetEndpoints>
 	</Target>
 
+	<Target Name="GenerateUnoWasmNativeAssets" BeforeTargets="PrepareInputsForWasmBuild">
+
+		<GenerateUnoNativeAssetsTask_v0
+			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
+			CurrentProjectPath="$(MSBuildProjectDirectory)"
+			EmscriptenVersion="$(EmscriptenVersion)"
+			EnableThreads="@(WasmEnableThreads)">
+			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
+		</GenerateUnoNativeAssetsTask_v0>
+
+	</Target>
+
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
@@ -321,11 +333,11 @@
 			RunAOTCompilation="$(RunAOTCompilation)"
 			ExistingStaticWebAsset="@(StaticWebAsset)"
 			Optimize="$(Optimize)"
+			WasmBuildingForNestedPublish="$(WasmBuildingForNestedPublish)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)">
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
-			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>

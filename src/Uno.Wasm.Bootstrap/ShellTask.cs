@@ -80,6 +80,8 @@ namespace Uno.Wasm.Bootstrap
 		[Required]
 		public string WasmShellMode { get; set; } = "";
 
+		public bool WasmBuildingForNestedPublish { get; set; }
+
 		public ITaskItem[] ExistingStaticWebAsset { get; set; } = [];
 
 		public ITaskItem[] EmbeddedResources { get; set; } = [];
@@ -144,9 +146,6 @@ namespace Uno.Wasm.Bootstrap
 		public string PackageAssetsFolder { get; set; } = "";
 
 		[Output]
-		public ITaskItem[]? NativeFileReference { get; set; } = [];
-
-		[Output]
 		public string? FilteredAotProfile { get; set; } = "";
 
 		public override bool Execute()
@@ -160,7 +159,6 @@ namespace Uno.Wasm.Bootstrap
 				ParseProperties();
 				BuildReferencedAssembliesList();
 				CopyContent();
-				GenerateBitcodeFiles();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GeneratedAOTProfile();
@@ -266,53 +264,6 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
-		{
-			if (item.GetMetadata("RelativePath") is { } relativePath && !string.IsNullOrEmpty(relativePath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"RelativePath '{relativePath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This case is mainly for shared projects and files out of the baseSourceFile path
-				return (item.GetMetadata("FullPath"), relativePath);
-			}
-			else if (item.GetMetadata("TargetPath") is { } targetPath && !string.IsNullOrEmpty(targetPath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"TargetPath '{targetPath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This is used for item remapping
-				return (item.GetMetadata("FullPath"), targetPath);
-			}
-			else if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
-			{
-				Log.LogMessage(MessageImportance.Low, $"Link '{link}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This case is mainly for shared projects and files out of the baseSourceFile path
-				return (item.GetMetadata("FullPath"), link);
-			}
-			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"FullPath '{fullPath}' (ItemSpec: {item.ItemSpec})");
-
-				var sourceFilePath = item.ItemSpec;
-
-				if (sourceFilePath.StartsWith(CurrentProjectPath))
-				{
-					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
-				}
-				else
-				{
-					return (fullPath, sourceFilePath);
-				}
-			}
-			else
-			{
-				Log.LogMessage(MessageImportance.Low, $"Without metadata '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				return (item.GetMetadata("FullPath"), item.ItemSpec);
-			}
-		}
-
 		private void CopyContent()
 		{
 			var assets = new List<string>();
@@ -321,7 +272,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
+					var (fullSourcePath, relativePath) = sourceFile.GetFilePaths(Log, CurrentProjectPath);
 
 					// Files in "wwwroot" folder will get deployed to root by default
 					var defaultDeployMode = relativePath.Contains(_wwwroot) ? DeployMode.None : DeployMode.Package;
@@ -396,7 +347,7 @@ namespace Uno.Wasm.Bootstrap
 
 						memoryStream.Position = 0;
 
-						CopyStreamToOutput(name, memoryStream);
+						CopyStreamToOutput(name, memoryStream, DeployMode.Root);
 					}
 					else
 					{
@@ -409,7 +360,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
+				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
 
 				string? getPath()
 				{
@@ -459,7 +410,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
+				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
 
 				if (relativePath.Contains("WasmCSS") || fullSourcePath.Contains("WasmCSS"))
 				{
@@ -490,7 +441,7 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(name, dest);
 		}
 
-		private void CopyStreamToOutput(string name, Stream stream)
+		private void CopyStreamToOutput(string name, Stream stream, DeployMode deployMode = DeployMode.Package)
 		{
 			var dest = Path.Combine(_intermediateAssetsPath, name);
 
@@ -499,7 +450,7 @@ namespace Uno.Wasm.Bootstrap
 				stream.CopyTo(destStream);
 			}
 
-			AddStaticAsset(name, dest);
+			AddStaticAsset(name, dest, deployMode);
 		}
 
 		private void AddStaticAsset(
@@ -797,7 +748,7 @@ namespace Uno.Wasm.Bootstrap
 				var pwaManifestOutputPath = Path.Combine(_intermediateAssetsPath, pwaManifestFileName);
 				File.WriteAllText(pwaManifestOutputPath, manifestDocument.ToString());
 
-				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath);
+				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath, DeployMode.Root);
 			}
 		}
 
@@ -807,35 +758,6 @@ namespace Uno.Wasm.Bootstrap
 			{
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta http-equiv=\"Content-Security-Policy\" content=\"{CSPConfiguration}\" />\r\n");
-			}
-		}
-
-		private void GenerateBitcodeFiles()
-		{
-			var bitcodeFiles = Assets
-				?.Where(a => a.ItemSpec.EndsWith(".o") || a.ItemSpec.EndsWith(".a"))
-				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
-				.Select(a => GetFilePaths(a).fullPath)
-				.ToArray()
-				?? [];
-
-			List<string> features = new()
-			{
-				EnableThreads ? "mt" : "st",
-				"simd"
-			};
-
-			Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
-
-			if (Version.TryParse(EmscriptenVersion, out var emsdkVersion))
-			{
-				var list = BitcodeFilesSelector.Filter(emsdkVersion, features.ToArray(), bitcodeFiles);
-
-				NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
-			}
-			else
-			{
-				Log.LogMessage(MessageImportance.Low, $"EmscriptenVersion is not set, skipping native assets");
 			}
 		}
 
