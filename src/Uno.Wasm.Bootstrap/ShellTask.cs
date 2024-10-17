@@ -162,10 +162,10 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
 				GeneratedAOTProfile();
-				GenerateEmbeddedJs();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
 				BuildServiceWorker();
+				GenerateEmbeddedJs();
 				GenerateIndexHtml();
 				GenerateConfig();
 				RemoveDuplicateAssets();
