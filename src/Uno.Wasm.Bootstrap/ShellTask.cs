@@ -729,7 +729,7 @@ namespace Uno.Wasm.Bootstrap
 				}
 
 				// Transform the PWA assets
-				if (manifestDocument["icons"] is JArray icons)
+				if (manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(PackageAssetsFolder))
 				{
 					foreach (var icon in icons)
 					{
@@ -737,8 +737,8 @@ namespace Uno.Wasm.Bootstrap
 
 						icon["src"] = originalSource switch
 						{
-							string s when s.StartsWith("./") => $"{WebAppBasePath}/" + s.Substring(2),
-							string s => $"./" + s,
+							string s when s.StartsWith("./") => $"{WebAppBasePath}{PackageAssetsFolder}/" + s.Substring(2),
+							string s => $"{PackageAssetsFolder}/" + s,
 							_ => originalSource
 						};
 					}
@@ -863,6 +863,7 @@ namespace Uno.Wasm.Bootstrap
 		private string TouchServiceWorker(string workerBody)
 		{
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
+			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 
 			return workerBody;
