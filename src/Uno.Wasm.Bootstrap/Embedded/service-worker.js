@@ -1,4 +1,4 @@
-﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)uno-config.js";
+﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
 
 
 if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {

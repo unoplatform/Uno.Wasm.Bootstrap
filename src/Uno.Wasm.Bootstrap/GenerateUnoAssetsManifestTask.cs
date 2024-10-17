@@ -42,6 +42,9 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 	[Required]
 	public string IntermediateOutputPath { get; set; } = "";
 
+	[Required]
+	public string OutputPackagePath { get; set; } = "";
+
 	[Output]
 	public ITaskItem[] UnoAssetsFile { get; set; } = [];
 
@@ -76,7 +79,7 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 			{
 				["CopyToOutputDirectory"] = "PreserveNewest",
 				["ContentRoot"] = contentRoot,
-				["Link"] = "wwwroot/" + targetPath,
+				["Link"] = $"wwwroot/{OutputPackagePath}/" + targetPath,
 			});
 
 		UnoAssetsFile = UnoAssetsFile.Concat([indexMetadata]).ToArray();

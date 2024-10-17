@@ -49,6 +49,7 @@ namespace Uno.Wasm.Bootstrap
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string DeployMetadataName = "UnoDeploy";
+		private const string PackageTag = "%PACKAGE%";
 
 		private static readonly string _wwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
@@ -85,11 +86,10 @@ namespace Uno.Wasm.Bootstrap
 
 		[Required]
 		public string IntermediateOutputPath { get; set; } = "";
+
 		public ITaskItem[]? MonoEnvironment { get; set; }
 
 		public string? PWAManifestFile { get; set; }
-
-		public string EmscriptenVersion { get; set; } = "";
 
 		public ITaskItem[]? EmccFlags { get; set; }
 
@@ -111,12 +111,6 @@ namespace Uno.Wasm.Bootstrap
 
 		public string? RuntimeOptions { get; set; }
 
-		public string AOTProfileExcludedMethods { get; set; } = "";
-
-		public bool GenerateAOTProfileDebugList { get; set; } = false;
-
-		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
-
 		public bool WasmBuildNative { get; set; }
 
 		public bool PublishTrimmed { get; set; }
@@ -136,13 +130,10 @@ namespace Uno.Wasm.Bootstrap
 		public ITaskItem[]? ReferencePath { get; set; }
 
 		[Output]
-		public ITaskItem[]? StaticWebContent { get; set; } = [];
+		public ITaskItem[] StaticWebContent { get; set; } = [];
 
 		[Output]
-		public ITaskItem[]? NativeFileReference { get; set; } = [];
-
-		[Output]
-		public string? FilteredAotProfile { get; set; } = "";
+		public string PackageAssetsFolder { get; set; } = "";
 
 		public override bool Execute()
 		{
@@ -155,13 +146,13 @@ namespace Uno.Wasm.Bootstrap
 				ParseProperties();
 				BuildReferencedAssembliesList();
 				CopyContent();
-				GenerateBitcodeFiles();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
-				GeneratedAOTProfile();
-				GenerateIndexHtml();
-				GenerateEmbeddedJs();
 				RemoveDuplicateAssets();
+				GeneratePackageFolder();
+				BuildServiceWorker();
+				GenerateEmbeddedJs();
+				GenerateIndexHtml();
 				GenerateConfig();
 				RemoveDuplicateAssets();
 			}
@@ -171,6 +162,36 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			return true;
+		}
+
+		private void GeneratePackageFolder()
+		{
+			IEnumerable<byte> ComputeHash(string file)
+			{
+				using var hashFunction = SHA1.Create();
+				using var s = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+				return hashFunction.ComputeHash(s);
+			}
+
+			var allBytes = StaticWebContent
+				.Select(c => c.ItemSpec)
+				.AsParallel()
+				.OrderBy(s => s)
+				.Select(ComputeHash)
+				.SelectMany(h => h)
+				.ToArray();
+
+			using var hashFunction = SHA1.Create();
+			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
+
+			foreach(var staticAsset in StaticWebContent)
+			{
+				var targetPath = staticAsset.GetMetadata("Link");
+
+				staticAsset.SetMetadata("Link", targetPath.Replace($"wwwroot/{PackageTag}/", $"wwwroot/package_{hash}/"));
+			}
+
+			PackageAssetsFolder = $"package_{hash}";
 		}
 
 		private void RemoveDuplicateAssets()
@@ -191,17 +212,6 @@ namespace Uno.Wasm.Bootstrap
 			StaticWebContent = StaticWebContent
 				.Where(s => !existingAssets.Contains(s))
 				.ToArray();
-		}
-
-		private void GeneratedAOTProfile()
-		{
-			var useAotProfile = !GenerateAOTProfile && UseAotProfile;
-
-			if (useAotProfile)
-			{
-				// If the profile was transformed, we need to use the transformed profile
-				FilteredAotProfile = TransformAOTProfile();
-			}
 		}
 
 		private void ParseProperties()
@@ -230,53 +240,6 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
-		{
-			if (item.GetMetadata("RelativePath") is { } relativePath && !string.IsNullOrEmpty(relativePath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"RelativePath '{relativePath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This case is mainly for shared projects and files out of the baseSourceFile path
-				return (item.GetMetadata("FullPath"), relativePath);
-			}
-			else if (item.GetMetadata("TargetPath") is { } targetPath && !string.IsNullOrEmpty(targetPath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"TargetPath '{targetPath}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This is used for item remapping
-				return (item.GetMetadata("FullPath"), targetPath);
-			}
-			else if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
-			{
-				Log.LogMessage(MessageImportance.Low, $"Link '{link}' for full path '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				// This case is mainly for shared projects and files out of the baseSourceFile path
-				return (item.GetMetadata("FullPath"), link);
-			}
-			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
-			{
-				Log.LogMessage(MessageImportance.Low, $"FullPath '{fullPath}' (ItemSpec: {item.ItemSpec})");
-
-				var sourceFilePath = item.ItemSpec;
-
-				if (sourceFilePath.StartsWith(CurrentProjectPath))
-				{
-					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
-					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
-				}
-				else
-				{
-					return (fullPath, sourceFilePath);
-				}
-			}
-			else
-			{
-				Log.LogMessage(MessageImportance.Low, $"Without metadata '{item.GetMetadata("FullPath")}' (ItemSpec: {item.ItemSpec})");
-
-				return (item.GetMetadata("FullPath"), item.ItemSpec);
-			}
-		}
-
 		private void CopyContent()
 		{
 			var assets = new List<string>();
@@ -285,7 +248,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
+					var (fullSourcePath, relativePath) = sourceFile.GetFilePaths(Log, CurrentProjectPath);
 
 					// Files in "wwwroot" folder will get deployed to root by default
 					var defaultDeployMode = relativePath.Contains(_wwwroot) ? DeployMode.None : DeployMode.Package;
@@ -322,12 +285,29 @@ namespace Uno.Wasm.Bootstrap
 
 					if (deployMode != DeployMode.None)
 					{
-						AddStaticAsset(relativePath, fullSourcePath);
+						AddStaticAsset(relativePath, fullSourcePath, deployMode);
 					}
 
 					Log.LogMessage($"ContentFile {fullSourcePath} -> [Mode={deployMode} / by {deployModeSource}, {relativePath}]");
 				}
 			}
+		}
+
+		private void BuildServiceWorker()
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
+			using var reader = new StreamReader(resourceStream);
+
+			var worker = TouchServiceWorker(reader.ReadToEnd());
+			var memoryStream = new MemoryStream();
+
+			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+			writer.Write(worker);
+			writer.Flush();
+
+			memoryStream.Position = 0;
+
+			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
@@ -343,29 +323,7 @@ namespace Uno.Wasm.Bootstrap
 				{
 					_dependencies.Add(name);
 
-					if (
-						// Process the service worker file separately to adjust its contents
-						source.Name.Name.Equals(GetType().Assembly.GetName().Name, StringComparison.OrdinalIgnoreCase)
-						&& name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
-					{
-						using var resourceStream = resource.GetResourceStream();
-						using var reader = new StreamReader(resourceStream);
-
-						var worker = TouchServiceWorker(reader.ReadToEnd());
-						var memoryStream = new MemoryStream();
-
-						using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-						writer.Write(worker);
-						writer.Flush();
-
-						memoryStream.Position = 0;
-
-						CopyStreamToOutput(name, memoryStream);
-					}
-					else
-					{
-						CopyResourceToOutput(name, resource);
-					}
+					CopyResourceToOutput(name, resource);
 
 					Log.LogMessage($"Additional JS {name}");
 				}
@@ -373,7 +331,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
+				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
 
 				string? getPath()
 				{
@@ -423,7 +381,7 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
+				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
 
 				if (relativePath.Contains("WasmCSS") || fullSourcePath.Contains("WasmCSS"))
 				{
@@ -454,7 +412,7 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(name, dest);
 		}
 
-		private void CopyStreamToOutput(string name, Stream stream)
+		private void CopyStreamToOutput(string name, Stream stream, DeployMode deployMode = DeployMode.Package)
 		{
 			var dest = Path.Combine(_intermediateAssetsPath, name);
 
@@ -463,21 +421,28 @@ namespace Uno.Wasm.Bootstrap
 				stream.CopyTo(destStream);
 			}
 
-			AddStaticAsset(name, dest);
+			AddStaticAsset(name, dest, deployMode);
 		}
 
-		private void AddStaticAsset(string targetPath, string filePath, bool overrideExisting = false)
+		private void AddStaticAsset(
+			string targetPath
+			, string filePath
+			, DeployMode deployMode = DeployMode.Package
+			, bool overrideExisting = false)
 		{
 			var contentRoot = targetPath.StartsWith(_intermediateAssetsPath)
 						? _intermediateAssetsPath
 						: Path.GetDirectoryName(filePath);
+
+			var packagePath = PackageAssetsFolder == "" ? PackageTag : PackageAssetsFolder;
+			var linkBase = deployMode == DeployMode.Root ? "" : $"{packagePath}/";
 
 			TaskItem indexMetadata = new(
 				filePath, new Dictionary<string, string>
 				{
 					["CopyToOutputDirectory"] = "PreserveNewest",
 					["ContentRoot"] = contentRoot,
-					["Link"] = "wwwroot/" + targetPath,
+					["Link"] = $"wwwroot/{linkBase}{targetPath}",
 				});
 
 			StaticWebContent = StaticWebContent
@@ -563,7 +528,7 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}";
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{PackageAssetsFolder}/";
 				var dependencies = string.Join(", ", _dependencies
 					.Where(d =>
 						!d.EndsWith("require.js")
@@ -591,18 +556,7 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-
-				// unoAppBase must not finish with a `/` to be backward
-				// compatible.
-				var unoAppBase = WebAppBasePath switch
-				{
-					"" => ".",
-					"./" => ".",
-					"/" => "/.",
-					_ => WebAppBasePath.TrimEnd('/') + "/."
-				};
-
-				config.AppendLine($"config.uno_app_base = \"{unoAppBase}\";");
+				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
@@ -638,7 +592,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", "./");
+				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", PackageAssetsFolder);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
 				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
@@ -661,7 +615,7 @@ namespace Uno.Wasm.Bootstrap
 					{
 						["CopyToOutputDirectory"] = "PreserveNewest",
 						["ContentRoot"] = _intermediateAssetsPath,
-						["Link"] = "wwwroot/" + Path.GetFileName(unoConfigJsPath),
+						["Link"] = $"wwwroot/{PackageAssetsFolder}/" + Path.GetFileName(unoConfigJsPath),
 					});
 
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
@@ -694,9 +648,9 @@ namespace Uno.Wasm.Bootstrap
 			html = html.Replace("mono.js\"", "dotnet.js\"");
 			if (WebAppBasePath != "./")
 			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}");
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
 			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}");
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
@@ -746,7 +700,7 @@ namespace Uno.Wasm.Bootstrap
 				}
 
 				// Transform the PWA assets
-				if (manifestDocument["icons"] is JArray icons)
+				if (manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(PackageAssetsFolder))
 				{
 					foreach (var icon in icons)
 					{
@@ -754,8 +708,8 @@ namespace Uno.Wasm.Bootstrap
 
 						icon["src"] = originalSource switch
 						{
-							string s when s.StartsWith("./") => $"{WebAppBasePath}/" + s.Substring(2),
-							string s => $"./" + s,
+							string s when s.StartsWith("./") => $"{WebAppBasePath}{PackageAssetsFolder}/" + s.Substring(2),
+							string s => $"{PackageAssetsFolder}/" + s,
 							_ => originalSource
 						};
 					}
@@ -765,7 +719,7 @@ namespace Uno.Wasm.Bootstrap
 				var pwaManifestOutputPath = Path.Combine(_intermediateAssetsPath, pwaManifestFileName);
 				File.WriteAllText(pwaManifestOutputPath, manifestDocument.ToString());
 
-				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath);
+				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath, DeployMode.Root);
 			}
 		}
 
@@ -775,35 +729,6 @@ namespace Uno.Wasm.Bootstrap
 			{
 				// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
 				extraBuilder.AppendLine($"<meta http-equiv=\"Content-Security-Policy\" content=\"{CSPConfiguration}\" />\r\n");
-			}
-		}
-
-		private void GenerateBitcodeFiles()
-		{
-			var bitcodeFiles = Assets
-				?.Where(a => a.ItemSpec.EndsWith(".o") || a.ItemSpec.EndsWith(".a"))
-				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
-				.Select(a => GetFilePaths(a).fullPath)
-				.ToArray()
-				?? [];
-
-			List<string> features = new()
-			{
-				EnableThreads ? "mt" : "st",
-				"simd"
-			};
-
-			Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
-
-			if (Version.TryParse(EmscriptenVersion, out var emsdkVersion))
-			{
-				var list = BitcodeFilesSelector.Filter(emsdkVersion, features.ToArray(), bitcodeFiles);
-
-				NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
-			}
-			else
-			{
-				Log.LogMessage(MessageImportance.Low, $"EmscriptenVersion is not set, skipping native assets");
 			}
 		}
 
@@ -835,7 +760,7 @@ namespace Uno.Wasm.Bootstrap
 
 					const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
 
-					const absolutePath = (new URL("./", executingScriptAbsolutePath)).href;
+					const absolutePath = (new URL("./$(PACKAGE_PATH)", executingScriptAbsolutePath)).href;
 
 					const styles = [$(STYLES)];
 
@@ -889,6 +814,7 @@ namespace Uno.Wasm.Bootstrap
 			var stylesString = string.Join(",", _additionalStyles?.Select(s => $"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
 
 			var javascript = javascriptTemplate
+				.Replace("$(PACKAGE_PATH)", PackageAssetsFolder)
 				.Replace("$(STYLES)", stylesString);
 			w.Write(javascript);
 			w.Flush();
@@ -901,13 +827,14 @@ namespace Uno.Wasm.Bootstrap
 			w2.Write(html);
 			w2.Flush();
 
-			AddStaticAsset("embedded.js", scriptPath);
-			AddStaticAsset("index.html", htmlPath);
+			AddStaticAsset("embedded.js", scriptPath, DeployMode.Root);
+			AddStaticAsset("index.html", htmlPath, DeployMode.Root);
 		}
 
 		private string TouchServiceWorker(string workerBody)
 		{
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
+			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 
 			return workerBody;

@@ -95,7 +95,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 
 				//@ts-ignore
-				var m = await import(`./_framework/dotnet.js`);
+				var m = await import(`../_framework/dotnet.js`);
 
 				m.dotnet
 					.withModuleConfig({

@@ -229,12 +229,12 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
-	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
-	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -247,6 +247,7 @@
 			DependsOnTargets="$(UnoGenerateAssetsManifestDependsOn)">
 		<GenerateUnoAssetsManifest_v0
 			StaticWebAsset="@(StaticWebAsset)"
+			OutputPackagePath="$(WasmShellOutputPackagePath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)">
 			<Output TaskParameter="UnoAssetsFile" ItemName="_UnoAssetsManifest" />
 		</GenerateUnoAssetsManifest_v0>
@@ -272,8 +273,35 @@
 		</DefineStaticWebAssetEndpoints>
 	</Target>
 
+	<Target Name="GenerateUnoWasmNativeAssets" BeforeTargets="PrepareInputsForWasmBuild">
+
+		<GenerateUnoNativeAssetsTask_v0
+			AotProfile="$(WasmAotProfilePath)"
+			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
+			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
+			CurrentProjectPath="$(MSBuildProjectDirectory)"
+			EmscriptenVersion="$(EmscriptenVersion)"
+			EnableThreads="@(WasmEnableThreads)"
+			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
+			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
+			IntermediateOutputPath="$(IntermediateOutputPath)"
+			MixedModeExcludedAssembly="$(WasmShellMixedModeExcludedAssembly)"
+			RunAOTCompilation="$(RunAOTCompilation)"
+			WasmBuildNative="$(WasmBuildNative)"
+			>
+			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
+			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
+		</GenerateUnoNativeAssetsTask_v0>
+
+		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
+			<!-- Override the user's profile with the filtered one -->
+			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
+		</PropertyGroup>
+
+	</Target>
+
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;PrepareInputsForWasmBuild;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
@@ -302,7 +330,6 @@
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmccFlags="@(EmccFlags)"
-			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
 			EnableThreads="@(WasmEnableThreads)"
 			EnableTracing="@(WasmEnableTracing)"
@@ -324,8 +351,7 @@
 			WasmShellMode="$(WasmShellMode)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)">
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
-			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
-			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
+			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>
 
 		<DefineStaticWebAssets
@@ -348,11 +374,6 @@
 				>
 			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
 		</DefineStaticWebAssetEndpoints>
-
-		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
-			<!-- Override the user's profile with the filtered one -->
-			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
-		</PropertyGroup>
 
 	</Target>
 
