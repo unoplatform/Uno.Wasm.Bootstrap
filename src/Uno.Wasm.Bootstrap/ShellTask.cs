@@ -852,8 +852,8 @@ namespace Uno.Wasm.Bootstrap
 			w2.Write(html);
 			w2.Flush();
 
-			AddStaticAsset("embedded.js", scriptPath);
-			AddStaticAsset("index.html", htmlPath);
+			AddStaticAsset("embedded.js", scriptPath, DeployMode.Root);
+			AddStaticAsset("index.html", htmlPath, DeployMode.Root);
 		}
 
 		private string TouchServiceWorker(string workerBody)
