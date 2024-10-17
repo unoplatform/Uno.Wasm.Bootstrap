@@ -80,8 +80,6 @@ namespace Uno.Wasm.Bootstrap
 		[Required]
 		public string WasmShellMode { get; set; } = "";
 
-		public bool WasmBuildingForNestedPublish { get; set; }
-
 		public ITaskItem[] ExistingStaticWebAsset { get; set; } = [];
 
 		public ITaskItem[] EmbeddedResources { get; set; } = [];
@@ -92,8 +90,6 @@ namespace Uno.Wasm.Bootstrap
 		public ITaskItem[]? MonoEnvironment { get; set; }
 
 		public string? PWAManifestFile { get; set; }
-
-		public string EmscriptenVersion { get; set; } = "";
 
 		public ITaskItem[]? EmccFlags { get; set; }
 
@@ -114,12 +110,6 @@ namespace Uno.Wasm.Bootstrap
 		public bool RunAOTCompilation { get; set; }
 
 		public string? RuntimeOptions { get; set; }
-
-		public string AOTProfileExcludedMethods { get; set; } = "";
-
-		public bool GenerateAOTProfileDebugList { get; set; } = false;
-
-		public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
 
 		public bool WasmBuildNative { get; set; }
 
@@ -145,9 +135,6 @@ namespace Uno.Wasm.Bootstrap
 		[Output]
 		public string PackageAssetsFolder { get; set; } = "";
 
-		[Output]
-		public string? FilteredAotProfile { get; set; } = "";
-
 		public override bool Execute()
 		{
 			IntermediateOutputPath = IntermediateOutputPath;
@@ -161,7 +148,6 @@ namespace Uno.Wasm.Bootstrap
 				CopyContent();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
-				GeneratedAOTProfile();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
 				BuildServiceWorker();
@@ -226,17 +212,6 @@ namespace Uno.Wasm.Bootstrap
 			StaticWebContent = StaticWebContent
 				.Where(s => !existingAssets.Contains(s))
 				.ToArray();
-		}
-
-		private void GeneratedAOTProfile()
-		{
-			var useAotProfile = !GenerateAOTProfile && UseAotProfile;
-
-			if (useAotProfile)
-			{
-				// If the profile was transformed, we need to use the transformed profile
-				FilteredAotProfile = TransformAOTProfile();
-			}
 		}
 
 		private void ParseProperties()

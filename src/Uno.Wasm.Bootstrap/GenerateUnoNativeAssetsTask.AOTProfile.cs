@@ -40,7 +40,7 @@ using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
-	public partial class ShellTask_v0
+	public partial class GenerateUnoNativeAssetsTask_v0
 	{
 		/// <summary>
 		/// Applies a temporary workaround for https://github.com/mono/mono/issues/19824
@@ -133,5 +133,8 @@ namespace Uno.Wasm.Bootstrap
 				File.WriteAllText(Path.Combine(IntermediateOutputPath, filePath), sb.ToString());
 			}
 		}
+
+		private bool UseAotProfile
+			=> !string.IsNullOrEmpty(AotProfile) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 	}
 }

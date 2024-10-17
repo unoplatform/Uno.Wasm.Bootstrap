@@ -276,11 +276,21 @@
 	<Target Name="GenerateUnoWasmNativeAssets" BeforeTargets="PrepareInputsForWasmBuild">
 
 		<GenerateUnoNativeAssetsTask_v0
+			AotProfile="$(WasmAotProfilePath)"
+			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
 			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmscriptenVersion="$(EmscriptenVersion)"
-			EnableThreads="@(WasmEnableThreads)">
+			EnableThreads="@(WasmEnableThreads)"
+			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
+			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
+			IntermediateOutputPath="$(IntermediateOutputPath)"
+			MixedModeExcludedAssembly="$(WasmShellMixedModeExcludedAssembly)"
+			RunAOTCompilation="$(RunAOTCompilation)"
+			WasmBuildNative="$(WasmBuildNative)"
+			>
 			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
+			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 		</GenerateUnoNativeAssetsTask_v0>
 
 	</Target>
@@ -315,7 +325,6 @@
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmccFlags="@(EmccFlags)"
-			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
 			EnableThreads="@(WasmEnableThreads)"
 			EnableTracing="@(WasmEnableTracing)"
@@ -333,12 +342,10 @@
 			RunAOTCompilation="$(RunAOTCompilation)"
 			ExistingStaticWebAsset="@(StaticWebAsset)"
 			Optimize="$(Optimize)"
-			WasmBuildingForNestedPublish="$(WasmBuildingForNestedPublish)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
 			WebAppBasePath="$(WasmShellWebAppBasePath)">
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
-			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>
 

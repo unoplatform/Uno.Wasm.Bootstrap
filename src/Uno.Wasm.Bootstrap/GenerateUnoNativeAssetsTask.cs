@@ -32,8 +32,24 @@ using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap;
 
-public class GenerateUnoNativeAssetsTask_v0 : Microsoft.Build.Utilities.Task
+public partial class GenerateUnoNativeAssetsTask_v0 : Microsoft.Build.Utilities.Task
 {
+	private RuntimeExecutionMode _runtimeExecutionMode;
+
+	public string AotProfile { get; set; } = "";
+
+	public bool GenerateAOTProfile { get; set; }
+
+	public string AOTProfileExcludedMethods { get; set; } = "";
+
+	public bool GenerateAOTProfileDebugList { get; set; } = false;
+
+	public bool WasmBuildNative { get; set; }
+
+	public bool RunAOTCompilation { get; set; }
+
+	public Microsoft.Build.Framework.ITaskItem[]? MixedModeExcludedAssembly { get; set; }
+
 	public bool EnableThreads { get; set; }
 
 	public ITaskItem[]? Assets { get; set; }
@@ -41,18 +57,40 @@ public class GenerateUnoNativeAssetsTask_v0 : Microsoft.Build.Utilities.Task
 	public string EmscriptenVersion { get; set; } = "";
 
 	[Required]
+	public string IntermediateOutputPath { get; set; } = "";
+
+	[Required]
 	public string CurrentProjectPath { get; set; } = "";
 
 	[Output]
-	public ITaskItem[]? NativeFileReference { get; set; } = [];
+	public ITaskItem[] NativeFileReference { get; set; } = [];
+
+	[Output]
+	public string? FilteredAotProfile { get; set; } = "";
 
 	public override bool Execute()
 	{
+		ParseProperties();
 		GenerateBitcodeFiles();
+		BuildAOTProfile();
 
 		return true;
 	}
 
+	private void ParseProperties()
+		=> _runtimeExecutionMode
+			= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
+
+	private void BuildAOTProfile()
+	{
+		var useAotProfile = !GenerateAOTProfile && UseAotProfile;
+
+		if (useAotProfile)
+		{
+			// If the profile was transformed, we need to use the transformed profile
+			FilteredAotProfile = TransformAOTProfile();
+		}
+	}
 	private void GenerateBitcodeFiles()
 	{
 		var bitcodeFiles = Assets
