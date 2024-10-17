@@ -320,7 +320,7 @@ namespace Uno.Wasm.Bootstrap
 
 		private void BuildServiceWorker()
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.Embedded.service-worker.js");
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
 			using var reader = new StreamReader(resourceStream);
 
 			var worker = TouchServiceWorker(reader.ReadToEnd());
