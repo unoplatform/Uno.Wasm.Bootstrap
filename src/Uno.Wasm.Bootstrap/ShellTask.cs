@@ -512,7 +512,8 @@ namespace Uno.Wasm.Bootstrap
 						? _intermediateAssetsPath
 						: Path.GetDirectoryName(filePath);
 
-			var linkBase = deployMode == DeployMode.Root ? "" : $"{PackageTag}/";
+			var packagePath = PackageAssetsFolder == "" ? PackageTag : PackageAssetsFolder;
+			var linkBase = deployMode == DeployMode.Root ? "" : $"{packagePath}/";
 
 			TaskItem indexMetadata = new(
 				filePath, new Dictionary<string, string>
