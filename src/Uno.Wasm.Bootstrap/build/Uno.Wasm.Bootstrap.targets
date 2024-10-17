@@ -63,7 +63,7 @@
 
 	<Target Name="_UnoWasmValidateCompatibleSdk"
 			BeforeTargets="BeforeBuild"
-			Condition=" '$(Disable_UnoWasmValidateCompatibleSdk)' != 'true' ">
+			Condition=" '$(TargetFramework)' != '' AND '$(Disable_UnoWasmValidateCompatibleSdk)' != 'true' ">
 
 		<!-- Fail the build if the TargetFramework is below 9.0 -->
 		<Error Condition=" $([MSBuild]::VersionLowerThan( $([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')), '9.0')) "
