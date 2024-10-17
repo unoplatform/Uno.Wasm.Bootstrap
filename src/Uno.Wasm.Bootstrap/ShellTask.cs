@@ -206,7 +206,7 @@ namespace Uno.Wasm.Bootstrap
 				staticAsset.SetMetadata("Link", targetPath.Replace($"wwwroot/{PackageTag}/", $"wwwroot/package_{hash}/"));
 			}
 
-			PackageAssetsFolder = $"Package_{hash}";
+			PackageAssetsFolder = $"package_{hash}";
 		}
 
 		private void RemoveDuplicateAssets()
