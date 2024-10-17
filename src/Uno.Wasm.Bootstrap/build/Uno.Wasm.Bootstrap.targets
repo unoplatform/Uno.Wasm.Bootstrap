@@ -293,6 +293,11 @@
 			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
 		</GenerateUnoNativeAssetsTask_v0>
 
+		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
+			<!-- Override the user's profile with the filtered one -->
+			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
+		</PropertyGroup>
+
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
@@ -369,11 +374,6 @@
 				>
 			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
 		</DefineStaticWebAssetEndpoints>
-
-		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
-			<!-- Override the user's profile with the filtered one -->
-			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
-		</PropertyGroup>
 
 	</Target>
 
