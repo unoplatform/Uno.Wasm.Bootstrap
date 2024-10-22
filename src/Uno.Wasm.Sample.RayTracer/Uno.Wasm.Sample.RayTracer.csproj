@@ -35,6 +35,7 @@
 
 	<ItemGroup>
 	  <WasmShellExtraEmccFlags Include="--llvm-lto 1" />
+	  <WasmShellExtraEmccFlags Include="-flto" />
 	</ItemGroup>
 
 	<ItemGroup>
