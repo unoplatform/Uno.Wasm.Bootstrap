@@ -34,6 +34,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <WasmShellExtraEmccFlags Include="--llvm-lto 1" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>
