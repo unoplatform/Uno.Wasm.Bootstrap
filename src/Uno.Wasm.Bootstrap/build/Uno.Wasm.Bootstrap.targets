@@ -107,6 +107,14 @@
 		</ItemGroup>
 	</Target>
 
+	<Target Name="_UnoAdjustEmscriptenVersion"
+			BeforeTargets="_SetupEmscripten;_WorkaroundEmscriptenPathLength">
+
+		<PropertyGroup>
+			<!-- We cannot yet use EmscriptenVersion: https://github.com/dotnet/runtime/issues/108972 -->
+			<_UnoEmscriptenVersion>$([System.Text.RegularExpressions.Regex]::Match($(EmscriptenSdkToolsPath), 'Microsoft\.NET\.Runtime\.Emscripten\.(?&lt;Version>\d+(\.\d+)*)\.Sdk').Groups['Version'].Value)</_UnoEmscriptenVersion>
+		</PropertyGroup>
+	</Target>
 
 	<Target Name="_WorkaroundEmscriptenPathLength"
 			Condition=" '$(OS)' == 'Windows_NT' "
@@ -290,7 +298,7 @@
 			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
 			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
-			EmscriptenVersion="$(EmscriptenVersion)"
+			EmscriptenVersion="$(_UnoEmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
