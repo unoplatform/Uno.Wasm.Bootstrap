@@ -107,6 +107,14 @@
 		</ItemGroup>
 	</Target>
 
+	<Target Name="_UnoAdjustEmscriptenVersion"
+			BeforeTargets="_SetupEmscripten;_WorkaroundEmscriptenPathLength">
+
+		<PropertyGroup>
+			<!-- We cannot yet use EmscriptenVersion: https://github.com/dotnet/runtime/issues/108972 -->
+			<_UnoEmscriptenVersion>$([System.Text.RegularExpressions.Regex]::Match($(EmscriptenSdkToolsPath), 'Microsoft\.NET\.Runtime\.Emscripten\.(?&lt;Version>\d+(\.\d+)*)\.Sdk').Groups['Version'].Value)</_UnoEmscriptenVersion>
+		</PropertyGroup>
+	</Target>
 
 	<Target Name="_WorkaroundEmscriptenPathLength"
 			Condition=" '$(OS)' == 'Windows_NT' "
@@ -115,11 +123,6 @@
 		<PropertyGroup>
 			<_emsdkOriginalPackagePath>$([System.IO.Path]::GetFullPath('$(EmscriptenSdkToolsPath)..'))</_emsdkOriginalPackagePath>
 			<_targetEMSDKPath>$(USERPROFILE)\.uno\emsdk\$([System.IO.Path]::GetFileName('$(_emsdkOriginalPackagePath)'))</_targetEMSDKPath>
-		</PropertyGroup>
-
-		<PropertyGroup>
-			<!-- We cannot yet use EmscriptenVersion: https://github.com/dotnet/runtime/issues/108972 -->
-			<_UnoEmscriptenVersion>$([System.Text.RegularExpressions.Regex]::Match($(_emsdkOriginalPackagePath), 'Microsoft\.NET\.Runtime\.Emscripten\.(?&lt;Version>\d+(\.\d+)*)\.Sdk').Groups['Version'].Value)</_UnoEmscriptenVersion>
 		</PropertyGroup>
 
 		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_targetEMSDKPath)'))" />
