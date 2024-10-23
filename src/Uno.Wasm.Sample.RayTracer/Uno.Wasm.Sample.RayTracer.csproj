@@ -34,10 +34,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <WasmShellExtraEmccFlags Include="-flto" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>

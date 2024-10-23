@@ -200,7 +200,7 @@
 			local folder, in order to avoid the frozen cache of the runtime's
 			emsdk.
 		-->
-		<PropertyGroup Condition=" '$(WasmCachePath)' == '$(EmscriptenCacheSdkCacheDir)' ">
+		<PropertyGroup>
 
 			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
 
