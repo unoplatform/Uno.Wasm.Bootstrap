@@ -117,6 +117,11 @@
 			<_targetEMSDKPath>$(USERPROFILE)\.uno\emsdk\$([System.IO.Path]::GetFileName('$(_emsdkOriginalPackagePath)'))</_targetEMSDKPath>
 		</PropertyGroup>
 
+		<PropertyGroup>
+			<!-- We cannot yet use EmscriptenVersion: https://github.com/dotnet/runtime/issues/108972 -->
+			<_UnoEmscriptenVersion>$([System.Text.RegularExpressions.Regex]::Match($(_emsdkOriginalPackagePath), 'Microsoft\.NET\.Runtime\.Emscripten\.(?&lt;Version>\d+(\.\d+)*)\.Sdk').Groups['Version'].Value)</_UnoEmscriptenVersion>
+		</PropertyGroup>
+
 		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_targetEMSDKPath)'))" />
 
 		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;"
@@ -290,7 +295,7 @@
 			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
 			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
-			EmscriptenVersion="$(EmscriptenVersion)"
+			EmscriptenVersion="$(_UnoEmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
