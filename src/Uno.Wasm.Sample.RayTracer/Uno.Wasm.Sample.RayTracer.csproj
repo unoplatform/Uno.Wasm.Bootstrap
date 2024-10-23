@@ -8,7 +8,6 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
-		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
