@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<AssemblyName>Uno.Wasm.StaticLinking</AssemblyName>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
@@ -27,12 +27,12 @@
 		<PackageReference Include="System.Collections.Immutable" Version="1.4.0" />
 	</ItemGroup>
 
-	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Common.props" />
 	<Import Project="..\Uno.Wasm.StaticLinking.Shared\Uno.Wasm.StaticLinking.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+	<Import Project="..\Uno.Wasm.Bootstrap.DevServer\build\Uno.Wasm.Bootstrap.DevServer.targets" />
 
 	<!--
 	<ItemGroup>

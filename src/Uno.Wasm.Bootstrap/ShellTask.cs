@@ -45,81 +45,50 @@ using Uno.Wasm.Bootstrap.Extensions;
 
 namespace Uno.Wasm.Bootstrap
 {
-	public partial class ShellTask_v0 : Task
+	public partial class ShellTask_v0 : Microsoft.Build.Utilities.Task
 	{
 		private const string WasmScriptsFolder = "WasmScripts";
 		private const string DeployMetadataName = "UnoDeploy";
-		private const string PackageTag = "%PACKAGE%";
 
 		private static readonly string _wwwroot = "wwwroot" + Path.DirectorySeparatorChar;
 
 		private ShellMode _shellMode;
 		private UTF8Encoding _utf8Encoding = new UTF8Encoding(false);
+		private string _remoteBasePackagePath = ".";
 		private readonly List<string> _dependencies = new List<string>();
 		private List<AssemblyDefinition>? _resourceSearchList;
 		private List<string> _referencedAssemblies = new List<string>();
 		private string[]? _additionalStyles;
 		private string _intermediateAssetsPath = "";
 		private string[]? _contentExtensionsToExclude;
-		private RuntimeExecutionMode _runtimeExecutionMode;
 
 		[Required]
 		public string AssemblyName { get; private set; } = "";
 
-		[Required]
+		[Microsoft.Build.Framework.Required]
 		public string IndexHtmlPath { get; set; } = "";
 
-		[Required]
+		[Microsoft.Build.Framework.Required]
 		public string Assembly { get; set; } = "";
 
-		[Required]
+		[Microsoft.Build.Framework.Required]
 		public string CurrentProjectPath { get; set; } = "";
 
-		public ITaskItem[]? Assets { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? Assets { get; set; }
 
-		[Required]
-		public string WasmShellMode { get; set; } = "";
+		public Microsoft.Build.Framework.ITaskItem[] EmbeddedResources { get; set; } = [];
 
-		public ITaskItem[] ExistingStaticWebAsset { get; set; } = [];
-
-		public ITaskItem[] EmbeddedResources { get; set; } = [];
-
-		[Required]
+		[Microsoft.Build.Framework.Required]
 		public string IntermediateOutputPath { get; set; } = "";
-
-		public ITaskItem[]? MonoEnvironment { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? MonoEnvironment { get; set; }
 
 		public string? PWAManifestFile { get; set; }
 
-		public ITaskItem[]? EmccFlags { get; set; }
-
-		public ITaskItem[]? EmccExportedRuntimeMethod { get; set; }
+		public string EmscriptenVersion { get; set; } = "";
 
 		public string? ContentExtensionsToExclude { get; set; }
 
 		public string CSPConfiguration { get; set; } = "";
-
-		public bool Optimize { get; set; }
-
-		public bool EnableTracing { get; set; }
-
-		public bool LoadAllSatelliteResources { get; set; }
-
-		public string AotProfile { get; set; } = "";
-
-		public bool RunAOTCompilation { get; set; }
-
-		public string? RuntimeOptions { get; set; }
-
-		public bool WasmBuildNative { get; set; }
-
-		public bool PublishTrimmed { get; set; }
-
-		public bool RunILLink { get; set; }
-
-		public bool EnableLogProfiler { get; set; }
-
-		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
 
 		public string WebAppBasePath { get; set; } = "./";
 
@@ -127,17 +96,17 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableThreads { get; set; }
 
-		public ITaskItem[]? ReferencePath { get; set; }
+		public Microsoft.Build.Framework.ITaskItem[]? ReferencePath { get; set; }
 
-		[Output]
-		public ITaskItem[] StaticWebContent { get; set; } = [];
+		[Microsoft.Build.Framework.Output]
+		public Microsoft.Build.Framework.ITaskItem[]? StaticWebContent { get; set; } = [];
 
-		[Output]
-		public string PackageAssetsFolder { get; set; } = "";
+		[Microsoft.Build.Framework.Output]
+		public Microsoft.Build.Framework.ITaskItem[]? NativeFileReference { get; set; } = [];
 
 		public override bool Execute()
 		{
-			IntermediateOutputPath = IntermediateOutputPath;
+			IntermediateOutputPath = TryConvertLongPath(IntermediateOutputPath);
 			_intermediateAssetsPath = Path.Combine(IntermediateOutputPath, "unowwwrootassets");
 			Directory.CreateDirectory(_intermediateAssetsPath);
 
@@ -146,15 +115,11 @@ namespace Uno.Wasm.Bootstrap
 				ParseProperties();
 				BuildReferencedAssembliesList();
 				CopyContent();
+				GenerateBitcodeFiles();
 				ExtractAdditionalJS();
 				ExtractAdditionalCSS();
-				RemoveDuplicateAssets();
-				GeneratePackageFolder();
-				BuildServiceWorker();
-				GenerateEmbeddedJs();
 				GenerateIndexHtml();
 				GenerateConfig();
-				RemoveDuplicateAssets();
 			}
 			finally
 			{
@@ -164,67 +129,12 @@ namespace Uno.Wasm.Bootstrap
 			return true;
 		}
 
-		private void GeneratePackageFolder()
-		{
-			IEnumerable<byte> ComputeHash(string file)
-			{
-				using var hashFunction = SHA1.Create();
-				using var s = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
-				return hashFunction.ComputeHash(s);
-			}
-
-			var allBytes = StaticWebContent
-				.Select(c => c.ItemSpec)
-				.AsParallel()
-				.OrderBy(s => s)
-				.Select(ComputeHash)
-				.SelectMany(h => h)
-				.ToArray();
-
-			using var hashFunction = SHA1.Create();
-			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
-
-			foreach(var staticAsset in StaticWebContent)
-			{
-				var targetPath = staticAsset.GetMetadata("Link");
-
-				staticAsset.SetMetadata("Link", targetPath.Replace($"wwwroot/{PackageTag}/", $"wwwroot/package_{hash}/"));
-			}
-
-			PackageAssetsFolder = $"package_{hash}";
-		}
-
-		private void RemoveDuplicateAssets()
-		{
-			// Remove duplicate assets from the list to be exported.
-			// They might have been imported from the build pass.
-
-			var existingAssets = StaticWebContent
-				.Where(s => ExistingStaticWebAsset.Any(e => e.ItemSpec == s.ItemSpec || e.GetMetadata("FullPath") == s.GetMetadata("FullPath")))
-				.ToArray();
-
-			foreach (var existingAsset in existingAssets)
-			{
-				Log.LogMessage(MessageImportance.Low, $"Existing asset to remove [{existingAsset.ItemSpec}]");
-			}
-
-			// remove existingAssets from StaticWebContent
-			StaticWebContent = StaticWebContent
-				.Where(s => !existingAssets.Contains(s))
-				.ToArray();
-		}
-
 		private void ParseProperties()
 		{
-			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
-
-			_runtimeExecutionMode
-				= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
-
 			_contentExtensionsToExclude =
 				ContentExtensionsToExclude
 					?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-				?? [];
+				?? new string[0];
 
 			Log.LogMessage($"Ignoring content files with following extensions:\n\t{string.Join("\n\t", _contentExtensionsToExclude)}");
 		}
@@ -240,6 +150,38 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		private (string fullPath, string relativePath) GetFilePaths(ITaskItem item)
+		{
+			// This is for project-local defined content
+			var baseSourceFile = item.GetMetadata("DefiningProjectDirectory");
+
+			if (item.GetMetadata("Link") is { } link && !string.IsNullOrEmpty(link))
+			{
+				var fullPath = Path.IsPathRooted(item.ItemSpec) ? item.ItemSpec : Path.Combine(baseSourceFile, item.ItemSpec);
+
+				// This case is mainly for shared projects and files out of the baseSourceFile path
+				return (fullPath, link);
+			}
+			else if (item.GetMetadata("FullPath") is { } fullPath && File.Exists(fullPath))
+			{
+				var sourceFilePath = item.ItemSpec;
+
+				if (sourceFilePath.StartsWith(CurrentProjectPath))
+				{
+					// This is for files added explicitly through other targets (e.g. Microsoft.TypeScript.MSBuild)
+					return (fullPath: fullPath, sourceFilePath.Replace(CurrentProjectPath + Path.DirectorySeparatorChar, ""));
+				}
+				else
+				{
+					return (fullPath, sourceFilePath);
+				}
+			}
+			else
+			{
+				return (Path.Combine(baseSourceFile, item.ItemSpec), item.ItemSpec);
+			}
+		}
+
 		private void CopyContent()
 		{
 			var assets = new List<string>();
@@ -248,7 +190,7 @@ namespace Uno.Wasm.Bootstrap
 			{
 				foreach (var sourceFile in Assets)
 				{
-					var (fullSourcePath, relativePath) = sourceFile.GetFilePaths(Log, CurrentProjectPath);
+					var (fullSourcePath, relativePath) = GetFilePaths(sourceFile);
 
 					// Files in "wwwroot" folder will get deployed to root by default
 					var defaultDeployMode = relativePath.Contains(_wwwroot) ? DeployMode.None : DeployMode.Package;
@@ -283,31 +225,39 @@ namespace Uno.Wasm.Bootstrap
 						deployMode = defaultDeployMode;
 					}
 
+					var dest = Path.Combine(_intermediateAssetsPath, relativePath);
+
 					if (deployMode != DeployMode.None)
 					{
-						AddStaticAsset(relativePath, fullSourcePath, deployMode);
+						// Add the file to the package assets manifest
+						assets.Add(relativePath.Replace(Path.DirectorySeparatorChar, '/'));
+
+						AddStaticAsset(relativePath, fullSourcePath);
 					}
 
-					Log.LogMessage($"ContentFile {fullSourcePath} -> [Mode={deployMode} / by {deployModeSource}, {relativePath}]");
+					Log.LogMessage($"ContentFile {fullSourcePath} -> {dest ?? "<null>"} [Mode={deployMode} / by {deployModeSource}]");
 				}
 			}
+
+			var assetsFilePath = Path.Combine(_intermediateAssetsPath, "uno-assets.txt");
+			File.WriteAllLines(assetsFilePath, assets);
+			AddStaticAsset(Path.GetFileName(assetsFilePath), assetsFilePath);
 		}
 
-		private void BuildServiceWorker()
+		private void FileCopy(string source, string dest, bool overwrite = false)
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
-			using var reader = new StreamReader(resourceStream);
+			var sourceFileName = PathHelper.FixupPath(source);
+			var destFileName = PathHelper.FixupPath(dest);
 
-			var worker = TouchServiceWorker(reader.ReadToEnd());
-			var memoryStream = new MemoryStream();
-
-			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-			writer.Write(worker);
-			writer.Flush();
-
-			memoryStream.Position = 0;
-
-			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+			try
+			{
+				File.Copy(sourceFileName, destFileName, overwrite);
+			}
+			catch (Exception ex)
+			{
+				Log.LogError($"Failed to copy {sourceFileName} to {destFileName}: {ex.Message}");
+				throw;
+			}
 		}
 
 		private void ExtractAdditionalJS()
@@ -331,29 +281,16 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
+				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				string? getPath()
+				if (fullSourcePath.Contains("WasmScripts"))
 				{
-					if (relativePath.Contains(WasmScriptsFolder))
-					{
-						return relativePath;
-					}
-					else if (fullSourcePath.Contains(WasmScriptsFolder))
-					{
-						return fullSourcePath;
-					}
-					return null;
-				}
-
-				if (getPath() is { Length: > 0 } path)
-				{
-					var scriptName = Path.GetFileName(path);
+					var scriptName = Path.GetFileName(fullSourcePath);
 
 					Log.LogMessage($"Embedded resources JS {scriptName}");
 
 					_dependencies.Add(scriptName);
-					AddStaticAsset(scriptName, fullSourcePath, overrideExisting: true);
+					AddStaticAsset(scriptName, fullSourcePath);
 				}
 			}
 		}
@@ -381,16 +318,16 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var projectResource in EmbeddedResources)
 			{
-				var (fullSourcePath, relativePath) = projectResource.GetFilePaths(Log, CurrentProjectPath);
+				var (fullSourcePath, relativePath) = GetFilePaths(projectResource);
 
-				if (relativePath.Contains("WasmCSS") || fullSourcePath.Contains("WasmCSS"))
+				if (fullSourcePath.Contains("WasmCSS"))
 				{
 					var cssName = Path.GetFileName(fullSourcePath);
 
 					Log.LogMessage($"Embedded CSS {cssName}");
 
 					additionalStyles.Add(cssName);
-					AddStaticAsset(cssName, fullSourcePath, overrideExisting: true);
+					AddStaticAsset(cssName, fullSourcePath);
 				}
 			}
 
@@ -412,46 +349,21 @@ namespace Uno.Wasm.Bootstrap
 			AddStaticAsset(name, dest);
 		}
 
-		private void CopyStreamToOutput(string name, Stream stream, DeployMode deployMode = DeployMode.Package)
-		{
-			var dest = Path.Combine(_intermediateAssetsPath, name);
-
-			using (var destStream = new FileStream(dest, FileMode.Create, FileAccess.Write))
-			{
-				stream.CopyTo(destStream);
-			}
-
-			AddStaticAsset(name, dest, deployMode);
-		}
-
-		private void AddStaticAsset(
-			string targetPath
-			, string filePath
-			, DeployMode deployMode = DeployMode.Package
-			, bool overrideExisting = false)
+		private void AddStaticAsset(string targetPath, string filePath)
 		{
 			var contentRoot = targetPath.StartsWith(_intermediateAssetsPath)
 						? _intermediateAssetsPath
 						: Path.GetDirectoryName(filePath);
-
-			var packagePath = PackageAssetsFolder == "" ? PackageTag : PackageAssetsFolder;
-			var linkBase = deployMode == DeployMode.Root ? "" : $"{packagePath}/";
 
 			TaskItem indexMetadata = new(
 				filePath, new Dictionary<string, string>
 				{
 					["CopyToOutputDirectory"] = "PreserveNewest",
 					["ContentRoot"] = contentRoot,
-					["Link"] = $"wwwroot/{linkBase}{targetPath}",
+					["Link"] = "wwwroot/" + targetPath,
 				});
 
-			StaticWebContent = StaticWebContent
-
-				// We may be adding duplicate content if a file is present in both Assets and EmbeddedResources.
-				// This may happen when generating scripts from TypeScript, where the task includes the result as content.
-				.Where(f => overrideExisting ? !(f.ItemSpec == filePath || f.GetMetadata("FullPath") == filePath) : true)
-
-				.Concat([indexMetadata]).ToArray();
+			StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
 		}
 
 		private void BuildResourceSearchList()
@@ -528,44 +440,53 @@ namespace Uno.Wasm.Bootstrap
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
-				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{PackageAssetsFolder}/";
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{_remoteBasePackagePath}/";
 				var dependencies = string.Join(", ", _dependencies
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
 						&& !d.EndsWith("service-worker.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
+				//var entryPoint = DiscoverEntryPoint();
 
 				var config = new StringBuilder();
 
-				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
+				//var (monoWasmFileName, monoWasmSize, totalAssembliesSize, assemblyFiles, filesIntegrity) = GetFilesDetails();
+				//var assembliesSize = string.Join(
+				//	",",
+				//	assemblyFiles.Select(ass => $"\"{ass.fileName}\":{ass.length}"));
+				//var filesIntegrityStr = string.Join(
+				//	",",
+				//	filesIntegrity.Select(f => $"\"{f.fileName}\":\"{f.integrity}\""));
 
-				var sanitizedOfflineFiles = StaticWebContent
-					.Select(f => f.GetMetadata("Link")
-						.Replace("\\", "/")
-						.Replace("wwwroot/", ""))
-					.Concat([$"uno-config.js", "_framework/blazor.boot.json", "."]);
+				//var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
+				//var offlineFiles = enablePWA ? string.Join(", ", GetPWACacheableFiles().Select(f => $"\".{f}\"")) : "";
 
-				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
-
-				var emccExportedRuntimeMethodsParams = string.Join(
-					",",
-					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
-
-				var runtimeOptionsSet = string.Join(",", (RuntimeOptions?.Split(' ') ?? []).Select(f => $"\'{f}\'"));
+				//var emccExportedRuntimeMethodsParams = string.Join(
+				//	",",
+				//	GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
 
 				config.AppendLine($"let config = {{}};");
-				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
+				//config.AppendLine($"config.uno_remote_managedpath = \"{Path.GetFileName(_managedPath)}\";");
+				//config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{_remoteBasePackagePath}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
-				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
-				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
-				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
-				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+				//config.AppendLine($"config.uno_main = \"{entryPoint.DeclaringType.Module.Assembly.Name.Name}\";");
+				//config.AppendLine($"config.assemblyFileExtension = \"{AssembliesFileExtension}\";");
+				//config.AppendLine($"config.assemblyFileNameObfuscationMode = \"{_assembliesFileNameObfuscationMode}\";");
+				//config.AppendLine($"config.mono_wasm_runtime = \"{monoWasmFileName}\";");
+				//config.AppendLine($"config.mono_wasm_runtime_size = {monoWasmSize};");
+				//config.AppendLine($"config.assemblies_with_size = {{{assembliesSize}}};");
+				//config.AppendLine($"config.files_integrity = {{{filesIntegrityStr}}};");
+				//config.AppendLine($"config.total_assemblies_size = {totalAssembliesSize};");
+				//config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				//config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
+				//config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
+				//config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+
+				//if (ObfuscateAssemblies)
+				//{
+				//	config.AppendLine($"config.assemblyObfuscationKey = \"{Encoding.ASCII.GetString(_obfuscationKey)}\";");
+				//}
 
 				if (GenerateAOTProfile)
 				{
@@ -584,27 +505,32 @@ namespace Uno.Wasm.Bootstrap
 					}
 				}
 
-				var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+				//var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
 
-				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", (PublishTrimmed && RunILLink).ToString());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
-				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
-				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", PackageAssetsFolder);
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", MonoILLinker.ToString());
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", RuntimeDebuggerEnabled.ToString());
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", RuntimeConfiguration);
+				//AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", _remoteBasePackagePath);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
 
-				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
-				{
-					// Detects the use of the 4GB flag: https://v8.dev/blog/4gb-wasm-memory
-					AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
-				}
+				//if (EnableThreads)
+				//{
+				//	AddEnvironmentVariable("UNO_BOOTSTRAP_MAX_THREADS", PThreadsPoolSize.ToString());
+				//}
 
-				if (EnableLogProfiler)
-				{
-					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
-				}
+				//if (ExtraEmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
+				//{
+				//	// Detects the use of the 4GB flag: https://v8.dev/blog/4gb-wasm-memory
+				//	AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
+				//}
+
+				//if (EnableLogProfiler)
+				//{
+				//	AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
+				//}
 
 				config.AppendLine("export { config };");
 
@@ -615,7 +541,7 @@ namespace Uno.Wasm.Bootstrap
 					{
 						["CopyToOutputDirectory"] = "PreserveNewest",
 						["ContentRoot"] = _intermediateAssetsPath,
-						["Link"] = $"wwwroot/{PackageAssetsFolder}/" + Path.GetFileName(unoConfigJsPath),
+						["Link"] = "wwwroot/" + Path.GetFileName(unoConfigJsPath),
 					});
 
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
@@ -648,9 +574,9 @@ namespace Uno.Wasm.Bootstrap
 			html = html.Replace("mono.js\"", "dotnet.js\"");
 			if (WebAppBasePath != "./")
 			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
+				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
+			html = html.Replace($"\"./", $"\"{WebAppBasePath}{_remoteBasePackagePath}/");
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
@@ -671,56 +597,53 @@ namespace Uno.Wasm.Bootstrap
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
 		{
-			if (_shellMode != ShellMode.Browser)
-			{
-				return;
-			}
+			//if (_shellMode != ShellMode.Browser)
+			//{
+			//	return;
+			//}
 
-			if (!string.IsNullOrWhiteSpace(PWAManifestFile))
-			{
-				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
+			//if (!string.IsNullOrWhiteSpace(PWAManifestFile))
+			//{
+			//	var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
-				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
+			//	extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
-				extraBuilder.AppendLine($"<meta name=\"mobile-web-app-capable\" content=\"yes\">");
+			//	// See https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html
+			//	extraBuilder.AppendLine($"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">");
 
-				if (manifestDocument["icons"] is JArray array
-					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
-				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
-				}
+			//	if (manifestDocument["icons"] is JArray array
+			//		&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
+			//	{
+			//		extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
+			//	}
 
-				if (manifestDocument["theme_color"]?.Value<string>() is string color)
-				{
-					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
-				}
-				else
-				{
-					extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
-				}
+			//	if (manifestDocument["theme_color"]?.Value<string>() is string color)
+			//	{
+			//		extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"{color}\" />");
+			//	}
+			//	else
+			//	{
+			//		extraBuilder.AppendLine($"<meta name=\"theme-color\" content=\"#fff\" />");
+			//	}
 
-				// Transform the PWA assets
-				if (manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(PackageAssetsFolder))
-				{
-					foreach (var icon in icons)
-					{
-						var originalSource = icon["src"]?.Value<string>();
+			//	// Transform the PWA assets
+			//	if (manifestDocument["icons"] is JArray icons && !string.IsNullOrWhiteSpace(_remoteBasePackagePath))
+			//	{
+			//		foreach (var icon in icons)
+			//		{
+			//			var originalSource = icon["src"]?.Value<string>();
 
-						icon["src"] = originalSource switch
-						{
-							string s when s.StartsWith("./") => $"{WebAppBasePath}{PackageAssetsFolder}/" + s.Substring(2),
-							string s => $"{PackageAssetsFolder}/" + s,
-							_ => originalSource
-						};
-					}
-				}
+			//			icon["src"] = originalSource switch
+			//			{
+			//				string s when s.StartsWith("./") => $"{WebAppBasePath}{_remoteBasePackagePath}/" + s.Substring(2),
+			//				string s => $"{_remoteBasePackagePath}/" + s,
+			//				_ => originalSource
+			//			};
+			//		}
+			//	}
 
-				var pwaManifestFileName = Path.GetFileName(PWAManifestFile);
-				var pwaManifestOutputPath = Path.Combine(_intermediateAssetsPath, pwaManifestFileName);
-				File.WriteAllText(pwaManifestOutputPath, manifestDocument.ToString());
-
-				AddStaticAsset(Path.GetFileName(PWAManifestFile), pwaManifestOutputPath, DeployMode.Root);
-			}
+			//	File.WriteAllText(Path.Combine(_distPath, Path.GetFileName(PWAManifestFile)), manifestDocument.ToString());
+			//}
 		}
 
 		private void GenerateCSPMeta(StringBuilder extraBuilder)
@@ -732,112 +655,26 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private IEnumerable<string> GetEmccExportedRuntimeMethods()
-			=> (EmccExportedRuntimeMethod ?? Array.Empty<ITaskItem>()).Select(m => m.ItemSpec);
-
-		private bool UseAotProfile
-			=> !string.IsNullOrEmpty(AotProfile) && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
-
-		private void GenerateEmbeddedJs()
+		private void GenerateBitcodeFiles()
 		{
-			if (_shellMode != ShellMode.BrowserEmbedded)
+			var bitcodeFiles = Assets
+				?.Where(a => a.ItemSpec.EndsWith(".bc") || a.ItemSpec.EndsWith(".a"))
+				.Where(a => !bool.TryParse(a.GetMetadata("UnoAotCompile"), out var compile) || compile)
+				.Select(a => GetFilePaths(a).fullPath)
+				.ToArray()
+				?? [];
+
+			List<string> features = new()
 			{
-				return;
-			}
+				EnableThreads ? "mt" : "st",
+				"simd"
+			};
 
-			var scriptPath = Path.Combine(IntermediateOutputPath, "shell-embedded.js");
+			Log.LogMessage(MessageImportance.Low, $"Bitcode files features lookup filter: {string.Join(",", features)}");
 
-			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
-			const string javascriptTemplate =
-				"""
-				(async function () {
+			var list = BitcodeFilesSelector.Filter(new(EmscriptenVersion), features.ToArray(), bitcodeFiles);
 
-					const executingScript = document.currentScript;
-					if(!executingScript) {
-						console.err("embedded.js MUST be run using a <script> tag in the current version.");
-						return;
-					}
-
-					const executingScriptAbsolutePath = (new URL(executingScript.src, document.location)).href;
-
-					const absolutePath = (new URL("./$(PACKAGE_PATH)", executingScriptAbsolutePath)).href;
-
-					const styles = [$(STYLES)];
-
-					styles.forEach(s => {
-						const scriptElement = document.createElement("link");
-						scriptElement.setAttribute("href", `${absolutePath}/${s}`);
-						scriptElement.setAttribute("rel", "stylesheet");
-						document.head.appendChild(scriptElement);
-					});
-
-					document.baseURI = absolutePath;
-					document.uno_app_base_override = absolutePath;
-					const baseElement = document.createElement("base");
-					baseElement.setAttribute("href", absolutePath);
-					document.head.appendChild(baseElement);
-
-					const html = "<div id='uno-body' class='container-fluid uno-body'><div class='uno-loader' loading-position='bottom' loading-alert='none'><img class='logo' src='' /><progress></progress><span class='alert'></span></div></div>";
-
-					if(typeof unoRootElement !== 'undefined') {
-						unoRootElement.innerHTML = html;
-					} else {
-						var rootDiv = document.createElement("div");
-						rootDiv.innerHTML = html;
-						document.body.appendChild(rootDiv);
-					}
-
-					const loadScript = s => new Promise((ok, err) => {
-						const scriptElement = document.createElement("script");
-						scriptElement.setAttribute("src", `${absolutePath}/${s}.js`);
-						scriptElement.setAttribute("type", "text/javascript");
-						scriptElement.onload = () => ok();
-						scriptElement.onerror = () => err("err loading " + s);
-						document.head.appendChild(scriptElement);
-					});
-
-					// Preload RequireJS dependency
-					await loadScript("require");
-
-					// Launch the bootstrapper
-					await import(absolutePath + "/uno-bootstrap.js");
-
-					// Yield to the browser to render the splash screen
-					await new Promise(r => setTimeout(r, 0));
-
-					// Dispatch the DOMContentLoaded event
-					const loadedEvent = new Event("DOMContentLoaded");
-					document.dispatchEvent(loadedEvent);
-				})();
-				""";
-
-			var stylesString = string.Join(",", _additionalStyles?.Select(s => $"\"{Uri.EscapeDataString(s)}\"") ?? Array.Empty<string>());
-
-			var javascript = javascriptTemplate
-				.Replace("$(PACKAGE_PATH)", PackageAssetsFolder)
-				.Replace("$(STYLES)", stylesString);
-			w.Write(javascript);
-			w.Flush();
-
-			// Write index.html loading the javascript as a helper
-			var htmlPath = Path.Combine(IntermediateOutputPath, "shell-embedded-index.html");
-			using var w2 = new StreamWriter(htmlPath, append: false, _utf8Encoding);
-
-			const string html = "<html><body><script src=\"embedded.js\" type=\"text/javascript\"></script>\n";
-			w2.Write(html);
-			w2.Flush();
-
-			AddStaticAsset("embedded.js", scriptPath, DeployMode.Root);
-			AddStaticAsset("index.html", htmlPath, DeployMode.Root);
-		}
-
-		private string TouchServiceWorker(string workerBody)
-		{
-			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
-			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
-			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
-
-			return workerBody;
+			NativeFileReference = list.Select(i => new TaskItem(i)).ToArray();
 		}
 
 		private string TryConvertLongPath(string path)
@@ -848,20 +685,5 @@ namespace Uno.Wasm.Bootstrap
 				&& FileInfoExtensions.PlatformRequiresLongPathNormalization
 				? @"\\?\" + path
 				: path;
-
-		private string BuildRuntimeFeatures()
-			=> EnableThreads ? "threads" : "";
-
-		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
-		{
-			if (Enum.TryParse(stringValue, true, out value))
-			{
-				Log.LogMessage(MessageImportance.Low, $"{name}={value}");
-			}
-			else
-			{
-				throw new NotSupportedException($"The {name} {stringValue} is not supported");
-			}
-		}
 	}
 }

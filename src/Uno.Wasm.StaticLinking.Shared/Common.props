@@ -11,14 +11,10 @@
 	</ItemGroup>
 	<ItemGroup>
 		<WasmShellEmccExportedRuntimeMethod Include="GL" />
-		<WasmShellEmccExportedRuntimeMethod Include="IDBFS" />
-		<WasmShellEmccExportedRuntimeMethod Include="FS" />
 
 		<!-- Based on https://github.com/dotnet/runtime/issues/76077#issuecomment-1260231545 -->
 		<WasmShellExtraEmccFlags Include="-s LEGACY_GL_EMULATION=1" />
 		<WasmShellExtraEmccFlags Include="-s USE_CLOSURE_COMPILER=1" />
-
-		<WasmShellExtraEmccFlags Include="-lidbfs.js" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(UseAOT)'=='true'">

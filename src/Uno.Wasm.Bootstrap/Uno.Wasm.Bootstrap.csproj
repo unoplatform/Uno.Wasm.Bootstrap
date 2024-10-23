@@ -36,7 +36,7 @@
 		<PackageReference Include="Mono.Cecil" Version="0.11.4" PrivateAssets="All" />
 		<PackageReference Include="Mono.Options" Version="5.3.0.1" PrivateAssets="All" />
 		<PackageReference Include="MSBuildTasks" Version="1.5.0.235" PrivateAssets="All" />
-		<PackageReference Include="System.Text.Json" Version="8.0.5" PrivateAssets="All" />
+		<PackageReference Include="System.Text.Json" Version="8.0.4" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.0.2" PrivateAssets="All" />
 	</ItemGroup>
 
@@ -62,13 +62,8 @@
 			<Pack>true</Pack>
 			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
-		</None>
-		
-		<Content Include="$(NuGetPackageRoot)/newtonsoft.json/13.0.2/lib/netstandard2.0/*.dll">
-			<Pack>true</Pack>
-			<PackagePath>tools</PackagePath>
 			<Visible>false</Visible>
-		</Content>
+		</None>
 
 	</ItemGroup>
 
@@ -79,9 +74,11 @@
 		-->
 		<ItemGroup>
 			<_UnoTaskDependencies Include="$(NuGetPackageRoot)/mono.cecil/0.11.4/lib/netstandard2.0/*.dll" />
-			<_UnoTaskDependencies Include="$(NuGetPackageRoot)/newtonsoft.json/13.0.2/lib/netstandard2.0/*.dll" />
 		</ItemGroup>
-		<Copy SourceFiles="@(_UnoTaskDependencies)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+		<Copy
+			SourceFiles="@(_UnoTaskDependencies)"
+			DestinationFolder="$(OutputPath)"
+			SkipUnchangedFiles="true" />
 	</Target>
 
 	<ItemGroup>
@@ -103,10 +100,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="Embedded\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj">
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
@@ -117,30 +110,8 @@
 			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
 			<UndefineProperties>TargetFramework</UndefineProperties>
 		</ProjectReference>
-		<ProjectReference Include="..\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj">
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-			<UndefineProperties>TargetFramework</UndefineProperties>
-		</ProjectReference>
 	</ItemGroup>
 
-	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
-		<ItemGroup>
-			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-			<Content Include="./tools/support/Uno.Wasm.LogProfiler.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-			<Content Include="./tools/support/Uno.Wasm.MetadataUpdater.*">
-				<Pack>true</Pack>
-				<PackagePath>tools/support</PackagePath>
-			</Content>
-		</ItemGroup>
-	</Target>
-	
 	<!-- Run the typescript compiler before resources resolution -->
 	<Target Name="GenerateJavascriptBeforeCompile" BeforeTargets="ResolveProjectReferences" DependsOnTargets="CompileTypeScriptWithTSConfig">
 
@@ -180,7 +151,8 @@
 		</PropertyGroup>
 
 		<ItemGroup>
-			<_Sha1Replace Include="*Task*.cs" />
+			<_Sha1Replace Include="ShellTask*.cs" />
+			<_Sha1Replace Include="*Task.cs" />
 			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.props" />
 			<_Sha1Replace Include="build\Uno.Wasm.Bootstrap.targets" />
 		</ItemGroup>

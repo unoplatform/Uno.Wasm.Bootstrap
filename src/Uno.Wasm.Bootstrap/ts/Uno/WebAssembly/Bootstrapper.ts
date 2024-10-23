@@ -18,7 +18,6 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _getAssemblyExports: any;
 
 		private _hotReloadSupport?: HotReloadSupport;
-		private _logProfiler?: LogProfilerSupport;
 		private _aotProfiler?: AotProfilerSupport;
 
 		private _runMain: (mainAssemblyName: string, args: string[]) => Promise<number>;
@@ -50,6 +49,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.configSrc = `blazor.boot.json`;
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
+			this.onAbort = () => this.runtimeAbort();
 
 			// Register this instance of the Uno namespace globally
 			globalThis.Uno = Uno;
@@ -95,14 +95,10 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 
 				//@ts-ignore
-				var m = await import(`../_framework/dotnet.js`);
+				var m = await import(`./_framework/dotnet.js`);
 
-				m.dotnet
-					.withModuleConfig({
-						preRun: () => bootstrapper.wasmRuntimePreRun(),
-					})
-					.withRuntimeOptions(config.config.uno_runtime_options)
-					.withConfig({ loadAllSatelliteResources: config.config.uno_loadAllSatelliteResources });
+				// UNO TODO move to use load progress reports from the runtime
+				// m.dotnet.withResourceLoader(bootstrapper.loadResource.bind(bootstrapper));
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -139,12 +135,14 @@ namespace Uno.WebAssembly.Bootstrap {
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
 				exports: ["IDBFS", "FS"].concat(this._unoConfig.emcc_exported_runtime_methods),
-				onDownloadResourceProgress: (resourcesLoaded: number, totalResources: number) => this.reportDownloadResourceProgress(resourcesLoaded, totalResources),
 			};
 		}
 
 		public configure(context: DotnetPublicAPI) {
 			this._context = context;
+
+			this.setupEmscriptenPreRun();
+
 
 			// Required for hot reload (browser-link provided javascript file)
 			(<any>globalThis).BINDING = this._context.BINDING;
@@ -156,6 +154,16 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				this._hotReloadSupport = new HotReloadSupport(this._context, this._unoConfig);
 			}
+		}
+
+		private setupEmscriptenPreRun() {
+			if (!this._context.preRun) {
+				this._context.preRun = [];
+			}
+			else if (typeof this._context.preRun === "function") {
+				this._context.preRun = [];
+			}
+			(<any>this._context.preRun).push(() => this.wasmRuntimePreRun());
 		}
 
 		/**
@@ -171,9 +179,16 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private wasmRuntimePreRun() {
-			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
-				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
-			}
+			this.timezonePreSetup();
+		}
+
+		private timezonePreSetup() {
+			let timeZone = 'UTC';
+			try {
+				timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				// eslint-disable-next-line no-empty
+			} catch { }
+			this._monoConfig.environmentVariables['TZ'] = timeZone || 'UTC';
 		}
 
 		private RuntimeReady() {
@@ -197,18 +212,18 @@ namespace Uno.WebAssembly.Bootstrap {
 			// List of possible exports: https://github.com/emscripten-core/emscripten/blob/c834ef7d69ccb4100239eeba0b0f6573fed063bc/src/modules.js#L391
 			// Needs to be aligned with exports in https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly/blob/f7294fe410705bc220e63fc51d44bdffe4093a5d/patches/fix-additional-emscripten-exports.patch#L19
 			// And in the packager's list of exports.
-			let anyModule = <any>this._context.Module;
-			thatGlobal.lengthBytesUTF8 = anyModule.lengthBytesUTF8;
-			thatGlobal.UTF8ToString = anyModule.UTF8ToString;
-			thatGlobal.UTF8ArrayToString = anyModule.UTF8ArrayToString;
+			thatGlobal.lengthBytesUTF8 = (<any>this._context.Module).lengthBytesUTF8;
+			thatGlobal.stringToUTF8 = (<any>this._context.Module).stringToUTF8;
+			thatGlobal.UTF8ToString = (<any>this._context.Module).UTF8ToString;
+			thatGlobal.UTF8ArrayToString = (<any>this._context.Module).UTF8ArrayToString;
 
-			thatGlobal.IDBFS = anyModule.IDBFS;
-			thatGlobal.FS = anyModule.FS;
+			thatGlobal.IDBFS = (<any>this._context.Module).IDBFS;
+			thatGlobal.FS = (<any>this._context.Module).FS;
 
 			// copy properties from this._unoConfig.emcc_exported_runtime_methods into globalThis
 			if (this._unoConfig.emcc_exported_runtime_methods) {
 				this._unoConfig.emcc_exported_runtime_methods.forEach((name: string) => {
-					thatGlobal[name] = anyModule[name];
+					thatGlobal[name] = (<any>this._context.Module)[name];
 				});
 			}
 		}
@@ -241,17 +256,22 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
+		private runtimeAbort() {
+			// set_exit_code(1, error);
+		}
+
 		public preInit() {
 			this.body = document.getElementById("uno-body");
 
-			this.initProgress();
+			// this.initProgress();
 		}
 
 		private async mainInit(): Promise<void> {
 			try {
 				this.attachDebuggerHotkey();
 
-				await this.setupHotReload();
+				console.error("UNO TODO HOT RELOAD IS DISABLED");
+				//await this.setupHotReload();
 
 				if (this._hotReloadSupport) {
 					await this._hotReloadSupport.initializeHotReload();
@@ -278,18 +298,14 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
-		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
-
-			this.progress.max = totalResources;
-			(<any>this.progress).value = resourcesLoaded;
-		}
-
 		private initProgress() {
 			this.loader = this.body.querySelector(".uno-loader");
 
 			if (this.loader) {
 				this.loader.id = "loading";
+				const totalBytesToDownload = this._unoConfig.mono_wasm_runtime_size + this._unoConfig.total_assemblies_size;
 				const progress = this.loader.querySelector("progress");
+				progress.max = totalBytesToDownload;
 				(<any>progress).value = ""; // indeterminate
 				this.progress = progress;
 
@@ -363,6 +379,206 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
+		private reportProgressWasmLoading(loaded: number) {
+			if (this.progress) {
+				this.progress.value = loaded;
+			}
+		}
+
+		private reportAssemblyLoading(adding: number) {
+			if (this.progress) {
+				this.progress.value += adding;
+			}
+		}
+
+		private raiseLoadingError(err: any) {
+			this.loader.setAttribute("loading-alert", "error");
+
+			const alert = this.loader.querySelector(".alert");
+
+			let title = alert.getAttribute("title");
+			if (title) {
+				title += `\n${err}`;
+			} else {
+				title = `${err}`;
+			}
+			alert.setAttribute("title", title);
+		}
+
+		private raiseLoadingWarning(msg: string) {
+			if (this.loader.getAttribute("loading-alert") !== "error") {
+				this.loader.setAttribute("loading-alert", "warning");
+			}
+
+			const alert = this.loader.querySelector(".alert");
+
+			let title = alert.getAttribute("title");
+			if (title) {
+				title += `\n${msg}`;
+			} else {
+				title = `${msg}`;
+			}
+			alert.setAttribute("title", title);
+		}
+
+		private getFetchInit(url: string): RequestInit {
+			const fileName = url.substring(url.lastIndexOf("/") + 1);
+
+			const init: RequestInit = { credentials: "same-origin" };
+
+			if (this._unoConfig.files_integrity.hasOwnProperty(fileName)) {
+				init.integrity = this._unoConfig.files_integrity[fileName];
+			}
+
+			return init;
+		}
+
+		private loadResource(type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string, behavior: AssetBehaviors):
+			string | Promise<Response | void> | null | undefined {
+
+			if (type == "dotnetjs") {
+				return defaultUri;
+			}
+
+			return this.deobfuscateFile(name, this.fetchFile(defaultUri));
+		}
+
+		private async deobfuscateFile(asset: string, response: Promise<void | Response>): Promise<void | Response> {
+			const assemblyFileSuffix = this._unoConfig.assemblyFileNameObfuscationMode !== "NoDots" ?
+				this._unoConfig.assemblyFileExtension :
+				this._unoConfig.assemblyFileExtension.replace(".", "_");
+
+			if (this._unoConfig.assemblyObfuscationKey && asset.endsWith(assemblyFileSuffix)) {
+				const responseValue = await response;
+
+				if (responseValue) {
+					var data = new Uint8Array(await responseValue.arrayBuffer());
+					var key = this._unoConfig.assemblyObfuscationKey;
+
+					for (var i = 0; i < data.length; i++) {
+						data[i] ^= key.charCodeAt(i % key.length);
+					}
+
+					return new Response(data, { "status": 200, headers: responseValue.headers });
+				}
+			}
+
+			return response;
+		}
+
+		private fetchWithProgress(url: string, progressCallback: Function): Promise<void | Response> {
+
+			if (!this.loader) {
+				// No active loader, simply use the fetch API directly...
+				return fetch(url, this.getFetchInit(url));
+			}
+
+			return fetch(url, this.getFetchInit(url))
+				.then(response => {
+					if (!response.ok) {
+						throw Error(`${response.status} ${response.statusText}`);
+					}
+
+					try {
+						let loaded = 0;
+
+						// Wrap original stream with another one, while reporting progress.
+						const stream = new ReadableStream({
+							start(ctl) {
+								const reader = response.body.getReader();
+
+								read();
+
+								function read() {
+									reader.read()
+										.then(
+											({ done, value }) => {
+												if (done) {
+													ctl.close();
+													return;
+												}
+												loaded += value.byteLength;
+												progressCallback(loaded, value.byteLength);
+												ctl.enqueue(value);
+												read();
+											})
+										.catch(error => {
+											console.error(error);
+											ctl.error(error);
+										});
+								}
+							}
+						});
+
+						// We copy the previous response to keep original headers.
+						// Not only the WebAssembly will require the right content-type,
+						// but we also need it for streaming optimizations:
+						// https://bugs.chromium.org/p/chromium/issues/detail?id=719172#c28
+						return new Response(stream, response);
+					}
+					catch (ex) {
+						// ReadableStream may not be supported (Edge as of 42.17134.1.0)
+						return response;
+					}
+				})
+				.catch(err => this.raiseLoadingError(err));
+		}
+
+		private fetchFile(asset: string): Promise<void | Response> {
+
+			if (asset.lastIndexOf(".dll") !== -1) {
+				asset = asset.replace(".dll", this._unoConfig.assemblyFileExtension);
+
+				if (this._unoConfig.assemblyFileNameObfuscationMode == "NoDots") {
+					asset = asset.replace(/\/([^\/]*)$/, function (match, p1) {
+						return "/" + p1.replace(/\./g, "_");
+					});
+				}
+			}
+
+			if (asset.startsWith("icudt") && asset.endsWith(".dat")) {
+				asset = `${this._unoConfig.uno_app_base}/${asset}`;
+			}
+
+			asset = asset.replace("/managed/", `/${this._unoConfig.uno_remote_managedpath}/`);
+
+			if (Bootstrapper.ENVIRONMENT_IS_NODE) {
+				var fs = require('fs');
+
+				console.log('Loading... ' + asset);
+				var binary = fs.readFileSync(asset);
+				var resolve_func2 = function (resolve: any, reject: any) {
+					resolve(new Uint8Array(binary));
+				};
+				var resolve_func1 = function (resolve: any, reject: any) {
+					var response = {
+						ok: true,
+						url: asset,
+						arrayBuffer: function () {
+							return new Promise(resolve_func2);
+						}
+					};
+					resolve(response);
+				};
+				return new Promise(resolve_func1);
+			} else {
+				if (!this._unoConfig.enable_debugging) {
+					// Assembly fetch streaming is disabled during debug, it seems to
+					// interfere with the ability for mono or the chrome debugger to
+					// initialize the debugging session properly. Streaming in debug is
+					// not particularly interesting, so we can skip it.
+
+					const assemblyName = asset.substring(asset.lastIndexOf("/") + 1);
+					if (this._unoConfig.assemblies_with_size.hasOwnProperty(assemblyName)) {
+						return this
+							.fetchWithProgress(asset, (loaded: any, adding: any) => this.reportAssemblyLoading(adding));
+					}
+				}
+
+				return fetch(asset, { credentials: "same-origin" });
+			}
+		}
+
 		private isElectron() {
 			return navigator.userAgent.indexOf('Electron') !== -1;
 		}
@@ -373,21 +589,21 @@ namespace Uno.WebAssembly.Bootstrap {
 			// But when run with NodeJS or Electron, it's using CommonJS instead of AMD
 			this._isUsingCommonJS = this._unoConfig.uno_shell_mode !== "BrowserEmbedded" && (Bootstrapper.ENVIRONMENT_IS_NODE || this.isElectron());
 
-			if (this._unoConfig.uno_enable_tracing) console.log("Done loading the BCL");
+			if (this._unoConfig.enable_debugging) console.log("Done loading the BCL");
 
 			if (this._unoConfig.uno_dependencies && this._unoConfig.uno_dependencies.length !== 0) {
 				let pending = this._unoConfig.uno_dependencies.length;
 
 				const checkDone = (dependency: string) => {
 					--pending;
-					if (this._unoConfig.uno_enable_tracing) console.log(`Loaded dependency (${dependency}) - remains ${pending} other(s).`);
+					if (this._unoConfig.enable_debugging) console.log(`Loaded dependency (${dependency}) - remains ${pending} other(s).`);
 					if (pending === 0) {
 						this.mainInit();
 					}
 				};
 
 				this._unoConfig.uno_dependencies.forEach((dependency) => {
-					if (this._unoConfig.uno_enable_tracing) console.log(`Loading dependency (${dependency})`);
+					if (this._unoConfig.enable_debugging) console.log(`Loading dependency (${dependency})`);
 
 					let processDependency = (instance: any) => {
 
@@ -396,7 +612,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 							const existingInitializer = instance.onRuntimeInitialized;
 
-							if (this._unoConfig.uno_enable_tracing) console.log(`Waiting for dependency (${dependency}) initialization`);
+							if (this._unoConfig.enable_debugging) console.log(`Waiting for dependency (${dependency}) initialization`);
 
 							instance.onRuntimeInitialized = () => {
 								checkDone(dependency);
@@ -441,7 +657,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private hasDebuggingEnabled() {
-			return this._unoConfig.uno_debugging_enabled && this._currentBrowserIsChrome;
+			return this._hasReferencedPdbs && this._currentBrowserIsChrome;
 		}
 
 		private attachDebuggerHotkey() {

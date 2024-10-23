@@ -13,6 +13,8 @@ Two techniques are available:
 
 ## Invoking C# code from Javascript
 
+### [**.NET 7 JSExport**](#tab/net7)
+
 .NET 7 introduces the [`[JSExportAttribute]`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.javascript.jsexportattribute?view=net-7.0) which allows for Javascript to invoke C# static methods in a memory, threading and performance efficient way.
 
 > [!IMPORTANT]
@@ -44,8 +46,41 @@ async function invokeCSMethod() {
 invokeCSMethod();
 ```
 
+### [**.NET 6 `mono_bind_static_method`**](#tab/jseval)
+
+In your C# project (named `MyApp` for this example), add the following class:
+
+```csharp
+namespace MyNamespace;
+
+public static partial class Exports
+{
+    public static string MyExportedMethod()
+    {
+        return $"Invoked";
+    }
+}
+```
+
+Then in your Javascript, add the following:
+
+```js
+var myExportedMethod = Module.mono_bind_static_method("[MyApp] MyNamespace.Exports:MyExportedMethod");
+var result = myExportedMethod();
+```
+
+> [!IMPORTANT]
+> The interop infrastructure only supports primitive types for parameters and return value.
+>
+> [!IMPORTANT]
+> This type of interop is not compatible with [strict CSP](xref:Uno.Wasm.Bootstrap.Security).
+
+---
+
 <!-- markdownlint-disable MD020 MD003 -->
 ## Invoking Javascript code from C#
+
+### [**.NET 7 JSImport**](#tab/net7)
 
 Invoking JS functions from C# can be done through [`[JSImportAttribute]`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.javascript.jsimportattribute?view=net-7.0).
 
@@ -73,3 +108,36 @@ function myJSMethod(){
 ```
 
 In the C# code, call `Imports.MyJSMethod();` as you would any other method.
+
+### [**.NET 6 JSEval**](#tab/jseval)
+
+If you're not using Uno.UI, you'll need to define the following in the global namespace:
+
+```csharp
+internal sealed class Interop
+{
+    internal sealed class Runtime
+    {
+        [MethodImplAttribute(MethodImplOptions.InternalCall)]
+        public static extern string InvokeJS(string str, out int exceptional_result);
+    }
+}
+```
+
+Then in your Javascript, add the following:
+
+```js
+function myJSMethod(){
+    console.log("myJSMethod invoked!");
+}
+```
+
+And can be used from C# with:
+
+```cs
+InvokeJS("myJSMethod()");
+```
+
+Note that the interop only supports strings as the returned value, and parameters must formatted in the string passed to `InvokeJS`.
+
+---

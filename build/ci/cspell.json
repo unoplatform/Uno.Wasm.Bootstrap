@@ -205,6 +205,6 @@
 		"Multi-line code blocks"
 	],
 	"ignorePaths": [
-		"../doc/index.md",
+		"../doc/index.md"
 	]
 }

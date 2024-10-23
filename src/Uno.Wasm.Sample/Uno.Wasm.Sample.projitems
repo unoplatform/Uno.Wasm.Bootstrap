@@ -37,11 +37,11 @@
     <!-- Add linked content first to validate directory creation from links -->
     <Content Include="..\.editorconfig" Link="AdditionalContent\%(FileName)%(Extension)" />
     <Content Include="../nuget.config" Link="AdditionalContent\%(FileName)%(Extension)" />
-    <Content Include="$(MSBuildThisFileDirectory)AdditionalContent\SomeContent01.txt">
+    <Content Include="AdditionalContent\SomeContent01.txt">
       <UnoDeploy>Package</UnoDeploy>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)AdditionalContent/SomeContent02.txt" />
-    <Content Include="$(MSBuildThisFileDirectory)AdditionalContent/SomeContent03.txt" UnoDeploy="Root" />
-    <Content Include="$(MSBuildThisFileDirectory)AdditionalContent/SomeContent04.txt" UnoDeploy="None" />
+    <Content Include="AdditionalContent/SomeContent02.txt" />
+    <Content Include="AdditionalContent/SomeContent03.txt" UnoDeploy="Root" />
+    <Content Include="AdditionalContent/SomeContent04.txt" UnoDeploy="None" />
   </ItemGroup>
 </Project>

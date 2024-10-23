@@ -11,12 +11,6 @@
 		<WasmShellIndexHtmlPath Condition="Exists('$(_UnoBootstrapTaskBinary)') and '$(WasmShellIndexHtmlPath)'==''">$(MSBuildThisFileDirectory)../tools/templates/index.html</WasmShellIndexHtmlPath>
 
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
-
-		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-
-		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
-
-		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -32,109 +26,15 @@
 
 		<!-- Ensure that emcc is running so the log profiler is included -->
 		<WasmBuildNative>true</WasmBuildNative>
-
-		<!-- Trimming must not be used for the profiler support assembly to be used -->
-		<PublishTrimmed>false</PublishTrimmed>
-
 	</PropertyGroup>
-
-	<!-- Log profiler support -->
-	<PropertyGroup Condition=" '$(WasmShellEnableLogProfiler)' == 'true' ">
-		<!-- Enable AOT profiling using a single property -->
-		<WasmProfilers>$(WasmProfilers);log;</WasmProfilers>
-
-		<!-- Make the build faster by disabling compression -->
-		<DisableBuildCompression>true</DisableBuildCompression>
-
-		<!-- Disable AOT Compilation, log profiler can't trace calls in that mode -->
-		<RunAOTCompilation>false</RunAOTCompilation>
-
-		<!-- Ensure that emcc is running so the log profiler is included -->
-		<WasmBuildNative>true</WasmBuildNative>
-
-		<!-- Trimming must not be used for the profiler support assembly to be used -->
-		<PublishTrimmed>false</PublishTrimmed>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' AND '$(WasmShellGenerateAOTProfile)' != 'true' ">
-		<RunAOTCompilation>true</RunAOTCompilation>
-		<WasmBuildNative>true</WasmBuildNative>
-	</PropertyGroup>
-
-	<Target Name="_UnoWasmValidateCompatibleSdk"
-			BeforeTargets="BeforeBuild"
-			Condition=" '$(TargetFramework)' != '' AND '$(Disable_UnoWasmValidateCompatibleSdk)' != 'true' ">
-
-		<!-- Fail the build if the TargetFramework is below 9.0 -->
-		<Error Condition=" $([MSBuild]::VersionLessThan( $([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')), '9.0')) "
-			   Text="This version of Uno.Wasm.Bootstrap is not compatible with $(TargetFramework). Use net9.0 or later, see https://aka.platform.uno/wasm-net9-upgrade for more details." />
-
-	</Target>
 
 	<Target Name="_UnoInjectAOTSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
 			Condition=" '$(WasmShellGenerateAOTProfile)' == 'true' ">
 		<ItemGroup>
-			<Reference Include="Uno.Wasm.AotProfiler"
-					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.AotProfiler.dll"
-					   CopyToOutputDirectory="Always"
-					   PostProcessAssembly="true" />
+			<Reference Include="$(MSBuildThisFileDirectory)../tools/support/Uno.Wasm.AotProfiler.dll" CopyToOutputDirectory="Always" PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.AotProfiler" />
 		</ItemGroup>
-	</Target>
-
-	<Target Name="_UnoInjectLogProfilerSupport"
-			BeforeTargets="ResolveRuntimePackAssets"
-			Condition=" '$(WasmShellEnableLogProfiler)' == 'true' ">
-		<ItemGroup>
-			<Reference Include="Uno.Wasm.LogProfiler"
-					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.LogProfiler.dll"
-					   CopyToOutputDirectory="Always"
-					   PostProcessAssembly="true" />
-			<TrimmerRootAssembly Include="Uno.Wasm.LogProfiler" />
-		</ItemGroup>
-	</Target>
-
-	<Target Name="_UnoInjectHotReloadSupport"
-			BeforeTargets="ResolveRuntimePackAssets"
-			Condition=" '$(Optimize)' != 'true' ">
-		<ItemGroup>
-			<Reference Include="Uno.Wasm.MetadataUpdater"
-					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.MetadataUpdater.dll"
-					   CopyToOutputDirectory="Always"
-					   PostProcessAssembly="true" />
-			<TrimmerRootAssembly Include="Uno.Wasm.MetadataUpdater" />
-		</ItemGroup>
-	</Target>
-
-
-	<Target Name="_WorkaroundEmscriptenPathLength"
-			Condition=" '$(OS)' == 'Windows_NT' "
-			BeforeTargets="_SetupEmscripten">
-
-		<PropertyGroup>
-			<_emsdkOriginalPackagePath>$([System.IO.Path]::GetFullPath('$(EmscriptenSdkToolsPath)..'))</_emsdkOriginalPackagePath>
-			<_targetEMSDKPath>$(USERPROFILE)\.uno\emsdk\$([System.IO.Path]::GetFileName('$(_emsdkOriginalPackagePath)'))</_targetEMSDKPath>
-		</PropertyGroup>
-
-		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_targetEMSDKPath)'))" />
-
-		<Exec Command="mklink /J &quot;$(_targetEMSDKPath)&quot; &quot;$(EmscriptenSdkToolsPath)..\tools\&quot;"
-			  ContinueOnError="true"
-			  Condition="!exists($(_targetEMSDKPath))"/>
-
-		<PropertyGroup>
-			<EmscriptenSdkToolsPath>$(_targetEMSDKPath)\</EmscriptenSdkToolsPath>
-			<EmscriptenUpstreamBinPath>$(EmscriptenSdkToolsPath)bin\</EmscriptenUpstreamBinPath>
-			<EmscriptenUpstreamEmscriptenPath>$(EmscriptenSdkToolsPath)emscripten\</EmscriptenUpstreamEmscriptenPath>
-		</PropertyGroup>
-
-		<ItemGroup>
-			<EmscriptenPrependPATH Remove="@(EmscriptenPrependPATH)" />
-			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamBinPath)" />
-			<EmscriptenPrependPATH Include="$(EmscriptenUpstreamEmscriptenPath)" />
-		</ItemGroup>
-
 	</Target>
 
 	<Target Name="_UnoAdjustCompatibility"
@@ -146,90 +46,16 @@
 			<_WasmPInvokeModules Include="__Internal" />
 			<_WasmPInvokeModules Include="@(WasmShellAdditionalPInvokeLibrary)" />
 
-			<!-- emcc methods compatibility -->
-			<EmccExportedRuntimeMethod Include="@(WasmShellEmccExportedRuntimeMethod)" />
-
 			<!-- Native files compat -->
 			<NativeFileReference Include="@(WasmShellNativeCompile)" />
 
 			<_NativeAssetsFiltered Include="@(Assets)" Condition=" '%(Extension)'=='.a' OR '%(Extension)'=='.o' OR '%(Extension)'=='.bc' " />
-
-			<TrimmerRootDescriptor Include="@(LinkerDescriptor)" />
-
-			<_AOT_InternalForceInterpretAssemblies Include="@(MonoRuntimeMixedModeExcludedAssembly->'%(Filename).dll')" />
 		</ItemGroup>
 
 		<PropertyGroup>
-			<!-- SIMD compatibility-->
-			<WasmEnableSIMD Condition=" '$(WasmShellEnableSimd)' != '' ">$(WasmShellEnableSimd)</WasmEnableSIMD>
-
-			<!-- Dedup compatibility -->
-			<WasmDedup Condition=" '$(WasmShellEnableAOTDeduplication)' != '' ">$(WasmShellEnableAOTDeduplication)</WasmDedup>
-
-			<!-- Linker performance compatibility -->
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'None' ">-O0</WasmLinkOptimizationFlag>
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Leve1' ">-O1</WasmLinkOptimizationFlag>
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Level2' ">-O2</WasmLinkOptimizationFlag>
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Level3' ">-O3</WasmLinkOptimizationFlag>
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimizationLevel)' == 'Maximum' ">-Oz</WasmLinkOptimizationFlag>
-
-			<WasmLinkOptimizationFlag Condition=" '$(WasmShellEmccLinkOptimization)' == 'false' ">-O0</WasmLinkOptimizationFlag>
-
-			<!-- Profiled AOT Compat -->
-			<WasmAotProfilePath Condition="@(WasmShellEnableAotProfile->Count()) > 0" >@(WasmShellEnableAotProfile)</WasmAotProfilePath>
-
-			<!-- Jiterpreter compatibility -->
-			<BlazorWebAssemblyJiterpreter Condition=" '$(WasmShellEnableJiterpreter)' != '' AND '$(BlazorWebAssemblyJiterpreter)' == '' ">$(WasmShellEnableJiterpreter)</BlazorWebAssemblyJiterpreter>
-
-			<!-- EMCC flags compatibility -->
-			<EmccFlags>$(EmccFlags);@(WasmShellExtraEmccFlags)</EmccFlags>
-
-			<EmccFlags Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' ">$(EmccFlags);--profiling</EmccFlags>
-
-			<!-- Threading compatibility -->
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
-
-			<!-- https://github.com/dotnet/runtime/blob/1231a9addd0fb3cfb806c2a89cb45a3018c48bb2/src/mono/browser/build/BrowserWasmApp.targets#L125-L126 -->
-			<_WasmPThreadPoolInitialSize Condition=" '$(WasmShellPThreadsPoolSize)' == 'true' ">true</_WasmPThreadPoolInitialSize>
-
-			<!-- Native build compatibility -->
-			<WasmBuildNative Condition=" 
-				@(WasmShellAdditionalPInvokeLibrary->Count()) > 0
-				OR @(NativeFileReference->Count()) > 0
-				OR @(_NativeAssetsFiltered->Count()) > 0
-				OR @(EmccExportedRuntimeMethod->Count()) > 0
-				OR @(WasmShellExtraEmccFlags->Count()) > 0
-				">true</WasmBuildNative>
-
-			<!-- Compatibility mode that forces trimming when a linker descriptor is provided -->
-			<PublishTrimmed Condition=" '$(PublishTrimmed)' == '' AND '@(LinkerDescriptor)' != '' AND '$(WasmShellILLinkerEnabled)' != 'false' ">true</PublishTrimmed>
+			<WasmBuildNative Condition=" @(WasmShellAdditionalPInvokeLibrary->Count()) > 0 or @(NativeFileReference->Count()) > 0 OR @(_NativeAssetsFiltered->Count()) > 0">true</WasmBuildNative>
 		</PropertyGroup>
-
-		<!--
-			Override the cache path if it's not yet been set to use project
-			local folder, in order to avoid the frozen cache of the runtime's
-			emsdk.
-		-->
-		<PropertyGroup Condition=" '$(WasmCachePath)' == '$(EmscriptenCacheSdkCacheDir)' ">
-
-			<WasmCachePath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)emsdk-cache'))</WasmCachePath>
-
-			<!-- Adjust the cache on windows if the drive is not the same -->
-			<WasmCachePath Condition="
-				'$(OS)' == 'Windows_NT'
-				AND '$(EmscriptenSdkToolsPath)' != ''
-				AND '$(EmscriptenSdkToolsPath.Substring(1))' != '$(MSBuildProjectDirectory.Substring(1))'
-				">$(TMP)\emsdk-cache</WasmCachePath>
-
-		</PropertyGroup>
-
-		<Warning
-		  Condition="
-		  	'$(registry:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem@LongPathsEnabled)'!='1' 
-			AND '$(UnoUIDisableLongPathWarning)'==''
-			AND $([MSBuild]::IsOSPlatform('Windows'))
-			"
-		  Text="Windows LongPath support is not enabled, you may experience build errors. You can avoid these by enabling LongPath with &quot;reg ADD HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1&quot;, or disable this warning by setting UnoUIDisableLongPathWarning to true."/>
 
 		<ItemGroup>
 			<_NativeAssetsFiltered Remove="@(_NativeAssetsFiltered)" />
@@ -237,82 +63,24 @@
 	</Target>
 
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" />
-	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ValidateStaticAssets_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
-	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
-	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ValidateStaticAssets_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
-	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.RemoveDirTask_v0" TaskFactory="TaskHostFactory" />
 
-	<PropertyGroup>
-		<UnoGenerateAssetsManifestDependsOn>
-			$(UnoGenerateAssetsManifestDependsOn);
-		</UnoGenerateAssetsManifestDependsOn>
-	</PropertyGroup>
-
-	<Target Name="UnoGenerateAssetsManifest"
-			BeforeTargets="ResolveStaticWebAssetsInputs"
-			DependsOnTargets="$(UnoGenerateAssetsManifestDependsOn)">
-		<GenerateUnoAssetsManifest_v0
-			StaticWebAsset="@(StaticWebAsset)"
-			OutputPackagePath="$(WasmShellOutputPackagePath)"
-			IntermediateOutputPath="$(IntermediateOutputPath)">
-			<Output TaskParameter="UnoAssetsFile" ItemName="_UnoAssetsManifest" />
-		</GenerateUnoAssetsManifest_v0>
-
-		<DefineStaticWebAssets
-		  CandidateAssets="@(_UnoAssetsManifest)"
-		  FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
-		  FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
-		  RelativePathPattern="wwwroot/**"
-		  SourceType="Discovered"
-		  SourceId="$(PackageId)"
-		  ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
-		  BasePath="$(StaticWebAssetBasePath)"
-		  AssetMergeSource="$(StaticWebAssetMergeTarget)">
-			<Output TaskParameter="Assets" ItemName="StaticWebAsset" />
-		</DefineStaticWebAssets>
-
-		<DefineStaticWebAssetEndpoints
-			  CandidateAssets="@(StaticWebAsset)"
-			  ExistingEndpoints="@(StaticWebAssetEndpoint)"
-			  ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
-			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
-		</DefineStaticWebAssetEndpoints>
+	<Target Name="ValidateAssets" BeforeTargets="_GenerateBuildWasmBootJson">
+		<ValidateStaticAssets_v0
+			CandidateAssets="@(WasmStaticWebAsset)"
+			ExistingEndpoints="@(StaticWebAssetEndpoint)"
+			ContentTypeMappings="@(StaticWebAssetContentTypeMapping)" />
 	</Target>
 
-	<Target Name="GenerateUnoWasmNativeAssets" BeforeTargets="PrepareInputsForWasmBuild">
-
-		<GenerateUnoNativeAssetsTask_v0
-			AotProfile="$(WasmAotProfilePath)"
-			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
-			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
-			CurrentProjectPath="$(MSBuildProjectDirectory)"
-			EmscriptenVersion="$(EmscriptenVersion)"
-			EnableThreads="@(WasmEnableThreads)"
-			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
-			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
-			IntermediateOutputPath="$(IntermediateOutputPath)"
-			MixedModeExcludedAssembly="$(WasmShellMixedModeExcludedAssembly)"
-			RunAOTCompilation="$(RunAOTCompilation)"
-			WasmBuildNative="$(WasmBuildNative)"
-			>
-			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
-			<Output TaskParameter="FilteredAotProfile" PropertyName="_FilteredAotProfile" />
-		</GenerateUnoNativeAssetsTask_v0>
-
-		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
-			<!-- Override the user's profile with the filtered one -->
-			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
-		</PropertyGroup>
-
-	</Target>
-
-	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
-		DependsOnTargets="_UnoAdjustCompatibility">
+	<Target Name="GenerateUnoAssets"
+		BeforeTargets="ResolveStaticWebAssetsConfiguration;_UnoWasmNativeForBuild">
 
 		<ItemGroup>
 			<!-- Filter ReferenceCopyLocalPaths as it may contain pdbs as well -->
@@ -321,70 +89,27 @@
 			  Condition="'%(Extension)' == '.dll'" />
 		</ItemGroup>
 
-		<ItemGroup>
-			<_UnoWasmCopyToOutputAssets
-				Include="@(_AllChildProjectItemsWithTargetPath)"
-				Condition=" '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' OR '%(_AllChildProjectItemsWithTargetPath.CopyToOutputDirectory)' == 'Always' " />
-
-			<ContentWithTargetPath Remove="$(WasmPWAManifestFile)" />
-		</ItemGroup>
-
 		<ShellTask_v0
-			AotProfile="$(WasmAotProfilePath)"
-			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
 			AssemblyName="$(AssemblyName)"
-			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
+			Assembly="$(IntermediateOutputPath)$(TargetFileName)"
+			Assets="@(Content)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
-			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
-			EmccFlags="@(EmccFlags)"
-			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
+			EmscriptenVersion="$(EmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
-			EnableTracing="@(WasmEnableTracing)"
-			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
-			LoadAllSatelliteResources="$(WasmShellLoadAllSatelliteResources)"
-			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
-			PublishTrimmed="$(PublishTrimmed)"
-			RunILLink="$(RunILLink)"
-			RuntimeOptions="$(WasmShellRuntimeOptions)"
 			PWAManifestFile="$(WasmPWAManifestFile)"
 			ReferencePath="@(_UnoWasmBootstrapAssembliesForReferenceCopyLocalPaths)"
-			RunAOTCompilation="$(RunAOTCompilation)"
-			ExistingStaticWebAsset="@(StaticWebAsset)"
-			Optimize="$(Optimize)"
-			WasmBuildNative="$(WasmBuildNative)"
-			WasmShellMode="$(WasmShellMode)"
-			WebAppBasePath="$(WasmShellWebAppBasePath)">
-			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
-			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
+			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
+			WebAppBasePath="$(WasmShellWebAppBasePath)"
+			>
+			<Output TaskParameter="StaticWebContent" ItemName="Content" />
+			<Output TaskParameter="NativeFileReference" ItemName="NativeFileReference" />
 		</ShellTask_v0>
-
-		<DefineStaticWebAssets
-		  CandidateAssets="@(_UnoStaticWebContent)"
-		  FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
-		  FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
-		  RelativePathPattern="wwwroot/**"
-		  SourceType="Discovered"
-		  SourceId="$(PackageId)"
-		  ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
-		  BasePath="$(StaticWebAssetBasePath)"
-		  AssetMergeSource="$(StaticWebAssetMergeTarget)">
-			<Output TaskParameter="Assets" ItemName="StaticWebAsset" />
-		</DefineStaticWebAssets>
-
-		<DefineStaticWebAssetEndpoints
-			  CandidateAssets="@(StaticWebAsset)"
-			  ExistingEndpoints="@(StaticWebAssetEndpoint)"
-			  ContentTypeMappings="@(StaticWebAssetContentTypeMapping)"
-				>
-			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
-		</DefineStaticWebAssetEndpoints>
-
 	</Target>
 
 </Project>

@@ -5,10 +5,10 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<StartupObject>Uno.Wasm.Sample.Program</StartupObject>
-
+		
 		<!-- NET 9 TODO -->
 		<!--<WasmShellWebAppBasePath>/</WasmShellWebAppBasePath>-->
-
+		
 		<!--<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>-->
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<!--<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>-->
@@ -19,7 +19,6 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<InvariantGlobalization>false</InvariantGlobalization>
-		<WasmShellRuntimeOptions>--jiterpreter-stats-enabled</WasmShellRuntimeOptions>
 	</PropertyGroup>
 
 	<ItemGroup>

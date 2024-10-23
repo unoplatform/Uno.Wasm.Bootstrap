@@ -46,6 +46,7 @@ function glAvailable() {
 function functionsExportsAvailable() {
     var available =
         typeof globalThis.lengthBytesUTF8 !== 'undefined'
+        && typeof globalThis.stringToUTF8 !== 'undefined'
         && typeof globalThis.UTF8ToString !== 'undefined'
         && typeof globalThis.UTF8ArrayToString !== 'undefined'
 

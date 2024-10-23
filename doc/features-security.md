@@ -33,7 +33,7 @@ Enabling CSP support can be done in three ways:
 > [!IMPORTANT]
 > The Uno.Wasm.Bootstrap package uses WebAssembly, it is required to provide the [`wasm-unsafe-eval`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution) directive in the CSP configuration.
 
-Enabling CSP without `unsafe-eval` implies that the application will not be able to use JavaScript's `eval()`, and [JSImport/JSExport](xref:Uno.Wasm.Bootstrap.JSInterop) must be used instead.
+Enabling CSP without `unsafe-eval` implies that the application will not be able to use [Runtime.JSInvoke](xref:Uno.Wasm.Bootstrap.JSInterop), and [JSImport/JSExport](xref:Uno.Wasm.Bootstrap.JSInterop) must be used instead.
 
 ### Validation
 

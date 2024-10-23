@@ -21,8 +21,6 @@ This allowing for p/invoke to be functional when resolving methods from the load
 </ItemGroup>
 ```
 
-The .NET SDK [`NativeFileReference`](https://learn.microsoft.com/en-us/aspnet/core/blazor/webassembly-native-dependencies) is also supported.
-
 ## WebAssembly Exceptions support
 
 As of version 7.0 and later, WebAssembly Exceptions support is now required.
@@ -114,8 +112,6 @@ This feature can be used to include additional source files for native operation
 The file is provided as-is to `emcc` and its resulting object file is linked with the rest of the compilation.
 
 This feature is meant to be used for small additions of native code. If more is needed (e.g. adding header directories, defines, options, etc...) it is best to use the emcc tooling directly.
-
-The .NET SDK [`NativeFileReference`](https://learn.microsoft.com/en-us/aspnet/core/blazor/webassembly-native-dependencies) is also supported to include C/C++ source files.
 
 ### Example
 

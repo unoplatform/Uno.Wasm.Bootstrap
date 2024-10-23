@@ -13,6 +13,20 @@
 
 		assemblyFileNameObfuscationMode: string;
 
+		mono_wasm_runtime: string;
+
+		mono_wasm_runtime_size?: number;
+
+		assemblies_with_size?: {
+			[i: string]: number;
+		};
+
+		files_integrity?: {
+			[i: string]: string;
+		};
+
+		total_assemblies_size?: number;
+
 		enable_pwa: boolean;
 
 		offline_files: string[];
@@ -26,13 +40,8 @@
 		};
 
 		generate_aot_profile?: boolean;
-
-		uno_enable_tracing?: boolean;
-
-		uno_debugging_enabled?: boolean;
-
-		uno_runtime_options?: string[];
-
-		uno_load_all_satellite_resources?: string[];
+		enable_debugging?: boolean;
+		
+		assemblyObfuscationKey?: string;
 	}
 }

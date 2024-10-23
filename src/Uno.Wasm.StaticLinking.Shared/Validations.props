@@ -11,4 +11,31 @@
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
 	</ItemGroup>
 
+	<!--
+	TODO JELA
+	<Target Name="AfterBuildValidation" DependsOnTargets="BuildDist" AfterTargets="AfterBuild">
+		<ItemGroup>
+			<_duplicateValidationItems Include="$(WasmShellOutputPackagePath)\**\System.Private.CoreLib.clr" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_duplicateValidation>@(_duplicateValidationItems)</_duplicateValidation>
+		</PropertyGroup>
+
+		<Error Condition="$(_duplicateValidation.Contains(';'))" Text="Duplicate System.Private.CoreLib.clr detected" />
+
+		<Message Importance="high" Text="Output dist validated" />
+
+		<ItemGroup>
+			<_compressedItems Include="$(WasmShellOutputPackagePath)\**\*.br" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_compressedItemsValidation>@(_compressedItems)</_compressedItemsValidation>
+		</PropertyGroup>
+
+		<Error Condition="'$(WasmShellAssembliesFileNameObfuscationMode)'=='NoDots' and !$(_compressedItemsValidation.Contains(';'))"
+			   Text="Compressed files cannot found found with obfuscation mode NoDots enabled" />
+	</Target>-->
+
 </Project>

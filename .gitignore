@@ -267,7 +267,5 @@ launchSettings.json
 # Directory Cache files
 .DS_Store
 thumbs.db
-/src/Uno.Wasm.Bootstrap/tools
 /src/Uno.Wasm.Bootstrap/build/packager
 /src/Uno.Wasm.Bootstrap/build/wasm-tuner
-

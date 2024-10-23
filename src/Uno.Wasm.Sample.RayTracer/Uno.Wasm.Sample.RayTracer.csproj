@@ -8,13 +8,12 @@
 		<WasmShellMonoRuntimeExecutionMode Condition="'$(UseAOT)'=='true'">InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
-		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
+		<WasmPWAManifestFile>manifest.json</WasmPWAManifestFile>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublishTrimmed>true</PublishTrimmed>
 		<RunAOTCompilation>true</RunAOTCompilation>
-		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
 	</PropertyGroup>
@@ -25,16 +24,9 @@
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
-	<ItemGroup>
-	  <None Remove="app.webmanifest" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Content Include="app.webmanifest" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
-		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -51,21 +43,18 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<Target Name="AfterPublishValidation" AfterTargets="Publish">
-
-		<PropertyGroup>
-			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
-		</PropertyGroup>
-		
+	<!--
+	TODO JELA
+	<Target Name="AfterBuildValidation" AfterTargets="BuildDist">
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />
 		</ItemGroup>
 
-		<Error Condition="!exists('$(_appOutput)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(_appOutput)" />
-		<Error Condition="!exists('$(PublishDir)wwwroot\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(_appOutput)" />
+		<Error Condition="!exists('$(WasmShellOutputPackagePath)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(WasmShellOutputPackagePath)" />
+		<Error Condition="!exists('$(WasmShellOutputDistPath)\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(WasmShellOutputDistPath)" />
 
 		<Message Importance="high" Text="Output dist validated" />
-	</Target>
+	</Target>-->
 
 </Project>

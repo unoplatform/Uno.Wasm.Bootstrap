@@ -53,4 +53,4 @@ stages:
     - template: build/ci/stage-build-macos-tests.yml
       parameters:
         jobName: macOS_Tests
-        vmImage: macOS-14
+        vmImage: macOS-12
