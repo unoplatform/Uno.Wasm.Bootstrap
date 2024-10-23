@@ -39,26 +39,26 @@ jobs:
           useConfigFile: true
           configFilePath: gitversion.yml
           
-      - run: |
-          wget https://dot.net/v1/dotnet-install.sh
-          chmod +x dotnet-install.sh
-          ./dotnet-install.sh -c 9.0 -q daily
-          echo ~/.dotnet >> $GITHUB_PATH
+      # - run: |
+      #     wget https://dot.net/v1/dotnet-install.sh
+      #     chmod +x dotnet-install.sh
+      #     ./dotnet-install.sh -c 9.0 -q daily
+      #     echo ~/.dotnet >> $GITHUB_PATH
 
-        name: Setup .NET
+      #   name: Setup .NET
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: '9.0.100-rc.2.24474.11'
+          dotnet-quality: 'daily'
+          include-prerelease: true
           
       - run: |
           cd src
           dotnet workload install wasm-tools
 
         name: Setup Workloads
-
-      #- name: Setup .NET
-      #  uses: actions/setup-dotnet@v1.7.2
-      #  with:
-      #    dotnet-version: '9.0.100-rc.2.24430.10'
-      #    dotnet-quality: 'daily'
-      #    include-prerelease: true
     
       - run: |
           dotnet build -c Release src/Uno.Wasm.Bootstrap/Uno.Wasm.Bootstrap.csproj /bl:./artifacts-logs/build.binlog
