@@ -311,7 +311,7 @@
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
-		BeforeTargets="ResolveStaticWebAssetsInputs;ResolveJSModuleStaticWebAssets;_UnoWasmNativeForBuild"
+		BeforeTargets="ResolveStaticWebAssetsInputs;ResolveJSModuleStaticWebAssets;ResolveJsInitializerModuleStaticWebAssets;_UnoWasmNativeForBuild"
 		DependsOnTargets="_UnoAdjustCompatibility">
 
 		<ItemGroup>
