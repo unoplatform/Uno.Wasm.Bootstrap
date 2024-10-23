@@ -12,7 +12,7 @@ pr:
       - release/stable/*
       - feature/*
 
-env:
+environment:
   # disabled for now as the default has changed for net10
   NUGET_CERT_REVOCATION_MODE: offline
 
