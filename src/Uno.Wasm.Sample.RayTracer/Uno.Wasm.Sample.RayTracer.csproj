@@ -14,7 +14,6 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublishTrimmed>true</PublishTrimmed>
 		<RunAOTCompilation>true</RunAOTCompilation>
-		<WasmShellEnableJiterpreter>false</WasmShellEnableJiterpreter>
 		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
@@ -35,7 +34,7 @@
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />
-		<!-- <MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" /> -->
+		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>
 
 	<ItemGroup>
