@@ -33,7 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<LinkerDescriptor Include="LinkerConfig.xml" />
+		<!-- <LinkerDescriptor Include="LinkerConfig.xml" /> -->
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml.dll" />
 	</ItemGroup>
 
