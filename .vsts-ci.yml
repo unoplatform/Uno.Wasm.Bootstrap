@@ -12,6 +12,10 @@ pr:
       - release/stable/*
       - feature/*
 
+variables:
+  # disabled for now as the default has changed for net10
+  NUGET_CERT_REVOCATION_MODE: offline
+
 stages:
 - stage: Determine_Changes
   displayName: Determine Changes
