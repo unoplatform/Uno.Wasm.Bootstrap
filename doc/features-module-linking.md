@@ -6,18 +6,18 @@ uid: UnoWasmBootstrap.ModuleLinking
 
 ## Static Linking overview
 
-Statically linking Emscripten LLVM Bitcode (`.bc` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
+Statically linking Emscripten LLVM Bitcode (`.o` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
 
-This linking type embeds the `.bc` or `.a` files with the rest of the WebAssembly modules, and uses _normal_ webassembly function invocations that are faster than with dynamic linking.
+This linking type embeds the `.o` or `.a` files with the rest of the WebAssembly modules, and uses _normal_ webassembly function invocations that are faster than with dynamic linking.
 
-Any `.bc` or `.a` file placed as `content` in the built project will be statically linked to the currently running application.
+Any `.o` or `.a` file placed as `content` in the built project will be statically linked to the currently running application.
 
-This allowing for p/invoke to be functional when resolving methods from the loaded module. If you have a `.bc` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
+This allowing for p/invoke to be functional when resolving methods from the loaded module. If you have a `.o` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
 
 ```xml
 <ItemGroup>
-    <!-- Deactivate the discovery of a .bc or a .a file for static linking -->
-    <Content Update="path\to\my\file.bc" UnoAotCompile="False" />
+    <!-- Deactivate the discovery of a .o or a .a file for static linking -->
+    <Content Update="path\to\my\file.a" UnoAotCompile="False" />
 </ItemGroup>
 ```
 
@@ -41,22 +41,22 @@ error: DISABLE_EXCEPTION_THROWING was set (likely due to -fno-exceptions), which
 
 ## Static Linking multi-version support
 
-As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM. In order to enable this scenario, the Uno Bootstrapper supports adding .bc files by convention.
+As emscripten's ABI is not guaranteed to be compatible between versions, it may also be required to include multiple versions of the same LLVM binaries, compiled against different versions of LLVM. In order to enable this scenario, the Uno Bootstrapper supports adding .a files by convention.
 
-If the bitcode file to be added is named `libTest.bc` or `libTest.a`, the following structure can be used in a project:
+If the bitcode file to be added is named `libTest.o` or `libTest.a`, the following structure can be used in a project:
 
-| File path                             | Description                                                                                           |
-|---------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `libTest.bc/2.0.6/libTest.bc`         | Emscripten 2.0.6 to 2.0.8, single threaded (Bootstrapper 3.3 and earlier format)                      |
-| `libTest.bc/2.0.9/libTest.bc`         | Emscripten 2.0.9 and later, single threaded (Bootstrapper 3.3 and earlier format)                     |
-| `libTest.bc/2.0.6/st/libTest.bc`      | Emscripten 2.0.6 and later, single threaded                                                           |
-| `libTest.bc/2.0.9/st/libTest.bc`      | Emscripten 2.0.9 and later, single threaded                                                           |
-| `libTest.bc/2.0.6/mt/libTest.bc`      | Emscripten 2.0.6 and later, multi threaded                                                            |
-| `libTest.bc/2.0.9/mt/libTest.bc`      | Emscripten 2.0.9 and later, multi threaded                                                            |
-| `libTest.bc/2.0.6/st,simd/libTest.bc` | Emscripten 2.0.6 and later, single threaded with SIMD                                                 |
-| `libTest.bc/2.0.9/st,simd/libTest.bc` | Emscripten 2.0.9 and later, single threaded with SIMD                                                 |
-| `libTest.bc/2.0.6/mt,simd/libTest.bc` | Emscripten 2.0.6 and later, multi threaded with SIMD                                                  |
-| `libTest.bc/2.0.9/mt,simd/libTest.bc` | Emscripten 2.0.9 and later, multi threaded with SIMD                                                  |
+| File path                           | Description                                                                                           |
+|-------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `libTest.a/2.0.6/libTest.a`         | Emscripten 2.0.6 to 2.0.8, single threaded (Bootstrapper 3.3 and earlier format)                      |
+| `libTest.a/2.0.9/libTest.a`         | Emscripten 2.0.9 and later, single threaded (Bootstrapper 3.3 and earlier format)                     |
+| `libTest.a/2.0.6/st/libTest.a`      | Emscripten 2.0.6 and later, single threaded                                                           |
+| `libTest.a/2.0.9/st/libTest.a`      | Emscripten 2.0.9 and later, single threaded                                                           |
+| `libTest.a/2.0.6/mt/libTest.a`      | Emscripten 2.0.6 and later, multi threaded                                                            |
+| `libTest.a/2.0.9/mt/libTest.a`      | Emscripten 2.0.9 and later, multi threaded                                                            |
+| `libTest.a/2.0.6/st,simd/libTest.a` | Emscripten 2.0.6 and later, single threaded with SIMD                                                 |
+| `libTest.a/2.0.9/st,simd/libTest.a` | Emscripten 2.0.9 and later, single threaded with SIMD                                                 |
+| `libTest.a/2.0.6/mt,simd/libTest.a` | Emscripten 2.0.6 and later, multi threaded with SIMD                                                  |
+| `libTest.a/2.0.9/mt,simd/libTest.a` | Emscripten 2.0.9 and later, multi threaded with SIMD                                                  |
 
 Based on the emscripten version used by the .NET runtime and the enabled runtime features, the bootstrapper will choose the closest matching version.
 

@@ -104,10 +104,10 @@ By default, the .NET runtime does not load all resource assemblies, but if you w
 </PropertyGroup>
 ```
 
-## Interop
+### Interop
 
 - `Module.mono_bind_static_method` is not available anymore, you'll need to use `Module.getAssemblyExports` instead.
-- `.bc` native files are not supported anymore. Use `.a` or `.o` extensions.
+- .NET 9 upgrades to emscripten 3.1.56 for which `.bc` native files are not supported properly. Use `.a` or `.o` extensions instead for native dependencies.
 
 ### Deprecated APIs
 

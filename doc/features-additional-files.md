@@ -58,5 +58,4 @@ Exclusions:
 
 Asset files: `wwwroot/uno-assets.txt` contains the package relative paths of the content files that were copied to the  `wwwroot` folder. It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations. Important: Will only contain files deployed in `UnoDeploy="Package"` mode.
 
-A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.bc`.
- `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
+A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
