@@ -26,8 +26,6 @@ namespace RayTraceBenchmark
 	{
 		public Num X, Y, Z;
 
-		public static readonly Vec3 Zero = new Vec3();
-
 		public Vec3(Num x, Num y, Num z)
 		{
 			X = x;
@@ -113,6 +111,12 @@ namespace RayTraceBenchmark
 		{
 			return v / (Num)Math.Sqrt((v.X*v.X) + (v.Y*v.Y) + (v.Z*v.Z));
 		}
+	}
+
+	static class Vec3Const
+	{
+		// Required for AOT with https://github.com/dotnet/runtime/issues/109170
+		public static readonly Vec3 Zero = new Vec3();
 	}
 
 	struct Ray
@@ -226,7 +230,7 @@ namespace RayTraceBenchmark
 				}
 			}
 
-			if (obj == null) return Vec3.Zero;
+			if (obj == null) return Vec3Const.Zero;
 
 			var point_of_hit = ray.Org + (ray.Dir * nearest);
 			var normal = Sphere.Normal(obj, point_of_hit);
@@ -238,7 +242,7 @@ namespace RayTraceBenchmark
 				normal = -normal;
 			}
 
-			Vec3 color = Vec3.Zero;
+			Vec3 color = Vec3Const.Zero;
 			var reflection_ratio = obj.Reflection;
 
 			foreach(var l in scene.Lights)
@@ -309,7 +313,7 @@ namespace RayTraceBenchmark
 
 		public static byte[] Render(Scene scene, byte[] pixels)
 		{
-			var eye = Vec3.Zero;
+			var eye = Vec3Const.Zero;
 			Num h = (Num)Math.Tan(((fov / 360) * (2 * PI)) / 2) * 2;
 			Num w = h * Width / Height;
 
