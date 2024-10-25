@@ -13,7 +13,7 @@ export BOOTSTRAP_TEST_RUNNER_URL=$3
 # install dotnet serve / Remove as needed
 dotnet tool uninstall dotnet-serve -g || true
 dotnet tool uninstall dotnet-serve --tool-path $BUILD_SOURCESDIRECTORY/build/tools || true
-dotnet tool install dotnet-serve --version 1.10.140 --tool-path $BUILD_SOURCESDIRECTORY/build/tools || true
+dotnet tool install dotnet-serve --version 1.10.175 --tool-path $BUILD_SOURCESDIRECTORY/build/tools || true
 export PATH="$PATH:$BUILD_SOURCESDIRECTORY/build/tools"
 
 cd $BOOTSTRAP_APP_PATH
