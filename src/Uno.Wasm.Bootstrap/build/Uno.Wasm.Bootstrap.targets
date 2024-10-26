@@ -320,6 +320,16 @@
 			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
 		</PropertyGroup>
 
+		<PropertyGroup>
+
+			<!-- if we found native references, let's enable wasm native build as well -->
+			<WasmBuildNative Condition=" 
+				$(WasmBuildNative) == ''
+				AND @(NativeFileReference->Count()) > 0"
+				>true</WasmBuildNative>
+
+		</PropertyGroup>
+
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"
