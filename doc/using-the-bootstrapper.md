@@ -104,6 +104,12 @@ By default, the .NET runtime does not load all resource assemblies, but if you w
 </PropertyGroup>
 ```
 
+### IDBFS
+
+In version 8.x and earlier of the bootstrapper, IDBFS support was enabled by default.
+
+Moving the .NET 9, the default interpreter runtime does not enable it by default. Read this documentation in order to [restore IDBFS support](xref:UnoWasmBootstrap.Features.idbfs).
+
 ### Interop
 
 - `Module.mono_bind_static_method` is not available anymore, you'll need to use `Module.getAssemblyExports` instead.
