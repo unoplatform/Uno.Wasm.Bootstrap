@@ -149,6 +149,10 @@
 			BeforeTargets="ResolveStaticWebAssetsConfiguration">
 
 		<ItemGroup>
+			<!-- IDBFS support -->
+			<WasmShellExtraEmccFlags Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="-lidbfs.js" />
+			<WasmShellEmccExportedRuntimeMethod Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="IDBFS" />
+
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
 			<_WasmPInvokeModules Include="__Internal" />
@@ -314,6 +318,16 @@
 		<PropertyGroup Condition=" '$(_FilteredAotProfile)' != '' ">
 			<!-- Override the user's profile with the filtered one -->
 			<WasmAotProfilePath>$([System.IO.Path]::GetFullPath($(_FilteredAotProfile)))</WasmAotProfilePath>
+		</PropertyGroup>
+
+		<PropertyGroup>
+
+			<!-- if we found native references, let's enable wasm native build as well -->
+			<WasmBuildNative Condition=" 
+				$(WasmBuildNative) == ''
+				AND @(NativeFileReference->Count()) > 0"
+				>true</WasmBuildNative>
+
 		</PropertyGroup>
 
 	</Target>
