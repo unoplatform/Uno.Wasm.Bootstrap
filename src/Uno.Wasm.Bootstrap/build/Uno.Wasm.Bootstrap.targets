@@ -149,6 +149,10 @@
 			BeforeTargets="ResolveStaticWebAssetsConfiguration">
 
 		<ItemGroup>
+			<!-- IDBFS support -->
+			<WasmShellExtraEmccFlags Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="-lidbfs.js" />
+			<WasmShellEmccExportedRuntimeMethod Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="IDBFS" />
+
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
 			<_WasmPInvokeModules Include="__Internal" />

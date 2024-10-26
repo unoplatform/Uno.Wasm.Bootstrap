@@ -28,6 +28,8 @@ items:
       href: features-threading.md
     - name: Deep linking (routing)
       href: features-deep-linking.md
+    - name: IDBFS Support
+      href: features-idbfs.md
     - name: Pre-compression
       href: features-pre-compression.md
     - name: Embedded mode
