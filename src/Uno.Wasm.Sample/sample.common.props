@@ -56,9 +56,14 @@
 			<Output TaskParameter="Lines" ItemName="_UnoAssetsLines"/>
 		</ReadLinesFromFile>
 
+		<ItemGroup>
+			<_InvalidAssetLines Include="@(_UnoAssetsLines)"
+								Condition="$([System.String]::Copy('%(Identity)').StartsWith('package_'))" />
+		</ItemGroup>
+
 		<!-- Fail if any _UnoAssetsLines item contains the string `package_` -->
-		<Error Condition="$([System.String]::Copy('%(FullPath)').StartsWith('package_'))"
-			   Message="No asset should start with 'package_'" />
+		<Error Condition=" '@(_InvalidAssetLines)' != ''"
+			   Text="No asset should start with 'package_'" />
 
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>
