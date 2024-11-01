@@ -55,8 +55,8 @@ Exclusions:
        <Content Include="wwwroot\output.log" UnoDeploy="None" />
    </ItemGroup>
    ```
-1. 
-A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
+
+1. A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
 
 ### Asset dictionary 
 
@@ -65,9 +65,9 @@ The file `wwwroot/package_XXX/uno-assets.txt` contains the package relative path
 It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
 
 The files are specified in two parts:
+
 - The files located in the `_framework` folder, which are all the assemblies used to run the app. The path in the `uno-assets.txt` file is relative to the base uri of the site.
 - The files contained in `package_XXX` folder, which are the Content files specified at build time. The path in the `uno-assets.txt` file is relative to the `package_XXX` folder of the site.
 
 > [!IMPORTANT]
 > This file only contain files deployed in `UnoDeploy="Package"` mode.
-
