@@ -64,7 +64,7 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 			{
 				// Remove the original path OutputPackagePath from the path to keep
 				// net8 compatibility.
-				sanitizedAssetPath.Substring(OutputPackagePath.Length + 1);
+				sanitizedAssetPath = sanitizedAssetPath.Substring(OutputPackagePath.Length + 1);
 			}
 
 			assets.Add(sanitizedAssetPath);

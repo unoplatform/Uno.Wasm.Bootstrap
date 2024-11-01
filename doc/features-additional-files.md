@@ -39,9 +39,9 @@ Exclusions:
 
 1. Files in the `WasmScript` folder will be set as `UnoDeploy="None"` by default (they are not treat as content)
 
-2. Files in the `wwwroot` folder will be set as `UnoDeploy="Root"` by default
+1. Files in the `wwwroot` folder will be set as `UnoDeploy="Root"` by default
 
-3. You can manually set the _deploy mode_ in the `.csproj` in the following way:
+1. You can manually set the _deploy mode_ in the `.csproj` in the following way:
 
    ```xml
    <ItemGroup>
@@ -58,9 +58,9 @@ Exclusions:
 
 1. A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
 
-### Asset dictionary 
+### Asset dictionary
 
-The file `wwwroot/package_XXX/uno-assets.txt` contains the package relative paths of the content files that were copied to the `wwwroot` folder. 
+The file `wwwroot/package_XXX/uno-assets.txt` contains the package relative paths of the content files that were copied to the `wwwroot` folder.
 
 It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
 
