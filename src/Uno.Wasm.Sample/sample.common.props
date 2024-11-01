@@ -44,5 +44,28 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj" />
 	</ItemGroup>
+	
+	<Target Name="AfterPublishValidation" AfterTargets="Publish">
+
+		<PropertyGroup>
+			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
+		</PropertyGroup>
+
+		<!-- read the contents of the file uno-assets.txt -->
+		<ReadLinesFromFile File="$(_appOutput)/uno-assets.txt">
+			<Output TaskParameter="Lines" ItemName="_UnoAssetsLines"/>
+		</ReadLinesFromFile>
+
+		<ItemGroup>
+			<_InvalidAssetLines Include="@(_UnoAssetsLines)"
+								Condition="$([System.String]::Copy('%(Identity)').StartsWith('package_'))" />
+		</ItemGroup>
+
+		<!-- Fail if any _UnoAssetsLines item contains the string `package_` -->
+		<Error Condition=" '@(_InvalidAssetLines)' != ''"
+			   Text="No asset should start with 'package_'" />
+
+		<Message Importance="high" Text="Output dist validated" />
+	</Target>
 
 </Project>

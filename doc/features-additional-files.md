@@ -39,9 +39,9 @@ Exclusions:
 
 1. Files in the `WasmScript` folder will be set as `UnoDeploy="None"` by default (they are not treat as content)
 
-2. Files in the `wwwroot` folder will be set as `UnoDeploy="Root"` by default
+1. Files in the `wwwroot` folder will be set as `UnoDeploy="Root"` by default
 
-3. You can manually set the _deploy mode_ in the `.csproj` in the following way:
+1. You can manually set the _deploy mode_ in the `.csproj` in the following way:
 
    ```xml
    <ItemGroup>
@@ -56,6 +56,18 @@ Exclusions:
    </ItemGroup>
    ```
 
-Asset files: `wwwroot/uno-assets.txt` contains the package relative paths of the content files that were copied to the  `wwwroot` folder. It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations. Important: Will only contain files deployed in `UnoDeploy="Package"` mode.
+1. A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
 
-A few files extensions are excluded (`UnoDeploy="None")`by default such as `*.a`, `*.o`. `.html` files are those named `web.config` will default to `UnoDeploy="Root"`.
+### Asset dictionary
+
+The file `wwwroot/package_XXX/uno-assets.txt` contains the package relative paths of the content files that were copied to the `wwwroot` folder.
+
+It can be used to identify which assets are packaged with the application at runtime and avoid costly probing operations.
+
+The files are specified in two parts:
+
+- The files located in the `_framework` folder, which are all the assemblies used to run the app. The path in the `uno-assets.txt` file is relative to the base uri of the site.
+- The files contained in `package_XXX` folder, which are the Content files specified at build time. The path in the `uno-assets.txt` file is relative to the `package_XXX` folder of the site.
+
+> [!IMPORTANT]
+> This file only contain files deployed in `UnoDeploy="Package"` mode.
