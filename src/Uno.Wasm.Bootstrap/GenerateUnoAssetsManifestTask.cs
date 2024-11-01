@@ -58,7 +58,16 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 		foreach(var asset in StaticWebAsset)
 		{
 			var assetPath = Path.GetDirectoryName(asset.GetMetadata("RelativePath")) + "/" + Path.GetFileName(asset.GetMetadata("FullPath"));
-			assets.Add(assetPath.Replace("\\", "/").TrimStart('/'));
+			var sanitizedAssetPath = assetPath.Replace("\\", "/").TrimStart('/');
+
+			if (sanitizedAssetPath.StartsWith(OutputPackagePath + "/"))
+			{
+				// Remove the original path OutputPackagePath from the path to keep
+				// net8 compatibility.
+				sanitizedAssetPath.Substring(OutputPackagePath.Length + 1);
+			}
+
+			assets.Add(sanitizedAssetPath);
 		}
 
 		var assetsFilePath = Path.Combine(_intermediateAssetsPath, "uno-assets.txt");
