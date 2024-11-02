@@ -37,3 +37,9 @@ This package is based on the excellent work from @praeclarum's [OOui Wasm MSBuil
   - [PWA Support](doc/features-pwa.md)
   - [4GB Support](doc/features-4gb.md)
 - [Contributing](doc/contributing.md)
+<<<<<<< HEAD
+=======
+- [Release procedure](doc/release-procedure.md)
+
+
+>>>>>>> 1a00d0f (chore: Test squash (#914))
