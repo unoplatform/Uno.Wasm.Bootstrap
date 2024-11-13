@@ -104,6 +104,16 @@ By default, the .NET runtime does not load all resource assemblies, but if you w
 </PropertyGroup>
 ```
 
+If you're not using the Uno.SDK and that you are using AOT with `WasmShellMonoRuntimeExecutionMode` set to `InterpreterAndAOT`, you'll also need to keep `WasmShellMonoRuntimeExecutionMode` and add the following:
+
+```xml
+<PropertyGroup>
+   <RunAOTCompilation>true</RunAOTCompilation>
+</PropertyGroup>
+```
+
+If not set, you may get the error `error MSB4036: The "MonoAOTCompiler" task was not found"`.
+
 ### IDBFS
 
 In version 8.x and earlier of the bootstrapper, IDBFS support was enabled by default.
