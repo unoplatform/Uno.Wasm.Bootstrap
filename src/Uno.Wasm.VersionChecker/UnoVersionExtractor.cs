@@ -305,7 +305,13 @@ public sealed class UnoVersionExtractor : IDisposable
 			string? globalizationMode = json.RootElement.GetProperty("globalizationMode").GetString();
 
 			List<string> assemblies = new();
-			foreach(var resource in json.RootElement.GetProperty("resources").GetProperty("coreAssembly").EnumerateObject())
+
+			var resources = json.RootElement.GetProperty("resources");
+			var assembliesList =
+				resources.GetProperty("coreAssembly").EnumerateObject()
+				.Concat(resources.GetProperty("assembly").EnumerateObject());
+
+			foreach (var resource in assembliesList)
 			{
 				if (resource.Name is { Length: > 0 } name)
 				{
