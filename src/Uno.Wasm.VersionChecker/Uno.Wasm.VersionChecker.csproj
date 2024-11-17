@@ -5,6 +5,7 @@
 		<TargetFrameworks>net9.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<RollForward>Major</RollForward>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
 		<InformationalVersion Condition="'$(Configuration)'=='Debug'">0.0.0-local-dev-build-DOT-NOT-PUBLISH</InformationalVersion>
 
