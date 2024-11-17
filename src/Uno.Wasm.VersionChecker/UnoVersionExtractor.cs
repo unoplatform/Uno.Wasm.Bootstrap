@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -28,11 +29,10 @@ public sealed class UnoVersionExtractor : IDisposable
 	public record AssemblyDetail(string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit);
 
 	private ImmutableArray<AssemblyDetail> _assemblies;
-	private UnoConfig _unoConfig;
-	private DotnetConfig _dotnetConfig;
+	private UnoConfig? _unoConfig;
+	private DotnetConfig? _dotnetConfig;
 	private AssemblyDetail? _mainAssemblyDetails;
 	private (string? version, string? name) _framework;
-	private bool _isAot;
 
 	public UnoVersionExtractor(Uri siteUri)
 	{
@@ -66,7 +66,7 @@ public sealed class UnoVersionExtractor : IDisposable
 		var web = new HtmlWeb();
 		var doc = await web.LoadFromWebAsync(_siteUri, default, default, default);
 
-		Console.WriteLine("Trying to find Uno bootstrapper configuration...", Color.Gray);
+		Console.WriteLine("Trying to find App configuration...", Color.Gray);
 
 		var files = doc?.DocumentNode
 			.SelectNodes("//script")
@@ -109,20 +109,22 @@ public sealed class UnoVersionExtractor : IDisposable
 			}
 		}
 
-		if (unoConfigPath is null)
-		{
-			Console.WriteLine("No Uno / Uno.UI application found.", Color.Red);
-			return 2;
-		}
-
 		Console.WriteLine("Application found.", Color.LightGreen);
 
-		Console.WriteLineFormatted("Configuration url is {0}.", Color.Gray, new Formatter(unoConfigPath, Color.Aqua));
+		if (unoConfigPath is not null)
+		{
+			Console.WriteLineFormatted("Uno configuration url is {0}.", Color.Gray, new Formatter(unoConfigPath, Color.Aqua));
+			_unoConfig = await GetUnoConfig(unoConfigPath);
+		}
 
-		_unoConfig = await GetUnoConfig(unoConfigPath);
 		_dotnetConfig = await GetDotnetConfig(dotnetConfigPath);
 
-		if (_unoConfig.server is { Length: > 0 })
+		if (_dotnetConfig.mainAssemblyName is not null)
+		{
+			Console.WriteLineFormatted("Dotnet configuration url is {0}.", Color.Gray, new Formatter(dotnetConfigPath, Color.Aqua));
+		}
+
+		if (_unoConfig?.server is { Length: > 0 })
 		{
 			Console.WriteLineFormatted(
 				"Server is {0}",
@@ -130,31 +132,31 @@ public sealed class UnoVersionExtractor : IDisposable
 				new Formatter(_unoConfig.server, Color.Aqua));
 		}
 
-		if (_unoConfig.mainAssembly is { Length: > 0 })
+		if (_unoConfig?.mainAssembly is { Length: > 0 })
 		{
 			Console.WriteLineFormatted("Starting assembly is {0}.", Color.Gray,
 				new Formatter(_unoConfig.mainAssembly, Color.Aqua));
 		}
 
-		if (_dotnetConfig.mainAssemblyName is { Length: > 0 })
+		if (_dotnetConfig?.mainAssemblyName is { Length: > 0 })
 		{
 			Console.WriteLineFormatted("Starting assembly is {0}.", Color.Gray,
 				new Formatter(_dotnetConfig.mainAssemblyName, Color.Aqua));
 		}
 
 		if (
-			(_unoConfig.assemblies is null || _unoConfig.assemblies is { Length: 0 })
-			&& _dotnetConfig.assemblies.Length == 0)
+			(_unoConfig?.assemblies is null || _unoConfig.assemblies is { Length: 0 })
+			&& _dotnetConfig?.assemblies.Length == 0)
 		{
 			Console.WriteLine("No assemblies found.", Color.Red);
 			return 1;
 		}
 
-		if(_unoConfig.assemblies is { Length: > 0 })
+		if(_unoConfig?.assemblies is { Length: > 0 })
 		{
 			await DumpAssemblies(_unoConfig.assembliesPath, _unoConfig.assemblies);
 		}
-		else if(_dotnetConfig.assembliesPath is not null)
+		else if(_dotnetConfig?.assembliesPath is not null)
 		{
 			await DumpAssemblies(_dotnetConfig.assembliesPath, _dotnetConfig.assemblies);
 		}
@@ -187,7 +189,7 @@ public sealed class UnoVersionExtractor : IDisposable
 
 		foreach (var assemblyDetail in _assemblies)
 		{
-			if (assemblyDetail.name == _unoConfig.mainAssembly)
+			if (assemblyDetail.name == _unoConfig?.mainAssembly)
 			{
 				_mainAssemblyDetails = assemblyDetail;
 			}
@@ -199,24 +201,34 @@ public sealed class UnoVersionExtractor : IDisposable
 			{
 				_framework = (assemblyDetail.version, assemblyDetail.targetFramework);
 			}
-			else if (assemblyDetail.name == "aot-instances")
-			{
-				_isAot = true;
-			}
 		}
 	}
 
 	private async Task<Uri?> GetDotnetConfigPath()
 	{
 		using var http = new HttpClient();
-		var dotnetConfig = new Uri(_siteUri, "_framework/blazor.boot.json");
+
+		if (await GetFile(http, new(_siteUri, "_framework/blazor.boot.json")) is { } frameworkFile)
+		{
+			return frameworkFile;
+		}
+		else if (await GetFile(http, new(_siteUri, "blazor.boot.json")) is { } baseFile)
+		{
+			return baseFile;
+		}
+
+		return null;
+	}
+
+	private static async Task<Uri?> GetFile(HttpClient http, Uri dotnetConfig)
+	{
 		var embeddedResponse = await http.GetAsync(dotnetConfig);
 
 		if (embeddedResponse.IsSuccessStatusCode)
 		{
 			var response = await embeddedResponse.Content.ReadAsStringAsync();
 
-			if(response.StartsWith("{"))
+			if (response.StartsWith("{"))
 			{
 				return dotnetConfig;
 			}
@@ -307,9 +319,13 @@ public sealed class UnoVersionExtractor : IDisposable
 			List<string> assemblies = new();
 
 			var resources = json.RootElement.GetProperty("resources");
+
+			resources.TryGetProperty("coreAssembly", out var coreAssembly);
+			resources.TryGetProperty("assembly", out var assembly);
+
 			var assembliesList =
-				resources.GetProperty("coreAssembly").EnumerateObject()
-				.Concat(resources.GetProperty("assembly").EnumerateObject());
+				(coreAssembly.ValueKind == JsonValueKind.Undefined ? [] : coreAssembly.EnumerateObject())
+				.Concat(assembly.ValueKind == JsonValueKind.Undefined ? [] : assembly.EnumerateObject());
 
 			foreach (var resource in assembliesList)
 			{
@@ -319,7 +335,7 @@ public sealed class UnoVersionExtractor : IDisposable
 				}
 			}
 
-			var assembliesPath = new Uri(_siteUri, "_framework/");
+			var assembliesPath = new Uri(_siteUri, dotnetConfigPath.OriginalString.Contains("_framework") ? "_framework/" : "");
 
 			return (mainAssemblyName, globalizationMode, assemblies.ToArray(), assembliesPath);
 		}
@@ -410,17 +426,17 @@ public sealed class UnoVersionExtractor : IDisposable
 			var details = await ReadPE(stream);
 
 			stream.Position = 0;
-			details ??= await ReadWebCIL(stream);
+			details ??= ReadWebCIL(stream);
 
 			return details;
 		}
-		catch (Exception ex)
+		catch (Exception)
 		{
 			return null;
 		}
 	}
 
-	private static async Task<AssemblyDetail?> ReadWebCIL(MemoryStream stream)
+	private static AssemblyDetail? ReadWebCIL(MemoryStream stream)
 	{
 		var asmStream = WebcilConverterUtil.ConvertFromWebcil(stream);
 
@@ -496,7 +512,7 @@ public sealed class UnoVersionExtractor : IDisposable
 	public void Dispose() => _httpClient.Dispose();
 }
 
-internal record struct DotnetConfig(string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)
+internal record DotnetConfig(string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)
 {
 	public static implicit operator (string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)(DotnetConfig value) => (value.mainAssemblyName, value.globalizationMode, value.assemblies, value.assembliesPath);
 	public static implicit operator DotnetConfig((string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath) value) => new DotnetConfig(value.mainAssemblyName, value.globalizationMode, value.assemblies, value.assembliesPath);
