@@ -19,7 +19,7 @@ jobs:
     env:
       DIST_PATH: src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
 
-    if: (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event.action == 'schedule'
+    if: (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     container: 'unoplatform/wasm-build:3.0'
     name: Build and Deploy Job
