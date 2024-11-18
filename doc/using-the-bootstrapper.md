@@ -114,6 +114,14 @@ If you're not using the Uno.SDK and that you are using AOT with `WasmShellMonoRu
 
 If not set, you may get the error `error MSB4036: The "MonoAOTCompiler" task was not found"`.
 
+### Threading
+
+Microsoft’s runtime team [has made major changes](https://github.com/dotnet/runtime/issues/85592#issuecomment-2031876112) in .NET 9 to how threads interact with the DOM and JavaScript, aiming to improve stability.
+
+Since threading was, and continues to be an experimental feature, these changes now prevent managed code from running on the main JavaScript thread — something Uno Platform depends on.
+
+As a result, WebAssembly threading is currently not supported in Uno Platform apps. However, as Microsoft’s runtime team is working on it, we hope that the support for threading may return in future .NET 10 preview builds.
+
 ### IDBFS
 
 In version 8.x and earlier of the bootstrapper, IDBFS support was enabled by default.
