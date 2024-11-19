@@ -4,6 +4,9 @@ uid: UnoWasmBootstrap.Features.Threading
 
 # Support for WebAssembly Threads
 
+> [!CAUTION]
+> Threading support is experimental, and .NET 9 support [has changed the main thread's ability to execute managed code](https://github.com/dotnet/runtime/issues/85592#issuecomment-2031876112). As a result, the support in the Uno Bootstrapper is limited to simple DOM interactions, and is not supported on Uno Platform UI apps.
+
 Starting from .NET 7, experimental support for [WebAssembly threads](https://github.com/WebAssembly/threads/blob/master/proposals/threads/Overview.md) has been included. This support is provided by the bootstrapper 7.0 and later, for interpreter and AOT modes. The following documentation explains how to enable threading.
 
 > [!IMPORTANT]
