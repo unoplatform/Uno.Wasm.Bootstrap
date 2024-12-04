@@ -258,7 +258,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				this._runMain(this._unoConfig.uno_main, []);
 
-				this.initializePWA();
+				await this.initializePWA();
 
 			} catch (e) {
 				console.error(e);
@@ -511,7 +511,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			link.click();
 		}
 
-		private initializePWA() {
+		private async initializePWA(): Promise<void> {
 
 			if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 
@@ -523,15 +523,17 @@ namespace Uno.WebAssembly.Bootstrap {
 
 						console.debug(`Registering service worker for ${_webAppBasePath}`);
 
-						navigator.serviceWorker
-							.register(
-								`${_webAppBasePath}service-worker.js`, {
+						try {
+							await navigator.serviceWorker.register(`${_webAppBasePath}service-worker.js`, {
 								scope: _webAppBasePath,
 								type: 'module'
-							})
-							.then(function () {
-								console.debug('Service Worker Registered');
 							});
+							console.debug('Service Worker Registered');
+						} catch (e) {
+							console.debug('Service Worker registration failed. falling back to classic service worker', e);
+
+							await navigator.serviceWorker.register(`${_webAppBasePath}service-worker-classic.js`, {scope: _webAppBasePath});
+						}
 					}
 				}
 			}

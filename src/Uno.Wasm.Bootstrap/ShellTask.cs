@@ -153,9 +153,11 @@ namespace Uno.Wasm.Bootstrap
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
 				BuildServiceWorker();
+				BuildServiceWorkerClassic();
 				GenerateEmbeddedJs();
 				GenerateIndexHtml();
 				GenerateConfig();
+				GenerateConfigScript();
 				RemoveDuplicateAssets();
 			}
 			finally
@@ -310,6 +312,24 @@ namespace Uno.Wasm.Bootstrap
 			memoryStream.Position = 0;
 
 			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+		}
+
+		// Case for browsers that do not support modules for service workers: Firefox for example
+		private void BuildServiceWorkerClassic()
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js");
+			using var reader = new StreamReader(resourceStream);
+
+			var worker = TouchServiceWorker(reader.ReadToEnd());
+			var memoryStream = new MemoryStream();
+
+			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+			writer.Write(worker);
+			writer.Flush();
+
+			memoryStream.Position = 0;
+
+			CopyStreamToOutput("service-worker-classic.js", memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
@@ -535,7 +555,8 @@ namespace Uno.Wasm.Bootstrap
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
-						&& !d.EndsWith("service-worker.js"))
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
 
 				var config = new StringBuilder();
@@ -624,6 +645,108 @@ namespace Uno.Wasm.Bootstrap
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
 			}
 		}
+
+
+
+		private void GenerateConfigScript()
+		{
+			var unoConfigJsPath = Path.Combine(_intermediateAssetsPath, "uno-config-script.js");
+
+			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
+			{
+				var baseLookup = _shellMode == ShellMode.Node ? "" : $"{WebAppBasePath}{PackageAssetsFolder}/";
+				var dependencies = string.Join(", ", _dependencies
+					.Where(d =>
+						!d.EndsWith("require.js")
+						&& !d.EndsWith("uno-bootstrap.js")
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
+					.Select(dep => BuildDependencyPath(dep, baseLookup)));
+
+				var config = new StringBuilder();
+
+				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
+
+				var sanitizedOfflineFiles = StaticWebContent
+					.Select(f => f.GetMetadata("Link")
+						.Replace("\\", "/")
+						.Replace("wwwroot/", ""))
+					.Concat([$"uno-config-script.js", "_framework/blazor.boot.json", "."]);
+
+				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
+
+				var emccExportedRuntimeMethodsParams = string.Join(
+					",",
+					GetEmccExportedRuntimeMethods().Select(f => $"\'{f}\'"));
+
+				var runtimeOptionsSet = string.Join(",", (RuntimeOptions?.Split(' ') ?? []).Select(f => $"\'{f}\'"));
+
+				config.AppendLine($"self.config = {{}};");
+				config.AppendLine($"self.config.uno_remote_managedpath = \"_framework\";");
+				config.AppendLine($"self.config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
+				config.AppendLine($"self.config.uno_dependencies = [{dependencies}];");
+				config.AppendLine($"self.config.uno_runtime_options = [{runtimeOptionsSet}];");
+				config.AppendLine($"self.config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				config.AppendLine($"self.config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
+				config.AppendLine($"self.config.uno_shell_mode = \"{_shellMode}\";");
+				config.AppendLine($"self.config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
+				config.AppendLine($"self.config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
+				config.AppendLine($"self.config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
+				config.AppendLine($"self.config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+
+				if (GenerateAOTProfile)
+				{
+					config.AppendLine($"self.config.generate_aot_profile = true;");
+				}
+
+				config.AppendLine($"self.config.environmentVariables = self.config.environmentVariables || {{}};");
+
+				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"self.config.environmentVariables[\"{name}\"] = \"{value}\";");
+
+				if (MonoEnvironment != null)
+				{
+					foreach (var env in MonoEnvironment)
+					{
+						AddEnvironmentVariable(env.ItemSpec, env.GetMetadata("Value"));
+					}
+				}
+
+				var isProfiledAOT = UseAotProfile && _runtimeExecutionMode == RuntimeExecutionMode.InterpreterAndAOT;
+
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE", _runtimeExecutionMode.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", (PublishTrimmed && RunILLink).ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
+				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", PackageAssetsFolder);
+				AddEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH", WebAppBasePath);
+
+				if (EmccFlags?.Any(f => f.ItemSpec?.Contains("MAXIMUM_MEMORY=4GB") ?? false) ?? false)
+				{
+					// Detects the use of the 4GB flag: https://v8.dev/blog/4gb-wasm-memory
+					AddEnvironmentVariable("UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY", "4GB");
+				}
+
+				if (EnableLogProfiler)
+				{
+					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
+				}
+
+				w.Write(config.ToString());
+
+				TaskItem indexMetadata = new(
+					unoConfigJsPath, new Dictionary<string, string>
+					{
+						["CopyToOutputDirectory"] = "PreserveNewest",
+						["ContentRoot"] = _intermediateAssetsPath,
+						["Link"] = $"wwwroot/{PackageAssetsFolder}/" + Path.GetFileName(unoConfigJsPath),
+					});
+
+				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
+			}
+		}
+
 
 		private void GenerateIndexHtml()
 		{
