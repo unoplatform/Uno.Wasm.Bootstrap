@@ -1,6 +1,6 @@
 ﻿// As of Dec 2024, Firefox does not support ES6 modules in service workers, so we need to use importScripts
 // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker#browser_compatibility
-importScripts("$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js");
+importScripts("$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config-script.js");
 
 if (config.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
     console.debug("[ServiceWorker] Initializing");
