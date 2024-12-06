@@ -151,6 +151,7 @@ namespace Uno.Wasm.Bootstrap
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
 				BuildServiceWorker();
+				BuildServiceWorkerClassic();
 				GenerateEmbeddedJs();
 				GenerateIndexHtml();
 				GenerateConfig();
@@ -309,6 +310,24 @@ namespace Uno.Wasm.Bootstrap
 			memoryStream.Position = 0;
 
 			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+		}
+
+		// Case for browsers that do not support modules for service workers: Firefox for example
+		private void BuildServiceWorkerClassic()
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js");
+			using var reader = new StreamReader(resourceStream);
+
+			var worker = TouchServiceWorker(reader.ReadToEnd());
+			var memoryStream = new MemoryStream();
+
+			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+			writer.Write(worker);
+			writer.Flush();
+
+			memoryStream.Position = 0;
+
+			CopyStreamToOutput("service-worker-classic.js", memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
@@ -534,7 +553,8 @@ namespace Uno.Wasm.Bootstrap
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
-						&& !d.EndsWith("service-worker.js"))
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
 
 				var config = new StringBuilder();
@@ -636,7 +656,8 @@ namespace Uno.Wasm.Bootstrap
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
-						&& !d.EndsWith("service-worker.js"))
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
 
 				var config = new StringBuilder();

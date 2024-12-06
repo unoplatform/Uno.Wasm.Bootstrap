@@ -1,9 +1,10 @@
-﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
+﻿// As of Dec 2024, Firefox does not support ES6 modules in service workers, so we need to use importScripts
+// https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker#browser_compatibility
+importScripts("$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config-script.js");
 
-
-if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
+if (config.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
     console.debug("[ServiceWorker] Initializing");
-    let uno_enable_tracing = unoConfig.uno_enable_tracing;
+    let uno_enable_tracing = config.uno_enable_tracing;
 
     self.addEventListener('install', function (e) {
         console.debug('[ServiceWorker] Installing offline worker');
@@ -13,16 +14,16 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
 
                 // Add files one by one to avoid failed downloads to prevent the
                 // worker to fail installing.
-                for (var i = 0; i < unoConfig.offline_files.length; i++) {
+                for (var i = 0; i < config.offline_files.length; i++) {
                     try {
                         if (uno_enable_tracing) {
                             console.debug(`[ServiceWorker] cache ${key}`);
                         }
 
-                        await cache.add(unoConfig.offline_files[i]);
+                        await cache.add(config.offline_files[i]);
                     }
                     catch (e) {
-                        console.debug(`[ServiceWorker] Failed to fetch ${unoConfig.offline_files[i]}`);
+                        console.debug(`[ServiceWorker] Failed to fetch ${config.offline_files[i]}`);
                     }
                 }
 
