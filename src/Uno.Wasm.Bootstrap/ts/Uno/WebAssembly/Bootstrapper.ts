@@ -528,11 +528,15 @@ namespace Uno.WebAssembly.Bootstrap {
 								scope: _webAppBasePath,
 								type: 'module'
 							});
-							console.debug('Service Worker Registered');
+							console.debug('Service Worker Registered (module)');
 						} catch (e) {
-							console.debug('Service Worker registration failed. falling back to classic service worker', e);
+							console.debug('Service Worker registration (module) failed.', e);
+
+							console.debug('Falling back to classic service worker registration...');
 
 							await navigator.serviceWorker.register(`${_webAppBasePath}service-worker-classic.js`, {scope: _webAppBasePath});
+
+							console.debug('Service Worker Registered (classic)');
 						}
 					}
 				}
