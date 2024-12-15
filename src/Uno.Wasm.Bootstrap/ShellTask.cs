@@ -152,8 +152,7 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
-				BuildServiceWorker();
-				BuildServiceWorkerClassic();
+				BuildServiceWorkers();
 				GenerateEmbeddedJs();
 				GenerateIndexHtml();
 				GenerateConfig();
@@ -297,27 +296,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void BuildServiceWorker()
+		private void BuildServiceWorkers()
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
-			using var reader = new StreamReader(resourceStream);
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js", outputFile: "service-worker.js");
 
-			var worker = TouchServiceWorker(reader.ReadToEnd());
-			var memoryStream = new MemoryStream();
-
-			using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-			writer.Write(worker);
-			writer.Flush();
-
-			memoryStream.Position = 0;
-
-			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+			// Case for browsers that do not support modules for service workers: Firefox for example
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js", outputFile: "service-worker-classic.js");
 		}
 
-		// Case for browsers that do not support modules for service workers: Firefox for example
-		private void BuildServiceWorkerClassic()
+		private void BuildServiceWorker(string resource, string outputFile)
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js");
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream(resource);
 			using var reader = new StreamReader(resourceStream);
 
 			var worker = TouchServiceWorker(reader.ReadToEnd());
@@ -329,7 +318,7 @@ namespace Uno.Wasm.Bootstrap
 
 			memoryStream.Position = 0;
 
-			CopyStreamToOutput("service-worker-classic.js", memoryStream, DeployMode.Root);
+			CopyStreamToOutput(outputFile, memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
