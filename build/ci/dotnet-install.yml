@@ -35,6 +35,6 @@ steps:
       cd src
       dotnet --version
       dotnet --list-sdks
-      dotnet workload install wasm-tools
+      dotnet workload install wasm-tools wasm-tools-net9
 
     displayName: Setup Workloads
