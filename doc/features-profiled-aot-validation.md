@@ -48,13 +48,13 @@ Methods with `try/finally` or `using()` blocks are not AOT compiled, because Web
 
 To reduce the impact of the interpreter, while still keep the try/finally block, moving the code from the inside of the `try` block to another method will improve performance.
 
-## Build Errors 
+## Build Errors
 
 ### UNOW0001
 
 The following error may be raised:
 
-```
+```text
 UNOW0001: Method XXX from YYY has not been AOTed, even if present in the AOT profile.
 ```
 
@@ -64,7 +64,7 @@ This error is raised when the AOT profile requested a method to be AOT compiled,
 
 The following error may be raised:
 
-```
+```text
 UNOW0002: The method XXX from YYY is not present in the assembly.
 ```
 
