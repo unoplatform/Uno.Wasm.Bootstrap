@@ -23,7 +23,6 @@
 
 		<!-- We cannot change the runtime, let's not warn about it by default -->
 		<WasmShellAOTProfileValidationExcludedAssemblies>$(WasmShellAOTProfileValidationExcludedAssemblies);System.*</WasmShellAOTProfileValidationExcludedAssemblies>
-		<WasmShellAOTProfileValidationExcludedAssemblies>$(WasmShellAOTProfileValidationExcludedAssemblies);System2.*</WasmShellAOTProfileValidationExcludedAssemblies>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
