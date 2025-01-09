@@ -59,7 +59,7 @@ jobs:
 
       - run: |
           cd src
-          dotnet workload install wasm-tools
+          dotnet workload install wasm-tools wasm-tools-net9
       
         name: Setup Workloads
 
