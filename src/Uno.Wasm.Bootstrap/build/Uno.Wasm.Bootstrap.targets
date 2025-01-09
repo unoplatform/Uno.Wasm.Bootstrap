@@ -17,6 +17,13 @@
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
+		
+		<WasmShellAOTProfileValidation Condition=" '$(WasmShellAOTProfileValidation)' == '' ">true</WasmShellAOTProfileValidation>
+		<WasmShellAOTProfileValidationFailOnError Condition=" '$(WasmShellAOTProfileValidationFailOnError)' == '' ">false</WasmShellAOTProfileValidationFailOnError>
+
+		<!-- We cannot change the runtime, let's not warn about it by default -->
+		<WasmShellAOTProfileValidationExcludedAssemblies>$(WasmShellAOTProfileValidationExcludedAssemblies);System.*</WasmShellAOTProfileValidationExcludedAssemblies>
+		<WasmShellAOTProfileValidationExcludedAssemblies>$(WasmShellAOTProfileValidationExcludedAssemblies);System2.*</WasmShellAOTProfileValidationExcludedAssemblies>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -252,11 +259,13 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.AOTProfileIssuesTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.StaticWebAssetsResolverTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.AOTProfileIssuesTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -329,7 +338,20 @@
 				>true</WasmBuildNative>
 
 		</PropertyGroup>
+	</Target>
 
+	<Target Name="_ValidateMissingAOTMethods"
+			AfterTargets="_WasmAotCompileApp"
+			Condition=" '$(WasmShellAOTProfileValidation)' == 'true' AND '$(_FilteredAotProfile)' != '' ">
+		<Error Condition=" '$(WasmStripILAfterAOT)' != 'true' " Text="WasmStripILAfterAOT must be enabled for Missing AOT Methods validation" />
+
+		<AOTProfileIssuesTask_v0
+			AotProfile="$(_FilteredAotProfile)"
+			ILTrimmedAssemblies="@(_WasmAssembliesInternal)"
+			ExcludedMethods="$(WasmShellAOTProfileValidationExcludedMethods)"
+			ExcludedAssemblies="$(WasmShellAOTProfileValidationExcludedAssemblies)"
+			FailOnErrors="$(WasmShellAOTProfileValidationFailOnError)"
+			ShowDebug="$(WasmShellAOTProfileValidationDebug)" />
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"

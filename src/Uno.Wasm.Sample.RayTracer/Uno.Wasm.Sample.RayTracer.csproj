@@ -17,6 +17,8 @@
 		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
+
+		<WasmShellAOTProfileValidationFailOnError>true</WasmShellAOTProfileValidationFailOnError>
 	</PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems" Label="Shared" />
