@@ -42,11 +42,11 @@ Entries in the `WasmShellAOTProfileValidationExcludedMethods` property are semi-
 
 ## Conditions when methods are not AOT compiled
 
-### Methods with try/finally blocks
+### Methods with try/catch/finally blocks
 
-Methods with `try/finally` or `using()` blocks are not AOT compiled, because WebAssembly does not support the `finally` block in the same way as the .NET runtime. In this case, the .NET runtime switches to the interpreter.
+Methods containing `try/catch/finally` blocks are not AOT compiled. `try/finally` and `try/catch` blocks are not impacted.
 
-To reduce the impact of the interpreter, while still keep the try/finally block, moving the code from the inside of the `try` block to another method will improve performance.
+When this pattern is needed, it's best to separate place the `try/finally` and the `try/catch` in separate methods.
 
 ## Build Errors
 
