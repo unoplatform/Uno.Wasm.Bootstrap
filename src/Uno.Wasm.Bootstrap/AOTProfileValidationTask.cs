@@ -15,7 +15,7 @@ using Mono.Profiler.Aot;
 
 namespace Uno.Wasm.Bootstrap
 {
-    public class AOTProfileIssuesTask_v0 : Task
+    public class AOTProfileValidationTask_v0 : Task
 	{
 		[Required]
 		public string AotProfile { get; set; } = "";
@@ -34,6 +34,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public override bool Execute()
 		{
+			Debugger.Launch();
+
 			var reader = new Mono.Profiler.Aot.ProfileReader();
 			using FileStream stream = File.OpenRead(AotProfile);
 
@@ -182,6 +184,24 @@ namespace Uno.Wasm.Bootstrap
 						}
 					}
 				}
+			}
+
+			// Special case for a IL Strip issue where a method with
+			// EH clauses will not be stripped, but is AOT compiled anyways.
+			// If the method has a try/catch/finally, then it's considered
+			// not empty: https://github.com/dotnet/runtime/issues/111281
+			if (body.HasExceptionHandlers)
+			{
+				var hasFinally = body.ExceptionHandlers.Any(h => h.HandlerType == ExceptionHandlerType.Finally);
+				var hasCatch = body.ExceptionHandlers.Any(h => h.HandlerType == ExceptionHandlerType.Catch);
+
+				if(hasFinally && hasCatch)
+				{
+					return false;
+				}
+
+				// try/finally or try/catch are considered AOT compiled
+				return true;
 			}
 
 			return body.CodeSize == 0;
