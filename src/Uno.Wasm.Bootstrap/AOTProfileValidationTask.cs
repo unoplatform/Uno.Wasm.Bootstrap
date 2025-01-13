@@ -164,7 +164,7 @@ namespace Uno.Wasm.Bootstrap
 				}
 			}
 
-			// check if only invokes the default object class ctor
+			// check if only invokes the default base class ctor
 			if (body.Instructions.Count == 3)
 			{
 				var instruction = body.Instructions[0];
@@ -174,7 +174,7 @@ namespace Uno.Wasm.Bootstrap
 					if (instruction.OpCode == OpCodes.Call)
 					{
 						var method = (MethodReference)instruction.Operand;
-						if (method.DeclaringType.FullName == "System.Object" && method.Name == ".ctor")
+						if (method.Name == ".ctor")
 						{
 							instruction = body.Instructions[2];
 							if (instruction.OpCode == OpCodes.Ret)
@@ -182,6 +182,34 @@ namespace Uno.Wasm.Bootstrap
 								return true;
 							}
 						}
+					}
+				}
+			}
+
+			// check if the function only returns a constant
+			if (body.Instructions.Count == 2)
+			{
+				var instruction = body.Instructions[0];
+				if (instruction.OpCode == OpCodes.Ldc_I4_0 || instruction.OpCode == OpCodes.Ldarg_1)
+				{
+					instruction = body.Instructions[1];
+					if (instruction.OpCode == OpCodes.Ret)
+					{
+						return true;
+					}
+				}
+			}
+
+			// check if the function only returns null
+			if (body.Instructions.Count == 2)
+			{
+				var instruction = body.Instructions[0];
+				if (instruction.OpCode == OpCodes.Ldnull)
+				{
+					instruction = body.Instructions[1];
+					if (instruction.OpCode == OpCodes.Ret)
+					{
+						return true;
 					}
 				}
 			}
@@ -204,7 +232,9 @@ namespace Uno.Wasm.Bootstrap
 				return true;
 			}
 
-			return body.CodeSize == 0;
+			// Arbitrarily set the size to 10, most remaining methods that are not stripped
+			// are usually very small, and are not worth the trouble of checking.
+			return body.CodeSize < 10;
 		}
 
 		private string GetProfileMethodCompatibleSignature(MethodDefinition method)
