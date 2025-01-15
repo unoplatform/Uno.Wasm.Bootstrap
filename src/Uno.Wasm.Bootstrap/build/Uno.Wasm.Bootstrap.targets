@@ -261,6 +261,7 @@
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
 			$(UnoGenerateAssetsManifestDependsOn);
+			GenerateUnoWasmAssets;
 		</UnoGenerateAssetsManifestDependsOn>
 	</PropertyGroup>
 
