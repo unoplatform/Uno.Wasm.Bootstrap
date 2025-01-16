@@ -20,7 +20,8 @@
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
 
-		<!--<WasmShellAOTProfileValidationFailOnError>true</WasmShellAOTProfileValidationFailOnError>-->
+		<WasmShellAOTProfileValidation>true</WasmShellAOTProfileValidation>
+		<WasmShellAOTProfileValidationFailOnError>true</WasmShellAOTProfileValidationFailOnError>
 	</PropertyGroup>
 
 	<Target Name="_UnoAdjustSymbols" BeforeTargets="_WasmCommonPrepareForWasmBuildNative">

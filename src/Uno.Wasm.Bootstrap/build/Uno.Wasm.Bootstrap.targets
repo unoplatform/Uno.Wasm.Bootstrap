@@ -18,7 +18,7 @@
 
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 		
-		<WasmShellAOTProfileValidation Condition=" '$(WasmShellAOTProfileValidation)' == '' ">true</WasmShellAOTProfileValidation>
+		<WasmShellAOTProfileValidation Condition=" '$(WasmShellAOTProfileValidation)' == '' ">false</WasmShellAOTProfileValidation>
 		<WasmShellAOTProfileValidationFailOnError Condition=" '$(WasmShellAOTProfileValidationFailOnError)' == '' ">false</WasmShellAOTProfileValidationFailOnError>
 
 		<!-- We cannot change the runtime, let's not warn about it by default -->
