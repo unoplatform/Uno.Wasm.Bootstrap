@@ -17,6 +17,6 @@ jobs:
 - template: .vsts-ci-macos.yml
   parameters:
     jobName: macOS_Tests
-    vmImage: macOS-12
+    vmImage: macOS-15
 
 - template: .vsts-ci-wsl-tests.yml
