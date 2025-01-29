@@ -40,7 +40,7 @@ It is also possible to provide the linker file as an embedded resource, which is
 </ItemGroup>
 ```
 
-The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` or `PublishTrimmed` property to false. This property has no effect when building with AOT enabled.
+The Linker can be disabled completely by setting the `WasmShellILLinkerEnabled` or `PublishTrimmed` property to false. This property has no effect when building with AOT enabled, or when using `dotnet publish`.
 
 The .NET SDK configuration [options are also supported](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained).
 
