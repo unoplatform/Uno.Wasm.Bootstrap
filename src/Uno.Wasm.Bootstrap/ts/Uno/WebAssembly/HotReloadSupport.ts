@@ -32,8 +32,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			const webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 
 			// This assumes that the runtime includes the header as an env var:
-			// https://github.com/dotnet/runtime/blob/79a71fc750652191eba18e19b3f98492e882cb5f/src/mono/browser/runtime/loader/config.ts#L336
-			const browserToolsVariable = (<any>this._context).config.environmentVariables['ASPNETCORE-BROWSER-TOOLS'];
+			// https://github.com/dotnet/runtime/blob/bcc0e894256b22736be3ffac876c7f21cffe070a/src/mono/browser/runtime/loader/config.ts#L332
+			let browserToolsVariable =
+				(<any>this._context).config.environmentVariables['ASPNETCORE-BROWSER-TOOLS']
+				|| (<any>this._context).config.environmentVariables['__ASPNETCORE_BROWSER_TOOLS'];
 
 			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
 			// from the "BrowserLink" feature.
@@ -60,12 +62,12 @@ namespace Uno.WebAssembly.Bootstrap {
 					},
 
 					getApplyUpdateCapabilities: function () {
-						this.initialize();
+						Blazor._internal.initialize();
 						return HotReloadSupport._getApplyUpdateCapabilitiesMethod();
 					},
 
 					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any, updatedTypes: any) {
-						this.initialize();
+						Blazor._internal.initialize();
 						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "", updatedTypes || []);
 					}
 				};
