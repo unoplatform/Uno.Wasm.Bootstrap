@@ -6,13 +6,25 @@ uid: UnoWasmBootstrap.ModuleLinking
 
 ## Static Linking overview
 
-Statically linking Emscripten LLVM Bitcode (`.o` and `.a` files) files to mono is supported on both Windows 10 and Linux. To build on Windows please refer to the AOT environment setup instructions.
+Statically linking Emscripten LLVM Bitcode (`.o` and `.a` files) files is supported to embed `.o` or `.a` files with the rest of the WebAssembly modules. This allows for using p/invoke when resolving methods from the loaded native library.
 
-This linking type embeds the `.o` or `.a` files with the rest of the WebAssembly modules, and uses _normal_ webassembly function invocations that are faster than with dynamic linking.
+Files of type `.o` or `.a` specified in the MSBuild `WasmShellNativeFileReference` item will be statically linked in the application:
 
-Any `.o` or `.a` file placed as `content` in the built project will be statically linked to the currently running application.
+```xml
+<ItemGroup>
+    <WasmShellNativeFileReference Include="libMy.a" />
+</ItemGroup>
+```
 
-This allowing for p/invoke to be functional when resolving methods from the loaded module. If you have a `.o` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
+`WasmShellNativeFileReference` also supports multi-version filtering specified below.
+
+The .NET SDK [`NativeFileReference`](https://learn.microsoft.com/en-us/aspnet/core/blazor/webassembly-native-dependencies) is also supported.
+
+### Support for Native Files as `Content`
+
+Specifying native files as `Content` is also supported in version 9.x of the bootstrapper but will be removed in the next version.
+
+When specified as Content, if you have a `.o` or a `.a` file you don't want to be include in the linking, you may add the `UnoAotCompile="false"` metadata that way:
 
 ```xml
 <ItemGroup>
@@ -20,8 +32,6 @@ This allowing for p/invoke to be functional when resolving methods from the load
     <Content Update="path\to\my\file.a" UnoAotCompile="False" />
 </ItemGroup>
 ```
-
-The .NET SDK [`NativeFileReference`](https://learn.microsoft.com/en-us/aspnet/core/blazor/webassembly-native-dependencies) is also supported.
 
 ## WebAssembly Exceptions support
 
