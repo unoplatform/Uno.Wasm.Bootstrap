@@ -1,7 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
 	<ItemGroup Condition="'$(UseAOT)'=='true' or '$(WasmShellGenerateAOTProfile)'=='true' or '$(WasmShellEnableLogProfiler)'=='true'">
-		<Content Include="$(MSBuildThisFileDirectory)native/**/*.a" />
+		<WasmShellNativeFileReference Include="$(MSBuildThisFileDirectory)native/**/*.a" Exclude="$(MSBuildThisFileDirectory)native/side.a/**" />
+
+		<!-- Legacy content inclusion -->
+		<Content Include="$(MSBuildThisFileDirectory)native/side.a/*.a" />
+
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
 	</ItemGroup>

@@ -301,7 +301,7 @@
 		<GenerateUnoNativeAssetsTask_v0
 			AotProfile="$(WasmAotProfilePath)"
 			AOTProfileExcludedMethods="$(WasmShellAOTProfileExcludedMethods)"
-			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
+			Assets="@(WasmShellNativeFileReference);@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmscriptenVersion="$(_UnoEmscriptenVersion)"
 			EnableThreads="@(WasmEnableThreads)"
