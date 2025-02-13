@@ -6,7 +6,7 @@ uid: UnoWasmBootstrap.ModuleLinking
 
 ## Static Linking overview
 
-Statically linking Emscripten LLVM Bitcode (`.o` and `.a` files) files is supported to embeds `.o` or `.a` files with the rest of the WebAssembly modules. This allows for using p/invoke when resolving methods from the loaded native library.
+Statically linking Emscripten LLVM Bitcode (`.o` and `.a` files) files is supported to embed `.o` or `.a` files with the rest of the WebAssembly modules. This allows for using p/invoke when resolving methods from the loaded native library.
 
 Files of type `.o` or `.a` specified in the MSBuild `WasmShellNativeFileReference` item will be statically linked in the application:
 
