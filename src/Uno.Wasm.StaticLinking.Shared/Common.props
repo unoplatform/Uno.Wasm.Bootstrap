@@ -4,7 +4,7 @@
 		<WasmShellNativeFileReference Include="$(MSBuildThisFileDirectory)native/**/*.a" Exclude="$(MSBuildThisFileDirectory)native/side.a/**" />
 
 		<!-- Legacy content inclusion -->
-		<Content Include="$(MSBuildThisFileDirectory)native/side.a/*.a" />
+		<Content Include="$(MSBuildThisFileDirectory)native/side.a/**/*.a" Visible="False" />
 
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
