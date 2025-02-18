@@ -8,10 +8,12 @@
 
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test.cpp" />
 		<WasmShellNativeCompile Include="$(MSBuildThisFileDirectory)test2.cpp" />
+
 	</ItemGroup>
 
 	<PropertyGroup>
 		<WasmShellEnableIDBFS>true</WasmShellEnableIDBFS>
+		<WasmShellLoadAllSatelliteResources>true</WasmShellLoadAllSatelliteResources>
 	</PropertyGroup>
 
 	<ItemGroup>
