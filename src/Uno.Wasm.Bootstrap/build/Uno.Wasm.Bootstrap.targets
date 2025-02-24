@@ -410,4 +410,21 @@
 
 	</Target>
 
+	<PropertyGroup>
+		<UnoEnableEmccProfiling_BeforeTargets>
+			$(UnoEnableEmccProfiling_BeforeTargets);
+			_WasmCommonPrepareForWasmBuildNative;
+		</UnoEnableEmccProfiling_BeforeTargets>
+	</PropertyGroup>
+
+	<Target Name="UnoEnableEmccProfiling"
+			BeforeTargets="$(UnoEnableEmccProfiling_BeforeTargets)"
+			Condition=" '$(WasmShellEnableEmccProfiling)' == 'true' ">
+		<PropertyGroup>
+			<!-- Enable debug symbols for release mode to profiling -->
+			<WasmNativeStrip>false</WasmNativeStrip>
+			<WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>
+		</PropertyGroup>
+	</Target>
+	
 </Project>
