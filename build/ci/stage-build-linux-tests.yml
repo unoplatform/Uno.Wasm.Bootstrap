@@ -66,7 +66,6 @@ jobs:
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading UI Tests 
-    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
@@ -82,7 +81,6 @@ jobs:
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net9.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading AOT UI Tests 
-    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 

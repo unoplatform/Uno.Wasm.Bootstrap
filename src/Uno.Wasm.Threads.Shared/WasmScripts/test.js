@@ -9,10 +9,3 @@ var Interop = {
         parent.appendChild(txt, parent.lastChild);
     }
 };
-
-var DotNet = {
-    invokeOnMainThread: function (str) {
-        let getApplyUpdateCapabilitiesMethod = BINDING.bind_static_method("[Uno.Wasm.Threads] Uno.Wasm.Sample.Program:MainThreadCallback");
-        getApplyUpdateCapabilitiesMethod();
-    }
-}
