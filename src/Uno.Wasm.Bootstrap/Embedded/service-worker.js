@@ -4,6 +4,9 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
     console.debug("[ServiceWorker] Initializing");
     let uno_enable_tracing = unoConfig.uno_enable_tracing;
 
+    // Get the number of fetch retries from environment variables or default to 1
+    const fetchRetries = parseInt(unoConfig.environmentVariables["UNO_BOOTSTRAP_FETCH_RETRIES"] || "1");
+
     self.addEventListener('install', function (e) {
         console.debug('[ServiceWorker] Installing offline worker');
         e.waitUntil(
@@ -114,10 +117,36 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                         return cachedResponse;
                     }
 
+                    // Add retry mechanism - attempt to fetch again if retries are configured
+                    if (fetchRetries > 0) {
+                        console.debug(`[ServiceWorker] Resource not in cache, attempting ${fetchRetries} network retries for: ${requestClone.url}`);
+
+                        // Try multiple fetch attempts with exponential backoff
+                        for (let retryCount = 0; retryCount < fetchRetries; retryCount++) {
+                            try {
+                                // Exponential backoff between retries (500ms, 1s, 2s, etc.)
+                                const retryDelay = Math.pow(2, retryCount) * 500;
+                                await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+                                if (uno_enable_tracing) {
+                                    console.debug(`[ServiceWorker] Retry attempt ${retryCount + 1}/${fetchRetries} for: ${requestClone.url}`);
+                                }
+
+                                // Need a fresh request clone for each retry
+                                return await fetch(event.request.clone());
+                            } catch (retryErr) {
+                                if (uno_enable_tracing) {
+                                    console.debug(`[ServiceWorker] Retry ${retryCount + 1} failed: ${retryErr.message}`);
+                                }
+                                // Continue to next retry attempt
+                            }
+                        }
+                    }
+
                     // Graceful error handling with a proper HTTP response
                     // Rather than letting the fetch fail with a generic error,
                     // we return a controlled 503 Service Unavailable response
-                    console.error(`[ServiceWorker] Resource not available in cache or network: ${requestClone.url}`);
+                    console.error(`[ServiceWorker] Resource not available in cache or network after ${fetchRetries} retries: ${requestClone.url}`);
                     return new Response('Network error occurred, and resource was not found in cache.', {
                         status: 503,
                         statusText: 'Service Unavailable',

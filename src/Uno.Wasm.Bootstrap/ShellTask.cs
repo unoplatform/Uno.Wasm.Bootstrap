@@ -125,6 +125,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; }
 
+		public string FetchRetries { get; set; } = "1";
+
 		public bool EnableThreads { get; set; }
 
 		public ITaskItem[]? ReferencePath { get; set; }
@@ -590,6 +592,7 @@ namespace Uno.Wasm.Bootstrap
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_PROFILED_AOT", isProfiledAOT.ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_LINKER_ENABLED", (PublishTrimmed && RunILLink).ToString());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_DEBUGGER_ENABLED", (!Optimize).ToString());
+				AddEnvironmentVariable("UNO_BOOTSTRAP_FETCH_RETRIES", FetchRetries);
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_CONFIGURATION", "Release");
 				AddEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES", BuildRuntimeFeatures());
 				AddEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE", PackageAssetsFolder);
