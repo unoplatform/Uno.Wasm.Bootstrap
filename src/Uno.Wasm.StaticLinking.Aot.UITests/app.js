@@ -44,7 +44,7 @@ const path = require("path");
         console.log(`Results: ${value}`);
     }
     let expected = process.platform === 'darwin' ? "Interpreter;" : "InterpreterAndAOT;";
-    expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;functionsExportsAvailable:true;sat:True;";
+    expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;functionsExportsAvailable:true;sat:True;la:True;";
     if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);

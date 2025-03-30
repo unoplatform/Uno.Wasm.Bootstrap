@@ -31,6 +31,10 @@ async function initializeExports() {
 
 initializeExports();
 
+function getLocation() {
+    return window.location.href;
+}
+
 function validateIDBFS() {
     return "" + (typeof IDBFS !== 'undefined');
 }

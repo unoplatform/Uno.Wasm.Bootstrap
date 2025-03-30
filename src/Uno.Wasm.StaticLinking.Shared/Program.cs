@@ -21,24 +21,30 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using WebAssembly;
 
 namespace Uno.Wasm.Sample
 {
 	public static class Program
 	{
-		static void Main()
+		static async Task Main()
 		{
 			// Validate mono tracing with __Native special pinvoke library name
 			InternalImportTest.mono_trace_enable(1);
 
 			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
 			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
+
+			var appBase = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE");
+			var webAppBase = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH");
 
 			Console.WriteLine($"test_add:{SideModule1.test_add(21, 21)}");
 			Console.WriteLine($"test_float:{SideModule1.test_add_float1(21, 21)}");
@@ -99,6 +105,12 @@ namespace Uno.Wasm.Sample
 				&& s2 == "Impossible de localiser une définition pour {0}. Description du service manquante avec l'espace de noms {1}."
 				;
 
+			var assetsUrl = $"{Imports.GetAppAddress()}{webAppBase}{appBase}/uno-assets.txt";
+			Console.WriteLine($"Reading assets from {assetsUrl}");
+			var assets = Encoding.UTF8.GetString(await new HttpClient().GetByteArrayAsync(assetsUrl));
+
+			var linkedAsset = assets.Contains("Linked/nuget.linked.config");
+
 			var res = $"{runtimeMode};" +
 				$"{SideModule1.test_add(21, 21)};" +
 				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
@@ -116,7 +128,8 @@ namespace Uno.Wasm.Sample
 				$"jsInterop:{jsInteropResult};" +
 				$"gl:{glAvailable};"+
 				$"functionsExportsAvailable:{functionsExportsAvailable};"+
-				$"sat:{satelliteValidation};"
+				$"sat:{satelliteValidation};" +
+				$"la:{linkedAsset};"
 				;
 
 			var r = Imports.AppendResult(res);
@@ -208,6 +221,10 @@ namespace Uno.Wasm.Sample
 #endif
 
 		public static partial string ValidateIDBFS();
+
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.getLocation")]
+
+		public static partial string GetAppAddress();
 
 #if !USE_JSIMPORT
 		public static partial string RequireAvailable()
