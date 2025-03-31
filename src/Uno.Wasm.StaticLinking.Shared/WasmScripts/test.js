@@ -1,5 +1,5 @@
 ﻿define(() => {
-    document.body.innerHTML = "<div id='results' />";
+    document.body.innerHTML = "<div id='results' style='white-space: nowrap; width=10000px' />";
 });
 
 var Interop = {
@@ -30,6 +30,10 @@ async function initializeExports() {
 }
 
 initializeExports();
+
+function getLocation() {
+    return window.location.href;
+}
 
 function validateIDBFS() {
     return "" + (typeof IDBFS !== 'undefined');

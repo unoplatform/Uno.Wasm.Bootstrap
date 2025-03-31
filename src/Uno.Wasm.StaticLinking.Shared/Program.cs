@@ -21,107 +21,129 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using WebAssembly;
 
 namespace Uno.Wasm.Sample
 {
 	public static class Program
 	{
-		static void Main()
+		static async Task Main()
 		{
-			// Validate mono tracing with __Native special pinvoke library name
-			InternalImportTest.mono_trace_enable(1);
+			try
+			{
+				// Validate mono tracing with __Native special pinvoke library name
+				InternalImportTest.mono_trace_enable(1);
 
-			var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
-			Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
+				var runtimeMode = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_MONO_RUNTIME_MODE");
+				Console.WriteLine($"Mono Runtime Mode: " + runtimeMode);
 
-			Console.WriteLine($"test_add:{SideModule1.test_add(21, 21)}");
-			Console.WriteLine($"test_float:{SideModule1.test_add_float1(21, 21)}");
-			Console.WriteLine($"test_add_double:{SideModule1.test_add_double(21, 21)}");
+				var appBase = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_APP_BASE");
+				var webAppBase = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH");
 
-			Console.WriteLine($"Before now");
-			var now = DateTime.Now;
-			Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
+				Console.WriteLine($"test_add:{SideModule1.test_add(21, 21)}");
+				Console.WriteLine($"test_float:{SideModule1.test_add_float1(21, 21)}");
+				Console.WriteLine($"test_add_double:{SideModule1.test_add_double(21, 21)}");
 
-			var validateEmAddFunctionResult = int.Parse(Imports.ValidateEmAddFunction()) != 0;
+				Console.WriteLine($"Before now");
+				var now = DateTime.Now;
+				Console.WriteLine($"now:{now} +1:{now.AddDays(1)} -1:{now.AddDays(-1)}");
 
-			var idbFSValidation = Imports.ValidateIDBFS();
-			Console.WriteLine($"idbFSValidation: {idbFSValidation}");
+				var validateEmAddFunctionResult = int.Parse(Imports.ValidateEmAddFunction()) != 0;
 
-			var requireAvailable = Imports.RequireAvailable();
-			Console.WriteLine($"requireAvailable: {requireAvailable}");
+				var idbFSValidation = Imports.ValidateIDBFS();
+				Console.WriteLine($"idbFSValidation: {idbFSValidation}");
 
-			var glAvailable = Imports.GLAvailable();
-			Console.WriteLine($"glAvailable: {glAvailable}");
+				var requireAvailable = Imports.RequireAvailable();
+				Console.WriteLine($"requireAvailable: {requireAvailable}");
 
-			var functionsExportsAvailable = Imports.FunctionsExportsAvailable();
-			Console.WriteLine($"functionsExportsAvailable: {functionsExportsAvailable}");
+				var glAvailable = Imports.GLAvailable();
+				Console.WriteLine($"glAvailable: {glAvailable}");
 
-			var jsInteropResult = Imports.TestCallback();
+				var functionsExportsAvailable = Imports.FunctionsExportsAvailable();
+				Console.WriteLine($"functionsExportsAvailable: {functionsExportsAvailable}");
 
-			var jsTimeZone = Imports.GetJSTimeZone();
-			var clrTimeZone = TimeZoneInfo.Local.DisplayName;
-			var timezoneValidation =
-#if NET5_0_OR_GREATER
-				true; // Timezone support is not yet enabled for NET 5
-#else
-				jsTimeZone == clrTimeZone;
-#endif
+				var jsInteropResult = Imports.TestCallback();
 
-			Console.WriteLine($"Timezone: {jsTimeZone};{clrTimeZone}");
+				var jsTimeZone = Imports.GetJSTimeZone();
+				var clrTimeZone = TimeZoneInfo.Local.DisplayName;
+				var timezoneValidation =
+	#if NET5_0_OR_GREATER
+					true; // Timezone support is not yet enabled for NET 5
+	#else
+					jsTimeZone == clrTimeZone;
+	#endif
 
-			Console.WriteLine($"SIMD: {Vector.IsHardwareAccelerated}");
+				Console.WriteLine($"Timezone: {jsTimeZone};{clrTimeZone}");
 
-#if NET7_0_OR_GREATER
-			Console.WriteLine($"Vector64: {Vector64.IsHardwareAccelerated}");
-			Console.WriteLine($"Vector128: {Vector128.IsHardwareAccelerated}");
-#endif
+				Console.WriteLine($"SIMD: {Vector.IsHardwareAccelerated}");
 
-			File.WriteAllText("/tmp/test.txt", "test.txt");
-			var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);
+	#if NET7_0_OR_GREATER
+				Console.WriteLine($"Vector64: {Vector64.IsHardwareAccelerated}");
+				Console.WriteLine($"Vector128: {Vector128.IsHardwareAccelerated}");
+	#endif
 
-			var additionalNativeAdd = AdditionalImportTest.additional_native_add(21, 21);
-			var additionalNativeAdd2 = AdditionalImportTest.additional_native_add2(21, 21);
+				File.WriteAllText("/tmp/test.txt", "test.txt");
+				var chmodRes = AdditionalImportTest.chmod("/tmp/test.txt", AdditionalImportTest.UGO_RWX);
 
-			var resManager = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
-			var s1 = resManager.GetString("WebDescriptionMissing", new CultureInfo("en-US"));
-			var s2 = resManager.GetString("WebDescriptionMissing", new CultureInfo("fr-CA"));
-			Console.WriteLine($"Res(en-US): {s1}");
-			Console.WriteLine($"Res(fr-CA): {s2}");
+				var additionalNativeAdd = AdditionalImportTest.additional_native_add(21, 21);
+				var additionalNativeAdd2 = AdditionalImportTest.additional_native_add2(21, 21);
 
-			var satelliteValidation =
-				s1 == "Cannot find definition for {0}.  Service Description with namespace {1} is missing."
-				&& s2 == "Impossible de localiser une définition pour {0}. Description du service manquante avec l'espace de noms {1}."
-				;
+				var resManager = new System.Resources.ResourceManager("FxResources.System.Web.Services.Description.SR", typeof(System.Web.Services.Description.Binding).Assembly);
+				var s1 = resManager.GetString("WebDescriptionMissing", new CultureInfo("en-US"));
+				var s2 = resManager.GetString("WebDescriptionMissing", new CultureInfo("fr-CA"));
+				Console.WriteLine($"Res(en-US): {s1}");
+				Console.WriteLine($"Res(fr-CA): {s2}");
 
-			var res = $"{runtimeMode};" +
-				$"{SideModule1.test_add(21, 21)};" +
-				$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
-				$"{SideModule1.test_add_double(21.3, 21.4)};" +
-				$"e{SideModule1.test_exception()};" +
-				$"{validateEmAddFunctionResult};" +
-				$"{idbFSValidation};" +
-				$"{timezoneValidation};" +
-				$"{SideModule2.side2_getCustomVersion()};" +
-				$"{SideModule3.side3_getCustomVersion()};" +
-				$"{SideModule4.side4_getCustomVersion()};" +
-				$"{chmodRes};" +
-				$"{additionalNativeAdd};" +
-				$"requireJs:{requireAvailable};" +
-				$"jsInterop:{jsInteropResult};" +
-				$"gl:{glAvailable};"+
-				$"functionsExportsAvailable:{functionsExportsAvailable};"+
-				$"sat:{satelliteValidation};"
-				;
+				var satelliteValidation =
+					s1 == "Cannot find definition for {0}.  Service Description with namespace {1} is missing."
+					&& s2 == "Impossible de localiser une définition pour {0}. Description du service manquante avec l'espace de noms {1}."
+					;
 
-			var r = Imports.AppendResult(res);
+				var assetsUrl = $"{Imports.GetAppAddress()}{webAppBase}{appBase}/uno-assets.txt";
+				Console.WriteLine($"Reading assets from {assetsUrl}");
+				var assets = Encoding.UTF8.GetString(await new HttpClient().GetByteArrayAsync(assetsUrl));
 
-			SideModule1.test_png();
+				var linkedAsset = assets.Contains("Linked/nuget.linked.config");
+
+				var res = $"{runtimeMode};" +
+					$"{SideModule1.test_add(21, 21)};" +
+					$"{SideModule1.test_add_float1(21.1f, 21.2f):.00};" +
+					$"{SideModule1.test_add_double(21.3, 21.4)};" +
+					$"e{SideModule1.test_exception()};" +
+					$"{validateEmAddFunctionResult};" +
+					$"{idbFSValidation};" +
+					$"{timezoneValidation};" +
+					$"{SideModule2.side2_getCustomVersion()};" +
+					$"{SideModule3.side3_getCustomVersion()};" +
+					$"{SideModule4.side4_getCustomVersion()};" +
+					$"{chmodRes};" +
+					$"{additionalNativeAdd};" +
+					$"requireJs:{requireAvailable};" +
+					$"jsInterop:{jsInteropResult};" +
+					$"gl:{glAvailable};"+
+					$"ex:{functionsExportsAvailable};"+
+					$"sat:{satelliteValidation};" +
+					$"la:{linkedAsset};"
+					;
+
+				Console.WriteLine($"Test Results={res}");
+
+				var r = Imports.AppendResult(res);
+
+				SideModule1.test_png();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine($"Test run failed with {e}");
+			}
 		}
 	}
 
@@ -208,6 +230,10 @@ namespace Uno.Wasm.Sample
 #endif
 
 		public static partial string ValidateIDBFS();
+
+		[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.getLocation")]
+
+		public static partial string GetAppAddress();
 
 #if !USE_JSIMPORT
 		public static partial string RequireAvailable()
