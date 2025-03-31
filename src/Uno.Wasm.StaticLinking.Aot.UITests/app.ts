@@ -18,13 +18,17 @@ const path = require("path");
 
 	console.log(`Init puppeteer`);
 
-	let counter = 3;
+	let counter = 10;
 
-	while (value === null && counter-- > 0) {
+	while (counter-- > 0) {
 		await delay(2000);
 		try {
-			value = await page.$eval('#results', a => a.textContent);
-			console.log(`got value= ${value}`);
+			value = await page.$eval('#results', a => a.innerText);
+			console.log(`got value= [${value}]`);
+
+			if (value && value.length > 0) {
+				break;
+			}
 		}
 		catch (e) {
 			console.log(`Waiting for results... (${e})`);
@@ -43,7 +47,7 @@ const path = require("path");
 	}
 
 	let expected = process.platform === 'darwin' ? "Interpreter;" : "InterpreterAndAOT;";
-	expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;functionsExportsAvailable:true;sat:True;";
+	expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;ex:true;sat:True;la:True;";
 
 	if (value !== expected) {
 		console.log(`Invalid results got ${value}, expected ${expected}`);

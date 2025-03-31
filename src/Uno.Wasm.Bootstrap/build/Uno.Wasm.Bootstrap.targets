@@ -270,6 +270,7 @@
 			DependsOnTargets="$(UnoGenerateAssetsManifestDependsOn)">
 		<GenerateUnoAssetsManifest_v0
 			StaticWebAsset="@(StaticWebAsset)"
+			FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
 			OutputPackagePath="$(WasmShellOutputPackagePath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)">
 			<Output TaskParameter="UnoAssetsFile" ItemName="_UnoAssetsManifest" />

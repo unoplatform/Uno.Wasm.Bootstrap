@@ -19,6 +19,11 @@
 	<ItemGroup>
 		<PackageReference Include="System.Web.Services.Description" Version="4.10.0" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="$(MSBuildThisFileDirectory)../nuget.config" Link="Linked/nuget.linked.config" />
+	</ItemGroup>
+	
 	<ItemGroup>
 		<WasmShellEmccExportedRuntimeMethod Include="GL" />
 		<WasmShellEmccExportedRuntimeMethod Include="FS" />
