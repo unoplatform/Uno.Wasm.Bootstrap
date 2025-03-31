@@ -34,13 +34,18 @@ namespace Uno.Wasm.Bootstrap;
 
 public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 {
+	private const string DefaultFingerprintExpression = "#[.{fingerprint}]?";
+
 	private string _intermediateAssetsPath = "";
+	private string[]? _tokensByPattern;
 
 	[Required]
 	public ITaskItem[] StaticWebAsset { get; set; } = [];
 
 	[Required]
 	public string IntermediateOutputPath { get; set; } = "";
+
+	public ITaskItem[] FingerprintPatterns { get; set; } = [];
 
 	[Required]
 	public string OutputPackagePath { get; set; } = "";
@@ -57,7 +62,7 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 		// Grab the list of all the staticwebassets provided to be available in uno-assets.txt
 		foreach(var asset in StaticWebAsset)
 		{
-			var assetPath = Path.GetDirectoryName(asset.GetMetadata("RelativePath")) + "/" + Path.GetFileName(asset.GetMetadata("FullPath"));
+			var assetPath = ReplaceFingerprintPattern(asset.GetMetadata("RelativePath"));
 			var sanitizedAssetPath = assetPath.Replace("\\", "/").TrimStart('/');
 
 			if (sanitizedAssetPath.StartsWith(OutputPackagePath + "/"))
@@ -75,6 +80,27 @@ public class GenerateUnoAssetsManifest_v0 : Microsoft.Build.Utilities.Task
 		AddStaticAsset(Path.GetFileName(assetsFilePath), assetsFilePath);
 
 		return true;
+	}
+
+	/// <summary>
+	/// Replaces the fingerprint expressions in the original path, after it's been
+	/// added by the DefineStaticWebAssets msbuild task.
+	/// </summary>
+	private string ReplaceFingerprintPattern(string relativePath)
+	{
+		// Based on https://github.com/dotnet/sdk/blob/d945ac60cc0073b6f0c3a55a4668e7251e7188c3/src/StaticWebAssetsSdk/Tasks/FingerprintPatternMatcher.cs#L13-L14
+
+		_tokensByPattern ??= FingerprintPatterns
+			.Select(p => p.GetMetadata("Expression") is string expr and not "" ? expr : DefaultFingerprintExpression)
+			.Distinct()
+			.ToArray();
+
+		foreach (var expression in _tokensByPattern)
+		{
+			relativePath = relativePath.Replace(expression, "");
+		}
+
+		return relativePath;
 	}
 
 	private void AddStaticAsset(string targetPath, string filePath)

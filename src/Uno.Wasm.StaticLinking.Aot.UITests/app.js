@@ -23,12 +23,16 @@ const path = require("path");
     yield page.goto("http://localhost:8000/");
     let value = null;
     console.log(`Init puppeteer`);
-    let counter = 3;
-    while (value === null && counter-- > 0) {
+    let counter = 10;
+    while (counter-- > 0) {
         yield delay(2000);
         try {
-            value = yield page.$eval('#results', a => a.textContent);
+            value = yield page.$eval('#results', a => a.innerText);
             console.log(`got value= ${value}`);
+
+            if (value && value.length > 0) {
+				break;
+			}
         }
         catch (e) {
             console.log(`Waiting for results... (${e})`);
@@ -44,7 +48,7 @@ const path = require("path");
         console.log(`Results: ${value}`);
     }
     let expected = process.platform === 'darwin' ? "Interpreter;" : "InterpreterAndAOT;";
-    expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;functionsExportsAvailable:true;sat:True;";
+    expected += "42;42.30;42.7;e42;True;true;True;1.2;1.4;3.1;0;42;requireJs:true;jsInterop:Invoked;gl:true;ex:true;sat:True;la:True;";
     if (value !== expected) {
         console.log(`Invalid results got ${value}, expected ${expected}`);
         process.exit(1);
