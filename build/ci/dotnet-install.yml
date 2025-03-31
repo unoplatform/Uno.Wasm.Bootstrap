@@ -13,7 +13,7 @@ steps:
   - pwsh: |
       $DotNetRoot = "C:\hostedtoolcache\windows\dotnet"
       Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile "./build/installcli.ps1"
-      & ./build/installcli.ps1 -c 10.0 -q daily -InstallDir $DotNetRoot
+      & ./build/installcli.ps1 -v 10.0.100-preview.2.25164.34 -InstallDir $DotNetRoot
 
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
     displayName: 'Setup .NET (Windows)'
@@ -21,7 +21,7 @@ steps:
   - pwsh: |
       wget https://dot.net/v1/dotnet-install.sh
       chmod +x dotnet-install.sh
-      ./dotnet-install.sh -c 10.0 -q daily
+      ./dotnet-install.sh -v 10.0.100-preview.2.25164.34
       echo "[task.setvariable variable=PATH;]${env:PATH}:$env:HOME/.dotnet"
       echo "[task.setvariable variable=DOTNET_ROOT;]$env:HOME/.dotnet"
 
