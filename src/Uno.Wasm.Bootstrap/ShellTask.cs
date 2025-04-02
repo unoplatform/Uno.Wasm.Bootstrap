@@ -152,10 +152,10 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
-				BuildServiceWorker();
+				BuildServiceWorkers();
 				GenerateEmbeddedJs();
 				GenerateIndexHtml();
-				GenerateConfig();
+				GenerateConfigFiles();
 				RemoveDuplicateAssets();
 			}
 			finally
@@ -295,9 +295,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void BuildServiceWorker()
+		private void BuildServiceWorkers()
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js", outputFile: "service-worker.js");
+
+			// Case for browsers that do not support modules for service workers: Firefox for example
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js", outputFile: "service-worker-classic.js");
+		}
+
+		private void BuildServiceWorker(string resource, string outputFile)
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream(resource);
 			using var reader = new StreamReader(resourceStream);
 
 			var worker = TouchServiceWorker(reader.ReadToEnd());
@@ -309,7 +317,7 @@ namespace Uno.Wasm.Bootstrap
 
 			memoryStream.Position = 0;
 
-			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+			CopyStreamToOutput(outputFile, memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
@@ -524,9 +532,18 @@ namespace Uno.Wasm.Bootstrap
 				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
 				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
 
-		private void GenerateConfig()
+		private void GenerateConfigFiles()
 		{
-			var unoConfigJsPath = Path.Combine(_intermediateAssetsPath, "uno-config.js");
+			GenerateConfigFile("uno-config.js", isModule: true);
+
+			GenerateConfigFile("uno-config-script.js", isModule: false);
+		}
+
+		private void GenerateConfigFile(string fileName, bool isModule)
+		{
+			var self = isModule ? "" : "self.";
+
+			var unoConfigJsPath = Path.Combine(_intermediateAssetsPath, fileName);
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
@@ -535,7 +552,8 @@ namespace Uno.Wasm.Bootstrap
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
-						&& !d.EndsWith("service-worker.js"))
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
 
 				var config = new StringBuilder();
@@ -546,7 +564,7 @@ namespace Uno.Wasm.Bootstrap
 					.Select(f => f.GetMetadata("Link")
 						.Replace("\\", "/")
 						.Replace("wwwroot/", ""))
-					.Concat([$"uno-config.js", "_framework/blazor.boot.json", "."]);
+					.Concat([fileName, "_framework/blazor.boot.json", "."]);
 
 				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 
@@ -556,27 +574,36 @@ namespace Uno.Wasm.Bootstrap
 
 				var runtimeOptionsSet = string.Join(",", (RuntimeOptions?.Split(' ') ?? []).Select(f => $"\'{f}\'"));
 
-				config.AppendLine($"let config = {{}};");
-				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
-				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
-				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
-				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
-				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
-				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
-				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+
+				if (isModule)
+				{
+					config.AppendLine($"let config = {{}};");
+				}
+				else
+				{
+					config.AppendLine($"{self}config = {{}};");
+				}				
+
+				config.AppendLine($"{self}config.uno_remote_managedpath = \"_framework\";");
+				config.AppendLine($"{self}config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
+				config.AppendLine($"{self}config.uno_dependencies = [{dependencies}];");
+				config.AppendLine($"{self}config.uno_runtime_options = [{runtimeOptionsSet}];");
+				config.AppendLine($"{self}config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				config.AppendLine($"{self}config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
+				config.AppendLine($"{self}config.uno_shell_mode = \"{_shellMode}\";");
+				config.AppendLine($"{self}config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
+				config.AppendLine($"{self}config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
+				config.AppendLine($"{self}config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
+				config.AppendLine($"{self}config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
 
 				if (GenerateAOTProfile)
 				{
-					config.AppendLine($"config.generate_aot_profile = true;");
+					config.AppendLine($"{self}config.generate_aot_profile = true;");
 				}
 
-				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
+				config.AppendLine($"{self}config.environmentVariables = {self}config.environmentVariables || {{}};");
 
-				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{name}\"] = \"{value}\";");
+				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"{self}config.environmentVariables[\"{name}\"] = \"{value}\";");
 
 				if (MonoEnvironment != null)
 				{
@@ -609,7 +636,10 @@ namespace Uno.Wasm.Bootstrap
 					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
 				}
 
-				config.AppendLine("export { config };");
+				if (isModule)
+				{
+					config.AppendLine("export { config };");
+				}				
 
 				w.Write(config.ToString());
 
@@ -624,6 +654,7 @@ namespace Uno.Wasm.Bootstrap
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
 			}
 		}
+
 
 		private void GenerateIndexHtml()
 		{
