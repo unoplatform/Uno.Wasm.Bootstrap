@@ -333,15 +333,17 @@ namespace Uno.WebAssembly.Bootstrap {
 					this.loader.style.setProperty("--dark-theme-accent-color", manifest.darkThemeAccentColor);
 				}
 				const img = this.loader.querySelector("img");
-				if (manifest && manifest.splashScreenImage) {
-					if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g)) {
-						// Local images need to be prefixed with the app based path
-						manifest.splashScreenImage = `${this._unoConfig.uno_app_base}/${manifest.splashScreenImage}`;
-					}
+				if (img) {
+					if (manifest && manifest.splashScreenImage) {
+						if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g)) {
+							// Local images need to be prefixed with the app based path
+							manifest.splashScreenImage = `${this._unoConfig.uno_app_base}/${manifest.splashScreenImage}`;
+						}
 
-					img.setAttribute("src", manifest.splashScreenImage);
-				} else {
-					img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
+						img.setAttribute("src", manifest.splashScreenImage);
+					} else {
+						img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
+					}
 				}
 			};
 
