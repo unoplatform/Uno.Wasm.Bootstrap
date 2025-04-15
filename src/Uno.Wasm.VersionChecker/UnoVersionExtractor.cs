@@ -355,17 +355,12 @@ public sealed class UnoVersionExtractor : IDisposable
 		string? packagePath = default;
 		string? mainAssembly = default;
 		string[]? assemblies = default;
+		string? line = default;
 		var server = response.Headers.Server?.ToString();
 
-		while (!reader.EndOfStream)
+		while ((line = await reader.ReadLineAsync()) is not null)
 		{
-			var line = await reader.ReadLineAsync();
-			if (string.IsNullOrWhiteSpace(line))
-			{
-				continue;
-			}
-
-			var parts = line.Split(new[] { '=' }, 2);
+			var parts = line.Split(['='], 2);
 			if (parts.Length != 2)
 			{
 				continue;
