@@ -546,7 +546,7 @@ namespace Uno.Wasm.Bootstrap
 					.Select(f => f.GetMetadata("Link")
 						.Replace("\\", "/")
 						.Replace("wwwroot/", ""))
-					.Concat([$"uno-config.js", "_framework/blazor.boot.json", "."]);
+					.Concat([$"uno-config.js", "_framework/dotnet.boot.js", "."]);
 
 				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 

@@ -47,7 +47,6 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
 
 			this.disableDotnet6Compatibility = false;
-			this.configSrc = `blazor.boot.json`;
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
 
