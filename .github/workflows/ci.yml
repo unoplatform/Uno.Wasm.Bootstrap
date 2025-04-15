@@ -28,19 +28,13 @@ jobs:
         with:
           fetch-depth: 0 # Required for gitversion
           submodules: true
-          
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.7
+
+      - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
+        id: nbgv
         with:
-          versionSpec: '5.x'
-          
-      - name: Determine Version
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.7
-        with:
-          useConfigFile: true
-          configFilePath: gitversion.yml
-          
+          toolVersion: 3.6.139
+          setAllVars: true
+
       # Daily builds .NET
       - run: |
           wget https://dot.net/v1/dotnet-install.sh
@@ -49,7 +43,6 @@ jobs:
           echo ~/.dotnet >> $GITHUB_PATH
       
         name: Setup .NET
-          
 
       # - name: Setup .NET
       #   uses: actions/setup-dotnet@v1.7.2
