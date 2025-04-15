@@ -38,7 +38,7 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.Sample.RayTracer
       CleanTargetFolder: false
@@ -48,7 +48,7 @@ jobs:
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/"
     displayName: Raytracer UI Tests Net5
     env:
@@ -63,7 +63,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading UI Tests 
     condition: eq( variables['THREAD_TESTING'], 'true' )
@@ -79,7 +79,7 @@ jobs:
   
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Threads.Aot/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.Threading.UITests" "http://localhost:8000/"
     displayName: Threading AOT UI Tests 
     condition: eq( variables['THREAD_TESTING'], 'true' )
@@ -95,7 +95,7 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/subpath-override
       CleanTargetFolder: false
@@ -104,7 +104,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/WasmAot.UITests" "http://localhost:8000/test/inner"
     displayName: Raytracer UI Tests Net5 (SWA)
     env:
@@ -113,7 +113,7 @@ jobs:
   ## Static linking validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.Net6/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net5
     env:
@@ -122,7 +122,7 @@ jobs:
   ## Static linking validation (net7)
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net7
     env:
@@ -138,7 +138,7 @@ jobs:
   ## Static linking validation (net7)
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-csp.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking.Aot Tests net7 (CSP Enabled)
     env:
@@ -156,7 +156,7 @@ jobs:
   - task: CopyFiles@2
     condition: always()
     inputs:
-      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7/bin/Release/net9.0
+      SourceFolder: $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7/bin/Release/net10.0
       Contents: '**/*.*'
       TargetFolder: $(build.artifactstagingdirectory)/Uno.Wasm.StaticLinking.Server.net7
       CleanTargetFolder: false

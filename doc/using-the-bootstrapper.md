@@ -27,7 +27,7 @@ dotnet workload install wasm-tools
 
     <PropertyGroup>
       <OutputType>Exe</OutputType>
-      <TargetFramework>net9.0</TargetFramework>
+      <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
@@ -78,7 +78,7 @@ Once installed, launch the server by using the following command:
 ```bash
 cd MyApp.Wasm
 dotnet publish -c Debug
-dotnet serve -d bin\Debug\net9.0\publish\wwwroot -p 8000
+dotnet serve -d bin\Debug\net10.0\publish\wwwroot -p 8000
 ```
 
 You application will be available `http://localhost:8000`.

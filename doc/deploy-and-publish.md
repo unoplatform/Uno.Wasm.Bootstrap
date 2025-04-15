@@ -12,7 +12,7 @@ In the command line, to publish the app, use the following:
 dotnet publish
 ```
 
-The app will be located in the `bin/Release/net9.0/publish/wwwroot` folder. More information about `dotnet publish` can be [found in the Microsoft docs](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish).
+The app will be located in the `bin/Release/net10.0/publish/wwwroot` folder. More information about `dotnet publish` can be [found in the Microsoft docs](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish).
 
 ## Localization publishing
 
