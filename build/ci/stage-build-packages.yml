@@ -11,8 +11,8 @@ jobs:
   - checkout: self
     clean: true
 
-  - template: gitversion.yml
   - template: dotnet-install.yml
+  - template: gitversion.yml
 
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2

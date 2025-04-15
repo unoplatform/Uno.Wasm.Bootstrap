@@ -13,8 +13,8 @@ jobs:
     SourceLinkEnabled: false
 
   steps:
-  - template: gitversion.yml
   - template: dotnet-install.yml
+  - template: gitversion.yml
 
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap

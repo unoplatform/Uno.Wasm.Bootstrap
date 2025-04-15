@@ -1,10 +1,4 @@
 steps:
-- task: UseDotNet@2
-  displayName: 'Use .NET SDK'
-  inputs:
-    version: '9.0.203'
-    includePreviewVersions: true
-
 - pwsh: |
     dotnet tool uninstall nbgv -g
     dotnet tool install nbgv -g --version 3.6.139

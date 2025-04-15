@@ -20,8 +20,8 @@ jobs:
   - checkout: self
     clean: true
 
-  - template: gitversion.yml
   - template: dotnet-install.yml
+  - template: gitversion.yml
 
   - pwsh: |
         attrib +r "$(build.sourcesdirectory)/src" /s /d
