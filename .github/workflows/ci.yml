@@ -29,12 +29,6 @@ jobs:
           fetch-depth: 0 # Required for gitversion
           submodules: true
 
-      - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
-        id: nbgv
-        with:
-          toolVersion: 3.6.139
-          setAllVars: true
-
       # Daily builds .NET
       - run: |
           wget https://dot.net/v1/dotnet-install.sh
@@ -50,6 +44,12 @@ jobs:
         with:
           dotnet-version: '10.0.100-preview.3.25201.16'
           include-prerelease: true
+
+      - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
+        id: nbgv
+        with:
+          toolVersion: 3.6.139
+          setAllVars: true
 
       - run: |
           cd src
