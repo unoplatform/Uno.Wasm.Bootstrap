@@ -17,7 +17,7 @@ on:
 jobs:
   build_and_deploy_job:
     env:
-      DIST_PATH: src/Uno.Wasm.Sample.RayTracer/bin/Release/net9.0/publish/wwwroot
+      DIST_PATH: src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot
 
     if: (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -28,38 +28,32 @@ jobs:
         with:
           fetch-depth: 0 # Required for gitversion
           submodules: true
-          
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.7
-        with:
-          versionSpec: '5.x'
-          
-      - name: Determine Version
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.7
-        with:
-          useConfigFile: true
-          configFilePath: gitversion.yml
-          
+
       # Daily builds .NET
       - run: |
           wget https://dot.net/v1/dotnet-install.sh
           chmod +x dotnet-install.sh
           ./dotnet-install.sh -c 10.0 -q daily
           echo ~/.dotnet >> $GITHUB_PATH
-      
+        if: github.event_name == 'schedule'
         name: Setup .NET
-          
 
-      # - name: Setup .NET
-      #   uses: actions/setup-dotnet@v1.7.2
-      #   with:
-      #     dotnet-version: '9.0.100-rc.2.24474.11'
-      #     include-prerelease: true
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1.7.2
+        if: github.event_name == 'pull_request'
+        with:
+          dotnet-version: '10.0.100-preview.3.25201.16'
+          include-prerelease: true
+
+      - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
+        id: nbgv
+        with:
+          toolVersion: 3.6.139
+          setAllVars: true
 
       - run: |
           cd src
-          dotnet workload install wasm-tools wasm-tools-net9
+          dotnet workload install wasm-tools
       
         name: Setup Workloads
 

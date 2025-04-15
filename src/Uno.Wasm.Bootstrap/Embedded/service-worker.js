@@ -33,14 +33,24 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                 // existing cached content from the runtime as the keys contain a
                 // hash we cannot reliably compute.
                 try {
-                    var c = await fetch("$(REMOTE_WEBAPP_PATH)_framework/blazor.boot.json");
-                    // Response validation to catch HTTP errors early
-                    // This prevents trying to parse invalid JSON from error responses
-                    if (!c.ok) {
-                        throw new Error(`Failed to fetch blazor.boot.json: ${c.status} ${c.statusText}`);
+                    // Replace dynamic import with fetch and eval for web worker compatibility
+                    const response = await fetch("$(REMOTE_WEBAPP_PATH)_framework/dotnet.boot.js");
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch dotnet.boot.js: ${response.status} ${response.statusText}`);
                     }
 
-                    const bootJson = await c.json();
+                    let scriptContent = await response.text();
+
+                    const match = scriptContent.match(/.*?\/\*json-start\*\/([\s\S]*?)\/\*json-end\*\//);
+
+                    // If found, wrap it with parentheses so eval can treat it as an object literal
+                    const c = match ? `(${match[1]})` : null;
+
+                    if (!c) {
+                        throw `Invalid config`;
+                    }
+
+                    const bootJson = eval(c);
                     const monoConfigResources = bootJson.resources || {};
 
                     var entries = {

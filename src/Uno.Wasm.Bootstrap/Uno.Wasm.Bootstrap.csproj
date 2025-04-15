@@ -15,9 +15,9 @@
 		<IsPublishable>false</IsPublishable>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(GitVersion_Sha)'!=''">
-		<AssemblyName>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</AssemblyName>
-		<RootNamespace>Uno.Wasm.Bootstrap.v$(GitVersion_Sha)</RootNamespace>
+	<PropertyGroup Condition="'$(NBGV_GitCommitId)'!=''">
+		<AssemblyName>Uno.Wasm.Bootstrap.v$(NBGV_GitCommitId)</AssemblyName>
+		<RootNamespace>Uno.Wasm.Bootstrap.v$(NBGV_GitCommitId)</RootNamespace>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -173,10 +173,10 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="UpdateTasksSHA" Condition="'$(GitVersion_Sha)'!=''" BeforeTargets="CoreCompile">
+	<Target Name="UpdateTasksSHA" Condition="'$(NBGV_GitCommitId)'!=''" BeforeTargets="CoreCompile">
 
 		<PropertyGroup>
-			<_CurrentVersion>v$(GitVersion_Sha)</_CurrentVersion>
+			<_CurrentVersion>v$(NBGV_GitCommitId)</_CurrentVersion>
 		</PropertyGroup>
 
 		<ItemGroup>

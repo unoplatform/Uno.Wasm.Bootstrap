@@ -13,8 +13,8 @@ jobs:
     SourceLinkEnabled: false
 
   steps:
-  - template: gitversion.yml
   - template: dotnet-install.yml
+  - template: gitversion.yml
 
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
@@ -35,7 +35,7 @@ jobs:
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
-        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net9.0/publish/wwwroot" \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net10.0/publish/wwwroot" \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Aot.UITests" "http://localhost:8000/"
     displayName: StaticLinking Interpreter Test
     env:

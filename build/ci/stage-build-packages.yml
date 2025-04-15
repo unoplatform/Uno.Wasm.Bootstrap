@@ -11,8 +11,8 @@ jobs:
   - checkout: self
     clean: true
 
-  - template: gitversion.yml
   - template: dotnet-install.yml
+  - template: gitversion.yml
 
   - bash: |
       npm install -g conventional-changelog-cli@2.2.2
@@ -35,7 +35,7 @@ jobs:
 
   - script: |
       cd $(build.sourcesdirectory)\src
-      dotnet msbuild Uno.Wasm.Bootstrap-packages-only.slnf /r /p:Configuration=Release /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-packages.binlog
+      dotnet msbuild Uno.Wasm.Bootstrap-packages-only.slnf /r /p:Configuration=Release /p:InformationalVersion=$(NBGV_InformationalVersion) /p:PackageReleaseNotesFile=$(Build.SourcesDirectory)/build/CHANGELOG.md /p:PackageVersion=$(NBGV_SemVer2) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget /bl:$(build.artifactstagingdirectory)/win-packages.binlog
     displayName: Build packages
 
   - script: |
@@ -71,7 +71,7 @@ jobs:
       ArtifactType: Container
 
   - script: |
-      dotnet msbuild /r /bl /m:1 /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(GITVERSION.INFORMATIONALVERSION) /p:PackageVersion=$(GITVERSION.FullSemVer) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
+      dotnet msbuild /r /bl /m:1 /p:Configuration=Release /p:DISABLE_CLIHOST_NET6=true /p:InformationalVersion=$(NBGV_InformationalVersion) /p:PackageVersion=$(NBGV_SemVer2) /p:PackageOutputPath=$(build.sourcesdirectory)\build\nuget $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap-msbuild-only.slnf /bl:$(build.artifactstagingdirectory)/win-validation-binaries.binlog
 
     displayName: Build Validation Binaries
 
