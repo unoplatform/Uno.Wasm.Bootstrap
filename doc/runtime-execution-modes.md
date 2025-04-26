@@ -104,7 +104,7 @@ To create a profiled build:
   <WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
   ```
 
-- Build you application again
+- Build your application again
 
 Note that the AOT profile is a snapshot of the current set of assemblies and methods in your application. If that set changes significantly, you'll need to re-create the AOT profile to get optimal results.
 
