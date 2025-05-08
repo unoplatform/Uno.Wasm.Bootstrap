@@ -278,9 +278,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
-
-			this.progress.max = totalResources;
-			(<any>this.progress).value = resourcesLoaded;
+			// The totalResources value reported by .NET does not represent
+			// the actual total. To prevent progress bar from jumping
+			// setting the max progress to 100 instead.
+			this.progress.max = 100;
+			(<any>this.progress).value = Math.min(resourcesLoaded, 100);
 		}
 
 		private initProgress() {
