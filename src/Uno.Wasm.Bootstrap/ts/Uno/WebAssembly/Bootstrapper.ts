@@ -34,6 +34,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _isUsingCommonJS: boolean;
 		private _currentBrowserIsChrome: boolean;
 		private _hasReferencedPdbs: boolean;
+		private _previousTotalResources: number;
+		private _currentTargetProgress: number;
 
 		static ENVIRONMENT_IS_WEB: boolean;
 		static ENVIRONMENT_IS_WORKER: boolean;
@@ -278,11 +280,18 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
+			this.progress.max = 100;
+			
 			// The totalResources value reported by .NET does not represent
 			// the actual total. To prevent progress bar from jumping
 			// setting the max progress to 100 instead.
-			this.progress.max = 100;
-			(<any>this.progress).value = Math.min(resourcesLoaded, 100);
+			if (_previousTotalResources != totalResources)
+			{
+				_currentTargetProgress = (100 - _currentTargetProgress) / 2;
+				_previousTotalResources = totalResources;
+			}
+			
+			(<any>this.progress).value = Math.min(resourcesLoaded, _currentTargetProgress);
 		}
 
 		private initProgress() {
