@@ -287,11 +287,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			// setting the max progress to 100 instead.
 			if (_previousTotalResources != totalResources)
 			{
-				_currentTargetProgress = (100 - _currentTargetProgress) / 2;
-				_previousTotalResources = totalResources;
+				this._currentTargetProgress = this._currentTargetProgress + (100 - this._currentTargetProgress) / 2;
+				this._previousTotalResources = totalResources;
 			}
 			
-			(<any>this.progress).value = Math.min(resourcesLoaded, _currentTargetProgress);
+			(<any>this.progress).value = Math.min(resourcesLoaded, this._currentTargetProgress);
 		}
 
 		private initProgress() {
