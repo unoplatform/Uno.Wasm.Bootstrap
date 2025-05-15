@@ -427,5 +427,17 @@
 			<WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>
 		</PropertyGroup>
 	</Target>
-	
+
+	<!-- Workaround for https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/973 -->
+	<Target Name="_UnoAdjustOriginalItemSpecForProjectReference"
+			BeforeTargets="GetCurrentProjectBuildStaticWebAssetItems"
+			Condition=" $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0.300')) and '$(UnoDisableAdjustOriginalItemSpecForProjectReference)' != 'true' ">  
+		<ItemGroup>
+			<_UnoCachedBuildStaticWebAssets Include="@(_CachedBuildStaticWebAssets)">
+				<OriginalItemSpec Condition="'%(_CachedBuildStaticWebAssets.OriginalItemSpec)' != ''">$([System.IO.Path]::GetFullPath('%(_CachedBuildStaticWebAssets.OriginalItemSpec)'))</OriginalItemSpec>
+			</_UnoCachedBuildStaticWebAssets>
+			<_CachedBuildStaticWebAssets Remove="@(_CachedBuildStaticWebAssets)" />
+			<_CachedBuildStaticWebAssets Include="@(_UnoCachedBuildStaticWebAssets)" />
+		</ItemGroup>
+	</Target>
 </Project>
