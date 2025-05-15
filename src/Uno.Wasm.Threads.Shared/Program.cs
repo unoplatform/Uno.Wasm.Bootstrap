@@ -34,6 +34,7 @@ namespace Uno.Wasm.Sample
 		private static List<string> _messages = new List<string>();
 		private static bool _mainThreadInvoked = false;
 		private static Timer _timer;
+		private static SynchronizationContext _jsContext = SynchronizationContext.Current;
 
 		static void Main()
 		{
@@ -41,6 +42,7 @@ namespace Uno.Wasm.Sample
 			Console.WriteLine($"Runtime Version: " + RuntimeInformation.FrameworkDescription);
 			Console.WriteLine($"Runtime Mode: " + runtimeMode);
 			Console.WriteLine($"TID: {Thread.CurrentThread.ManagedThreadId}");
+			Console.WriteLine($"SynchronizationContext: {_jsContext}");
 
 			Runtime.InvokeJS("Interop.appendResult('Startup')");
 
@@ -81,7 +83,7 @@ namespace Uno.Wasm.Sample
 				int index = Interlocked.Increment(ref counter);
 				lock (_gate)
 				{
-					_messages.Add($"[tid:{Thread.CurrentThread.ManagedThreadId}]: {index} / {message}");
+					_messages.Add($"[tid:{Thread.CurrentThread.ManagedThreadId}][ctx:{SynchronizationContext.Current?.ToString()}]: {index} / {message}");
 				}
 			}
 
@@ -92,34 +94,29 @@ namespace Uno.Wasm.Sample
 
 					if ((i % 2000) == 0)
 					{
-						WebAssembly.JSInterop.InternalCalls.InvokeOnMainThread();
+						Console.WriteLine("InvokeOnMainThread1");
+						_jsContext.Post(_ => MainThreadCallback(), null);
 					}
 				}
 			}
 
+#pragma warning disable CA1416 // Validate platform compatibility
 			new Thread(_ =>
 			{
-				Console.WriteLine($"Starting thread [tid:{Thread.CurrentThread.ManagedThreadId}]");
+				Console.WriteLine($"Starting thread [tid:{Thread.CurrentThread.ManagedThreadId}] [ctx:{SynchronizationContext.Current?.ToString()}]");
 
-				WebAssembly.JSInterop.InternalCalls.InvokeOnMainThread();
+				_jsContext.Post(_ => MainThreadCallback(), null);
+				Console.WriteLine("InvokeOnMainThread2");
 
 				DoWork("thread1");
 				tcs.TrySetResult(true);
 				Console.WriteLine($"Stopping thread [tid:{Thread.CurrentThread.ManagedThreadId}]");
 			}).Start();
+#pragma warning restore CA1416 // Validate platform compatibility
 
 			await tcs.Task;
 
 			_event.Set();
 		}
-	}
-}
-
-namespace WebAssembly.JSInterop
-{
-	public static class InternalCalls
-	{
-		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		public static extern void InvokeOnMainThread();
 	}
 }
