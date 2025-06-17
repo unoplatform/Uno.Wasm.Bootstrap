@@ -1,4 +1,0 @@
-﻿<linker>
-	<assembly fullname="Uno.Wasm.Embedded.App"/>
-	<assembly fullname="System.Private.CoreLib"/>
-</linker>

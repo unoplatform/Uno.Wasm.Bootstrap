@@ -1,1 +1,0 @@
-﻿This file should NOT be copied to dist folder
