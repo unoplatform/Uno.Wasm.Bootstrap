@@ -11,4 +11,5 @@
     <ProjectReference Include="..\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj" />
   </ItemGroup>
 
+	<Import Project="../Uno.Wasm.Bootstrap.Server/build/Uno.Wasm.Bootstrap.Server.targets" />
 </Project>

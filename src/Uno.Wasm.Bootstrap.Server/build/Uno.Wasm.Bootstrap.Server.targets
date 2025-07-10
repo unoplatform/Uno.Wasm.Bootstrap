@@ -1,3 +1,14 @@
 ﻿<Project>
 
+	<!-- Workaround for https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues/973 -->
+	<Target Name="_UnoAdjustResolveReferencedProjectsStaticWebAssetsConfiguration"
+			AfterTargets="ResolveReferencedProjectsStaticWebAssetsConfiguration"
+			Condition=" $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0.300')) and '$(UnoDisableGetCurrentProjectBuildStaticWebAssetItems)' != 'true' ">
+		<ItemGroup>
+			<_UnoStaticWebAssetProjectConfiguration Include="@(StaticWebAssetProjectConfiguration)"  GetBuildAssetsTargets="_UnoAdjustGetCurrentProjectBuildStaticWebAssetItems"/>
+			<StaticWebAssetProjectConfiguration Remove="@(StaticWebAssetProjectConfiguration)" />
+			<StaticWebAssetProjectConfiguration Include="@(_UnoStaticWebAssetProjectConfiguration)" />
+		</ItemGroup>
+	</Target>
+
 </Project>

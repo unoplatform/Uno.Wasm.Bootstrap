@@ -10,4 +10,6 @@
     <ProjectReference Include="..\Uno.Wasm.StaticLinking.net7\Uno.Wasm.StaticLinking.net7.csproj" />
   </ItemGroup>
 
+	<Import Project="../Uno.Wasm.Bootstrap.Server/build/Uno.Wasm.Bootstrap.Server.targets" />
+
 </Project>
