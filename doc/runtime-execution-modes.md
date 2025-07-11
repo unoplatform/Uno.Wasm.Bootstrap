@@ -90,13 +90,15 @@ To create a profiled build:
   - Launch App.saveProfile()
 - Download the `aot.profile` file next to the csproj file
 - Comment the `WasmShellGenerateAOTProfile` line
-- Add the following lines:
+- Add a reference to the generated file:
+  - If you're using the [Uno.Sdk](xref:Uno.Features.Uno.Sdk), place the file in the `Platforms/WebAssembly` folder
+  - If you're not using the Uno.Sdk, add the following lines:
 
-  ```xml
-  <ItemGroup>
-    <WasmShellEnableAotProfile Include="aot.profile" />
-  </ItemGroup>
-  ```
+    ```xml
+    <ItemGroup>
+      <WasmShellEnableAotProfile Include="aot.profile" />
+    </ItemGroup>
+    ```
 
 - Make sure that Mixed mode is enabled:
 
