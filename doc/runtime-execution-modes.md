@@ -49,7 +49,7 @@ Finally, runtime statistics are maintained by the jiterpreter and can be display
 
 This mode enables AOT compilation for most of the assemblies, with [some specific exceptions](https://github.com/dotnet/runtime/issues/50609).
 
-By default, this mode is only enabled when running `dotnet publish`.
+This mode is only active when running `dotnet publish`, `dotnet build -r Release` or any other build mode will not activate it.
 
 To enable AOT compilation on normal builds, use the following:
 
@@ -90,13 +90,15 @@ To create a profiled build:
   - Launch App.saveProfile()
 - Download the `aot.profile` file next to the csproj file
 - Comment the `WasmShellGenerateAOTProfile` line
-- Add the following lines:
+- Add a reference to the generated file:
+  - If you're using the [Uno.Sdk](xref:Uno.Features.Uno.Sdk), place the file in the `Platforms/WebAssembly` folder
+  - If you're not using the Uno.Sdk, add the following lines:
 
-  ```xml
-  <ItemGroup>
-    <WasmShellEnableAotProfile Include="aot.profile" />
-  </ItemGroup>
-  ```
+    ```xml
+    <ItemGroup>
+      <WasmShellEnableAotProfile Include="aot.profile" />
+    </ItemGroup>
+    ```
 
 - Make sure that Mixed mode is enabled:
 
@@ -104,7 +106,7 @@ To create a profiled build:
   <WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
   ```
 
-- Build your application again
+- Publish your application again, using `dotnet publish`. (`dotnet build` does not activate AOT)
 
 Note that the AOT profile is a snapshot of the current set of assemblies and methods in your application. If that set changes significantly, you'll need to re-create the AOT profile to get optimal results.
 
