@@ -9,6 +9,7 @@
 		<!--<WasmShellMonoRuntimeExecutionMode Condition="$([MSBuild]::IsOsPlatform('Linux'))">FullAOT</WasmShellMonoRuntimeExecutionMode>-->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<WasmShellEnableThreads>true</WasmShellEnableThreads>
+		<!--<WasmBuildNative>true</WasmBuildNative>-->
 		<!--<WasmShellILLinkerEnabled>false</WasmShellILLinkerEnabled>-->
 	</PropertyGroup>
 

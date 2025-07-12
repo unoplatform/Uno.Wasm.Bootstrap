@@ -37,16 +37,16 @@ namespace Uno.WebAssembly.Bootstrap {
 				(<any>this._context).config.environmentVariables['ASPNETCORE-BROWSER-TOOLS']
 				|| (<any>this._context).config.environmentVariables['__ASPNETCORE_BROWSER_TOOLS'];
 
+			if (!await HotReloadSupport._initializeMethod()) {
+				console.warn("The application was compiled with the IL linker enabled, hot reload is disabled. See https://aka.platform.uno/wasm-il-linker for more details.");
+			}
+
+			let capabilities = await HotReloadSupport._getApplyUpdateCapabilitiesMethod();
+
 			// Take the place of the internal .NET for WebAssembly APIs for metadata updates coming
 			// from the "BrowserLink" feature.
 			(function (Blazor) {
 				Blazor._internal = {
-					initialize: function () {
-						if (!HotReloadSupport._initializeMethod()) {
-							console.warn("The application was compiled with the IL linker enabled, hot reload is disabled. See https://aka.platform.uno/wasm-il-linker for more details.");
-						}
-					},
-
 					applyExisting: async function (): Promise<void> {
 
 						if (browserToolsVariable == "true")
@@ -62,19 +62,15 @@ namespace Uno.WebAssembly.Bootstrap {
 					},
 
 					getApplyUpdateCapabilities: function () {
-						Blazor._internal.initialize();
-						return HotReloadSupport._getApplyUpdateCapabilitiesMethod();
+						return capabilities;
 					},
 
 					applyHotReload: function (moduleId: any, metadataDelta: any, ilDelta: any, pdbDelta: any, updatedTypes: any) {
-						Blazor._internal.initialize();
-						return HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "", updatedTypes || []);
+						HotReloadSupport._applyHotReloadDeltaMethod(moduleId, metadataDelta, ilDelta, pdbDelta || "", updatedTypes || []);
 					}
 				};
 			})((<any>window).Blazor || ((<any>window).Blazor = {}));
 				
-			// Apply pending updates caused by a browser refresh
-			(<any>window).Blazor._internal.initialize();
 			await (<any>window).Blazor._internal.applyExisting();
 		}
 	}
