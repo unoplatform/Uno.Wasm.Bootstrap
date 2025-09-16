@@ -263,24 +263,24 @@ jobs:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - pwsh: |
-      dotnet workload uninstall --all
-      if (`$LASTEXITCODE -ne 0) { throw 'Failed to uninstall workloads' }
+      dotnet workload clean --all
+      if ($LASTEXITCODE -ne 0) { throw 'Failed to clean workloads' }
 
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.net7
       dotnet clean -c Release
 
-      `$logPath = "$(build.artifactstagingdirectory)/wasm-tools-validation.log"
-      Remove-Item `$logPath -ErrorAction SilentlyContinue
-      
-      dotnet publish -c Release /m:1 /p:WasmShellEmccLinkOptimization=false *> `$logPath
-      if (`$LASTEXITCODE -eq 0) {
-          Get-Content `$logPath | Write-Host
+      $logPath = "$(build.artifactstagingdirectory)/wasm-tools-validation.log"
+      Remove-Item $logPath -ErrorAction SilentlyContinue
+
+      dotnet publish -c Release /m:1 /p:WasmShellEmccLinkOptimization=false *> $logPath
+      if ($LASTEXITCODE -eq 0) {
+          Get-Content $logPath | Write-Host
           throw 'Publish succeeded unexpectedly without wasm-tools workload'
       }
 
-      `$expectedPattern = 'Native WebAssembly assets were detected, but the wasm-tools workload'
-      if (-not (Select-String -Path `$logPath -Pattern `$expectedPattern -SimpleMatch -Quiet)) {
-          Get-Content `$logPath | Write-Host
+      $expectedPattern = 'Native WebAssembly assets were detected, but the wasm-tools workload'
+      if (-not (Select-String -Path $logPath -Pattern $expectedPattern -SimpleMatch -Quiet)) {
+          Get-Content $logPath | Write-Host
           throw 'Expected workload validation error message was not found'
       }
     displayName: Validate wasm-tools workload requirement
