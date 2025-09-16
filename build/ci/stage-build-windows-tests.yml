@@ -262,6 +262,34 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-windows-test
+      ArtifactType: Container
+
+- job: ValidateWasmWorkload
+  displayName: Validate wasm-tools workload requirement
+  timeoutInMinutes: 30
+
+  pool:
+    vmImage: 'windows-2022'
+
+  workspace:
+    clean: all
+
+  variables:
+    NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+    NETCORE_VERSION: ${{ parameters.netcore_version }}
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - template: dotnet-install.yml
+
   - pwsh: |
       dotnet workload clean --all
       if ($LASTEXITCODE -ne 0) { throw 'Failed to clean workloads' }
@@ -284,10 +312,3 @@ jobs:
           throw 'Expected workload validation error message was not found'
       }
     displayName: Validate wasm-tools workload requirement
-
-  - task: PublishBuildArtifacts@1
-    condition: always()
-    inputs:
-      PathtoPublish: $(build.artifactstagingdirectory)
-      ArtifactName: uno-wasm-bootstrap-windows-test
-      ArtifactType: Container
