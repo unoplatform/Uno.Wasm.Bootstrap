@@ -139,7 +139,7 @@ Moving the .NET 9, the default interpreter runtime does not enable it by default
 
 This error happens when the .NET for WebAssembly workload has not been detected:
 
-```
+```text
 Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'.
 ```
 
