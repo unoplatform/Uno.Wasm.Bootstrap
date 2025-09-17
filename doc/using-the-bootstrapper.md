@@ -133,6 +133,20 @@ Moving the .NET 9, the default interpreter runtime does not enable it by default
 - `Module.mono_bind_static_method` is not available anymore, you'll need to use `Module.getAssemblyExports` instead.
 - .NET 9 upgrades to emscripten 3.1.56 for which `.bc` native files are not supported properly. Use `.a` or `.o` extensions instead for native dependencies.
 
+### Build Errors
+
+#### UNOWA0001
+
+This error happens when the .NET for WebAssembly workload has not been detected:
+
+```text
+Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'.
+```
+
+To fix this issue, either use [uno.check](https://aka.platform.uno/uno-check), or use `dotnet workload install wasm-tools` in the folder of your app's `csproj`.
+
+You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj.
+
 ### Deprecated APIs
 
 - The `Uno.Wasm.Boostrap.DevServer` package is not needed anymore and can be removed

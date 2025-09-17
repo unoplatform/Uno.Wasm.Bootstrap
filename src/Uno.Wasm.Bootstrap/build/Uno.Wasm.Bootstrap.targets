@@ -442,4 +442,25 @@
 			<_CachedBuildStaticWebAssetItems Include="@(_UnoCachedBuildStaticWebAssets)" />
 		</ItemGroup>
 	</Target>
+
+	<!-- Manual detection of the workloads tooling, particularly when non-standard TFMs are used (e.g. netx.0-browserwasm) -->
+	<Target Name="_UnoValidateWasmToolsWorkload"
+			AfterTargets="_UnoAdjustCompatibility"
+			Condition="'$(UnoSkipWasmToolsWorkloadValidation)' != 'true'">
+		<PropertyGroup>
+			<_UnoRequiresWasmTools>false</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'$(WasmBuildNative)' == 'true'">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(NativeFileReference)' != ''">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(WasmShellNativeCompile)' != ''">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(WasmShellAdditionalPInvokeLibrary)' != ''">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(WasmShellExtraEmccFlags)' != ''">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(EmccExportedRuntimeMethod)' != ''">true</_UnoRequiresWasmTools>
+			<_UnoRequiresWasmTools Condition="'@(_NativeAssetsFiltered)' != ''">true</_UnoRequiresWasmTools>
+		</PropertyGroup>
+
+		<Error Code="UNOWA0001"
+				Condition="'$(_UnoRequiresWasmTools)' == 'true' and '$(WasmNativeWorkloadAvailable)' != 'true'"
+				Text="Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'." />
+	</Target>
+
 </Project>
