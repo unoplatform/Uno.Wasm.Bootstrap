@@ -3,9 +3,11 @@ jobs:
 
   pool:
     vmImage: 'windows-2022'
-    
+
   variables:
-    NUGET_PACKAGES: $(Agent.WorkFolder)\.nuget
+    - group: uno-codesign-vault
+    - name: NUGET_PACKAGES
+      value: '$(Agent.WorkFolder)\.nuget'
 
   steps:
   - checkout: self
@@ -56,12 +58,15 @@ jobs:
     inputs:
       filePath: build/signing/Sign-Package.ps1
     env:
-      SignClientUser: $(SignClientUser)
-      SignClientSecret: $(SignClientSecret)
+      VaultSignTenantId: $(VaultSignTenantId)
+      VaultSignClientId: $(VaultSignClientId)
+      VaultSignClientSecret: $(VaultSignClientSecret)
+      VaultSignCertificate: $(VaultSignCertificate)
+      VaultSignUrl: $(VaultSignUrl)
       SignPackageName: "Uno.Wasm.Bootstrap"
       SignPackageDescription: "Uno.Wasm.Bootstrap"
       ArtifactDirectory: $(build.artifactstagingdirectory)
-    condition: and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')), not(eq(variables['SignClientSecret'], '')), not(eq(variables['SignClientUser'], '')))
+      condition: and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')), not(eq(variables['VaultSignClientSecret'], '')), not(eq(variables['VaultSignClientId'], '')))
 
   - task: PublishBuildArtifacts@1
     condition: always()
