@@ -175,6 +175,7 @@ Each major version of the bootstrapper targets a different version of the .NET R
 - 7.x: .NET 7 (https://github.com/dotnet/runtime/commits/release/7.0)
 - 8.0: .NET 8 (https://github.com/dotnet/runtime/commits/release/8.0)
 - 9.0: .NET 9 (https://github.com/dotnet/runtime/commits/release/9.0)
+- 10.0: .NET 10 (https://github.com/dotnet/runtime/commits/release/10.0)
 
 > [!NOTE]
 > Between version 3.x and 8.x, the bootstrapper is using custom builds of the runtime, maintained here: https://github.com/unoplatform/Uno.DotnetRuntime.WebAssembly
