@@ -145,7 +145,7 @@ Native WebAssembly assets were detected, but the wasm-tools workload could not b
 
 To fix this issue, either use [uno.check](https://aka.platform.uno/uno-check), or use `dotnet workload install wasm-tools` in the folder of your app's `csproj`.
 
-You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj.
+You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj`.
 
 ### Deprecated APIs
 
