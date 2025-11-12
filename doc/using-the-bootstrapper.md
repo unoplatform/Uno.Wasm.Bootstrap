@@ -143,7 +143,9 @@ This error happens when the .NET for WebAssembly workload has not been detected:
 Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'.
 ```
 
-To fix this issue, either use [uno.check](https://aka.platform.uno/uno-check), or use `dotnet workload install wasm-tools` in the folder of your app's `csproj`.
+To fix this issue:
+- If you're building with net10.0, either use [uno.check](https://aka.platform.uno/uno-check), or use `dotnet workload install wasm-tools` in the folder of your app's `csproj`.
+- If you're building with net9.0 with the .NET SDK 10.0 installed, run [uno.check](https://aka.platform.uno/uno-check) then run `dotnet workload install wasm-tools-net9` in the folder of your app's `csproj`.
 
 You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj.
 
