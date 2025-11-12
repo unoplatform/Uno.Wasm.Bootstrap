@@ -152,10 +152,10 @@ namespace Uno.Wasm.Bootstrap
 				ExtractAdditionalCSS();
 				RemoveDuplicateAssets();
 				GeneratePackageFolder();
-				BuildServiceWorker();
+				BuildServiceWorkers();
 				GenerateEmbeddedJs();
 				GenerateIndexHtml();
-				GenerateConfig();
+				GenerateConfigFiles();
 				RemoveDuplicateAssets();
 			}
 			finally
@@ -295,9 +295,17 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
-		private void BuildServiceWorker()
+		private void BuildServiceWorkers()
 		{
-			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js", outputFile: "service-worker.js");
+
+			// Case for browsers that do not support modules for service workers: Firefox for example
+			BuildServiceWorker(resource: "Uno.Wasm.Bootstrap.v0.Embedded.service-worker-classic.js", outputFile: "service-worker-classic.js");
+		}
+
+		private void BuildServiceWorker(string resource, string outputFile)
+		{
+			using var resourceStream = GetType().Assembly.GetManifestResourceStream(resource);
 			using var reader = new StreamReader(resourceStream);
 
 			var worker = TouchServiceWorker(reader.ReadToEnd());
@@ -309,7 +317,7 @@ namespace Uno.Wasm.Bootstrap
 
 			memoryStream.Position = 0;
 
-			CopyStreamToOutput("service-worker.js", memoryStream, DeployMode.Root);
+			CopyStreamToOutput(outputFile, memoryStream, DeployMode.Root);
 		}
 
 		private void ExtractAdditionalJS()
@@ -524,9 +532,16 @@ namespace Uno.Wasm.Bootstrap
 				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
 				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
 
-		private void GenerateConfig()
+		private void GenerateConfigFiles()
 		{
-			var unoConfigJsPath = Path.Combine(_intermediateAssetsPath, "uno-config.js");
+			GenerateConfigFile("uno-config.js", isModule: true);
+
+			GenerateConfigFile("uno-config-script.js", isModule: false);
+		}
+
+		private void GenerateConfigFile(string fileName, bool isModule)
+		{
+			var unoConfigJsPath = Path.Combine(_intermediateAssetsPath, fileName);
 
 			using (var w = new StreamWriter(unoConfigJsPath, false, _utf8Encoding))
 			{
@@ -535,7 +550,8 @@ namespace Uno.Wasm.Bootstrap
 					.Where(d =>
 						!d.EndsWith("require.js")
 						&& !d.EndsWith("uno-bootstrap.js")
-						&& !d.EndsWith("service-worker.js"))
+						&& !d.EndsWith("service-worker.js")
+						&& !d.EndsWith("service-worker-classic.js"))
 					.Select(dep => BuildDependencyPath(dep, baseLookup)));
 
 				var config = new StringBuilder();
@@ -546,7 +562,7 @@ namespace Uno.Wasm.Bootstrap
 					.Select(f => f.GetMetadata("Link")
 						.Replace("\\", "/")
 						.Replace("wwwroot/", ""))
-					.Concat([$"uno-config.js", "_framework/dotnet.boot.js", "."]);
+					.Concat([fileName, "_framework/dotnet.boot.js", "."]);
 
 				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 
@@ -609,7 +625,9 @@ namespace Uno.Wasm.Bootstrap
 					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
 				}
 
-				config.AppendLine("export { config };");
+				config.AppendLine(isModule ?
+					"export { config };" :
+					$"self.config = config;");
 
 				w.Write(config.ToString());
 
