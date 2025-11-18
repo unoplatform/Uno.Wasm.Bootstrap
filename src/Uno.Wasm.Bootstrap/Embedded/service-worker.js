@@ -34,9 +34,10 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                 // hash we cannot reliably compute.
                 try {
                     // Replace dynamic import with fetch and eval for web worker compatibility
-                    const response = await fetch("$(REMOTE_WEBAPP_PATH)_framework/dotnet.boot.js");
+                    // In .NET 10+, dotnet.boot.js was merged with dotnet.js for performance
+                    const response = await fetch("$(REMOTE_WEBAPP_PATH)_framework/dotnet.js");
                     if (!response.ok) {
-                        throw new Error(`Failed to fetch dotnet.boot.js: ${response.status} ${response.statusText}`);
+                        throw new Error(`Failed to fetch dotnet.js: ${response.status} ${response.statusText}`);
                     }
 
                     let scriptContent = await response.text();
@@ -80,7 +81,7 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                     }
                 } catch (e) {
                     // Centralized error handling for the entire boot.json processing
-                    console.error('[ServiceWorker] Error processing blazor.boot.json:', e.message);
+                    console.error('[ServiceWorker] Error processing boot configuration:', e.message);
                 }
             })
         );
