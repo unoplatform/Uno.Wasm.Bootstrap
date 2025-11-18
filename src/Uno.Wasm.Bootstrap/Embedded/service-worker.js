@@ -42,6 +42,8 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
 
                     let scriptContent = await response.text();
 
+                    // The parsing assumes that this block is present:
+                    // https://github.com/dotnet/runtime/blob/41c9fa2d39a02d98cdead08e72f961e77b7888b0/src/tasks/Microsoft.NET.Sdk.WebAssembly.Pack.Tasks/BootJsonBuilderHelper.cs#L74
                     const match = scriptContent.match(/.*?\/\*json-start\*\/([\s\S]*?)\/\*json-end\*\//);
 
                     // If found, wrap it with parentheses so eval can treat it as an object literal
