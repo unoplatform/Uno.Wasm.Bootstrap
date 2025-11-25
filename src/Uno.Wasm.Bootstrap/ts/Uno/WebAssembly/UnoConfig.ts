@@ -7,6 +7,8 @@
 
 		uno_dependencies: string[];
 
+		uno_cache_version: string;
+
 		uno_main: string;
 
 		assemblyFileExtension: string;
