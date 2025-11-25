@@ -11,13 +11,13 @@
 		g.Module = {};
 	}
 	if (!Array.isArray(g.Module.preRun)) {
-		g.Module.preRun = [];
+		g.Module.preRun = (typeof g.Module.preRun === "function") ? [g.Module.preRun] : [];
 	}
 	if (!Array.isArray(g.Module.postRun)) {
-		g.Module.postRun = [];
+		g.Module.postRun = (typeof g.Module.postRun === "function") ? [g.Module.postRun] : [];
 	}
 	if (!Array.isArray(g.Module.preInit)) {
-		g.Module.preInit = [];
+		g.Module.preInit = (typeof g.Module.preInit === "function") ? [g.Module.preInit] : [];
 	}
 })();
 
