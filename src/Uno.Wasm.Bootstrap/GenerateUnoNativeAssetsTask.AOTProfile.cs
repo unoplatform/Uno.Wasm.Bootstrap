@@ -65,12 +65,13 @@ public partial class GenerateUnoNativeAssetsTask_v0
 			var excludedAssemblies = MixedModeExcludedAssembly?.ToDictionary(i => i.ItemSpec, i => i.ItemSpec)
 				?? new Dictionary<string, string>();
 
+			// Dump the original profile for debugging when requested, regardless of exclusion settings
+			TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
+
 			if (excludedMethodsList.Any() || excludedAssemblies.Any())
 			{
 				// LoadIntoBufferAsync uses exception filtering
 				excludedMethodsList.AddRange(DefaultAOTProfileExcludedMethods);
-
-				TryDumpProfileMethods(profile, "AOTProfileDump.Original.txt");
 
 				var excludedMethods = excludedMethodsList.Select(e => new Regex(e)).ToList();
 
