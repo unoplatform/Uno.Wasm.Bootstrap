@@ -93,8 +93,14 @@ namespace Uno.WebAssembly.Bootstrap {
 					bootstrapper.preInit();
 				}
 
+				// Use cache_version to bust browser cache when .NET runtime version changes
+				const cacheVersion = config.config.uno_cache_version || '';
+				const dotnetJsUrl = cacheVersion
+					? `../_framework/dotnet.js?v=${cacheVersion}`
+					: `../_framework/dotnet.js`;
+
 				//@ts-ignore
-				var m = await import(`../_framework/dotnet.js`);
+				var m = await import(/* webpackIgnore: true */ dotnetJsUrl);
 
 				m.dotnet
 					.withModuleConfig({

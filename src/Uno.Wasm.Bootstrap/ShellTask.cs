@@ -559,6 +559,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
 				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
+				config.AppendLine($"config.uno_cache_version = \"{PackageAssetsFolder}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
@@ -837,6 +838,7 @@ namespace Uno.Wasm.Bootstrap
 		private string TouchServiceWorker(string workerBody)
 		{
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
+			workerBody = workerBody.Replace("$(CACHE_VERSION)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 
