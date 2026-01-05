@@ -41,13 +41,16 @@
         /* Get rid of default border in Firefox. */
         border: none;
         /* Dimensions */
-        width: 100%;
-        height: 6px;
+        width: calc(100% - 16px);
+        height: 4px;
         position: absolute;
         /* Position */
-        bottom: 0;
-        left: 0;
-        right: 0;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        /* Styling */
+        border-radius: 2px;
+        overflow: hidden;
     }
 
     .uno-loader img[src=''] {
@@ -56,31 +59,35 @@
 
     .uno-loader progress::-moz-progress-bar {
         /* Firefox */
-        background-color: var(--accent-color, #f85977);
+        background-color: var(--accent-color, #159bff);
+        border-radius: 2px;
     }
 
     .uno-loader progress::-webkit-progress-value {
         /* Chrome & Safari */
-        background-color: var(--accent-color, #f85977);
+        background-color: var(--accent-color, #159bff);
+        border-radius: 2px;
     }
 
     .uno-loader[loading-position='top'] progress {
         bottom: auto;
-        top: 0;
-        color: var(--accent-color, #f85977);
+        top: 8px;
+        color: var(--accent-color, #159bff);
     }
 
     @media (prefers-color-scheme: dark) {
         .uno-loader progress::-moz-progress-bar {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
+            border-radius: 2px;
         }
 
         .uno-loader progress::-webkit-progress-value {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
+            border-radius: 2px;
         }
 
         .uno-loader[loading-position='top'] progress {
-            color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
         }
     }
 
