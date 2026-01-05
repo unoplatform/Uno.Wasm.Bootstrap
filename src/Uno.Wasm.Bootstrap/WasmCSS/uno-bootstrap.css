@@ -42,14 +42,14 @@
         border: none;
         /* Dimensions */
         width: calc(100% - 16px);
-        height: 8px;
+        height: 4px;
         position: absolute;
         /* Position */
         bottom: 8px;
         left: 8px;
         right: 8px;
         /* Styling */
-        border-radius: 4px;
+        border-radius: 2px;
         overflow: hidden;
     }
 
@@ -60,13 +60,13 @@
     .uno-loader progress::-moz-progress-bar {
         /* Firefox */
         background-color: var(--accent-color, #159bff);
-        border-radius: 4px;
+        border-radius: 2px;
     }
 
     .uno-loader progress::-webkit-progress-value {
         /* Chrome & Safari */
         background-color: var(--accent-color, #159bff);
-        border-radius: 4px;
+        border-radius: 2px;
     }
 
     .uno-loader[loading-position='top'] progress {
@@ -78,12 +78,12 @@
     @media (prefers-color-scheme: dark) {
         .uno-loader progress::-moz-progress-bar {
             background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 4px;
+            border-radius: 2px;
         }
 
         .uno-loader progress::-webkit-progress-value {
             background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 4px;
+            border-radius: 2px;
         }
 
         .uno-loader[loading-position='top'] progress {
