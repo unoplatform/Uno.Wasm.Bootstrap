@@ -41,13 +41,13 @@
         /* Get rid of default border in Firefox. */
         border: none;
         /* Dimensions */
-        width: calc(100% - 32px);
+        width: calc(100% - 16px);
         height: 8px;
         position: absolute;
         /* Position */
-        bottom: 16px;
-        left: 16px;
-        right: 16px;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
         /* Styling */
         border-radius: 4px;
         overflow: hidden;
@@ -59,35 +59,35 @@
 
     .uno-loader progress::-moz-progress-bar {
         /* Firefox */
-        background-color: var(--accent-color, #0078D4);
+        background-color: var(--accent-color, #159bff);
         border-radius: 4px;
     }
 
     .uno-loader progress::-webkit-progress-value {
         /* Chrome & Safari */
-        background-color: var(--accent-color, #0078D4);
+        background-color: var(--accent-color, #159bff);
         border-radius: 4px;
     }
 
     .uno-loader[loading-position='top'] progress {
         bottom: auto;
-        top: 16px;
-        color: var(--accent-color, #0078D4);
+        top: 8px;
+        color: var(--accent-color, #159bff);
     }
 
     @media (prefers-color-scheme: dark) {
         .uno-loader progress::-moz-progress-bar {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #0078D4));
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
             border-radius: 4px;
         }
 
         .uno-loader progress::-webkit-progress-value {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #0078D4));
+            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
             border-radius: 4px;
         }
 
         .uno-loader[loading-position='top'] progress {
-            color: var(--dark-theme-accent-color, var(--accent-color, #0078D4));
+            color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
         }
     }
 
