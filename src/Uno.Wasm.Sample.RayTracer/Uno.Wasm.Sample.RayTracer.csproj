@@ -9,7 +9,9 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
-		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
+		
+		<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>
+		
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublishTrimmed>true</PublishTrimmed>
@@ -17,7 +19,17 @@
 		<!--<RunAOTCompilationAfterBuild>true</RunAOTCompilationAfterBuild>-->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
+
+		<WasmShellAOTProfileValidation>true</WasmShellAOTProfileValidation>
+		<WasmShellAOTProfileValidationFailOnError>true</WasmShellAOTProfileValidationFailOnError>
 	</PropertyGroup>
+
+	<Target Name="_UnoAdjustSymbols" BeforeTargets="_WasmCommonPrepareForWasmBuildNative">
+		<PropertyGroup>
+			<WasmNativeStrip>false</WasmNativeStrip>
+			<WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>
+		</PropertyGroup>
+	</Target>
 
 	<Import Project="..\Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems" Label="Shared" />
 
