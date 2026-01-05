@@ -241,7 +241,6 @@ jobs:
       "http://localhost:8000/"
 
     displayName: Threading Tests
-    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
@@ -258,7 +257,6 @@ jobs:
       "$(build.sourcesdirectory)\src\Uno.Wasm.Threading.UITests" `
       "http://localhost:8000/"
     displayName: Threading AOT Tests
-    condition: eq( variables['THREAD_TESTING'], 'true' )
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
