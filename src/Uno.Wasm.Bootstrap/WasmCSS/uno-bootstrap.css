@@ -41,13 +41,13 @@
         /* Get rid of default border in Firefox. */
         border: none;
         /* Dimensions */
-        width: 100%;
+        width: calc(100% - 32px);
         height: 8px;
         position: absolute;
         /* Position */
         bottom: 16px;
-        left: 0;
-        right: 0;
+        left: 16px;
+        right: 16px;
         /* Styling */
         border-radius: 4px;
         overflow: hidden;
