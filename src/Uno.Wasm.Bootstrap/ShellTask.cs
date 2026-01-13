@@ -543,7 +543,7 @@ namespace Uno.Wasm.Bootstrap
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 
 				// Get the fingerprinted dotnet.js filename from the .NET SDK output
-				var dotnetJsFileName = GetDotnetJsFileName();
+				var dotnetJsFileName = "dotnet.js";
 
 				var sanitizedOfflineFiles = StaticWebContent
 					.Select(f => f.GetMetadata("Link")
@@ -858,38 +858,6 @@ namespace Uno.Wasm.Bootstrap
 
 		private string BuildRuntimeFeatures()
 			=> EnableThreads ? "threads" : "";
-
-		/// <summary>
-		/// Finds the fingerprinted dotnet.js filename from the .NET SDK's static web assets.
-		/// The SDK generates files like "dotnet.abc123def.js" for cache busting.
-		/// </summary>
-		private string GetDotnetJsFileName()
-		{
-			// Look for the fingerprinted dotnet.js in the _framework folder from ExistingStaticWebAsset
-			// The RelativePath will be something like "_framework/dotnet.abc123def.js"
-			var dotnetJsAsset = ExistingStaticWebAsset
-				.FirstOrDefault(asset =>
-				{
-					var relativePath = asset.GetMetadata("RelativePath")?.Replace("\\", "/") ?? "";
-					// Match _framework/dotnet.*.js but exclude dotnet.native.js, dotnet.runtime.js, etc.
-					return relativePath.StartsWith("_framework/dotnet.")
-						&& relativePath.EndsWith(".js")
-						&& !relativePath.Contains(".native.")
-						&& !relativePath.Contains(".runtime.");
-				});
-
-			if (dotnetJsAsset != null)
-			{
-				var relativePath = dotnetJsAsset.GetMetadata("RelativePath")?.Replace("\\", "/") ?? "";
-				var fileName = Path.GetFileName(relativePath);
-				Log.LogMessage(MessageImportance.Low, $"Found fingerprinted dotnet.js: {fileName}");
-				return fileName;
-			}
-
-			// Fallback to non-fingerprinted name if not found
-			Log.LogMessage(MessageImportance.Low, "Fingerprinted dotnet.js not found, using default 'dotnet.js'");
-			return "dotnet.js";
-		}
 
 		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
 		{
