@@ -5,6 +5,8 @@
 
 		uno_app_base: string;
 
+		dotnet_js_filename: string;
+
 		uno_dependencies: string[];
 
 		uno_main: string;
