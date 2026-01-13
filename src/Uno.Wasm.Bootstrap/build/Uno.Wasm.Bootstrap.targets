@@ -438,7 +438,7 @@
 		<!-- Update the uno-config.js file with the fingerprinted filename if we found a fingerprint -->
 		<WriteLinesToFile
 			File="$(_UnoConfigJsPath)"
-			Lines="$([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)').Replace('config.dotnet_js_filename = &quot;dotnet.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprint).js&quot;').Replace('_framework/dotnet.js', '_framework/dotnet.$(_UnoDotnetJsFingerprint).js'))"
+			Lines="$([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)').Replace('config.dotnet_js_filename = &quot;dotnet.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprint).js&quot;'))"
 			Overwrite="true"
 			Condition="'$(_UnoDotnetJsFingerprint)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
@@ -467,7 +467,7 @@
 		<!-- Update the uno-config.js file with the publish fingerprint using regex to handle any previous fingerprint -->
 		<WriteLinesToFile
 			File="$(_UnoConfigJsPath)"
-			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)')), 'config\.dotnet_js_filename = &quot;dotnet\.[^&quot;]+\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprintPublish).js&quot;').Replace($([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)')), '_framework/dotnet\.[a-z0-9]+\.js').Value), '_framework/dotnet.$(_UnoDotnetJsFingerprintPublish).js'))"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)')), 'config\.dotnet_js_filename = &quot;dotnet\.[^&quot;]+\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprintPublish).js&quot;'))"
 			Overwrite="true"
 			Condition="'$(_UnoDotnetJsFingerprintPublish)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
