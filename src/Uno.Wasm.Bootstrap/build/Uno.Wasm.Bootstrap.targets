@@ -17,6 +17,10 @@
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
 
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
+
+		<!-- Enable fingerprinting of dotnet.js for better cache busting behavior.
+		     Since we control the loading through uno-bootstrap.js, we always use the fingerprinted version. -->
+		<WasmFingerprintDotnetJs>true</WasmFingerprintDotnetJs>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -409,6 +413,63 @@
 			<Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
 		</DefineStaticWebAssetEndpoints>
 
+	</Target>
+
+	<!--
+		Update uno-config.js with the fingerprinted dotnet.js filename.
+		This runs after static web assets are resolved so we have access to the Fingerprint metadata.
+		We need separate targets for build and publish because the fingerprint changes during publish
+		(due to AOT compilation, optimization, etc.).
+	-->
+	<Target Name="_UnoUpdateDotnetJsFingerprint"
+			AfterTargets="ResolveStaticWebAssetsInputs">
+
+		<!-- Find the dotnet.js StaticWebAsset and extract its fingerprint -->
+		<ItemGroup>
+			<_UnoDotnetJsAsset Include="@(StaticWebAsset)"
+				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime'))" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_UnoDotnetJsFingerprint>@(_UnoDotnetJsAsset->'%(Fingerprint)')</_UnoDotnetJsFingerprint>
+			<_UnoConfigJsPath>$(IntermediateOutputPath)unowwwrootassets/uno-config.js</_UnoConfigJsPath>
+		</PropertyGroup>
+
+		<!-- Update the uno-config.js file with the fingerprinted filename if we found a fingerprint -->
+		<WriteLinesToFile
+			File="$(_UnoConfigJsPath)"
+			Lines="$([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)').Replace('config.dotnet_js_filename = &quot;dotnet.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprint).js&quot;').Replace('_framework/dotnet.js', '_framework/dotnet.$(_UnoDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoDotnetJsFingerprint)' != '' AND Exists('$(_UnoConfigJsPath)')" />
+	</Target>
+
+	<!--
+		Update uno-config.js with the publish-time fingerprinted dotnet.js filename.
+		During publish, the dotnet.js is regenerated with different content (AOT, optimizations)
+		and gets a new fingerprint, so we need to update the config again.
+	-->
+	<Target Name="_UnoUpdateDotnetJsFingerprintPublish"
+			AfterTargets="ResolvePublishStaticWebAssets">
+
+		<!-- Find the dotnet.js StaticWebAsset from publish assets and extract its fingerprint.
+		     We look for assets where AssetMode is 'All' or 'Publish' to get the publish-time fingerprint. -->
+		<ItemGroup>
+			<_UnoDotnetJsAssetPublish Include="@(StaticWebAsset)"
+				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime')) AND ('%(AssetMode)' == 'All' OR '%(AssetMode)' == 'Publish' OR '%(AssetMode)' == '')" />
+		</ItemGroup>
+
+		<!-- Get the last fingerprint (which should be the publish one) by using batching -->
+		<PropertyGroup>
+			<_UnoDotnetJsFingerprintPublish>%(_UnoDotnetJsAssetPublish.Fingerprint)</_UnoDotnetJsFingerprintPublish>
+			<_UnoConfigJsPath>$(IntermediateOutputPath)unowwwrootassets/uno-config.js</_UnoConfigJsPath>
+		</PropertyGroup>
+
+		<!-- Update the uno-config.js file with the publish fingerprint using regex to handle any previous fingerprint -->
+		<WriteLinesToFile
+			File="$(_UnoConfigJsPath)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)')), 'config\.dotnet_js_filename = &quot;dotnet\.[^&quot;]+\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprintPublish).js&quot;')), '_framework/dotnet\.[^&quot;]+\.js', '_framework/dotnet.$(_UnoDotnetJsFingerprintPublish).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoDotnetJsFingerprintPublish)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
 
 	<PropertyGroup>

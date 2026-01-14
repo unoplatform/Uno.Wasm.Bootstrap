@@ -542,11 +542,14 @@ namespace Uno.Wasm.Bootstrap
 
 				var enablePWA = !string.IsNullOrEmpty(PWAManifestFile);
 
+				// Get the fingerprinted dotnet.js filename from the .NET SDK output
+				var dotnetJsFileName = "dotnet.js";
+
 				var sanitizedOfflineFiles = StaticWebContent
 					.Select(f => f.GetMetadata("Link")
 						.Replace("\\", "/")
 						.Replace("wwwroot/", ""))
-					.Concat([$"{PackageAssetsFolder}/uno-config.js", "_framework/dotnet.js", "."]);
+					.Concat([$"{PackageAssetsFolder}/uno-config.js", $"_framework/{dotnetJsFileName}", "."]);
 
 				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 
@@ -559,6 +562,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"let config = {{}};");
 				config.AppendLine($"config.uno_remote_managedpath = \"_framework\";");
 				config.AppendLine($"config.uno_app_base = \"{WebAppBasePath}{PackageAssetsFolder}\";");
+				config.AppendLine($"config.dotnet_js_filename = \"{dotnetJsFileName}\";");
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");

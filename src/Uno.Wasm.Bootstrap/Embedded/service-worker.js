@@ -35,9 +35,10 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                 try {
                     // Replace dynamic import with fetch and eval for web worker compatibility
                     // In .NET 10+, dotnet.boot.js was merged with dotnet.js for performance
-                    const response = await fetch("$(REMOTE_WEBAPP_PATH)_framework/dotnet.js");
+                    // Use the fingerprinted filename from config for proper caching
+                    const response = await fetch(`$(REMOTE_WEBAPP_PATH)_framework/${unoConfig.dotnet_js_filename}`);
                     if (!response.ok) {
-                        throw new Error(`Failed to fetch dotnet.js: ${response.status} ${response.statusText}`);
+                        throw new Error(`Failed to fetch ${unoConfig.dotnet_js_filename}: ${response.status} ${response.statusText}`);
                     }
 
                     let scriptContent = await response.text();
