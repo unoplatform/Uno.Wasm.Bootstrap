@@ -531,7 +531,11 @@ namespace Uno.WebAssembly.Bootstrap {
 							})
 							.then(function () {
 								console.debug('Service Worker Registered');
-							});
+							})
+							.catch(function(error) {
+								console.error('Error while registering service worker', error);
+								throw error;
+                            });
 					}
 				}
 			}
