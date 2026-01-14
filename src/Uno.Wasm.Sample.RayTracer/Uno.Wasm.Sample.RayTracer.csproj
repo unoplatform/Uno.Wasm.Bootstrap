@@ -55,8 +55,9 @@
 
 		<PropertyGroup>
 			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
+			<_unoConfigJsContent>$([System.IO.File]::ReadAllText('$(_appOutput)/uno-config.js'))</_unoConfigJsContent>
 		</PropertyGroup>
-		
+
 		<ItemGroup>
 			<_AdditionalFile1 Include="pwa-images\android\android-launchericon-144-144.png" />
 			<_AdditionalFile1 Include="pwa-images\windows10\SplashScreen.scale-100.png" />
@@ -64,6 +65,12 @@
 
 		<Error Condition="!exists('$(_appOutput)\%(_AdditionalFile1.Identity)')" Text="%(_AdditionalFile1.Identity) is missing in $(_appOutput)" />
 		<Error Condition="!exists('$(PublishDir)wwwroot\$(WasmPWAManifestFile)')" Text="AdditionalContent/$(WasmPWAManifestFile) should exist in $(_appOutput)" />
+
+		<!-- Validate that uno-config.js uses fingerprinted dotnet.js filename, not the plain "dotnet.js" -->
+		<Error Condition="$(_unoConfigJsContent.Contains('dotnet_js_filename = &quot;dotnet.js&quot;'))"
+			   Text="uno-config.js contains non-fingerprinted dotnet.js filename. Expected fingerprinted filename like 'dotnet.abc123.js'" />
+		<Error Condition="$(_unoConfigJsContent.Contains('_framework/dotnet.js'))"
+			   Text="uno-config.js contains non-fingerprinted _framework/dotnet.js reference in offline_files. Expected fingerprinted path like '_framework/dotnet.abc123.js'" />
 
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>
