@@ -94,7 +94,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 
 				//@ts-ignore
-				var m = await import(`../_framework/dotnet.js`);
+				var m = await import(`../_framework/${config.config.dotnet_js_filename}`);
 
 				m.dotnet
 					.withModuleConfig({
@@ -133,7 +133,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				disableDotnet6Compatibility: this.disableDotnet6Compatibility,
 				configSrc: this.configSrc,
 				baseUrl: this._unoConfig.uno_app_base,
-				mainScriptPath: "_framework/dotnet.js",
+				mainScriptPath: `_framework/${this._unoConfig.dotnet_js_filename}`,
 				onConfigLoaded: this.onConfigLoaded,
 				onDotnetReady: this.onDotnetReady,
 				onAbort: this.onAbort,
