@@ -37,6 +37,10 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _previousTotalResources: number;
 		private _currentTargetProgress: number;
 
+		// Progress estimation constants
+		private static readonly MINIMUM_INITIAL_TARGET = 30;
+		private static readonly INITIAL_TARGET_PERCENTAGE = 0.3;
+
 		static ENVIRONMENT_IS_WEB: boolean;
 		static ENVIRONMENT_IS_WORKER: boolean;
 		static ENVIRONMENT_IS_NODE: boolean;
@@ -47,6 +51,10 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this._webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
+
+			// Initialize progress tracking variables
+			this._previousTotalResources = 0;
+			this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
 
 			this.disableDotnet6Compatibility = false;
 			this.onConfigLoaded = config => this.configLoaded(config);
@@ -240,6 +248,9 @@ namespace Uno.WebAssembly.Bootstrap {
 					configuration: logProfilerConfig
 				};
 			}
+
+			// Initialize progress tracking with best-guess estimation
+			this.initializeProgressEstimation();
 		}
 
 		public preInit() {
@@ -279,12 +290,35 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
+		private initializeProgressEstimation() {
+			// Estimate the total number of resources based on the MonoConfig assets
+			// This provides a better initial guess for the progress bar
+			if (this._monoConfig && this._monoConfig.assets && Array.isArray(this._monoConfig.assets)) {
+				const estimatedTotal = this._monoConfig.assets.length;
+				// Start with a more aggressive initial target if we have a good estimate
+				// Use INITIAL_TARGET_PERCENTAGE of the estimated total as initial target to account for
+				// the fact that .NET reports progress incrementally
+				this._currentTargetProgress = Math.max(
+					Bootstrapper.MINIMUM_INITIAL_TARGET,
+					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
+				);
+				if (this._monoConfig.debugLevel) {
+					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
+				}
+			} else {
+				// Fallback to conservative estimate if no config available.
+				this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
+			}
+			// Reset the previous total to allow the convergence algorithm to work.
+			this._previousTotalResources = 0;
+		}
+
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
 			this.progress.max = 100;
 			
 			// The totalResources value reported by .NET does not represent
 			// the actual total. To prevent progress bar from jumping
-			// setting the max progress to 100 instead and initially target 50
+			// setting the max progress to 100 instead with an initial target based on config estimation.
 			// When total number of resources increases, we always increase the target by half of the remainder to 100
 			// Usually the total grows several times, so ultimately the progress will appear as converging to completion.
 			if (this._previousTotalResources != totalResources)
