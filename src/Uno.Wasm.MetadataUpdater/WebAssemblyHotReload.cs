@@ -29,7 +29,7 @@ namespace Uno.Wasm.MetadataUpdate
 		};
 
 		[JSExport]
-		internal static bool Initialize()
+		internal static async Task<bool> Initialize()
 		{
 			bool.TryParse(Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_LOG_METADATA_UPDATES"), out _debugEnabled);
 
@@ -62,7 +62,7 @@ namespace Uno.Wasm.MetadataUpdate
 		/// For framework use only.
 		/// </summary>
 		[JSExport]
-		public static void ApplyHotReloadDelta(string moduleIdString, string metadataDelta, string ilDeta, string pdbDelta, int[] updatedTypes)
+		public static async Task ApplyHotReloadDelta(string moduleIdString, string metadataDelta, string ilDeta, string pdbDelta, int[] updatedTypes)
 		{
 			if (_linkerEnabled)
 			{
@@ -93,7 +93,7 @@ namespace Uno.Wasm.MetadataUpdate
 		/// For framework use only.
 		/// </summary>
 		[JSExport]
-		public static string GetApplyUpdateCapabilities()
+		public static async Task<string> GetApplyUpdateCapabilities()
 		{
 			if (_debugEnabled)
 			{
