@@ -240,6 +240,9 @@ namespace Uno.WebAssembly.Bootstrap {
 					configuration: logProfilerConfig
 				};
 			}
+
+			// Initialize progress tracking with best-guess estimation
+			this.initializeProgressEstimation();
 		}
 
 		public preInit() {
@@ -276,6 +279,28 @@ namespace Uno.WebAssembly.Bootstrap {
 			// Remove loader node if observer will not handle it
 			if (!this.bodyObserver && this.loader && this.loader.parentNode) {
 				this.loader.parentNode.removeChild(this.loader);
+			}
+		}
+
+		private initializeProgressEstimation() {
+			// Estimate the total number of resources based on the MonoConfig assets
+			// This provides a better initial guess for the progress bar
+			if (this._monoConfig && this._monoConfig.assets) {
+				const estimatedTotal = this._monoConfig.assets.length;
+				
+				// Start with a more aggressive initial target if we have a good estimate
+				// Use 30% of the estimated total as initial target to account for
+				// the fact that .NET reports progress incrementally
+				this._currentTargetProgress = Math.min(30, estimatedTotal * 0.3);
+				this._previousTotalResources = 0;
+				
+				if (this._monoConfig.debugLevel) {
+					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
+				}
+			} else {
+				// Fallback to conservative estimate if no config available
+				this._currentTargetProgress = 30;
+				this._previousTotalResources = 0;
 			}
 		}
 
