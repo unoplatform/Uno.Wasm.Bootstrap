@@ -52,6 +52,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
 
+			// Initialize progress tracking variables
+			this._previousTotalResources = 0;
+			this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
+
 			this.disableDotnet6Compatibility = false;
 			this.onConfigLoaded = config => this.configLoaded(config);
 			this.onDotnetReady = () => this.RuntimeReady();
@@ -289,7 +293,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private initializeProgressEstimation() {
 			// Estimate the total number of resources based on the MonoConfig assets
 			// This provides a better initial guess for the progress bar
-			if (this._monoConfig && this._monoConfig.assets) {
+			if (this._monoConfig && this._monoConfig.assets && Array.isArray(this._monoConfig.assets)) {
 				const estimatedTotal = this._monoConfig.assets.length;
 				// Start with a more aggressive initial target if we have a good estimate
 				// Use INITIAL_TARGET_PERCENTAGE of the estimated total as initial target to account for
@@ -299,7 +303,6 @@ namespace Uno.WebAssembly.Bootstrap {
 					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
 				);
 				this._previousTotalResources = 0;
-				
 				if (this._monoConfig.debugLevel) {
 					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
 				}
