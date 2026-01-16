@@ -306,10 +306,10 @@ namespace Uno.WebAssembly.Bootstrap {
 					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
 				}
 			} else {
-				// Fallback to conservative estimate if no config available
+				// Fallback to conservative estimate if no config available.
 				this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
 			}
-			// Reset the previous total to allow the convergence algorithm to work
+			// Reset the previous total to allow the convergence algorithm to work.
 			this._previousTotalResources = 0;
 		}
 
