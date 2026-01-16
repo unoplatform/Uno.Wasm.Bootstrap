@@ -37,6 +37,10 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _previousTotalResources: number;
 		private _currentTargetProgress: number;
 
+		// Progress estimation constants
+		private static readonly MINIMUM_INITIAL_TARGET = 30;
+		private static readonly INITIAL_TARGET_PERCENTAGE = 0.3;
+
 		static ENVIRONMENT_IS_WEB: boolean;
 		static ENVIRONMENT_IS_WORKER: boolean;
 		static ENVIRONMENT_IS_NODE: boolean;
@@ -289,9 +293,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				const estimatedTotal = this._monoConfig.assets.length;
 				
 				// Start with a more aggressive initial target if we have a good estimate
-				// Use 30% of the estimated total as initial target to account for
+				// Use INITIAL_TARGET_PERCENTAGE of the estimated total as initial target to account for
 				// the fact that .NET reports progress incrementally
-				this._currentTargetProgress = Math.max(30, estimatedTotal * 0.3);
+				this._currentTargetProgress = Math.max(
+					Bootstrapper.MINIMUM_INITIAL_TARGET, 
+					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
+				);
 				this._previousTotalResources = 0;
 				
 				if (this._monoConfig.debugLevel) {
@@ -299,7 +306,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			} else {
 				// Fallback to conservative estimate if no config available
-				this._currentTargetProgress = 30;
+				this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
 				this._previousTotalResources = 0;
 			}
 		}
