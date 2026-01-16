@@ -291,7 +291,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				// Start with a more aggressive initial target if we have a good estimate
 				// Use 30% of the estimated total as initial target to account for
 				// the fact that .NET reports progress incrementally
-				this._currentTargetProgress = Math.min(30, estimatedTotal * 0.3);
+				this._currentTargetProgress = Math.max(30, estimatedTotal * 0.3);
 				this._previousTotalResources = 0;
 				
 				if (this._monoConfig.debugLevel) {
