@@ -291,12 +291,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			// This provides a better initial guess for the progress bar
 			if (this._monoConfig && this._monoConfig.assets) {
 				const estimatedTotal = this._monoConfig.assets.length;
-				
 				// Start with a more aggressive initial target if we have a good estimate
 				// Use INITIAL_TARGET_PERCENTAGE of the estimated total as initial target to account for
 				// the fact that .NET reports progress incrementally
 				this._currentTargetProgress = Math.max(
-					Bootstrapper.MINIMUM_INITIAL_TARGET, 
+					Bootstrapper.MINIMUM_INITIAL_TARGET,
 					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
 				);
 				this._previousTotalResources = 0;
