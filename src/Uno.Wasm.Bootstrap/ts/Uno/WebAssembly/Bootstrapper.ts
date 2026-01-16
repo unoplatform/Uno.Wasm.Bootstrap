@@ -302,15 +302,15 @@ namespace Uno.WebAssembly.Bootstrap {
 					Bootstrapper.MINIMUM_INITIAL_TARGET,
 					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
 				);
-				this._previousTotalResources = 0;
 				if (this._monoConfig.debugLevel) {
 					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
 				}
 			} else {
 				// Fallback to conservative estimate if no config available
 				this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
-				this._previousTotalResources = 0;
 			}
+			// Reset the previous total to allow the convergence algorithm to work
+			this._previousTotalResources = 0;
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
