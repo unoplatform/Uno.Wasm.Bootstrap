@@ -59,9 +59,44 @@
 		<Error Condition="!Exists('$(_filteredProfilePath)')" 
 		       Text="AOTProfileDump.Filtered.txt was not generated. Profile filtering for MonoRuntimeMixedModeExcludedAssembly is not being applied." />
 
-		<Message Importance="high" Text="✓ Profile filtering validated: Both Original and Filtered AOT profile dumps were generated successfully." />
-		<Message Importance="high" Text="  - Original profile: $(_originalProfilePath)" />
-		<Message Importance="high" Text="  - Filtered profile: $(_filteredProfilePath)" />
+		<!-- Read and analyze the profile dumps -->
+		<ReadLinesFromFile File="$(_originalProfilePath)">
+			<Output TaskParameter="Lines" ItemName="_OriginalProfileLines" />
+		</ReadLinesFromFile>
+
+		<ReadLinesFromFile File="$(_filteredProfilePath)">
+			<Output TaskParameter="Lines" ItemName="_FilteredProfileLines" />
+		</ReadLinesFromFile>
+
+		<!-- Check that Newtonsoft.Json methods exist in original profile -->
+		<ItemGroup>
+			<_NewtonsoftMethodsInOriginal Include="@(_OriginalProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('Newtonsoft.Json'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_NewtonsoftMethodsInOriginal->Count()) == 0" 
+		       Text="No Newtonsoft.Json methods found in original profile. The test may not be using the assembly correctly." />
+
+		<!-- Check that Newtonsoft.Json methods do NOT exist in filtered profile -->
+		<ItemGroup>
+			<_NewtonsoftMethodsInFiltered Include="@(_FilteredProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('Newtonsoft.Json'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_NewtonsoftMethodsInFiltered->Count()) > 0" 
+		       Text="Found @(_NewtonsoftMethodsInFiltered->Count()) Newtonsoft.Json methods in filtered profile. Assembly exclusion is not working! First method: @(_NewtonsoftMethodsInFiltered->'%(Identity)', ' | ')" />
+
+		<!-- Check that System.Xml methods do NOT exist in filtered profile -->
+		<ItemGroup>
+			<_SystemXmlMethodsInFiltered Include="@(_FilteredProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('System.Xml'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_SystemXmlMethodsInFiltered->Count()) > 0" 
+		       Text="Found @(_SystemXmlMethodsInFiltered->Count()) System.Xml methods in filtered profile. Assembly exclusion is not working!" />
+
+		<Message Importance="high" Text="✓ Profile filtering validated successfully!" />
+		<Message Importance="high" Text="  - Original profile has @(_OriginalProfileLines->Count()) total methods" />
+		<Message Importance="high" Text="  - Filtered profile has @(_FilteredProfileLines->Count()) total methods" />
+		<Message Importance="high" Text="  - Found @(_NewtonsoftMethodsInOriginal->Count()) Newtonsoft.Json methods in original (correctly excluded from filtered)" />
+		<Message Importance="high" Text="  - MonoRuntimeMixedModeExcludedAssembly is working correctly!" />
 	</Target>
 
 </Project>
