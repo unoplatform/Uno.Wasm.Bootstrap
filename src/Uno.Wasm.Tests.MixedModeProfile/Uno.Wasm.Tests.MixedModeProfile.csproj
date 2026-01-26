@@ -46,7 +46,7 @@
 	</ItemGroup>
 
 	<!-- Post-build validation target -->
-	<Target Name="ValidateMixedModeProfileFiltering" AfterTargets="Build">
+	<Target Name="ValidateMixedModeProfileFiltering" AfterTargets="Publish" Condition="'$(WasmAotProfilePath)' != ''">
 		<PropertyGroup>
 			<_originalProfilePath>$(IntermediateOutputPath)AOTProfileDump.Original.txt</_originalProfilePath>
 			<_filteredProfilePath>$(IntermediateOutputPath)AOTProfileDump.Filtered.txt</_filteredProfilePath>
