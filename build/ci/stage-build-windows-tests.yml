@@ -262,6 +262,13 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  ## MixedModeProfile validation - tests MonoRuntimeMixedModeExcludedAssembly without WasmShellAOTProfileExcludedMethods
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.MixedModeProfile
+      dotnet clean -c Release 
+      dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/MixedModeProfile-win.binlog
+    displayName: Build MixedModeProfile Test (validates AOT profile filtering)
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
