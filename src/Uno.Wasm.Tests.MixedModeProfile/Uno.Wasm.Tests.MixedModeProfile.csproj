@@ -17,6 +17,8 @@
 		<!-- Use the AOT profile for profiled AOT compilation -->
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		
+		 <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> 
+
 		<!-- Important: We deliberately DO NOT set WasmShellAOTProfileExcludedMethods 
 		     to test that MonoRuntimeMixedModeExcludedAssembly works independently -->
 	</PropertyGroup>
