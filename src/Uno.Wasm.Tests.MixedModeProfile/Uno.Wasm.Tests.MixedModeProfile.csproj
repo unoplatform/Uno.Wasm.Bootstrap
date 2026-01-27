@@ -14,6 +14,9 @@
 		<!-- Enable AOT profile debug list generation to verify filtering works -->
 		<WasmShellGenerateAOTProfileDebugList>true</WasmShellGenerateAOTProfileDebugList>
 		
+		<!-- Use the AOT profile for profiled AOT compilation -->
+		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
+		
 		<!-- Important: We deliberately DO NOT set WasmShellAOTProfileExcludedMethods 
 		     to test that MonoRuntimeMixedModeExcludedAssembly works independently -->
 	</PropertyGroup>
@@ -27,11 +30,6 @@
 		<!-- Test that this works without WasmShellAOTProfileExcludedMethods being set -->
 		<MonoRuntimeMixedModeExcludedAssembly Include="Newtonsoft.Json" />
 		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- Use a sample AOT profile for testing -->
-		<WasmShellEnableAotProfile Include="aot.profile" />
 	</ItemGroup>
 
 	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
