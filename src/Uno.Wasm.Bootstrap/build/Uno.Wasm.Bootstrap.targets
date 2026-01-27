@@ -313,7 +313,7 @@
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
 			GenerateAOTProfileDebugList="$(WasmShellGenerateAOTProfileDebugList)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
-			MixedModeExcludedAssembly="$(WasmShellMixedModeExcludedAssembly)"
+			MixedModeExcludedAssembly="@(MonoRuntimeMixedModeExcludedAssembly)"
 			RunAOTCompilation="$(RunAOTCompilation)"
 			WasmBuildNative="$(WasmBuildNative)"
 			>

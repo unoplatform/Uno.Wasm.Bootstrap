@@ -1,0 +1,102 @@
+<!-- This test validates that MonoRuntimeMixedModeExcludedAssembly works independently 
+     without requiring WasmShellAOTProfileExcludedMethods -->
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		
+		<!-- Enable Mixed Mode AOT -->
+		<WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
+		<RunAOTCompilation>true</RunAOTCompilation>
+		
+		<!-- Enable AOT profile debug list generation to verify filtering works -->
+		<WasmShellGenerateAOTProfileDebugList>true</WasmShellGenerateAOTProfileDebugList>
+		
+		<!-- Use the AOT profile for profiled AOT compilation -->
+		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
+		
+		<!--<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>--> 
+
+		<!-- Important: We deliberately DO NOT set WasmShellAOTProfileExcludedMethods 
+		     to test that MonoRuntimeMixedModeExcludedAssembly works independently -->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Add a dependency that we'll exclude from AOT -->
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Test that this works without WasmShellAOTProfileExcludedMethods being set -->
+		<MonoRuntimeMixedModeExcludedAssembly Include="Newtonsoft.Json" />
+		<MonoRuntimeMixedModeExcludedAssembly Include="System.Xml" />
+	</ItemGroup>
+
+	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
+	<Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+			<UndefineProperties>TargetFramework</UndefineProperties>
+		</ProjectReference>
+	</ItemGroup>
+
+	<!-- Post-build validation target -->
+	<Target Name="ValidateMixedModeProfileFiltering" AfterTargets="Publish" Condition="'$(WasmAotProfilePath)' != ''">
+		<PropertyGroup>
+			<_originalProfilePath>$(IntermediateOutputPath)AOTProfileDump.Original.txt</_originalProfilePath>
+			<_filteredProfilePath>$(IntermediateOutputPath)AOTProfileDump.Filtered.txt</_filteredProfilePath>
+		</PropertyGroup>
+
+		<!-- Verify that both debug dump files were generated -->
+		<Error Condition="!Exists('$(_originalProfilePath)')" 
+		       Text="AOTProfileDump.Original.txt was not generated. MonoRuntimeMixedModeExcludedAssembly may not be working correctly." />
+		
+		<Error Condition="!Exists('$(_filteredProfilePath)')" 
+		       Text="AOTProfileDump.Filtered.txt was not generated. Profile filtering for MonoRuntimeMixedModeExcludedAssembly is not being applied." />
+
+		<!-- Read and analyze the profile dumps -->
+		<ReadLinesFromFile File="$(_originalProfilePath)">
+			<Output TaskParameter="Lines" ItemName="_OriginalProfileLines" />
+		</ReadLinesFromFile>
+
+		<ReadLinesFromFile File="$(_filteredProfilePath)">
+			<Output TaskParameter="Lines" ItemName="_FilteredProfileLines" />
+		</ReadLinesFromFile>
+
+		<!-- Check that Newtonsoft.Json methods exist in original profile -->
+		<ItemGroup>
+			<_NewtonsoftMethodsInOriginal Include="@(_OriginalProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('Newtonsoft.Json'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_NewtonsoftMethodsInOriginal->Count()) == 0" 
+		       Text="No Newtonsoft.Json methods found in original profile. The test may not be using the assembly correctly." />
+
+		<!-- Check that Newtonsoft.Json methods do NOT exist in filtered profile -->
+		<ItemGroup>
+			<_NewtonsoftMethodsInFiltered Include="@(_FilteredProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('Newtonsoft.Json'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_NewtonsoftMethodsInFiltered->Count()) > 0" 
+		       Text="Found @(_NewtonsoftMethodsInFiltered->Count()) Newtonsoft.Json methods in filtered profile. Assembly exclusion is not working! First method: @(_NewtonsoftMethodsInFiltered->'%(Identity)', ' | ')" />
+
+		<!-- Check that System.Xml methods do NOT exist in filtered profile -->
+		<ItemGroup>
+			<_SystemXmlMethodsInFiltered Include="@(_FilteredProfileLines)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('System.Xml'))" />
+		</ItemGroup>
+
+		<Error Condition="@(_SystemXmlMethodsInFiltered->Count()) > 0" 
+		       Text="Found @(_SystemXmlMethodsInFiltered->Count()) System.Xml methods in filtered profile. Assembly exclusion is not working!" />
+
+		<Message Importance="high" Text="✓ Profile filtering validated successfully!" />
+		<Message Importance="high" Text="  - Original profile has @(_OriginalProfileLines->Count()) total methods" />
+		<Message Importance="high" Text="  - Filtered profile has @(_FilteredProfileLines->Count()) total methods" />
+		<Message Importance="high" Text="  - Found @(_NewtonsoftMethodsInOriginal->Count()) Newtonsoft.Json methods in original (correctly excluded from filtered)" />
+		<Message Importance="high" Text="  - MonoRuntimeMixedModeExcludedAssembly is working correctly!" />
+	</Target>
+
+</Project>
