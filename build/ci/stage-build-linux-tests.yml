@@ -170,6 +170,13 @@ jobs:
       dotnet publish -c Debug /m:1 /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/sample.debug-interpreter-linux-debug.binlog
     displayName: Build Debug Interpreter with linking Sample
 
+  ## MixedModeProfile validation - tests MonoRuntimeMixedModeExcludedAssembly without WasmShellAOTProfileExcludedMethods
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.MixedModeProfile
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/MixedModeProfile-linux.binlog
+    displayName: Build MixedModeProfile Test (validates AOT profile filtering)
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
