@@ -45,6 +45,12 @@ jobs:
       OverWrite: false
       flattenFolders: false
 
+  ## Validate dotnet.js fingerprint matches actual file
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Validate dotnet.js fingerprint (RayTracer)
+
   ## Raytracer validation
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
@@ -101,6 +107,12 @@ jobs:
       CleanTargetFolder: false
       OverWrite: false
       flattenFolders: false
+
+  ## Validate dotnet.js fingerprint matches actual file (SWA build)
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Validate dotnet.js fingerprint (SWA)
 
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests-swa.sh \

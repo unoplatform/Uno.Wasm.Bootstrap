@@ -56,6 +56,9 @@
 		<PropertyGroup>
 			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
 			<_unoConfigJsContent>$([System.IO.File]::ReadAllText('$(_appOutput)/uno-config.js'))</_unoConfigJsContent>
+			<_frameworkPath>$(PublishDir)wwwroot/_framework</_frameworkPath>
+			<!-- Extract the fingerprint from uno-config.js to verify the file exists -->
+			<_configDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('$(_unoConfigJsContent)', 'dotnet\.([a-z0-9]+)\.js').Groups[1].Value)</_configDotnetJsFingerprint>
 		</PropertyGroup>
 
 		<ItemGroup>
@@ -71,6 +74,10 @@
 			   Text="uno-config.js contains non-fingerprinted dotnet.js filename. Expected fingerprinted filename like 'dotnet.abc123.js'" />
 		<Error Condition="$(_unoConfigJsContent.Contains('_framework/dotnet.js'))"
 			   Text="uno-config.js contains non-fingerprinted _framework/dotnet.js reference in offline_files. Expected fingerprinted path like '_framework/dotnet.abc123.js'" />
+
+		<!-- Validate that the fingerprinted dotnet.js file referenced in uno-config.js actually exists -->
+		<Error Condition="'$(_configDotnetJsFingerprint)' != '' AND !Exists('$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js')"
+			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_configDotnetJsFingerprint).js but this file does not exist in $(_frameworkPath). The publish-time fingerprint update may have failed." />
 
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>

@@ -33,6 +33,12 @@ jobs:
       dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false /bl:$(build.artifactstagingdirectory)/SampleNet5-nolinker-macos.binlog
     displayName: Build StaticLinking.Interpreter Sample (net5 without linker)
 
+  ## Validate dotnet.js fingerprint matches actual file
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net10.0/publish/wwwroot"
+    displayName: Validate dotnet.js fingerprint (StaticLinking.Interpreter)
+
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net10.0/publish/wwwroot" \
