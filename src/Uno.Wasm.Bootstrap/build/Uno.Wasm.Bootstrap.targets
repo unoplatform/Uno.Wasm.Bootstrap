@@ -452,15 +452,18 @@
 			AfterTargets="ResolvePublishStaticWebAssets">
 
 		<!-- Find the dotnet.js StaticWebAsset from publish assets and extract its fingerprint.
-		     We look for assets where AssetMode is 'All' or 'Publish' to get the publish-time fingerprint. -->
+		     We look for assets where AssetMode is 'All' or 'Publish' to get the publish-time fingerprint.
+		     During publish, the RelativePath may already be resolved to the actual fingerprinted value
+		     (e.g., '_framework/dotnet.abc123.js') instead of the placeholder pattern, so we match both. -->
 		<ItemGroup>
 			<_UnoDotnetJsAssetPublish Include="@(StaticWebAsset)"
-				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime')) AND ('%(AssetMode)' == 'All' OR '%(AssetMode)' == 'Publish' OR '%(AssetMode)' == '')" />
+				Condition="($([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) OR $([System.Text.RegularExpressions.Regex]::IsMatch('%(RelativePath)', '^_framework/dotnet\.[a-z0-9]+\.js$'))) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime')) AND ('%(AssetMode)' == 'All' OR '%(AssetMode)' == 'Publish' OR '%(AssetMode)' == '')" />
 		</ItemGroup>
 
-		<!-- Get the last fingerprint (which should be the publish one) by using batching -->
+		<!-- Get the fingerprint from metadata first, then fall back to extracting from RelativePath if empty -->
 		<PropertyGroup>
 			<_UnoDotnetJsFingerprintPublish>%(_UnoDotnetJsAssetPublish.Fingerprint)</_UnoDotnetJsFingerprintPublish>
+			<_UnoDotnetJsFingerprintPublish Condition="'$(_UnoDotnetJsFingerprintPublish)' == ''">$([System.Text.RegularExpressions.Regex]::Match('%(_UnoDotnetJsAssetPublish.RelativePath)', 'dotnet\.([a-z0-9]+)\.js$').Groups[1].Value)</_UnoDotnetJsFingerprintPublish>
 			<_UnoConfigJsPath>$(IntermediateOutputPath)unowwwrootassets/uno-config.js</_UnoConfigJsPath>
 		</PropertyGroup>
 
