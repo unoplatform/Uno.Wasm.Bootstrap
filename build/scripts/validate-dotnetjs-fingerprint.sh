@@ -21,8 +21,8 @@ fi
 
 echo "Found uno-config.js: $UNO_CONFIG"
 
-# Extract the fingerprint from uno-config.js
-FINGERPRINT=$(grep -oP 'dotnet\.\K[a-z0-9]+(?=\.js)' "$UNO_CONFIG" | head -1)
+# Extract the fingerprint from uno-config.js (portable across GNU and BSD grep/sed)
+FINGERPRINT=$(sed -n 's/.*dotnet\.\([a-z0-9]*\)\.js.*/\1/p' "$UNO_CONFIG" | head -1)
 
 if [ -z "$FINGERPRINT" ]; then
     echo "ERROR: Could not extract dotnet.js fingerprint from uno-config.js"
