@@ -76,6 +76,18 @@ jobs:
         -PublishPath "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net10.0\publish\wwwroot"
     displayName: Validate dotnet.js fingerprint (RayTracer)
 
+  ## Validate dotnet.js fingerprint with explicit -o flag (different publish code path)
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 -o $(Agent.TempDirectory)\publish-with-output-flag
+    displayName: Build RayTracer with -o flag
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\validate-dotnetjs-fingerprint.ps1 `
+        -PublishPath "$(Agent.TempDirectory)\publish-with-output-flag\wwwroot"
+    displayName: Validate dotnet.js fingerprint (with -o flag)
+
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net10.0\publish\wwwroot" `
