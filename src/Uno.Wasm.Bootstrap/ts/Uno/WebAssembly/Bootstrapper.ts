@@ -36,10 +36,21 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _hasReferencedPdbs: boolean;
 		private _previousTotalResources: number;
 		private _currentTargetProgress: number;
+		private _lastProgressTimestamp: number;
+		private _progressHistory: Array<{ time: number; loaded: number; total: number }>;
+		private _estimatedFinalTotal: number;
+		private _lastReportedValue: number;
 
 		// Progress estimation constants
 		private static readonly MINIMUM_INITIAL_TARGET = 30;
 		private static readonly INITIAL_TARGET_PERCENTAGE = 0.3;
+		private static readonly CONVERGENCE_RATE = 0.5;           // Advance 50% of remaining on total changes
+		private static readonly VELOCITY_WINDOW_MS = 500;         // 500ms window for velocity calculation
+		private static readonly MIN_VELOCITY_SAMPLES = 2;         // Minimum samples before using velocity
+		private static readonly VELOCITY_EXTRAPOLATION_CAP = 0.1; // Max 10% advance per velocity update
+		private static readonly STALL_THRESHOLD_MS = 1000;        // 1 second before considering stalled
+		private static readonly FINAL_RESERVE_PERCENTAGE = 0.95;  // Reserve 5% for completion
+		private static readonly ASSEMBLY_DEPENDENCY_MULTIPLIER = 1.5; // Assemblies trigger more loads
 
 		static ENVIRONMENT_IS_WEB: boolean;
 		static ENVIRONMENT_IS_WORKER: boolean;
@@ -55,6 +66,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			// Initialize progress tracking variables
 			this._previousTotalResources = 0;
 			this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
+			this._lastProgressTimestamp = 0;
+			this._progressHistory = [];
+			this._estimatedFinalTotal = 0;
+			this._lastReportedValue = 0;
 
 			this.disableDotnet6Compatibility = false;
 			this.onConfigLoaded = config => this.configLoaded(config);
@@ -291,43 +306,171 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private initializeProgressEstimation() {
-			// Estimate the total number of resources based on the MonoConfig assets
-			// This provides a better initial guess for the progress bar
 			if (this._monoConfig && this._monoConfig.assets && Array.isArray(this._monoConfig.assets)) {
-				const estimatedTotal = this._monoConfig.assets.length;
-				// Start with a more aggressive initial target if we have a good estimate
-				// Use INITIAL_TARGET_PERCENTAGE of the estimated total as initial target to account for
-				// the fact that .NET reports progress incrementally
+				const assets = this._monoConfig.assets;
+
+				// Analyze asset types to better estimate final total
+				let assemblyCount = 0;
+				let resourceCount = 0;
+				let pdbCount = 0;
+				let otherCount = 0;
+
+				for (const asset of assets) {
+					switch (asset.behavior) {
+						case 'assembly':
+							assemblyCount++;
+							break;
+						case 'resource':
+							resourceCount++;
+							break;
+						case 'pdb':
+							pdbCount++;
+							break;
+						default:
+							otherCount++;
+					}
+				}
+
+				// Estimate final total based on asset analysis
+				// Assemblies often trigger dependency loading, so multiply by dependency factor
+				this._estimatedFinalTotal = Math.floor(
+					assemblyCount * Bootstrapper.ASSEMBLY_DEPENDENCY_MULTIPLIER +
+					resourceCount +
+					pdbCount +
+					otherCount
+				);
+
+				// Set initial target conservatively - start at 20% of estimated final
+				const initialTargetFromEstimate = this._estimatedFinalTotal * 0.2;
 				this._currentTargetProgress = Math.max(
 					Bootstrapper.MINIMUM_INITIAL_TARGET,
-					estimatedTotal * Bootstrapper.INITIAL_TARGET_PERCENTAGE
+					Math.min(initialTargetFromEstimate, 50) // Cap at 50% to avoid overcommitting
 				);
-				if (this._monoConfig.debugLevel) {
-					console.log(`Progress estimation: ${estimatedTotal} assets in config, initial target: ${this._currentTargetProgress}`);
+
+				if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+					console.log(`Progress estimation: ${assets.length} initial assets ` +
+						`(assemblies: ${assemblyCount}, resources: ${resourceCount}), ` +
+						`estimated final: ${this._estimatedFinalTotal}, ` +
+						`initial target: ${this._currentTargetProgress.toFixed(1)}%`);
 				}
 			} else {
-				// Fallback to conservative estimate if no config available.
+				this._estimatedFinalTotal = 100;
 				this._currentTargetProgress = Bootstrapper.MINIMUM_INITIAL_TARGET;
 			}
-			// Reset the previous total to allow the convergence algorithm to work.
+
 			this._previousTotalResources = 0;
+			this._lastProgressTimestamp = Date.now();
+			this._progressHistory = [];
+			this._lastReportedValue = 0;
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
 			this.progress.max = 100;
-			
-			// The totalResources value reported by .NET does not represent
-			// the actual total. To prevent progress bar from jumping
-			// setting the max progress to 100 instead with an initial target based on config estimation.
-			// When total number of resources increases, we always increase the target by half of the remainder to 100
-			// Usually the total grows several times, so ultimately the progress will appear as converging to completion.
-			if (this._previousTotalResources != totalResources)
-			{
-				this._currentTargetProgress = this._currentTargetProgress + (100 - this._currentTargetProgress) / 2;
+			const now = Date.now();
+
+			// Record progress in history for velocity calculation
+			this._progressHistory.push({
+				time: now,
+				loaded: resourcesLoaded,
+				total: totalResources
+			});
+
+			// Keep only recent history (last VELOCITY_WINDOW_MS * 3 for smoothing)
+			const historyWindow = Bootstrapper.VELOCITY_WINDOW_MS * 3;
+			this._progressHistory = this._progressHistory.filter(
+				entry => now - entry.time < historyWindow
+			);
+
+			// 1. Handle totalResources changes (new dependencies discovered)
+			if (this._previousTotalResources !== totalResources) {
+				// Update estimated final total if seeing more than expected
+				if (totalResources > this._estimatedFinalTotal) {
+					this._estimatedFinalTotal = totalResources * 1.1; // Add 10% buffer
+				}
+
+				// Advance target using convergence rate
+				const remainingToReserve = Bootstrapper.FINAL_RESERVE_PERCENTAGE * 100 - this._currentTargetProgress;
+				this._currentTargetProgress = this._currentTargetProgress +
+					remainingToReserve * Bootstrapper.CONVERGENCE_RATE;
+
 				this._previousTotalResources = totalResources;
+
+				if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+					console.log(`Total increased to ${totalResources}, ` +
+						`target advanced to ${this._currentTargetProgress.toFixed(1)}%`);
+				}
 			}
-			
-			this.progress.value = Math.min(resourcesLoaded, this._currentTargetProgress);
+
+			// 2. Calculate velocity-based adjustment
+			let velocityAdjustment = 0;
+			if (this._progressHistory.length >= Bootstrapper.MIN_VELOCITY_SAMPLES) {
+				const oldest = this._progressHistory[0];
+				const timeDelta = now - oldest.time;
+				const loadedDelta = resourcesLoaded - oldest.loaded;
+
+				if (timeDelta > 0 && loadedDelta > 0) {
+					// Calculate load rate (resources per second)
+					const loadRate = (loadedDelta / timeDelta) * 1000;
+
+					// Calculate current completion ratio
+					const currentCompletionRatio = resourcesLoaded / Math.max(totalResources, 1);
+					const targetCompletionRatio = this._currentTargetProgress / 100;
+
+					// If we're approaching the target (within 90%), advance it smoothly
+					if (currentCompletionRatio >= targetCompletionRatio * 0.9) {
+						const advanceAmount = Math.min(
+							Bootstrapper.VELOCITY_EXTRAPOLATION_CAP * 100,
+							(100 - this._currentTargetProgress) * 0.1
+						);
+						velocityAdjustment = advanceAmount;
+
+						if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0 && velocityAdjustment > 0) {
+							console.log(`Velocity adjustment: +${velocityAdjustment.toFixed(1)}%, ` +
+								`load rate: ${loadRate.toFixed(2)} res/s`);
+						}
+					}
+				}
+			}
+
+			// 3. Check for stall (no progress in STALL_THRESHOLD_MS)
+			const timeSinceLastUpdate = now - this._lastProgressTimestamp;
+			if (timeSinceLastUpdate > Bootstrapper.STALL_THRESHOLD_MS) {
+				// Progress has stalled, gently advance target
+				const stallAdvancement = Math.min(
+					2, // Max 2% per stall check
+					(Bootstrapper.FINAL_RESERVE_PERCENTAGE * 100 - this._currentTargetProgress) * 0.05
+				);
+				velocityAdjustment = Math.max(velocityAdjustment, stallAdvancement);
+			}
+
+			// Apply velocity adjustment
+			if (velocityAdjustment > 0) {
+				this._currentTargetProgress = Math.min(
+					this._currentTargetProgress + velocityAdjustment,
+					Bootstrapper.FINAL_RESERVE_PERCENTAGE * 100
+				);
+			}
+
+			// 4. Calculate actual progress value to display
+			// Use the ratio of loaded/total scaled to current target
+			const completionRatio = resourcesLoaded / Math.max(totalResources, 1);
+			const scaledProgress = completionRatio * this._currentTargetProgress;
+
+			// Ensure progress never goes backward
+			const newValue = Math.max(
+				this._lastReportedValue,
+				Math.min(scaledProgress, this._currentTargetProgress)
+			);
+
+			this.progress.value = newValue;
+			this._lastReportedValue = newValue;
+			this._lastProgressTimestamp = now;
+
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+				console.log(`Progress: ${newValue.toFixed(1)}% ` +
+					`(${resourcesLoaded}/${totalResources} resources, ` +
+					`target: ${this._currentTargetProgress.toFixed(1)}%)`);
+			}
 		}
 
 		private initProgress() {

@@ -57,11 +57,15 @@
     .uno-loader progress::-moz-progress-bar {
         /* Firefox */
         background-color: var(--accent-color, #f85977);
+        /* Smooth animation between progress updates */
+        transition: width 300ms ease-out;
     }
 
     .uno-loader progress::-webkit-progress-value {
         /* Chrome & Safari */
         background-color: var(--accent-color, #f85977);
+        /* Smooth animation between progress updates */
+        transition: width 300ms ease-out;
     }
 
     .uno-loader[loading-position='top'] progress {
@@ -73,10 +77,14 @@
     @media (prefers-color-scheme: dark) {
         .uno-loader progress::-moz-progress-bar {
             background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            /* Smooth animation between progress updates */
+            transition: width 300ms ease-out;
         }
 
         .uno-loader progress::-webkit-progress-value {
             background-color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
+            /* Smooth animation between progress updates */
+            transition: width 300ms ease-out;
         }
 
         .uno-loader[loading-position='top'] progress {
