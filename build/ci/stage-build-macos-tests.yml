@@ -39,6 +39,18 @@ jobs:
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net10.0/publish/wwwroot"
     displayName: Validate dotnet.js fingerprint (StaticLinking.Interpreter)
 
+  ## Validate dotnet.js fingerprint with explicit -o flag (different publish code path)
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter
+      dotnet clean -c Release /p:DISABLE_CLIHOST_NET6=true
+      dotnet publish -c Release /m:1 /p:DISABLE_CLIHOST_NET6=true /p:WasmShellEmccLinkOptimization=false /p:WasmShellILLinkerEnabled=false -o $(Agent.TempDirectory)/publish-with-output-flag
+    displayName: Build StaticLinking.Interpreter with -o flag
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(Agent.TempDirectory)/publish-with-output-flag/wwwroot"
+    displayName: Validate dotnet.js fingerprint (with -o flag)
+
   - bash: |
       $(build.sourcesdirectory)/build/scripts/run-tests.sh \
         "$(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Interpreter/bin/Release/net10.0/publish/wwwroot" \

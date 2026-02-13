@@ -475,6 +475,69 @@
 			Condition="'$(_UnoDotnetJsFingerprintPublish)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
 
+	<!--
+		Final safety net: Update uno-config.js directly in the publish output directory.
+		This runs AFTER files have been copied to ensure the fingerprint is always correct,
+		regardless of MSBuild target ordering or caching behavior.
+	-->
+	<Target Name="_UnoUpdateDotnetJsFingerprintPublishOutput"
+			AfterTargets="Publish"
+			Condition="'$(WasmFingerprintDotnetJs)' == 'true'">
+
+		<!-- Find the actual dotnet.js file in the publish _framework directory -->
+		<ItemGroup>
+			<_UnoPublishedDotnetJs Include="$(PublishDir)wwwroot/_framework/dotnet.*.js"
+				Exclude="$(PublishDir)wwwroot/_framework/dotnet.native.*.js;$(PublishDir)wwwroot/_framework/dotnet.runtime.*.js" />
+		</ItemGroup>
+
+		<!-- Extract fingerprint from actual filename -->
+		<PropertyGroup>
+			<_UnoActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoActualDotnetJsFingerprint>
+			<_UnoPublishConfigJsPath>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
+		</PropertyGroup>
+
+		<!-- Update uno-config.js in the publish output with the actual fingerprint -->
+		<WriteLinesToFile
+			File="$(_UnoPublishConfigJsPath)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(_UnoPublishConfigJsPath)')), 'config\.dotnet_js_filename = &quot;dotnet(\.[^&quot;]+)?\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoActualDotnetJsFingerprint).js&quot;')), '_framework/dotnet(\.[^&quot;]+)?\.js', '_framework/dotnet.$(_UnoActualDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
+
+		<Message Importance="normal"
+				 Text="Updated uno-config.js with dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint)"
+				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
+	</Target>
+
+	<!--
+		Validate that uno-config.js fingerprint matches the actual dotnet.js file.
+	-->
+	<Target Name="_UnoValidateDotnetJsFingerprintPublish"
+			AfterTargets="_UnoUpdateDotnetJsFingerprintPublishOutput"
+			Condition="'$(WasmFingerprintDotnetJs)' == 'true' AND '$(UnoSkipDotnetJsFingerprintValidation)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoPublishConfigJsPath>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
+			<_UnoFrameworkPath>$(PublishDir)wwwroot/_framework</_UnoFrameworkPath>
+		</PropertyGroup>
+
+		<PropertyGroup Condition="Exists('$(_UnoPublishConfigJsPath)')">
+			<_UnoConfigContent>$([System.IO.File]::ReadAllText('$(_UnoPublishConfigJsPath)'))</_UnoConfigContent>
+			<_UnoConfigFingerprint>$([System.Text.RegularExpressions.Regex]::Match('$(_UnoConfigContent)', 'dotnet\.([a-z0-9]+)\.js').Groups[1].Value)</_UnoConfigFingerprint>
+		</PropertyGroup>
+
+		<Error Condition="'$(_UnoConfigFingerprint)' == ''"
+			   Code="UNOWASM001"
+			   Text="uno-config.js does not contain a fingerprinted dotnet.js reference." />
+
+		<Error Condition="'$(_UnoConfigFingerprint)' != '' AND !Exists('$(_UnoFrameworkPath)/dotnet.$(_UnoConfigFingerprint).js')"
+			   Code="UNOWASM002"
+			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_UnoConfigFingerprint).js but file does not exist in $(_UnoFrameworkPath)." />
+
+		<Message Importance="normal"
+				 Text="Validated: uno-config.js fingerprint ($(_UnoConfigFingerprint)) matches actual dotnet.js file"
+				 Condition="'$(_UnoConfigFingerprint)' != ''" />
+	</Target>
+
 	<PropertyGroup>
 		<UnoEnableEmccProfiling_BeforeTargets>
 			$(UnoEnableEmccProfiling_BeforeTargets);
