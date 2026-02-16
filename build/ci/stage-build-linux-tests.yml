@@ -76,8 +76,8 @@ jobs:
       dotnet clean -c Release
       # Build first (generates build-time fingerprint)
       dotnet build -c Release /m:1
-      # Then publish separately (generates new fingerprint during publish)
-      dotnet publish -c Release /m:1 --no-build
+      # Then publish separately (will regenerate files with new fingerprint)
+      dotnet publish -c Release /m:1
     displayName: Build-then-publish RayTracer (separate commands)
 
   - bash: |
