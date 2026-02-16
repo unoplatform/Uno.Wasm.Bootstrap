@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Colorful;
@@ -18,6 +19,8 @@ using Mono.Cecil;
 using Uno.Wasm.WebCIL;
 using Console = Colorful.Console;
 
+[assembly: InternalsVisibleTo("Uno.Wasm.VersionChecker.UnitTests")]
+
 namespace Uno.VersionChecker;
 
 public sealed class UnoVersionExtractor : IDisposable
@@ -26,6 +29,7 @@ public sealed class UnoVersionExtractor : IDisposable
 	private readonly HttpClient _httpClient = new HttpClient();
 
 	internal record UnoConfig(Uri assembliesPath, string? mainAssembly, string[]? assemblies, string? server, string? dotnetJsFilename);
+	internal record UnoConfigFields(string? managePath, string? packagePath, string? mainAssembly, string[]? assemblies, string? dotnetJsFilename);
 	public record AssemblyDetail(string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit);
 
 	private ImmutableArray<AssemblyDetail> _assemblies;
@@ -199,10 +203,12 @@ public sealed class UnoVersionExtractor : IDisposable
 
 		_mainAssemblyDetails = null;
 
+		var dotnetMainName = Path.GetFileNameWithoutExtension(_dotnetConfig?.mainAssemblyName);
+
 		foreach (var assemblyDetail in _assemblies)
 		{
 			if (assemblyDetail.name == _unoConfig?.mainAssembly
-				|| assemblyDetail.name == _dotnetConfig?.mainAssemblyName)
+				|| assemblyDetail.name == dotnetMainName)
 			{
 				_mainAssemblyDetails = assemblyDetail;
 			}
@@ -370,18 +376,98 @@ public sealed class UnoVersionExtractor : IDisposable
 		using var response = await _httpClient.GetAsync(uri);
 		response.EnsureSuccessStatusCode();
 
-		await using var stream = await response.Content.ReadAsStreamAsync();
-		using var reader = new StreamReader(stream);
+		var content = await response.Content.ReadAsStringAsync();
+		var server = response.Headers.Server?.ToString();
 
+		var fields = ParseUnoConfigFields(content);
+
+		var assembliesPath = new Uri(new Uri(_siteUri, fields.packagePath + "/"), fields.managePath + "/");
+
+		return new UnoConfig(assembliesPath, fields.mainAssembly, fields.assemblies, server, fields.dotnetJsFilename);
+	}
+
+	internal static void ExtractAssembliesFromResources(
+		JsonElement resources, string propertyName, List<string> assemblies)
+	{
+		if (!resources.TryGetProperty(propertyName, out var element)
+			|| element.ValueKind == JsonValueKind.Undefined)
+		{
+			return;
+		}
+
+		if (element.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var entry in element.EnumerateArray())
+			{
+				if (entry.TryGetProperty("name", out var nameProp)
+					&& nameProp.GetString() is { Length: > 0 } name)
+				{
+					assemblies.Add(name);
+				}
+			}
+		}
+		else if (element.ValueKind == JsonValueKind.Object)
+		{
+			foreach (var entry in element.EnumerateObject())
+			{
+				if (entry.Name is { Length: > 0 })
+				{
+					assemblies.Add(entry.Name);
+				}
+			}
+		}
+	}
+
+	internal static DotnetConfig? ExtractBootConfigFromScript(string scriptContent)
+	{
+		var match = Regex.Match(scriptContent, @"/\*json-start\*/([\s\S]*?)/\*json-end\*/");
+		if (!match.Success)
+		{
+			return null;
+		}
+
+		try
+		{
+			var jsonText = match.Groups[1].Value;
+			using var json = JsonDocument.Parse(jsonText);
+			var root = json.RootElement;
+
+			string? mainAssemblyName = root.TryGetProperty("mainAssemblyName", out var mainProp)
+				? mainProp.GetString() : null;
+			string? globalizationMode = root.TryGetProperty("globalizationMode", out var globProp)
+				? globProp.GetString() : null;
+			int? debugLevel = root.TryGetProperty("debugLevel", out var dbgProp)
+				? dbgProp.GetInt32() : null;
+			bool? linkerEnabled = root.TryGetProperty("linkerEnabled", out var linkProp)
+				? linkProp.GetBoolean() : null;
+
+			var assemblies = new List<string>();
+			if (root.TryGetProperty("resources", out var resources))
+			{
+				ExtractAssembliesFromResources(resources, "coreAssembly", assemblies);
+				ExtractAssembliesFromResources(resources, "assembly", assemblies);
+			}
+
+			return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies.ToArray(), null, debugLevel, linkerEnabled);
+		}
+		catch (JsonException)
+		{
+			return null;
+		}
+	}
+
+	internal static UnoConfigFields ParseUnoConfigFields(string configContent)
+	{
 		string? managePath = default;
 		string? packagePath = default;
 		string? mainAssembly = default;
 		string[]? assemblies = default;
 		string? dotnetJsFilename = default;
-		string? line = default;
-		var server = response.Headers.Server?.ToString();
 
-		while ((line = await reader.ReadLineAsync()) is not null)
+		using var reader = new StringReader(configContent);
+		string? line;
+
+		while ((line = reader.ReadLine()) is not null)
 		{
 			var parts = line.Split(['='], 2);
 			if (parts.Length != 2)
@@ -417,43 +503,7 @@ public sealed class UnoVersionExtractor : IDisposable
 			}
 		}
 
-		var assembliesPath = new Uri(new Uri(_siteUri, packagePath + "/"), managePath + "/");
-
-		return new UnoConfig(assembliesPath, mainAssembly, assemblies, server, dotnetJsFilename);
-	}
-
-	private record AssemblyDownloadInfo(string VirtualPath, string DownloadName);
-
-	private static void ExtractAssembliesFromResources(
-		JsonElement resources, string propertyName, List<string> assemblies)
-	{
-		if (!resources.TryGetProperty(propertyName, out var element)
-			|| element.ValueKind == JsonValueKind.Undefined)
-		{
-			return;
-		}
-
-		if (element.ValueKind == JsonValueKind.Array)
-		{
-			foreach (var entry in element.EnumerateArray())
-			{
-				if (entry.TryGetProperty("name", out var nameProp)
-					&& nameProp.GetString() is { Length: > 0 } name)
-				{
-					assemblies.Add(name);
-				}
-			}
-		}
-		else if (element.ValueKind == JsonValueKind.Object)
-		{
-			foreach (var entry in element.EnumerateObject())
-			{
-				if (entry.Name is { Length: > 0 })
-				{
-					assemblies.Add(entry.Name);
-				}
-			}
-		}
+		return new UnoConfigFields(managePath, packagePath, mainAssembly, assemblies, dotnetJsFilename);
 	}
 
 	private async Task<DotnetConfig?> GetDotnetConfigFromDotnetJs(string dotnetJsFilename)
@@ -469,44 +519,36 @@ public sealed class UnoVersionExtractor : IDisposable
 			}
 
 			var content = await response.Content.ReadAsStringAsync();
+			var config = ExtractBootConfigFromScript(content);
 
-			var match = Regex.Match(content, @"/\*json-start\*/([\s\S]*?)/\*json-end\*/");
-			if (!match.Success)
+			if (config is null)
 			{
 				return null;
 			}
-
-			var jsonText = match.Groups[1].Value;
-			using var json = JsonDocument.Parse(jsonText);
-			var root = json.RootElement;
-
-			string? mainAssemblyName = root.TryGetProperty("mainAssemblyName", out var mainProp)
-				? mainProp.GetString() : null;
-			string? globalizationMode = root.TryGetProperty("globalizationMode", out var globProp)
-				? globProp.GetString() : null;
-			int? debugLevel = root.TryGetProperty("debugLevel", out var dbgProp)
-				? dbgProp.GetInt32() : null;
-			bool? linkerEnabled = root.TryGetProperty("linkerEnabled", out var linkProp)
-				? linkProp.GetBoolean() : null;
-
-			var assemblies = new List<string>();
-			if (root.TryGetProperty("resources", out var resources))
-			{
-				ExtractAssembliesFromResources(resources, "coreAssembly", assemblies);
-				ExtractAssembliesFromResources(resources, "assembly", assemblies);
-			}
-
-			var assembliesPath = new Uri(_siteUri, "_framework/");
 
 			Console.WriteLineFormatted(
 				"Boot configuration extracted from {0}.",
 				Color.Gray,
 				new Formatter(dotnetJsFilename, Color.Aqua));
 
-			return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies.ToArray(), assembliesPath, debugLevel, linkerEnabled);
+			return config with { assembliesPath = new Uri(_siteUri, "_framework/") };
 		}
-		catch (Exception)
+		catch (HttpRequestException ex)
 		{
+			Console.WriteLineFormatted(
+				"Failed to download {0}: {1}",
+				Color.Yellow,
+				new Formatter(dotnetJsUrl.ToString(), Color.Aqua),
+				new Formatter(ex.Message, Color.Red));
+			return null;
+		}
+		catch (JsonException ex)
+		{
+			Console.WriteLineFormatted(
+				"Failed to parse boot configuration JSON from {0}: {1}",
+				Color.Yellow,
+				new Formatter(dotnetJsFilename, Color.Aqua),
+				new Formatter(ex.Message, Color.Red));
 			return null;
 		}
 	}
