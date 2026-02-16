@@ -11,8 +11,13 @@ const MAX_CACHE_CONCURRENCY = 10;
  * @param {number} maxConcurrency - Maximum parallel downloads.
  */
 async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
+    const pendingPuts = [];
     let inFlight = 0;
     let nextIndex = 0;
+
+    // Download files with bounded concurrency. Cache writes are
+    // started immediately but not awaited until the end, so they
+    // never block the next download from starting.
     await new Promise(resolve => {
         if (files.length === 0) {
             return resolve();
@@ -24,14 +29,18 @@ async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
                 if (unoConfig.uno_enable_tracing) {
                     console.debug(`[ServiceWorker] caching ${currentFile}`);
                 }
-                // Use fetch + cache.put instead of cache.add so that
-                // downloads run in parallel even if Cache serializes writes.
                 fetch(currentFile)
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error(`${response.status} ${response.statusText}`);
+                            console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${response.status} ${response.statusText}`);
+                            return;
                         }
-                        return cache.put(currentFile, response);
+                        // Queue the cache write but don't wait for it
+                        pendingPuts.push(
+                            cache.put(currentFile, response).catch(e => {
+                                console.debug(`[ServiceWorker] Failed to cache ${currentFile}: ${e.message}`);
+                            })
+                        );
                     })
                     .catch(e => {
                         console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${e.message}`);
@@ -48,6 +57,9 @@ async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
         }
         startNext();
     });
+
+    // Wait for all cache writes to finish
+    await Promise.allSettled(pendingPuts);
 }
 
 if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
