@@ -60,8 +60,8 @@ public class Given_ParseUnoConfigFields
 			config.uno_app_base = "/myapp";
 			config.uno_remote_managedpath = "managed";
 			config.uno_main = "[MyApp.Wasm]MyApp.Program:Main";
-			config.assemblies_with_size = {"MyApp.dll":100};
 			config.dotnet_js_filename = "dotnet.xyz789.js";
+			config.assemblies_with_size = {"MyApp.dll":100};
 			""";
 
 		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
@@ -73,6 +73,26 @@ public class Given_ParseUnoConfigFields
 		Assert.AreEqual(1, fields.assemblies.Length);
 		Assert.AreEqual("MyApp.dll", fields.assemblies[0]);
 		Assert.AreEqual("dotnet.xyz789.js", fields.dotnetJsFilename);
+	}
+
+	[TestMethod]
+	public void When_ConfigWithoutDotnetJsFilename_Then_EarlyBreakStillWorks()
+	{
+		var content = """
+			config.uno_app_base = "/myapp";
+			config.uno_remote_managedpath = "managed";
+			config.uno_main = "[MyApp.Wasm]MyApp.Program:Main";
+			config.assemblies_with_size = {"MyApp.dll":100};
+			config.some_other_field = "should not be reached";
+			""";
+
+		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+
+		Assert.AreEqual("/myapp", fields.packagePath);
+		Assert.AreEqual("managed", fields.managePath);
+		Assert.AreEqual("MyApp.Wasm", fields.mainAssembly);
+		Assert.IsNotNull(fields.assemblies);
+		Assert.IsNull(fields.dotnetJsFilename);
 	}
 
 	[TestMethod]
