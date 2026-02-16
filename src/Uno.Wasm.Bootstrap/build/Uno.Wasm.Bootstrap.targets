@@ -423,10 +423,10 @@
 			BeforeTargets="GetCopyToPublishDirectoryItems;ComputeFilesToPublish;ResolvePublishStaticWebAssets">
 
 		<PropertyGroup>
-			<_UnoIsPublishing Condition="'$(PublishDir)' != '' OR '$(_IsPublishing)' == 'true' OR '$(DeployOnBuild)' == 'true'">true</_UnoIsPublishing>
+			<_UnoIsPublishing Condition="'$(PublishDir)' != '' OR '$(_IsPublishing)' == 'true' OR '$(DeployOnBuild)' == 'true' OR '$(IsPublishing)' == 'true'">true</_UnoIsPublishing>
 		</PropertyGroup>
 
-		<Message Importance="low" Text="[Uno] Detected publish operation (PublishDir=$(PublishDir))" Condition="'$(_UnoIsPublishing)' == 'true'" />
+		<Message Importance="high" Text="[Uno] Publish detection: _UnoIsPublishing=$(_UnoIsPublishing), PublishDir=$(PublishDir), _IsPublishing=$(_IsPublishing), IsPublishing=$(IsPublishing)" />
 	</Target>
 
 	<!--
@@ -466,7 +466,7 @@
 			AfterTargets="ResolvePublishStaticWebAssets;GetCopyToPublishDirectoryItems"
 			Condition="'$(_UnoIsPublishing)' == 'true' OR '$(PublishDir)' != ''">
 
-		<Message Importance="low" Text="[Uno] Updating dotnet.js fingerprint for publish..." />
+		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublish running (_UnoIsPublishing=$(_UnoIsPublishing), PublishDir=$(PublishDir))" />
 
 		<!-- Find the dotnet.js StaticWebAsset from publish assets and extract its fingerprint.
 		     We look for assets where AssetMode is 'All' or 'Publish' to get the publish-time fingerprint.
@@ -508,7 +508,9 @@
 			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutDir)publish/')">$(OutDir)publish/</_UnoActualPublishDir>
 		</PropertyGroup>
 
-		<Message Importance="low" Text="[Uno] Checking publish output directory: $(_UnoActualPublishDir)" />
+		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput running" />
+		<Message Importance="high" Text="[Uno] PublishDir=$(PublishDir), OutputPath=$(OutputPath), OutDir=$(OutDir)" />
+		<Message Importance="high" Text="[Uno] Checking publish output directory: $(_UnoActualPublishDir)" />
 
 		<!-- Find the actual dotnet.js file in the publish _framework directory -->
 		<ItemGroup>
@@ -524,11 +526,11 @@
 			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
 		</PropertyGroup>
 
-		<Message Importance="low"
+		<Message Importance="high"
 				 Text="[Uno] Found dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint) at $(_UnoActualPublishDir)wwwroot/_framework/"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
 
-		<Message Importance="low"
+		<Message Importance="high"
 				 Text="[Uno] Updating uno-config.js at: $(_UnoPublishConfigJsPath)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
