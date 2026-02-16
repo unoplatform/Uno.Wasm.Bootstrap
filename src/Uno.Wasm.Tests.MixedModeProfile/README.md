@@ -23,6 +23,7 @@ This test was created to validate the fix for the issue where `MonoRuntimeMixedM
 ## Expected Behavior
 
 When the project builds successfully:
+
 - `AOTProfileDump.Original.txt` is created with all profile methods including those from excluded assemblies
 - `AOTProfileDump.Filtered.txt` is created with methods from excluded assemblies removed
 - The validation verifies that specific assemblies are actually filtered out, not just that files exist
@@ -30,6 +31,7 @@ When the project builds successfully:
 ## Validation
 
 The post-build target `ValidateMixedModeProfileFiltering` will fail the build if:
+
 - The original dump file is not generated
 - The filtered dump file is not generated
 - No methods from `Newtonsoft.Json` are found in the original profile (test setup issue)
@@ -45,5 +47,6 @@ dotnet publish -c Release
 ```
 
 Check for the generated files in the `obj/Release/net10.0/browser-wasm/` directory:
+
 - `AOTProfileDump.Original.txt` - should contain methods from all assemblies
 - `AOTProfileDump.Filtered.txt` - should NOT contain methods from Newtonsoft.Json or System.Xml
