@@ -57,8 +57,8 @@ if ! grep -q '/\*json-end\*/' "$DOTNET_JS_FILE"; then
     exit 1
 fi
 
-# Extract the JSON between markers and validate it contains required fields
-BOOT_JSON=$(sed -n 's|.*\/\*json-start\*\/\(.*\)\/\*json-end\*\/.*|\1|p' "$DOTNET_JS_FILE" | head -1)
+# Extract the JSON between markers (may span multiple lines) and validate required fields
+BOOT_JSON=$(perl -0777 -ne 'print $1 if m{/\*json-start\*/(.*?)/\*json-end\*/}s' "$DOTNET_JS_FILE")
 
 if [ -z "$BOOT_JSON" ]; then
     echo "ERROR: Could not extract JSON between markers"
@@ -68,14 +68,14 @@ fi
 # Validate mainAssemblyName is present
 if ! echo "$BOOT_JSON" | grep -q '"mainAssemblyName"'; then
     echo "ERROR: mainAssemblyName not found in embedded boot config JSON"
-    echo "Extracted JSON: $BOOT_JSON"
+    echo "Extracted JSON (first 500 chars): ${BOOT_JSON:0:500}"
     exit 1
 fi
 
 # Validate resources is present
 if ! echo "$BOOT_JSON" | grep -q '"resources"'; then
     echo "ERROR: resources not found in embedded boot config JSON"
-    echo "Extracted JSON: $BOOT_JSON"
+    echo "Extracted JSON (first 500 chars): ${BOOT_JSON:0:500}"
     exit 1
 fi
 

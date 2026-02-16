@@ -497,7 +497,7 @@ public sealed class UnoVersionExtractor : IDisposable
 					break;
 			}
 
-			if (managePath is { } && packagePath is { } && mainAssembly is { } && assemblies is { })
+			if (managePath is { } && packagePath is { } && mainAssembly is { } && assemblies is { } && dotnetJsFilename is { })
 			{
 				break;
 			}
@@ -539,15 +539,6 @@ public sealed class UnoVersionExtractor : IDisposable
 				"Failed to download {0}: {1}",
 				Color.Yellow,
 				new Formatter(dotnetJsUrl.ToString(), Color.Aqua),
-				new Formatter(ex.Message, Color.Red));
-			return null;
-		}
-		catch (JsonException ex)
-		{
-			Console.WriteLineFormatted(
-				"Failed to parse boot configuration JSON from {0}: {1}",
-				Color.Yellow,
-				new Formatter(dotnetJsFilename, Color.Aqua),
 				new Formatter(ex.Message, Color.Red));
 			return null;
 		}

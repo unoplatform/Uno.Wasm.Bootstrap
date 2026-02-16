@@ -56,14 +56,12 @@ public class Given_ParseUnoConfigFields
 	[TestMethod]
 	public void When_ConfigWithAllFields_Then_ExtractsEverything()
 	{
-		// dotnet_js_filename must appear before the early-break condition
-		// (managePath + packagePath + mainAssembly + assemblies all set).
 		var content = """
-			config.dotnet_js_filename = "dotnet.xyz789.js";
 			config.uno_app_base = "/myapp";
 			config.uno_remote_managedpath = "managed";
 			config.uno_main = "[MyApp.Wasm]MyApp.Program:Main";
 			config.assemblies_with_size = {"MyApp.dll":100};
+			config.dotnet_js_filename = "dotnet.xyz789.js";
 			""";
 
 		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
