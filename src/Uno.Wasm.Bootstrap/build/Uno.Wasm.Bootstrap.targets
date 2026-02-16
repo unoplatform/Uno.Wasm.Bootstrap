@@ -505,11 +505,15 @@
 
 		<!-- Determine the actual publish directory location -->
 		<PropertyGroup>
-			<_UnoActualPublishDir Condition="'$(PublishDir)' != '' AND Exists('$(PublishDir)')">$(PublishDir)</_UnoActualPublishDir>
-			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutputPath)publish/')">$(OutputPath)publish/</_UnoActualPublishDir>
-			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutDir)publish/')">$(OutDir)publish/</_UnoActualPublishDir>
+			<!-- Convert PublishDir to absolute path if it's relative -->
+			<_UnoAbsolutePublishDir Condition="'$(PublishDir)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(PublishDir)'))</_UnoAbsolutePublishDir>
+
+			<_UnoActualPublishDir Condition="'$(_UnoAbsolutePublishDir)' != '' AND Exists('$(_UnoAbsolutePublishDir)')">$(_UnoAbsolutePublishDir)</_UnoActualPublishDir>
+			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)')">$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_UnoActualPublishDir>
+			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutputPath)publish/')">$([System.IO.Path]::GetFullPath('$(OutputPath)publish/'))</_UnoActualPublishDir>
+			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutDir)publish/')">$([System.IO.Path]::GetFullPath('$(OutDir)publish/'))</_UnoActualPublishDir>
 			<!-- Fallback: construct from MSBuildProjectDirectory if publish folder exists -->
-			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\</_UnoActualPublishDir>
+			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\'))</_UnoActualPublishDir>
 		</PropertyGroup>
 
 		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput running" />
@@ -565,11 +569,15 @@
 
 		<!-- Try multiple possible publish directory locations -->
 		<PropertyGroup>
-			<_UnoValidatePublishDir Condition="'$(PublishDir)' != '' AND Exists('$(PublishDir)')">$(PublishDir)</_UnoValidatePublishDir>
-			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutputPath)publish/')">$(OutputPath)publish/</_UnoValidatePublishDir>
-			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutDir)publish/')">$(OutDir)publish/</_UnoValidatePublishDir>
+			<!-- Convert PublishDir to absolute path if it's relative -->
+			<_UnoAbsolutePublishDir Condition="'$(PublishDir)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(PublishDir)'))</_UnoAbsolutePublishDir>
+
+			<_UnoValidatePublishDir Condition="'$(_UnoAbsolutePublishDir)' != '' AND Exists('$(_UnoAbsolutePublishDir)')">$(_UnoAbsolutePublishDir)</_UnoValidatePublishDir>
+			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)')">$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_UnoValidatePublishDir>
+			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutputPath)publish/')">$([System.IO.Path]::GetFullPath('$(OutputPath)publish/'))</_UnoValidatePublishDir>
+			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutDir)publish/')">$([System.IO.Path]::GetFullPath('$(OutDir)publish/'))</_UnoValidatePublishDir>
 			<!-- Fallback: construct from MSBuildProjectDirectory if publish folder exists -->
-			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\</_UnoValidatePublishDir>
+			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\'))</_UnoValidatePublishDir>
 
 			<_UnoPublishConfigJsPath Condition="'$(_UnoValidatePublishDir)' != ''">$(_UnoValidatePublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
 			<_UnoPublishConfigJsPath Condition="!Exists('$(_UnoPublishConfigJsPath)')">$(_UnoValidatePublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
