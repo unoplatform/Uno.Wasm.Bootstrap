@@ -381,7 +381,9 @@ public sealed class UnoVersionExtractor : IDisposable
 
 		var fields = ParseUnoConfigFields(content);
 
-		var assembliesPath = new Uri(new Uri(_siteUri, fields.packagePath + "/"), fields.managePath + "/");
+		var assembliesPath = fields.packagePath is not null && fields.managePath is not null
+			? new Uri(new Uri(_siteUri, fields.packagePath + "/"), fields.managePath + "/")
+			: _siteUri;
 
 		return new UnoConfig(assembliesPath, fields.mainAssembly, fields.assemblies, server, fields.dotnetJsFilename);
 	}
@@ -497,7 +499,7 @@ public sealed class UnoVersionExtractor : IDisposable
 					break;
 			}
 
-			if (managePath is { } && packagePath is { } && mainAssembly is { } && assemblies is { } && dotnetJsFilename is { })
+			if (managePath is { } && packagePath is { } && mainAssembly is { } && assemblies is { })
 			{
 				break;
 			}
