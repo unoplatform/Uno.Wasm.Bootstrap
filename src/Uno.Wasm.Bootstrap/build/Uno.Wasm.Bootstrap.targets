@@ -498,8 +498,10 @@
 		regardless of MSBuild target ordering or caching behavior.
 	-->
 	<Target Name="_UnoUpdateDotnetJsFingerprintPublishOutput"
-			AfterTargets="Publish;_CopyResolvedFilesToPublishAlways;_CopyResolvedFilesToPublishPreserveNewest"
+			AfterTargets="Publish;_CopyResolvedFilesToPublishAlways;_CopyResolvedFilesToPublishPreserveNewest;ComputeFilesToPublish;GeneratePublishDependencyFile"
 			Condition="'$(WasmFingerprintDotnetJs)' == 'true'">
+
+		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING" />
 
 		<!-- Determine the actual publish directory location -->
 		<PropertyGroup>
