@@ -26,7 +26,19 @@ The tool automatically detects the deployment format and uses the appropriate ex
 
 Assembly files are supported in both PE (`.dll`) and WebCIL (`.wasm`) formats.
 
-## Installation
+## Quick start with `dnx`
+
+With .NET 10+, you can run the tool directly without installing it, using [`dnx`](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/sdk):
+
+```shell
+dnx Uno.Wasm.VersionChecker myapp.example.com
+```
+
+This downloads and runs the latest version on the fly.
+
+## Installation (optional)
+
+If you prefer a global installation for repeated use:
 
 ```shell
 dotnet tool install -g Uno.Wasm.VersionChecker
