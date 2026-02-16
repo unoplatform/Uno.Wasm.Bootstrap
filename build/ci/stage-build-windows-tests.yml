@@ -88,6 +88,35 @@ jobs:
         -PublishPath "$(Agent.TempDirectory)\publish-with-output-flag\wwwroot"
     displayName: Validate dotnet.js fingerprint (with -o flag)
 
+  ## Validate dotnet.js fingerprint with build-then-publish workflow
+  ## This reproduces the issue where fingerprint gets out of sync when building first, then publishing
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      # Build first (generates build-time fingerprint)
+      dotnet build -c Release /m:1
+      # Then publish separately (generates new fingerprint during publish)
+      dotnet publish -c Release /m:1 --no-build
+    displayName: Build-then-publish RayTracer (separate commands)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\validate-dotnetjs-fingerprint.ps1 `
+        -PublishPath "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net10.0\publish\wwwroot"
+    displayName: Validate dotnet.js fingerprint (build-then-publish)
+
+  ## Validate dotnet.js fingerprint with explicit PublishDir property
+  ## This tests the GetCopyToPublishDirectoryItems code path used in multi-project builds
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 /p:PublishDir="$(Agent.TempDirectory)\publish-with-publishdir\"
+    displayName: Build RayTracer with PublishDir property
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\validate-dotnetjs-fingerprint.ps1 `
+        -PublishPath "$(Agent.TempDirectory)\publish-with-publishdir\wwwroot"
+    displayName: Validate dotnet.js fingerprint (with PublishDir property)
+
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows.ps1 `
       "$(build.sourcesdirectory)\src\Uno.Wasm.Sample.RayTracer\bin\Release\net10.0\publish\wwwroot" `
