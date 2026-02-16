@@ -41,9 +41,14 @@ jobs:
   # Standalone Server publish
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.StaticLinking.Server.net7
-      dotnet clean -c Release 
+      dotnet clean -c Release
       dotnet publish -c Release /m:1  /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleServerNet7-win.binlog
     displayName: Build Standalone Server publish (net5)
+
+  - pwsh: |
+      $(build.sourcesdirectory)\build\scripts\validate-dotnetjs-fingerprint.ps1 `
+        -PublishPath "$(build.sourcesdirectory)\src\Uno.Wasm.StaticLinking.Server.net7\bin\Release\net10.0\publish\wwwroot"
+    displayName: Validate dotnet.js fingerprint (Server)
 
   - pwsh: |
       $(build.sourcesdirectory)\build\scripts\run-tests-windows-server.ps1 `
