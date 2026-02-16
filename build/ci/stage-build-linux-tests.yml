@@ -51,6 +51,12 @@ jobs:
         "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
     displayName: Validate dotnet.js fingerprint (RayTracer)
 
+  ## Validate embedded boot config format (json-start/json-end markers)
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-boot-config.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Validate embedded boot config format (RayTracer)
+
   ## Validate dotnet.js fingerprint with explicit -o flag (different publish code path)
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer

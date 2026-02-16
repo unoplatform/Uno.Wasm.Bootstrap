@@ -79,6 +79,17 @@
 		<Error Condition="'$(_configDotnetJsFingerprint)' != '' AND !Exists('$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js')"
 			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_configDotnetJsFingerprint).js but this file does not exist in $(_frameworkPath). The publish-time fingerprint update may have failed." />
 
+		<!-- Validate that dotnet.js contains embedded boot config with json-start/json-end markers -->
+		<PropertyGroup>
+			<_dotnetJsFile>$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js</_dotnetJsFile>
+			<_dotnetJsContent Condition="'$(_configDotnetJsFingerprint)' != '' AND Exists('$(_dotnetJsFile)')">$([System.IO.File]::ReadAllText('$(_dotnetJsFile)'))</_dotnetJsContent>
+		</PropertyGroup>
+
+		<Error Condition="'$(_dotnetJsContent)' != '' AND !$(_dotnetJsContent.Contains('/*json-start*/'))"
+			   Text="dotnet.js is missing /*json-start*/ marker. The version checker depends on embedded boot config markers." />
+		<Error Condition="'$(_dotnetJsContent)' != '' AND !$(_dotnetJsContent.Contains('/*json-end*/'))"
+			   Text="dotnet.js is missing /*json-end*/ marker. The version checker depends on embedded boot config markers." />
+
 		<Message Importance="high" Text="Output dist validated" />
 	</Target>
 
