@@ -499,13 +499,15 @@
 	-->
 	<Target Name="_UnoUpdateDotnetJsFingerprintPublishOutput"
 			AfterTargets="Publish;_CopyResolvedFilesToPublishAlways;_CopyResolvedFilesToPublishPreserveNewest"
-			Condition="'$(WasmFingerprintDotnetJs)' == 'true' AND ('$(_UnoIsPublishing)' == 'true' OR '$(PublishDir)' != '')">
+			Condition="'$(WasmFingerprintDotnetJs)' == 'true'">
 
 		<!-- Determine the actual publish directory location -->
 		<PropertyGroup>
 			<_UnoActualPublishDir Condition="'$(PublishDir)' != '' AND Exists('$(PublishDir)')">$(PublishDir)</_UnoActualPublishDir>
 			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutputPath)publish/')">$(OutputPath)publish/</_UnoActualPublishDir>
 			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(OutDir)publish/')">$(OutDir)publish/</_UnoActualPublishDir>
+			<!-- Fallback: construct from MSBuildProjectDirectory if publish folder exists -->
+			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\</_UnoActualPublishDir>
 		</PropertyGroup>
 
 		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput running" />
@@ -564,6 +566,8 @@
 			<_UnoValidatePublishDir Condition="'$(PublishDir)' != '' AND Exists('$(PublishDir)')">$(PublishDir)</_UnoValidatePublishDir>
 			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutputPath)publish/')">$(OutputPath)publish/</_UnoValidatePublishDir>
 			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(OutDir)publish/')">$(OutDir)publish/</_UnoValidatePublishDir>
+			<!-- Fallback: construct from MSBuildProjectDirectory if publish folder exists -->
+			<_UnoValidatePublishDir Condition="'$(_UnoValidatePublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\</_UnoValidatePublishDir>
 
 			<_UnoPublishConfigJsPath Condition="'$(_UnoValidatePublishDir)' != ''">$(_UnoValidatePublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
 			<_UnoPublishConfigJsPath Condition="!Exists('$(_UnoPublishConfigJsPath)')">$(_UnoValidatePublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
