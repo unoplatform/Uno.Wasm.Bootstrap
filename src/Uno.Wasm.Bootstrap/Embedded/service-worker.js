@@ -1,5 +1,7 @@
 ﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
 
+const MAX_CACHE_CONCURRENCY = 10;
+
 /**
  * Adds an array of files to a Cache using a sliding concurrency pool.
  * A slow or failed download only occupies one slot and never blocks others.
@@ -53,7 +55,7 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
             caches.open('$(CACHE_KEY)').then(async function (cache) {
                 console.debug('[ServiceWorker] Caching app binaries and content');
 
-                await cacheFilesWithConcurrency(cache, unoConfig.offline_files, 10);
+                await cacheFilesWithConcurrency(cache, unoConfig.offline_files, MAX_CACHE_CONCURRENCY);
 
                 // Add the runtime's own files to the cache. We cannot use the
                 // existing cached content from the runtime as the keys contain a
@@ -95,19 +97,10 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                         ...(monoConfigResources.icu || {})
                     };
 
-                    for (var key in entries) {
-                        var uri = `$(REMOTE_WEBAPP_PATH)_framework/${key}`;
-
-                        try {
-                            if (uno_enable_tracing) {
-                                console.debug(`[ServiceWorker] cache ${uri}`);
-                            }
-
-                            await cache.add(uri);
-                        } catch (e) {
-                            console.error(`[ServiceWorker] Failed to cache ${uri}:`, e.message);
-                        }
-                    }
+                    const frameworkUris = Object.keys(entries).map(
+                        key => `$(REMOTE_WEBAPP_PATH)_framework/${key}`
+                    );
+                    await cacheFilesWithConcurrency(cache, frameworkUris, MAX_CACHE_CONCURRENCY);
                 } catch (e) {
                     // Centralized error handling for the entire boot.json processing
                     console.error('[ServiceWorker] Error processing boot configuration:', e.message);
