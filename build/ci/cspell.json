@@ -91,7 +91,9 @@
 		"interoperating",
 		"bitcode",
 		"subresource",
-		"SIMD"
+		"SIMD",
+		"Newtonsoft",
+		"Linq"
 	],
 	"ignoreWords": [
 		"ADAL",
