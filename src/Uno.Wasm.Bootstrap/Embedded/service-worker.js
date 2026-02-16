@@ -24,7 +24,15 @@ async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
                 if (unoConfig.uno_enable_tracing) {
                     console.debug(`[ServiceWorker] caching ${currentFile}`);
                 }
-                cache.add(currentFile)
+                // Use fetch + cache.put instead of cache.add so that
+                // downloads run in parallel even if Cache serializes writes.
+                fetch(currentFile)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`${response.status} ${response.statusText}`);
+                        }
+                        return cache.put(currentFile, response);
+                    })
                     .catch(e => {
                         console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${e.message}`);
                     })
