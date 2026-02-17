@@ -31,6 +31,13 @@ jobs:
       dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
 
+  ## Dedicated fingerprint test - validates the fix for dotnet.js fingerprinting
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.Fingerprint
+      chmod +x test-fingerprint.sh
+      ./test-fingerprint.sh
+    displayName: Fingerprint Test (dedicated test project)
+
   - bash: |
       cd $(build.sourcesdirectory)/src
       dotnet publish -c Release /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog

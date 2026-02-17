@@ -29,12 +29,19 @@ jobs:
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
-      dotnet msbuild /r /p:Configuration=Release 
+      dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
+
+  ## Dedicated fingerprint test - validates the fix for dotnet.js fingerprinting
+  - pwsh: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.Fingerprint
+      # Run via bash since the test script is bash-based
+      bash test-fingerprint.sh
+    displayName: Fingerprint Test (dedicated test project)
 
   - pwsh: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.SampleNet7
-      dotnet clean -c Release 
+      dotnet clean -c Release
       dotnet publish /p:WasmShellEmccLinkOptimization=false /bl:$(build.artifactstagingdirectory)/SampleNet7-win-temp-with-space.binlog
     displayName: Build Raytracer Sample with Spaces
 
