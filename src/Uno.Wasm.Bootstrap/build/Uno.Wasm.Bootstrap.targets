@@ -497,8 +497,13 @@
 			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\')">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\'))</_UnoActualPublishDir>
 		</PropertyGroup>
 
+		<!-- Only proceed if the _framework directory exists (files have been copied) -->
+		<PropertyGroup>
+			<_UnoFrameworkDirExists Condition="'$(_UnoActualPublishDir)' != '' AND Exists('$(_UnoActualPublishDir)wwwroot/_framework/')">true</_UnoFrameworkDirExists>
+		</PropertyGroup>
+
 		<!-- Find the actual dotnet.js file in the publish _framework directory -->
-		<ItemGroup>
+		<ItemGroup Condition="'$(_UnoFrameworkDirExists)' == 'true'">
 			<_UnoPublishedDotnetJs Include="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.*.js"
 				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js" />
 		</ItemGroup>
@@ -518,12 +523,6 @@
 		<Message Importance="low"
 				 Text="[Uno] Updating uno-config.js at: $(_UnoPublishConfigJsPath)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
-
-		<Warning Text="[Uno] Could not find dotnet.js file in publish output at: $(_UnoActualPublishDir)wwwroot/_framework/"
-				 Condition="'$(_UnoActualDotnetJsFingerprint)' == '' AND '$(_UnoActualPublishDir)' != ''" />
-
-		<Warning Text="[Uno] Could not find uno-config.js at: $(_UnoPublishConfigJsPath)"
-				 Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND !Exists('$(_UnoPublishConfigJsPath)')" />
 
 		<!-- Update uno-config.js in the publish output with the actual fingerprint -->
 		<WriteLinesToFile
