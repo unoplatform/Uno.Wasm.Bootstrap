@@ -43,7 +43,8 @@ echo "Found config at: $BUILD_CONFIG"
 
 # Extract fingerprint from uno-config.js
 # Pattern: config.dotnet_js_filename = "dotnet.{fingerprint}.js";
-BUILD_FINGERPRINT=$(grep -oP 'dotnet_js_filename\s*=\s*"dotnet\.\K[a-z0-9]+(?=\.js)' "$BUILD_CONFIG" | head -1)
+# Use sed for portability (works on Linux, macOS, and Windows Git Bash)
+BUILD_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$BUILD_CONFIG" | head -1)
 
 if [ -z "$BUILD_FINGERPRINT" ]; then
     echo -e "${RED}❌ FAIL: No fingerprint found in build uno-config.js${NC}"
@@ -84,7 +85,8 @@ echo "Found config at: $PUBLISH_CONFIG"
 
 # Extract fingerprint from published uno-config.js
 # Pattern: config.dotnet_js_filename = "dotnet.{fingerprint}.js";
-PUBLISH_FINGERPRINT=$(grep -oP 'dotnet_js_filename\s*=\s*"dotnet\.\K[a-z0-9]+(?=\.js)' "$PUBLISH_CONFIG" | head -1)
+# Use sed for portability (works on Linux, macOS, and Windows Git Bash)
+PUBLISH_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$PUBLISH_CONFIG" | head -1)
 
 if [ -z "$PUBLISH_FINGERPRINT" ]; then
     echo -e "${RED}❌ FAIL: No fingerprint found in publish uno-config.js${NC}"
