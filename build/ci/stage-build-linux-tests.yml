@@ -31,6 +31,13 @@ jobs:
       dotnet msbuild /r /p:Configuration=Release
     displayName: Build bootstrap
 
+  ## Dedicated fingerprint test - validates the fix for dotnet.js fingerprinting
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.Fingerprint
+      chmod +x test-fingerprint.sh
+      ./test-fingerprint.sh
+    displayName: Fingerprint Test (dedicated test project)
+
   - bash: |
       cd $(build.sourcesdirectory)/src
       dotnet publish -c Release /m:1 Uno.Wasm.Bootstrap-netcore-only.slnf /bl:$(build.artifactstagingdirectory)/SampleNet5.binlog
@@ -68,6 +75,35 @@ jobs:
       $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
         "$(Agent.TempDirectory)/publish-with-output-flag/wwwroot"
     displayName: Validate dotnet.js fingerprint (with -o flag)
+
+  ## Validate dotnet.js fingerprint with build-then-publish workflow
+  ## This reproduces the issue where fingerprint gets out of sync when building first, then publishing
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      # Build first (generates build-time fingerprint)
+      dotnet build -c Release /m:1
+      # Then publish separately (will regenerate files with new fingerprint)
+      dotnet publish -c Release /m:1
+    displayName: Build-then-publish RayTracer (separate commands)
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Validate dotnet.js fingerprint (build-then-publish)
+
+  ## Validate dotnet.js fingerprint with explicit PublishDir property
+  ## This tests the GetCopyToPublishDirectoryItems code path used in multi-project builds
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 /p:PublishDir="$(Agent.TempDirectory)/publish-with-publishdir/"
+    displayName: Build RayTracer with PublishDir property
+
+  - bash: |
+      $(build.sourcesdirectory)/build/scripts/validate-dotnetjs-fingerprint.sh \
+        "$(Agent.TempDirectory)/publish-with-publishdir/wwwroot"
+    displayName: Validate dotnet.js fingerprint (with PublishDir property)
 
   ## Raytracer validation
   - bash: |

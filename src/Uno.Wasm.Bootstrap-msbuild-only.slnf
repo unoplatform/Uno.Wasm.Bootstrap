@@ -15,6 +15,7 @@
       "Uno.Wasm.StaticLinking.Interpreter\\Uno.Wasm.StaticLinking.Interpreter.csproj",
       "Uno.Wasm.Tests.Electron\\Uno.Wasm.Tests.Electron.csproj",
       "Uno.Wasm.Tests.Empty\\Uno.Wasm.Test.Empty.csproj",
+      "Uno.Wasm.Tests.Fingerprint\\Uno.Wasm.Tests.Fingerprint.csproj",
       "Uno.Wasm.Tests.TypeScript\\Uno.Wasm.Tests.TypeScript.csproj",
       "Uno.Wasm.Threading.UITests\\Uno.Wasm.Threading.UITests.njsproj",
       "Uno.Wasm.Threads.Aot\\Uno.Wasm.Threads.Aot.csproj",
