@@ -11,4 +11,62 @@
 		</ItemGroup>
 	</Target>
 
+	<!--
+		Update uno-config.js in server publish directory after StaticWebAssets are copied.
+		This ensures fingerprints are correct when hosting WASM apps in ASP.NET Core servers.
+	-->
+	<Target Name="_UnoServerUpdateDotnetJsFingerprintPublish"
+			AfterTargets="Publish">
+
+		<Message Importance="low" Text="[Uno.Server] _UnoServerUpdateDotnetJsFingerprintPublish running (PublishDir=$(PublishDir))" />
+
+		<!-- Determine the actual publish directory location -->
+		<PropertyGroup>
+			<_UnoServerAbsolutePublishDir Condition="'$(PublishDir)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(PublishDir)'))</_UnoServerAbsolutePublishDir>
+			<_UnoServerActualPublishDir Condition="'$(_UnoServerAbsolutePublishDir)' != '' AND Exists('$(_UnoServerAbsolutePublishDir)')">$(_UnoServerAbsolutePublishDir)</_UnoServerActualPublishDir>
+			<_UnoServerActualPublishDir Condition="'$(_UnoServerActualPublishDir)' == '' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)')">$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_UnoServerActualPublishDir>
+		</PropertyGroup>
+
+		<Message Importance="low" Text="[Uno.Server] Checking publish directory: $(_UnoServerActualPublishDir)" />
+
+		<!-- Find the actual dotnet.js file in the publish wwwroot/_framework directory -->
+		<ItemGroup>
+			<_UnoServerPublishedDotnetJs Include="$(_UnoServerActualPublishDir)wwwroot/_framework/dotnet.*.js"
+				Exclude="$(_UnoServerActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoServerActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js" />
+		</ItemGroup>
+
+		<!-- Extract fingerprint from actual filename -->
+		<PropertyGroup>
+			<_UnoServerActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoServerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoServerActualDotnetJsFingerprint>
+		</PropertyGroup>
+
+		<!-- Find uno-config.js (it could be in a package_* subdirectory) -->
+		<ItemGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''">
+			<_UnoServerConfigJs Include="$(_UnoServerActualPublishDir)wwwroot/**/uno-config.js" />
+		</ItemGroup>
+
+		<PropertyGroup Condition="'@(_UnoServerConfigJs)' != ''">
+			<_UnoServerConfigJsPath>@(_UnoServerConfigJs)</_UnoServerConfigJsPath>
+		</PropertyGroup>
+
+		<Message Importance="high"
+				 Text="[Uno.Server] Found dotnet.js fingerprint: $(_UnoServerActualDotnetJsFingerprint) at $(_UnoServerActualPublishDir)wwwroot/_framework/"
+				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''" />
+
+		<Message Importance="high"
+				 Text="[Uno.Server] Updating uno-config.js at: $(_UnoServerConfigJsPath)"
+				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != '' AND '$(_UnoServerConfigJsPath)' != '' AND Exists('$(_UnoServerConfigJsPath)')" />
+
+		<!-- Update uno-config.js in the server publish output with the actual fingerprint -->
+		<WriteLinesToFile
+			File="$(_UnoServerConfigJsPath)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(_UnoServerConfigJsPath)')), 'config\.dotnet_js_filename = &quot;dotnet(\.[^&quot;]+)?\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoServerActualDotnetJsFingerprint).js&quot;')), '_framework/dotnet(\.[^&quot;]+)?\.js', '_framework/dotnet.$(_UnoServerActualDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoServerActualDotnetJsFingerprint)' != '' AND '$(_UnoServerConfigJsPath)' != '' AND Exists('$(_UnoServerConfigJsPath)')" />
+
+		<Message Importance="normal"
+				 Text="[Uno.Server] Updated uno-config.js with dotnet.js fingerprint: $(_UnoServerActualDotnetJsFingerprint)"
+				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != '' AND '$(_UnoServerConfigJsPath)' != ''" />
+	</Target>
+
 </Project>
