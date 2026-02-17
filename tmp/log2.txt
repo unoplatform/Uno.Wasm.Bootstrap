@@ -1,0 +1,143 @@
+2026-02-16T20:04:37.4791092Z ##[section]Starting: Build Raytracer Sample with Spaces
+2026-02-16T20:04:37.4802998Z ==============================================================================
+2026-02-16T20:04:37.4803625Z Task         : PowerShell
+2026-02-16T20:04:37.4803933Z Description  : Run a PowerShell script on Linux, macOS, or Windows
+2026-02-16T20:04:37.4804378Z Version      : 2.268.1
+2026-02-16T20:04:37.4804724Z Author       : Microsoft Corporation
+2026-02-16T20:04:37.4805021Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/powershell
+2026-02-16T20:04:37.4805367Z ==============================================================================
+2026-02-16T20:04:38.8503534Z Generating script.
+2026-02-16T20:04:38.9047581Z ========================== Starting Command Output ===========================
+2026-02-16T20:04:38.9394039Z ##[command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command ". 'D:\a\_temp\fb7ff5c1-cb03-4859-8684-ce286a8686a5.ps1'"
+2026-02-16T20:04:41.9016445Z Build started 2/16/2026 8:04:39 PM.
+2026-02-16T20:04:41.9023208Z      1>Project "D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj" on node 1 (Clean target(s)).
+2026-02-16T20:04:41.9024215Z      1>CoreClean:
+2026-02-16T20:04:41.9025063Z          Creating directory "obj\Release\net10.0\browser-wasm\".
+2026-02-16T20:04:41.9025845Z      1>Project "D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj" (1) is building "D:\a\1\s\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj" (3) on node 1 (Clean target(s)).
+2026-02-16T20:04:41.9051510Z      3>CoreClean:
+2026-02-16T20:04:41.9053186Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.deps.json".
+2026-02-16T20:04:41.9054194Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.dll".
+2026-02-16T20:04:41.9055076Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.pdb".
+2026-02-16T20:04:41.9056162Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\uno-bootstrap.js".
+2026-02-16T20:04:41.9057042Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\uno-bootstrap.d.ts".
+2026-02-16T20:04:41.9057798Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.csproj.AssemblyReference.cache".
+2026-02-16T20:04:41.9058656Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.GeneratedMSBuildEditorConfig.editorconfig".
+2026-02-16T20:04:41.9059621Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.AssemblyInfoInputs.cache".
+2026-02-16T20:04:41.9060505Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.AssemblyInfo.cs".
+2026-02-16T20:04:41.9061390Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.csproj.CoreCompileInputs.cache".
+2026-02-16T20:04:41.9062293Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.sourcelink.json".
+2026-02-16T20:04:41.9063293Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.dll".
+2026-02-16T20:04:41.9064320Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.pdb".
+2026-02-16T20:04:41.9065451Z      3>Project "D:\a\1\s\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj" (3) is building "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj" (4) on node 1 (Clean target(s)).
+2026-02-16T20:04:41.9066388Z      4>CoreClean:
+2026-02-16T20:04:41.9067131Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\bin\Release\net10.0\Uno.Wasm.MetadataUpdater.deps.json".
+2026-02-16T20:04:41.9069230Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\bin\Release\net10.0\Uno.Wasm.MetadataUpdater.dll".
+2026-02-16T20:04:41.9070377Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\bin\Release\net10.0\Uno.Wasm.MetadataUpdater.pdb".
+2026-02-16T20:04:41.9071065Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.GeneratedMSBuildEditorConfig.editorconfig".
+2026-02-16T20:04:41.9072056Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.AssemblyInfoInputs.cache".
+2026-02-16T20:04:41.9073714Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.AssemblyInfo.cs".
+2026-02-16T20:04:41.9074637Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.csproj.CoreCompileInputs.cache".
+2026-02-16T20:04:41.9075440Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.sourcelink.json".
+2026-02-16T20:04:41.9076263Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.dll".
+2026-02-16T20:04:41.9077059Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\refint\Uno.Wasm.MetadataUpdater.dll".
+2026-02-16T20:04:41.9077912Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\Uno.Wasm.MetadataUpdater.pdb".
+2026-02-16T20:04:41.9078779Z          Deleting file "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\obj\Release\net10.0\ref\Uno.Wasm.MetadataUpdater.dll".
+2026-02-16T20:04:41.9079614Z      4>Done Building Project "D:\a\1\s\src\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9080414Z      3>Project "D:\a\1\s\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj" (3) is building "D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj" (5) on node 1 (Clean target(s)).
+2026-02-16T20:04:41.9081132Z      5>CoreClean:
+2026-02-16T20:04:41.9083009Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\bin\Release\net10.0\Uno.Wasm.LogProfiler.deps.json".
+2026-02-16T20:04:41.9083780Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\bin\Release\net10.0\Uno.Wasm.LogProfiler.dll".
+2026-02-16T20:04:41.9084514Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\bin\Release\net10.0\Uno.Wasm.LogProfiler.pdb".
+2026-02-16T20:04:41.9085273Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.GeneratedMSBuildEditorConfig.editorconfig".
+2026-02-16T20:04:41.9086124Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.AssemblyInfoInputs.cache".
+2026-02-16T20:04:41.9091716Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.AssemblyInfo.cs".
+2026-02-16T20:04:41.9098248Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.csproj.CoreCompileInputs.cache".
+2026-02-16T20:04:41.9102489Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.sourcelink.json".
+2026-02-16T20:04:41.9103686Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.dll".
+2026-02-16T20:04:41.9104451Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\refint\Uno.Wasm.LogProfiler.dll".
+2026-02-16T20:04:41.9105241Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\Uno.Wasm.LogProfiler.pdb".
+2026-02-16T20:04:41.9105925Z          Deleting file "D:\a\1\s\src\Uno.Wasm.LogProfiler\obj\Release\net10.0\ref\Uno.Wasm.LogProfiler.dll".
+2026-02-16T20:04:41.9106659Z      5>Done Building Project "D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9108209Z      1>Project "D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj" (1) is building "D:\a\1\s\src\Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj" (2:2) on node 1 (Clean target(s)).
+2026-02-16T20:04:41.9108936Z      2>CoreClean:
+2026-02-16T20:04:41.9109482Z          Creating directory "obj\Release\netstandard2.0\".
+2026-02-16T20:04:41.9110845Z      2>Done Building Project "D:\a\1\s\src\Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9111568Z      3>Project "D:\a\1\s\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj" (3) is building "D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj" (6) on node 2 (Clean target(s)).
+2026-02-16T20:04:41.9113318Z      6>CoreClean:
+2026-02-16T20:04:41.9115531Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\bin\Release\net10.0\Uno.Wasm.AotProfiler.deps.json".
+2026-02-16T20:04:41.9121862Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\bin\Release\net10.0\Uno.Wasm.AotProfiler.dll".
+2026-02-16T20:04:41.9123423Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\bin\Release\net10.0\Uno.Wasm.AotProfiler.pdb".
+2026-02-16T20:04:41.9124692Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.GeneratedMSBuildEditorConfig.editorconfig".
+2026-02-16T20:04:41.9126535Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.AssemblyInfoInputs.cache".
+2026-02-16T20:04:41.9127700Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.AssemblyInfo.cs".
+2026-02-16T20:04:41.9128720Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.csproj.CoreCompileInputs.cache".
+2026-02-16T20:04:41.9129679Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.sourcelink.json".
+2026-02-16T20:04:41.9130661Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.dll".
+2026-02-16T20:04:41.9131622Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\refint\Uno.Wasm.AotProfiler.dll".
+2026-02-16T20:04:41.9132493Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\Uno.Wasm.AotProfiler.pdb".
+2026-02-16T20:04:41.9135359Z          Deleting file "D:\a\1\s\src\Uno.Wasm.AotProfiler\obj\Release\net10.0\ref\Uno.Wasm.AotProfiler.dll".
+2026-02-16T20:04:41.9136246Z      6>Done Building Project "D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9137029Z      3>_CleanPackageFiles:
+2026-02-16T20:04:41.9139077Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\Uno.Wasm.Bootstrap.2.0.1-test.8.nupkg".
+2026-02-16T20:04:41.9140220Z          Deleting file "D:\a\1\s\src\Uno.Wasm.Bootstrap\obj\Release\Uno.Wasm.Bootstrap.2.0.1-test.8.nuspec".
+2026-02-16T20:04:41.9141184Z      3>Done Building Project "D:\a\1\s\src\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9155590Z      1>Done Building Project "D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj" (Clean target(s)).
+2026-02-16T20:04:41.9156262Z 
+2026-02-16T20:04:41.9156985Z Build succeeded.
+2026-02-16T20:04:47.2175882Z     0 Warning(s)
+2026-02-16T20:04:47.2176777Z     0 Error(s)
+2026-02-16T20:04:47.2177086Z 
+2026-02-16T20:04:47.2177582Z Time Elapsed 00:00:02.09
+2026-02-16T20:04:47.2178217Z   Determining projects to restore...
+2026-02-16T20:04:47.2179187Z D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj : warning NU1510: PackageReference System.Collections.Immutable will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:04:47.2180067Z   Restored D:\a\1\s\src\Uno.Wasm.Sample.Library\Uno.Wasm.Sample.Library.csproj (in 2.24 sec).
+2026-02-16T20:04:47.2781147Z D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:04:47.2786069Z D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:04:47.3122923Z   Restored D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj (in 2.37 sec).
+2026-02-16T20:04:47.3167398Z   4 of 6 projects are up-to-date for restore.
+2026-02-16T20:04:47.4978586Z D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj : warning NU1510: PackageReference System.Collections.Immutable will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:04:53.1456401Z D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:04:53.8419123Z D:\a\1\s\src\Uno.Wasm.AotProfiler\AotProfilerSupport.cs(12,4): warning CA1416: This call site is reachable on all platforms. 'JSExportAttribute' is only supported on: 'browser'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj]
+2026-02-16T20:04:53.9018913Z   Uno.Wasm.AotProfiler -> D:\a\1\s\src\Uno.Wasm.AotProfiler\bin\Release\net10.0\Uno.Wasm.AotProfiler.dll
+2026-02-16T20:04:54.0017871Z D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:04:54.3947822Z D:\a\1\s\src\Uno.Wasm.LogProfiler\LogProfilerSupport.cs(12,51): warning CS8601: Possible null reference assignment. [D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj]
+2026-02-16T20:04:54.4223384Z   Uno.Wasm.LogProfiler -> D:\a\1\s\src\Uno.Wasm.LogProfiler\bin\Release\net10.0\Uno.Wasm.LogProfiler.dll
+2026-02-16T20:04:54.4287285Z D:\a\1\s\src\Uno.Wasm.MetadataUpdater\WebAssemblyHotReload.cs(64,4): warning CA1416: This call site is reachable on all platforms. 'JSExportAttribute' is only supported on: 'browser'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\1\s\src\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj]
+2026-02-16T20:04:54.4291013Z D:\a\1\s\src\Uno.Wasm.MetadataUpdater\WebAssemblyHotReload.cs(95,4): warning CA1416: This call site is reachable on all platforms. 'JSExportAttribute' is only supported on: 'browser'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\1\s\src\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj]
+2026-02-16T20:04:54.4294172Z D:\a\1\s\src\Uno.Wasm.MetadataUpdater\WebAssemblyHotReload.cs(31,4): warning CA1416: This call site is reachable on all platforms. 'JSExportAttribute' is only supported on: 'browser'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\1\s\src\Uno.Wasm.MetadataUpdater\Uno.Wasm.MetadataUpdater.csproj]
+2026-02-16T20:04:54.4541075Z   Uno.Wasm.MetadataUpdater -> D:\a\1\s\src\Uno.Wasm.MetadataUpdater\bin\Release\net10.0\Uno.Wasm.MetadataUpdater.dll
+2026-02-16T20:04:54.9097155Z   Uno.Wasm.Bootstrap -> D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.dll
+2026-02-16T20:04:55.5257789Z   The package Uno.Wasm.Bootstrap.2.0.1-test.8 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+2026-02-16T20:04:55.5261545Z   Successfully created package 'D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\Uno.Wasm.Bootstrap.2.0.1-test.8.nupkg'.
+2026-02-16T20:04:56.1267881Z   Uno.Wasm.Sample.Library -> D:\a\1\s\src\Uno.Wasm.Sample.Library\bin\Release\netstandard2.0\Uno.Wasm.Sample.Library.dll
+2026-02-16T20:04:57.8047332Z D:\a\1\s\src\Uno.Wasm.Sample\Program.cs(91,41): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:04:57.8062239Z D:\a\1\s\src\Uno.Wasm.Sample\Program.cs(92,48): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:04:57.8099074Z D:\a\1\s\src\Uno.Wasm.Sample\Program.cs(35,57): warning CS0169: The field 'Program._unused' is never used [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:04:57.8104454Z D:\a\1\s\src\Uno.Wasm.Sample\Program.cs(116,4): warning CA1416: This call site is reachable on all platforms. 'JSExportAttribute' is only supported on: 'browser'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:05:06.8405894Z   Uno.Wasm.SampleNet7 -> D:\a\1\s\src\Uno.Wasm.SampleNet7\bin\Release\net10.0\Uno.Wasm.SampleNet7.dll
+2026-02-16T20:05:06.8410820Z   [Uno] Publish detection: _UnoIsPublishing=true, PublishDir=bin\Release\net10.0\publish\, _IsPublishing=true, IsPublishing=
+2026-02-16T20:05:06.8413157Z   [Uno] _UnoUpdateDotnetJsFingerprintPublish running (_UnoIsPublishing=true, PublishDir=bin\Release\net10.0\publish\)
+2026-02-16T20:05:06.8414276Z   Optimizing assemblies for size. This process might take a while.
+2026-02-16T20:05:09.0734955Z LinkerConfig.xml(2,3): warning IL2007: Could not resolve assembly 'Uno.Wasm.SampleNet'. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:05:10.3039406Z D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj : warning NU1510: PackageReference System.Collections.Immutable will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:05:18.8916306Z D:\a\1\s\src\Uno.Wasm.AotProfiler\Uno.Wasm.AotProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:05:18.9012336Z   Uno.Wasm.AotProfiler -> D:\a\1\s\src\Uno.Wasm.AotProfiler\bin\Release\net10.0\Uno.Wasm.AotProfiler.dll
+2026-02-16T20:05:18.9013447Z D:\a\1\s\src\Uno.Wasm.LogProfiler\Uno.Wasm.LogProfiler.csproj : warning NU1510: PackageReference System.Memory will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+2026-02-16T20:05:18.9016700Z   Uno.Wasm.LogProfiler -> D:\a\1\s\src\Uno.Wasm.LogProfiler\bin\Release\net10.0\Uno.Wasm.LogProfiler.dll
+2026-02-16T20:05:18.9019944Z   Uno.Wasm.MetadataUpdater -> D:\a\1\s\src\Uno.Wasm.MetadataUpdater\bin\Release\net10.0\Uno.Wasm.MetadataUpdater.dll
+2026-02-16T20:05:18.9022469Z   Uno.Wasm.Bootstrap -> D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\netstandard2.0\Uno.Wasm.Bootstrap.va2413094dc1723954b983e0c3be7529e4ffede23.dll
+2026-02-16T20:05:18.9024951Z   The package Uno.Wasm.Bootstrap.2.0.1-test.8 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+2026-02-16T20:05:18.9027376Z   Successfully created package 'D:\a\1\s\src\Uno.Wasm.Bootstrap\bin\Release\Uno.Wasm.Bootstrap.2.0.1-test.8.nupkg'.
+2026-02-16T20:05:18.9029763Z   Uno.Wasm.Sample.Library -> D:\a\1\s\src\Uno.Wasm.Sample.Library\bin\Release\netstandard2.0\Uno.Wasm.Sample.Library.dll
+2026-02-16T20:05:18.9032142Z   [Uno] Publish detection: _UnoIsPublishing=true, PublishDir=bin\Release\net10.0\browser-wasm\publish\, _IsPublishing=, IsPublishing=
+2026-02-16T20:05:18.9034746Z   [Uno] _UnoUpdateDotnetJsFingerprintPublish running (_UnoIsPublishing=true, PublishDir=bin\Release\net10.0\browser-wasm\publish\)
+2026-02-16T20:05:22.9725685Z   Optimizing assemblies for size. This process might take a while.
+2026-02-16T20:05:23.0015521Z LinkerConfig.xml(2,3): warning IL2007: Could not resolve assembly 'Uno.Wasm.SampleNet'. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:05:24.8153835Z   [Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING
+2026-02-16T20:05:24.8157932Z   [Uno] _UnoUpdateDotnetJsFingerprintPublishOutput running
+2026-02-16T20:05:24.8163030Z   [Uno] PublishDir=bin\Release\net10.0\browser-wasm\publish\, OutputPath=bin\Release\net10.0\, OutDir=bin\Release\net10.0\
+2026-02-16T20:05:24.8168659Z   [Uno] Checking publish output directory: bin\Release\net10.0\browser-wasm\publish\
+2026-02-16T20:05:24.8174758Z D:\a\1\s\src\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets(541,3): warning : [Uno] Could not find dotnet.js file in publish output at: bin\Release\net10.0\browser-wasm\publish\wwwroot/_framework/ [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:05:24.8188944Z D:\a\1\s\src\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets(594,3): error UNOWASM001: uno-config.js does not contain a fingerprinted dotnet.js reference. [D:\a\1\s\src\Uno.Wasm.SampleNet7\Uno.Wasm.SampleNet7.csproj]
+2026-02-16T20:05:25.0427572Z ##[error]PowerShell exited with code '1'.
+2026-02-16T20:05:25.0876118Z ##[section]Finishing: Build Raytracer Sample with Spaces
