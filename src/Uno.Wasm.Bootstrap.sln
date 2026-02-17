@@ -148,6 +148,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.WebCIL", "Uno.Wasm.WebCIL\Uno.Wasm.WebCIL.csproj", "{49124779-05D7-4611-A116-C0086F24DE9A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.VersionChecker.UnitTests", "Uno.Wasm.VersionChecker.UnitTests\Uno.Wasm.VersionChecker.UnitTests.csproj", "{35670586-19A9-431F-986C-5381D105A3EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.Wasm.Tests.Fingerprint", "Uno.Wasm.Tests.Fingerprint\Uno.Wasm.Tests.Fingerprint.csproj", "{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -671,6 +672,18 @@ Global
 		{35670586-19A9-431F-986C-5381D105A3EA}.Release|x64.Build.0 = Release|Any CPU
 		{35670586-19A9-431F-986C-5381D105A3EA}.Release|x86.ActiveCfg = Release|Any CPU
 		{35670586-19A9-431F-986C-5381D105A3EA}.Release|x86.Build.0 = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|x64.Build.0 = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Debug|x86.Build.0 = Debug|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|x64.ActiveCfg = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|x64.Build.0 = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|x86.ActiveCfg = Release|Any CPU
+		{82AAC0A3-7E8B-4BA4-9EBC-8FFFB0949AA2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
