@@ -49,11 +49,11 @@
 			<_UnoServerConfigJsPath>@(_UnoServerConfigJs)</_UnoServerConfigJsPath>
 		</PropertyGroup>
 
-		<Message Importance="high"
+		<Message Importance="low"
 				 Text="[Uno.Server] Found dotnet.js fingerprint: $(_UnoServerActualDotnetJsFingerprint) at $(_UnoServerActualPublishDir)wwwroot/_framework/"
 				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''" />
 
-		<Message Importance="high"
+		<Message Importance="low"
 				 Text="[Uno.Server] Updating uno-config.js at: $(_UnoServerConfigJsPath)"
 				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != '' AND '$(_UnoServerConfigJsPath)' != '' AND Exists('$(_UnoServerConfigJsPath)')" />
 

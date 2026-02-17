@@ -467,7 +467,7 @@
 			AfterTargets="Publish"
 			Condition="'$(WasmFingerprintDotnetJs)' == 'true'">
 
-		<Message Importance="high" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING (PublishDir=$(PublishDir), TargetFramework=$(TargetFramework))" />
+		<Message Importance="low" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING (PublishDir=$(PublishDir), TargetFramework=$(TargetFramework))" />
 
 		<!-- Determine the actual publish directory location -->
 		<PropertyGroup>
@@ -500,11 +500,11 @@
 			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
 		</PropertyGroup>
 
-		<Message Importance="high"
+		<Message Importance="low"
 				 Text="[Uno] Found dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint) at $(_UnoActualPublishDir)wwwroot/_framework/"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
 
-		<Message Importance="high"
+		<Message Importance="low"
 				 Text="[Uno] Updating uno-config.js at: $(_UnoPublishConfigJsPath)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
