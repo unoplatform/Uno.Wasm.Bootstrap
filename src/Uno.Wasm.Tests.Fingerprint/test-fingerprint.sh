@@ -168,6 +168,68 @@ fi
 
 echo -e "${GREEN}✓ Nested publish completed without fingerprint errors (targets correctly skipped)${NC}"
 
+# Test 6: Verify _UnoUpdateDotnetJsFingerprintPublishOutput fires inside Publish (not after)
+# Regression guard for AfterTargets="Publish" — in AOT/RayTracer scenarios, WasmTriggerPublishApp
+# also has AfterTargets="Publish" and (depending on import order) can run AFTER our update,
+# replacing dotnet.js with a new fingerprint and leaving uno-config.js pointing at the old one.
+# The fix is AfterTargets="ComputeAndCopyFilesToPublishDirectory" which fires inside Publish
+# after all static web assets have been copied, but before Publish returns.
+echo ""
+echo "⏱️  Test 6: Verify fingerprint update fires within Publish (correct AfterTargets hook)"
+echo "----------------------------------------"
+ORDER_LOG=$(mktemp)
+set +e
+dotnet publish "$PROJECT_FILE" --configuration Release -verbosity:detailed > "$ORDER_LOG" 2>&1
+ORDER_EXIT=$?
+set -e
+
+if [ "$ORDER_EXIT" -ne 0 ]; then
+    echo -e "${RED}❌ FAIL: dotnet publish failed${NC}"
+    rm -f "$ORDER_LOG"
+    exit "$ORDER_EXIT"
+fi
+
+# Check that the target did not emit the "ran too early" warning (files not present yet)
+if grep -q "Could not find dotnet.js file in publish output" "$ORDER_LOG"; then
+    echo -e "${RED}❌ FAIL: _UnoUpdateDotnetJsFingerprintPublishOutput ran before dotnet.js was placed in publish dir${NC}"
+    grep "Could not find dotnet.js" "$ORDER_LOG"
+    rm -f "$ORDER_LOG"
+    exit 1
+fi
+
+# Verify the fingerprint update message is present and fires BEFORE Publish completes.
+# "Done building target \"Publish\"" appears in -verbosity:detailed logs when the outer
+# Publish target finishes. Our target must fire before that line.
+UPDATE_LINE=$(grep -n "Updated uno-config.js with dotnet.js fingerprint" "$ORDER_LOG" | head -1 | cut -d: -f1)
+PUBLISH_DONE_LINE=$(grep -n 'Done building target "Publish"' "$ORDER_LOG" | tail -1 | cut -d: -f1)
+
+rm -f "$ORDER_LOG"
+
+if [ -z "$UPDATE_LINE" ]; then
+    echo -e "${RED}❌ FAIL: 'Updated uno-config.js with dotnet.js fingerprint' message not found${NC}"
+    echo "  _UnoUpdateDotnetJsFingerprintPublishOutput may not have run or emitted no output"
+    exit 1
+fi
+
+echo "  Fingerprint update log line: $UPDATE_LINE"
+
+if [ -z "$PUBLISH_DONE_LINE" ]; then
+    echo -e "${YELLOW}ℹ  Note: 'Done building target \"Publish\"' not found (SDK version may format differently)${NC}"
+    echo -e "${GREEN}✓ Fingerprint update ran; ordering check skipped${NC}"
+else
+    echo "  Publish completion log line: $PUBLISH_DONE_LINE"
+    if [ "$UPDATE_LINE" -lt "$PUBLISH_DONE_LINE" ]; then
+        echo -e "${GREEN}✓ Fingerprint update fires BEFORE Publish completes (AfterTargets=\"ComputeAndCopyFilesToPublishDirectory\")${NC}"
+    else
+        echo -e "${RED}❌ FAIL: Fingerprint update fires AFTER Publish completes (line $UPDATE_LINE >= $PUBLISH_DONE_LINE)${NC}"
+        echo "  _UnoUpdateDotnetJsFingerprintPublishOutput is using AfterTargets=\"Publish\""
+        echo "  In AOT scenarios WasmTriggerPublishApp can run after that and replace dotnet.js,"
+        echo "  leaving uno-config.js pointing at the old fingerprint."
+        echo "  Fix: use AfterTargets=\"ComputeAndCopyFilesToPublishDirectory\" in Uno.Wasm.Bootstrap.targets"
+        exit 1
+    fi
+fi
+
 # Summary
 echo ""
 echo "========================================="
