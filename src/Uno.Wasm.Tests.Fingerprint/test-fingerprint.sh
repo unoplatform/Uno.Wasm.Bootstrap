@@ -135,6 +135,39 @@ fi
 
 echo -e "${GREEN}✓ No placeholder patterns found${NC}"
 
+# Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true must skip fingerprint targets)
+echo ""
+echo "🔄 Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true)"
+echo "----------------------------------------"
+# The .NET WASM SDK's inner 'WasmNestedPublishApp' target invokes MSBuild with
+# WasmBuildingForNestedPublish=true, causing Publish (and its AfterTargets hooks)
+# to run inside the nested build with PublishDir pointing to an intermediate
+# directory where dotnet.js hasn't been fingerprinted yet.
+# Our targets must be skipped in that context to avoid UNOWASM001/UNOWASM002.
+NESTED_LOG=$(mktemp)
+set +e
+dotnet publish "$PROJECT_FILE" --configuration Release \
+    -p:WasmBuildingForNestedPublish=true 2>&1 | tee "$NESTED_LOG"
+NESTED_EXIT=${PIPESTATUS[0]}
+set -e
+
+if grep -qE "error UNOWASM001|error UNOWASM002" "$NESTED_LOG"; then
+    echo -e "${RED}❌ FAIL: Fingerprint error emitted during nested publish${NC}"
+    echo "Fingerprint targets must be skipped when WasmBuildingForNestedPublish=true"
+    grep -E "UNOWASM001|UNOWASM002" "$NESTED_LOG"
+    rm -f "$NESTED_LOG"
+    exit 1
+fi
+
+rm -f "$NESTED_LOG"
+
+if [ "$NESTED_EXIT" -ne 0 ]; then
+    echo -e "${RED}❌ FAIL: dotnet publish with WasmBuildingForNestedPublish=true failed${NC}"
+    exit "$NESTED_EXIT"
+fi
+
+echo -e "${GREEN}✓ Nested publish completed without fingerprint errors (targets correctly skipped)${NC}"
+
 # Summary
 echo ""
 echo "========================================="
