@@ -464,7 +464,7 @@
 		metadata, which can be incomplete or stale during publish operations.
 	-->
 	<Target Name="_UnoUpdateDotnetJsFingerprintPublishOutput"
-			AfterTargets="Publish"
+			AfterTargets="ComputeAndCopyFilesToPublishDirectory"
 			Condition="'$(WasmFingerprintDotnetJs)' == 'true' AND '$(WasmBuildingForNestedPublish)' != 'true'">
 
 		<Message Importance="low" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING (PublishDir=$(PublishDir), TargetFramework=$(TargetFramework))" />
