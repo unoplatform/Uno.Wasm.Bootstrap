@@ -105,20 +105,33 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                     const bootJson = eval(c);
                     const monoConfigResources = bootJson.resources || {};
 
-                    var entries = {
-                        ...(monoConfigResources.coreAssembly || {}),
-                        ...(monoConfigResources.assembly || {}),
-                        ...(monoConfigResources.lazyAssembly || {}),
-                        ...(monoConfigResources.jsModuleWorker || {}),
-                        ...(monoConfigResources.jsModuleGlobalization || {}),
-                        ...(monoConfigResources.jsModuleNative || {}),
-                        ...(monoConfigResources.jsModuleRuntime || {}),
-                        ...(monoConfigResources.wasmNative || {}),
-                        ...(monoConfigResources.icu || {})
-                    };
+                    function extractFilenames(resource) {
+                        if (!resource) return [];
+                        if (Array.isArray(resource)) {
+                            // Format 3: array of {virtualPath, name, integrity}
+                            return resource.filter(e => e && e.name).map(e => e.name);
+                        }
+                        // Format 1 or 2: object
+                        return Object.keys(resource).map(key => {
+                            const val = resource[key];
+                            // Format 2: value is an object with a name field (fingerprinted filename)
+                            // Format 1: value is a plain string (hash), use the key as the filename
+                            return (val && typeof val === 'object' && val.name) ? val.name : key;
+                        });
+                    }
 
-                    const frameworkUris = Object.keys(entries).map(
-                        key => `$(REMOTE_WEBAPP_PATH)_framework/${key}`
+                    const frameworkUris = [
+                        monoConfigResources.coreAssembly,
+                        monoConfigResources.assembly,
+                        monoConfigResources.lazyAssembly,
+                        monoConfigResources.jsModuleWorker,
+                        monoConfigResources.jsModuleGlobalization,
+                        monoConfigResources.jsModuleNative,
+                        monoConfigResources.jsModuleRuntime,
+                        monoConfigResources.wasmNative,
+                        monoConfigResources.icu
+                    ].flatMap(extractFilenames).map(
+                        filename => `$(REMOTE_WEBAPP_PATH)_framework/${filename}`
                     );
                     await cacheFilesWithConcurrency(cache, frameworkUris, MAX_CACHE_CONCURRENCY);
                 } catch (e) {
