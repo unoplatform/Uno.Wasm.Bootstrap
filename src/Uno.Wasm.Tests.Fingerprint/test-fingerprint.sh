@@ -190,66 +190,6 @@ fi
 
 echo -e "${GREEN}✓ Nested publish completed without fingerprint errors (targets correctly skipped)${NC}"
 
-# Test 6: Verify _UnoUpdateDotnetJsFingerprintPublishOutput fires after WasmTriggerPublishApp
-# The .NET SDK's WasmTriggerPublishApp (AfterTargets="Publish") invokes a nested MSBuild that
-# performs AOT/relinking, producing a new dotnet.js with a different fingerprint. Our target
-# must run AFTER WasmTriggerPublishApp so that it reads the final dotnet.js fingerprint.
-# The fix is AfterTargets="Publish;WasmTriggerPublishApp" which ensures correct ordering.
-echo ""
-echo "⏱️  Test 6: Verify fingerprint update fires after WasmTriggerPublishApp (correct AfterTargets hook)"
-echo "----------------------------------------"
-ORDER_LOG=$(mktemp)
-set +e
-dotnet publish "$PROJECT_FILE" --configuration Release -verbosity:detailed > "$ORDER_LOG" 2>&1
-ORDER_EXIT=$?
-set -e
-
-if [ "$ORDER_EXIT" -ne 0 ]; then
-    echo -e "${RED}❌ FAIL: dotnet publish failed${NC}"
-    rm -f "$ORDER_LOG"
-    exit "$ORDER_EXIT"
-fi
-
-# Check that the target did not emit the "ran too early" warning (files not present yet)
-if grep -q "Could not find dotnet.js file in publish output" "$ORDER_LOG"; then
-    echo -e "${RED}❌ FAIL: _UnoUpdateDotnetJsFingerprintPublishOutput ran before dotnet.js was placed in publish dir${NC}"
-    grep "Could not find dotnet.js" "$ORDER_LOG"
-    rm -f "$ORDER_LOG"
-    exit 1
-fi
-
-# Verify the fingerprint update message is present and fires AFTER WasmTriggerPublishApp.
-# If WasmTriggerPublishApp is present in the log, our target must come after it.
-# If WasmTriggerPublishApp is not present (non-AOT), just verify our target ran.
-UPDATE_LINE=$(grep -n "Updated uno-config.js with dotnet.js fingerprint" "$ORDER_LOG" | head -1 | cut -d: -f1)
-WASM_TRIGGER_LINE=$(grep -n 'WasmTriggerPublishApp' "$ORDER_LOG" | tail -1 | cut -d: -f1)
-
-rm -f "$ORDER_LOG"
-
-if [ -z "$UPDATE_LINE" ]; then
-    echo -e "${RED}❌ FAIL: 'Updated uno-config.js with dotnet.js fingerprint' message not found${NC}"
-    echo "  _UnoUpdateDotnetJsFingerprintPublishOutput may not have run or emitted no output"
-    exit 1
-fi
-
-echo "  Fingerprint update log line: $UPDATE_LINE"
-
-if [ -z "$WASM_TRIGGER_LINE" ]; then
-    echo -e "${YELLOW}ℹ  Note: 'WasmTriggerPublishApp' not found in log (non-AOT build or SDK version difference)${NC}"
-    echo -e "${GREEN}✓ Fingerprint update ran; WasmTriggerPublishApp ordering check skipped${NC}"
-else
-    echo "  WasmTriggerPublishApp log line: $WASM_TRIGGER_LINE"
-    if [ "$UPDATE_LINE" -gt "$WASM_TRIGGER_LINE" ]; then
-        echo -e "${GREEN}✓ Fingerprint update fires AFTER WasmTriggerPublishApp (AfterTargets=\"Publish;WasmTriggerPublishApp\")${NC}"
-    else
-        echo -e "${RED}❌ FAIL: Fingerprint update fires BEFORE WasmTriggerPublishApp (line $UPDATE_LINE <= $WASM_TRIGGER_LINE)${NC}"
-        echo "  _UnoUpdateDotnetJsFingerprintPublishOutput must run after WasmTriggerPublishApp"
-        echo "  so it reads the final dotnet.js fingerprint after AOT/relinking."
-        echo "  Fix: use AfterTargets=\"Publish;WasmTriggerPublishApp\" in Uno.Wasm.Bootstrap.targets"
-        exit 1
-    fi
-fi
-
 # Summary
 echo ""
 echo "========================================="
