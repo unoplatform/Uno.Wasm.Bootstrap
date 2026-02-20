@@ -1,5 +1,67 @@
 ﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
 
+const MAX_CACHE_CONCURRENCY = 10;
+
+/**
+ * Adds an array of files to a Cache using a sliding concurrency pool.
+ * A slow or failed download only occupies one slot and never blocks others.
+ *
+ * @param {Cache} cache - The Cache to add files to.
+ * @param {string[]} files - URLs to cache.
+ * @param {number} maxConcurrency - Maximum parallel downloads.
+ */
+async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
+    const pendingPuts = [];
+    let inFlight = 0;
+    let nextIndex = 0;
+
+    // Download files with bounded concurrency. Cache writes are
+    // started immediately but not awaited until the end, so they
+    // never block the next download from starting.
+    await new Promise(resolve => {
+        if (files.length === 0) {
+            return resolve();
+        }
+        function startNext() {
+            while (inFlight < maxConcurrency && nextIndex < files.length) {
+                const currentFile = files[nextIndex++];
+                inFlight++;
+                if (unoConfig.uno_enable_tracing) {
+                    console.debug(`[ServiceWorker] caching ${currentFile}`);
+                }
+                fetch(currentFile)
+                    .then(response => {
+                        if (!response.ok) {
+                            console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${response.status} ${response.statusText}`);
+                            return;
+                        }
+                        // Queue the cache write but don't wait for it
+                        pendingPuts.push(
+                            cache.put(currentFile, response).catch(e => {
+                                console.debug(`[ServiceWorker] Failed to cache ${currentFile}: ${e.message}`);
+                            })
+                        );
+                    })
+                    .catch(e => {
+                        console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${e.message}`);
+                    })
+                    .then(() => {
+                        inFlight--;
+                        if (nextIndex < files.length) {
+                            startNext();
+                        } else if (inFlight === 0) {
+                            resolve();
+                        }
+                    });
+            }
+        }
+        startNext();
+    });
+
+    // Wait for all cache writes to finish
+    await Promise.allSettled(pendingPuts);
+}
+
 if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
     console.debug("[ServiceWorker] Initializing");
     let uno_enable_tracing = unoConfig.uno_enable_tracing;
@@ -13,21 +75,7 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
             caches.open('$(CACHE_KEY)').then(async function (cache) {
                 console.debug('[ServiceWorker] Caching app binaries and content');
 
-                // Add files one by one to avoid failed downloads to prevent the
-                // worker to fail installing.
-                for (var i = 0; i < unoConfig.offline_files.length; i++) {
-                    try {
-                        const currentFile = unoConfig.offline_files[i];
-                        if (uno_enable_tracing) {
-                            console.debug(`[ServiceWorker] caching ${currentFile}`);
-                        }
-
-                        await cache.add(currentFile);
-                    }
-                    catch (e) {
-                        console.debug(`[ServiceWorker] Failed to fetch ${unoConfig.offline_files[i]}: ${e.message}`);
-                    }
-                }
+                await cacheFilesWithConcurrency(cache, unoConfig.offline_files, MAX_CACHE_CONCURRENCY);
 
                 // Add the runtime's own files to the cache. We cannot use the
                 // existing cached content from the runtime as the keys contain a
@@ -69,19 +117,10 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                         ...(monoConfigResources.icu || {})
                     };
 
-                    for (var key in entries) {
-                        var uri = `$(REMOTE_WEBAPP_PATH)_framework/${key}`;
-
-                        try {
-                            if (uno_enable_tracing) {
-                                console.debug(`[ServiceWorker] cache ${uri}`);
-                            }
-
-                            await cache.add(uri);
-                        } catch (e) {
-                            console.error(`[ServiceWorker] Failed to cache ${uri}:`, e.message);
-                        }
-                    }
+                    const frameworkUris = Object.keys(entries).map(
+                        key => `$(REMOTE_WEBAPP_PATH)_framework/${key}`
+                    );
+                    await cacheFilesWithConcurrency(cache, frameworkUris, MAX_CACHE_CONCURRENCY);
                 } catch (e) {
                     // Centralized error handling for the entire boot.json processing
                     console.error('[ServiceWorker] Error processing boot configuration:', e.message);
