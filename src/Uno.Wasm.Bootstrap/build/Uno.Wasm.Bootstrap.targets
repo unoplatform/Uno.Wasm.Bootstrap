@@ -19,8 +19,10 @@
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 
 		<!-- Enable fingerprinting of dotnet.js for better cache busting behavior.
-		     Since we control the loading through uno-bootstrap.js, we always use the fingerprinted version. -->
-		<WasmFingerprintDotnetJs>true</WasmFingerprintDotnetJs>
+		     Since we control the loading through uno-bootstrap.js, we use the fingerprinted version by default.
+		     Users can disable this by setting WasmShellEnableDotnetJsFingerprinting to false. -->
+		<WasmShellEnableDotnetJsFingerprinting Condition="'$(WasmShellEnableDotnetJsFingerprinting)' == ''">true</WasmShellEnableDotnetJsFingerprinting>
+		<WasmFingerprintDotnetJs>$(WasmShellEnableDotnetJsFingerprinting)</WasmFingerprintDotnetJs>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -422,7 +424,8 @@
 		(due to AOT compilation, optimization, etc.).
 	-->
 	<Target Name="_UnoUpdateDotnetJsFingerprint"
-			AfterTargets="ResolveStaticWebAssetsInputs">
+			AfterTargets="ResolveStaticWebAssetsInputs"
+			Condition="'$(WasmFingerprintDotnetJs)' == 'true'">
 
 		<!-- Find the dotnet.js StaticWebAsset and extract its fingerprint -->
 		<ItemGroup>
