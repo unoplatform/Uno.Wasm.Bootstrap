@@ -135,6 +135,116 @@ fi
 
 echo -e "${GREEN}✓ No placeholder patterns found${NC}"
 
+# Test 4b: Verify stale compressed uno-config.js files are removed
+echo ""
+echo "🗜️  Test 4b: Check for stale compressed uno-config.js files"
+echo "----------------------------------------"
+if [ -f "$PUBLISH_CONFIG.gz" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $PUBLISH_CONFIG.gz${NC}"
+    echo "  The .gz file was generated before the fingerprint update and contains the old"
+    echo "  dotnet.js reference. The web server would serve this stale version via content"
+    echo "  negotiation, causing a fingerprint mismatch at runtime."
+    exit 1
+fi
+
+if [ -f "$PUBLISH_CONFIG.br" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $PUBLISH_CONFIG.br${NC}"
+    echo "  The .br file was generated before the fingerprint update and contains the old"
+    echo "  dotnet.js reference. The web server would serve this stale version via content"
+    echo "  negotiation, causing a fingerprint mismatch at runtime."
+    exit 1
+fi
+
+echo -e "${GREEN}✓ No stale compressed uno-config.js files found${NC}"
+
+# Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true must skip fingerprint targets)
+echo ""
+echo "🔄 Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true)"
+echo "----------------------------------------"
+# The .NET WASM SDK's inner 'WasmNestedPublishApp' target invokes MSBuild with
+# WasmBuildingForNestedPublish=true, causing Publish (and its AfterTargets hooks)
+# to run inside the nested build with PublishDir pointing to an intermediate
+# directory where dotnet.js hasn't been fingerprinted yet.
+# Our targets must be skipped in that context to avoid UNOWASM001/UNOWASM002.
+NESTED_LOG=$(mktemp)
+set +e
+dotnet publish "$PROJECT_FILE" --configuration Release \
+    -p:WasmBuildingForNestedPublish=true 2>&1 | tee "$NESTED_LOG"
+NESTED_EXIT=${PIPESTATUS[0]}
+set -e
+
+if grep -qE "error UNOWASM001|error UNOWASM002" "$NESTED_LOG"; then
+    echo -e "${RED}❌ FAIL: Fingerprint error emitted during nested publish${NC}"
+    echo "Fingerprint targets must be skipped when WasmBuildingForNestedPublish=true"
+    grep -E "UNOWASM001|UNOWASM002" "$NESTED_LOG"
+    rm -f "$NESTED_LOG"
+    exit 1
+fi
+
+rm -f "$NESTED_LOG"
+
+if [ "$NESTED_EXIT" -ne 0 ]; then
+    echo -e "${RED}❌ FAIL: dotnet publish with WasmBuildingForNestedPublish=true failed${NC}"
+    exit "$NESTED_EXIT"
+fi
+
+echo -e "${GREEN}✓ Nested publish completed without fingerprint errors (targets correctly skipped)${NC}"
+
+# Test 6: Build with fingerprinting disabled via WasmShellEnableDotnetJsFingerprinting=false
+echo ""
+echo "🚫 Test 6: Build with WasmShellEnableDotnetJsFingerprinting=false"
+echo "----------------------------------------"
+rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
+dotnet build "$PROJECT_FILE" --configuration Release -p:WasmShellEnableDotnetJsFingerprinting=false
+
+BUILD_OUTPUT_NOFP="$PROJECT_DIR/bin/Release/net10.0"
+BUILD_CONFIG_NOFP=$(find "$BUILD_OUTPUT_NOFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+
+if [ ! -f "$BUILD_CONFIG_NOFP" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js not found in build output${NC}"
+    echo "Searched in: $BUILD_OUTPUT_NOFP/wwwroot"
+    exit 1
+fi
+
+# When fingerprinting is disabled, config should reference plain "dotnet.js" (no hash)
+NOFP_BUILD_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$BUILD_CONFIG_NOFP" | head -1)
+
+if [ -n "$NOFP_BUILD_FINGERPRINT" ]; then
+    echo -e "${RED}❌ FAIL: Fingerprint found in build uno-config.js despite WasmShellEnableDotnetJsFingerprinting=false${NC}"
+    echo "  Unexpected fingerprint: $NOFP_BUILD_FINGERPRINT"
+    cat "$BUILD_CONFIG_NOFP"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Build config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
+
+# Test 7: Publish with fingerprinting disabled via WasmShellEnableDotnetJsFingerprinting=false
+echo ""
+echo "🚫 Test 7: Publish with WasmShellEnableDotnetJsFingerprinting=false"
+echo "----------------------------------------"
+PUBLISH_DIR_NOFP="$PROJECT_DIR/bin/Release/net10.0/publish"
+dotnet publish "$PROJECT_FILE" --configuration Release -p:WasmShellEnableDotnetJsFingerprinting=false
+
+PUBLISH_CONFIG_NOFP=$(find "$PUBLISH_DIR_NOFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+
+if [ ! -f "$PUBLISH_CONFIG_NOFP" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js not found in publish output${NC}"
+    echo "Searched in: $PUBLISH_DIR_NOFP/wwwroot"
+    exit 1
+fi
+
+# When fingerprinting is disabled, config should reference plain "dotnet.js" (no hash)
+NOFP_PUBLISH_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$PUBLISH_CONFIG_NOFP" | head -1)
+
+if [ -n "$NOFP_PUBLISH_FINGERPRINT" ]; then
+    echo -e "${RED}❌ FAIL: Fingerprint found in publish uno-config.js despite WasmShellEnableDotnetJsFingerprinting=false${NC}"
+    echo "  Unexpected fingerprint: $NOFP_PUBLISH_FINGERPRINT"
+    cat "$PUBLISH_CONFIG_NOFP"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Publish config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
+
 # Summary
 echo ""
 echo "========================================="
