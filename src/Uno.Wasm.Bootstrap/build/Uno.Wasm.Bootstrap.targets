@@ -416,20 +416,6 @@
 	</Target>
 
 	<!--
-		Detect when we're in a publish operation to enable publish-specific logic.
-		This runs early in the publish process to set up state for later targets.
-	-->
-	<Target Name="_UnoDetectPublishOperation"
-			BeforeTargets="GetCopyToPublishDirectoryItems;ComputeFilesToPublish;ResolvePublishStaticWebAssets">
-
-		<PropertyGroup>
-			<_UnoIsPublishing Condition="'$(PublishDir)' != '' OR '$(_IsPublishing)' == 'true' OR '$(DeployOnBuild)' == 'true' OR '$(IsPublishing)' == 'true'">true</_UnoIsPublishing>
-		</PropertyGroup>
-
-		<Message Importance="low" Text="[Uno] Publish detection: _UnoIsPublishing=$(_UnoIsPublishing), PublishDir=$(PublishDir), _IsPublishing=$(_IsPublishing), IsPublishing=$(IsPublishing)" />
-	</Target>
-
-	<!--
 		Update uno-config.js with the fingerprinted dotnet.js filename.
 		This runs after static web assets are resolved so we have access to the Fingerprint metadata.
 		We need separate targets for build and publish because the fingerprint changes during publish
@@ -459,12 +445,16 @@
 
 	<!--
 		Update uno-config.js directly in the publish output directory.
-		This runs AFTER files have been copied to ensure the fingerprint is always correct.
-		This target scans actual files in the publish output rather than relying on StaticWebAsset
-		metadata, which can be incomplete or stale during publish operations.
+		This must run AFTER the final dotnet.js is in place. The .NET SDK's WasmTriggerPublishApp
+		target (AfterTargets="Publish") invokes a nested MSBuild that performs AOT/relinking and
+		produces a new dotnet.js with a different fingerprint. By using AfterTargets="Publish;WasmTriggerPublishApp"
+		we ensure this target runs after both Publish and the wasm post-processing.
+		MSBuild silently ignores non-existent targets in AfterTargets, so if WasmTriggerPublishApp
+		is not present (e.g. non-AOT builds), the target still runs after Publish.
+		The WasmBuildingForNestedPublish condition prevents this from running inside the nested build.
 	-->
 	<Target Name="_UnoUpdateDotnetJsFingerprintPublishOutput"
-			AfterTargets="ComputeAndCopyFilesToPublishDirectory"
+			AfterTargets="Publish;WasmTriggerPublishApp"
 			Condition="'$(WasmFingerprintDotnetJs)' == 'true' AND '$(WasmBuildingForNestedPublish)' != 'true'">
 
 		<Message Importance="low" Text="[Uno] _UnoUpdateDotnetJsFingerprintPublishOutput STARTING (PublishDir=$(PublishDir), TargetFramework=$(TargetFramework))" />
