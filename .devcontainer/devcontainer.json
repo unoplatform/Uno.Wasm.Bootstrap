@@ -1,0 +1,60 @@
+{
+  "name": "uno.wasm.bootstrap — Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.0"
+    }
+  },
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-dotnettools.csdevkit",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "explorer.fileNesting.enabled": true,
+        "explorer.fileNesting.expand": false,
+        "files.associations": {
+          "global.json": "jsonc"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "developer",
+  "mounts": [
+    "source=uno-wasm-claude-config-${devcontainerId},target=/home/developer/.claude,type=volume",
+    "source=uno-wasm-commandhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=uno-wasm-nuget-cache-${devcontainerId},target=/home/developer/.nuget,type=volume",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
+  "containerEnv": {
+    "DEVCONTAINER": "true",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DISPLAY": "${localEnv:DISPLAY::0}",
+    "CLAUDE_CONFIG_DIR": "/home/developer/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/uno.wasm.bootstrap,type=bind,consistency=delegated",
+  "workspaceFolder": "/uno.wasm.bootstrap",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && (dotnet dev-certs https --trust || true) && printf 'claude --dangerously-skip-permissions\\n' >> \"$HOME/.bash_history\"",
+  "waitFor": "postStartCommand"
+}
