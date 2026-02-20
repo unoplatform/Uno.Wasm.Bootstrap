@@ -511,6 +511,24 @@
 			Overwrite="true"
 			Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
+		<!--
+			Delete stale pre-compressed versions of uno-config.js (.gz, .br).
+			These were generated before this target updated the fingerprint, so they contain
+			the old dotnet.js reference. If left in place, the web server serves the compressed
+			version via content negotiation, which still references the wrong fingerprint.
+		-->
+		<ItemGroup>
+			<_UnoStaleCompressedConfigJs Include="$(_UnoPublishConfigJsPath).gz;$(_UnoPublishConfigJsPath).br"
+				Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
+		</ItemGroup>
+
+		<Delete Files="@(_UnoStaleCompressedConfigJs)"
+				Condition="'@(_UnoStaleCompressedConfigJs)' != ''" />
+
+		<Message Importance="low"
+				 Text="[Uno] Deleted stale compressed uno-config.js files: @(_UnoStaleCompressedConfigJs)"
+				 Condition="'@(_UnoStaleCompressedConfigJs)' != ''" />
+
 		<Message Importance="normal"
 				 Text="Updated uno-config.js with dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
@@ -563,6 +581,12 @@
 		<Error Condition="'$(_UnoValidatePublishDir)' != '' AND '$(_UnoConfigFingerprint)' != '' AND !Exists('$(_UnoFrameworkPath)/dotnet.$(_UnoConfigFingerprint).js')"
 			   Code="UNOWASM002"
 			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_UnoConfigFingerprint).js but file does not exist in $(_UnoFrameworkPath). Found: @(_UnoDotnetJsFilesFound)" />
+
+		<Warning Condition="'$(_UnoConfigFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath).gz')"
+				 Text="[Uno] Stale compressed file exists: $(_UnoPublishConfigJsPath).gz — this may cause the web server to serve an outdated uno-config.js" />
+
+		<Warning Condition="'$(_UnoConfigFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath).br')"
+				 Text="[Uno] Stale compressed file exists: $(_UnoPublishConfigJsPath).br — this may cause the web server to serve an outdated uno-config.js" />
 
 		<Message Importance="normal"
 				 Text="Validated: uno-config.js fingerprint ($(_UnoConfigFingerprint)) matches actual dotnet.js file"

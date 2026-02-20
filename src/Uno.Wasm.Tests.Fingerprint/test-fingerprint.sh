@@ -135,6 +135,28 @@ fi
 
 echo -e "${GREEN}✓ No placeholder patterns found${NC}"
 
+# Test 4b: Verify stale compressed uno-config.js files are removed
+echo ""
+echo "🗜️  Test 4b: Check for stale compressed uno-config.js files"
+echo "----------------------------------------"
+if [ -f "$PUBLISH_CONFIG.gz" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $PUBLISH_CONFIG.gz${NC}"
+    echo "  The .gz file was generated before the fingerprint update and contains the old"
+    echo "  dotnet.js reference. The web server would serve this stale version via content"
+    echo "  negotiation, causing a fingerprint mismatch at runtime."
+    exit 1
+fi
+
+if [ -f "$PUBLISH_CONFIG.br" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $PUBLISH_CONFIG.br${NC}"
+    echo "  The .br file was generated before the fingerprint update and contains the old"
+    echo "  dotnet.js reference. The web server would serve this stale version via content"
+    echo "  negotiation, causing a fingerprint mismatch at runtime."
+    exit 1
+fi
+
+echo -e "${GREEN}✓ No stale compressed uno-config.js files found${NC}"
+
 # Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true must skip fingerprint targets)
 echo ""
 echo "🔄 Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true)"
