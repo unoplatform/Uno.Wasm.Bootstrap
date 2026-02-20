@@ -51,7 +51,8 @@
 		</VisualStudio>
 	</ProjectExtensions>
 
-	<Target Name="AfterPublishValidation" AfterTargets="Publish">
+	<Target Name="AfterPublishValidation" AfterTargets="Publish"
+			Condition="'$(WasmBuildingForNestedPublish)' != 'true'">
 
 		<PropertyGroup>
 			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
