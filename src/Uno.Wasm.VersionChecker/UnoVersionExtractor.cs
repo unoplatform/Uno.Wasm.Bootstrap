@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Colorful;
@@ -18,6 +19,8 @@ using Mono.Cecil;
 using Uno.Wasm.WebCIL;
 using Console = Colorful.Console;
 
+[assembly: InternalsVisibleTo("Uno.Wasm.VersionChecker.UnitTests")]
+
 namespace Uno.VersionChecker;
 
 public sealed class UnoVersionExtractor : IDisposable
@@ -25,7 +28,8 @@ public sealed class UnoVersionExtractor : IDisposable
 	private readonly Uri _siteUri;
 	private readonly HttpClient _httpClient = new HttpClient();
 
-	internal record UnoConfig(Uri assembliesPath, string? mainAssembly, string[]? assemblies, string? server);
+	internal record UnoConfig(Uri assembliesPath, string? mainAssembly, string[]? assemblies, string? server, string? dotnetJsFilename);
+	internal record UnoConfigFields(string? managePath, string? packagePath, string? mainAssembly, string[]? assemblies, string? dotnetJsFilename);
 	public record AssemblyDetail(string? name, string version, string fileVersion, string configuration, string targetFramework, string? commit);
 
 	private ImmutableArray<AssemblyDetail> _assemblies;
@@ -84,8 +88,6 @@ public sealed class UnoVersionExtractor : IDisposable
 			?.FirstOrDefault(uri =>
 				uri.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase));
 
-		var dotnetConfigPath = await GetDotnetConfigPath();
-
 		if (unoConfigPath is null)
 		{
 			using var http = new HttpClient();
@@ -117,19 +119,33 @@ public sealed class UnoVersionExtractor : IDisposable
 			_unoConfig = await GetUnoConfig(unoConfigPath);
 		}
 
-		_dotnetConfig = await GetDotnetConfig(dotnetConfigPath);
-
-		if (_dotnetConfig.mainAssemblyName is not null)
-		{
-			Console.WriteLineFormatted("Dotnet configuration url is {0}.", Color.Gray, new Formatter(dotnetConfigPath, Color.Aqua));
-		}
-
 		if (_unoConfig?.server is { Length: > 0 })
 		{
 			Console.WriteLineFormatted(
 				"Server is {0}",
 				Color.Gray,
 				new Formatter(_unoConfig.server, Color.Aqua));
+		}
+
+		// Try modern path: embedded boot config in dotnet.js
+		if (_unoConfig?.dotnetJsFilename is { Length: > 0 } dotnetJsFilename)
+		{
+			_dotnetConfig = await GetDotnetConfigFromDotnetJs(dotnetJsFilename);
+		}
+
+		// Fallback: try default dotnet.js filename
+		_dotnetConfig ??= await GetDotnetConfigFromDotnetJs("dotnet.js");
+
+		// Fallback: try blazor.boot.json for older apps
+		if (_dotnetConfig is null)
+		{
+			var dotnetConfigPath = await GetDotnetConfigPath();
+			_dotnetConfig = await GetDotnetConfig(dotnetConfigPath);
+
+			if (_dotnetConfig?.mainAssemblyName is not null)
+			{
+				Console.WriteLineFormatted("Dotnet configuration url is {0}.", Color.Gray, new Formatter(dotnetConfigPath, Color.Aqua));
+			}
 		}
 
 		if (_unoConfig?.mainAssembly is { Length: > 0 })
@@ -146,7 +162,7 @@ public sealed class UnoVersionExtractor : IDisposable
 
 		if (
 			(_unoConfig?.assemblies is null || _unoConfig.assemblies is { Length: 0 })
-			&& _dotnetConfig?.assemblies.Length == 0)
+			&& (_dotnetConfig?.assemblies is null || _dotnetConfig.assemblies is { Length: 0 }))
 		{
 			Console.WriteLine("No assemblies found.", Color.Red);
 			return 1;
@@ -187,9 +203,12 @@ public sealed class UnoVersionExtractor : IDisposable
 
 		_mainAssemblyDetails = null;
 
+		var dotnetMainName = Path.GetFileNameWithoutExtension(_dotnetConfig?.mainAssemblyName);
+
 		foreach (var assemblyDetail in _assemblies)
 		{
-			if (assemblyDetail.name == _unoConfig?.mainAssembly)
+			if (assemblyDetail.name == _unoConfig?.mainAssembly
+				|| assemblyDetail.name == dotnetMainName)
 			{
 				_mainAssemblyDetails = assemblyDetail;
 			}
@@ -294,53 +313,62 @@ public sealed class UnoVersionExtractor : IDisposable
 				"Unable to identify the runtime.",
 				Color.Orange);
 		}
+
+		if (_dotnetConfig?.globalizationMode is { Length: > 0 } globMode)
+		{
+			Console.WriteLineFormatted("Globalization mode is {0}", Color.Gray,
+				new Formatter(globMode, Color.Aqua));
+		}
+
+		if (_dotnetConfig?.linkerEnabled is { } linker)
+		{
+			Console.WriteLineFormatted("Linker is {0}", Color.Gray,
+				new Formatter(linker ? "enabled" : "disabled", Color.Aqua));
+		}
+
+		if (_dotnetConfig?.debugLevel is { } dbgLevel)
+		{
+			Console.WriteLineFormatted("Debug level is {0}", Color.Gray,
+				new Formatter(dbgLevel, Color.Aqua));
+		}
 	}
 
-	private async Task<(string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)> GetDotnetConfig(Uri? dotnetConfigPath)
+	private async Task<DotnetConfig?> GetDotnetConfig(Uri? dotnetConfigPath)
 	{
 		if (dotnetConfigPath is null)
 		{
-			return (null, null, [], null);
+			return null;
 		}
 
 		using var response = await _httpClient.GetAsync(dotnetConfigPath);
 		response.EnsureSuccessStatusCode();
 
 		await using var stream = await response.Content.ReadAsStreamAsync();
-		using var reader = new StreamReader(stream);
 
-		var json = await JsonDocument.ParseAsync(stream);
+		using var json = await JsonDocument.ParseAsync(stream);
 
-		if (json is not null)
+		var root = json.RootElement;
+
+		string? mainAssemblyName = root.TryGetProperty("mainAssemblyName", out var mainProp)
+			? mainProp.GetString() : null;
+		string? globalizationMode = root.TryGetProperty("globalizationMode", out var globProp)
+			? globProp.GetString() : null;
+		int? debugLevel = root.TryGetProperty("debugLevel", out var dbgProp)
+			? dbgProp.GetInt32() : null;
+		bool? linkerEnabled = root.TryGetProperty("linkerEnabled", out var linkProp)
+			? linkProp.GetBoolean() : null;
+
+		var assemblies = new List<string>();
+
+		if (root.TryGetProperty("resources", out var resources))
 		{
-			string? mainAssemblyName = json.RootElement.GetProperty("mainAssemblyName").GetString();
-			string? globalizationMode = json.RootElement.GetProperty("globalizationMode").GetString();
-
-			List<string> assemblies = new();
-
-			var resources = json.RootElement.GetProperty("resources");
-
-			resources.TryGetProperty("coreAssembly", out var coreAssembly);
-			resources.TryGetProperty("assembly", out var assembly);
-
-			var assembliesList =
-				(coreAssembly.ValueKind == JsonValueKind.Undefined ? [] : coreAssembly.EnumerateObject())
-				.Concat(assembly.ValueKind == JsonValueKind.Undefined ? [] : assembly.EnumerateObject());
-
-			foreach (var resource in assembliesList)
-			{
-				if (resource.Name is { Length: > 0 } name)
-				{
-					assemblies.Add(name);
-				}
-			}
-
-			var assembliesPath = new Uri(_siteUri, dotnetConfigPath.OriginalString.Contains("_framework") ? "_framework/" : "");
-
-			return (mainAssemblyName, globalizationMode, assemblies.ToArray(), assembliesPath);
+			ExtractAssembliesFromResources(resources, "coreAssembly", assemblies);
+			ExtractAssembliesFromResources(resources, "assembly", assemblies);
 		}
 
-		return (null, null, [], null);
+		var assembliesPath = new Uri(_siteUri, dotnetConfigPath.OriginalString.Contains("_framework") ? "_framework/" : "");
+
+		return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies.ToArray(), assembliesPath, debugLevel, linkerEnabled);
 	}
 
 	private async Task<UnoConfig> GetUnoConfig(Uri uri)
@@ -348,17 +376,100 @@ public sealed class UnoVersionExtractor : IDisposable
 		using var response = await _httpClient.GetAsync(uri);
 		response.EnsureSuccessStatusCode();
 
-		await using var stream = await response.Content.ReadAsStreamAsync();
-		using var reader = new StreamReader(stream);
+		var content = await response.Content.ReadAsStringAsync();
+		var server = response.Headers.Server?.ToString();
 
+		var fields = ParseUnoConfigFields(content);
+
+		var assembliesPath = fields.packagePath is not null && fields.managePath is not null
+			? new Uri(new Uri(_siteUri, fields.packagePath + "/"), fields.managePath + "/")
+			: _siteUri;
+
+		return new UnoConfig(assembliesPath, fields.mainAssembly, fields.assemblies, server, fields.dotnetJsFilename);
+	}
+
+	internal static void ExtractAssembliesFromResources(
+		JsonElement resources, string propertyName, List<string> assemblies)
+	{
+		if (!resources.TryGetProperty(propertyName, out var element)
+			|| element.ValueKind == JsonValueKind.Undefined)
+		{
+			return;
+		}
+
+		if (element.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var entry in element.EnumerateArray())
+			{
+				if (entry.TryGetProperty("name", out var nameProp)
+					&& nameProp.GetString() is { Length: > 0 } name)
+				{
+					assemblies.Add(name);
+				}
+			}
+		}
+		else if (element.ValueKind == JsonValueKind.Object)
+		{
+			foreach (var entry in element.EnumerateObject())
+			{
+				if (entry.Name is { Length: > 0 })
+				{
+					assemblies.Add(entry.Name);
+				}
+			}
+		}
+	}
+
+	internal static DotnetConfig? ExtractBootConfigFromScript(string scriptContent)
+	{
+		var match = Regex.Match(scriptContent, @"/\*json-start\*/([\s\S]*?)/\*json-end\*/");
+		if (!match.Success)
+		{
+			return null;
+		}
+
+		try
+		{
+			var jsonText = match.Groups[1].Value;
+			using var json = JsonDocument.Parse(jsonText);
+			var root = json.RootElement;
+
+			string? mainAssemblyName = root.TryGetProperty("mainAssemblyName", out var mainProp)
+				? mainProp.GetString() : null;
+			string? globalizationMode = root.TryGetProperty("globalizationMode", out var globProp)
+				? globProp.GetString() : null;
+			int? debugLevel = root.TryGetProperty("debugLevel", out var dbgProp)
+				? dbgProp.GetInt32() : null;
+			bool? linkerEnabled = root.TryGetProperty("linkerEnabled", out var linkProp)
+				? linkProp.GetBoolean() : null;
+
+			var assemblies = new List<string>();
+			if (root.TryGetProperty("resources", out var resources))
+			{
+				ExtractAssembliesFromResources(resources, "coreAssembly", assemblies);
+				ExtractAssembliesFromResources(resources, "assembly", assemblies);
+			}
+
+			return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies.ToArray(), null, debugLevel, linkerEnabled);
+		}
+		catch (JsonException)
+		{
+			return null;
+		}
+	}
+
+	internal static UnoConfigFields ParseUnoConfigFields(string configContent)
+	{
 		string? managePath = default;
 		string? packagePath = default;
 		string? mainAssembly = default;
 		string[]? assemblies = default;
-		string? line = default;
-		var server = response.Headers.Server?.ToString();
+		string? dotnetJsFilename = default;
 
-		while ((line = await reader.ReadLineAsync()) is not null)
+		using var reader = new StringReader(configContent);
+		string? line;
+
+		while ((line = reader.ReadLine()) is not null)
 		{
 			var parts = line.Split(['='], 2);
 			if (parts.Length != 2)
@@ -383,6 +494,9 @@ public sealed class UnoVersionExtractor : IDisposable
 				case "config.uno_main":
 					mainAssembly = JsonSerializer.Deserialize<string>(value)?.Split(']', 2)[0].TrimStart('[');
 					break;
+				case "config.dotnet_js_filename":
+					dotnetJsFilename = JsonSerializer.Deserialize<string>(value);
+					break;
 			}
 
 			if (managePath is { } && packagePath is { } && mainAssembly is { } && assemblies is { })
@@ -391,9 +505,45 @@ public sealed class UnoVersionExtractor : IDisposable
 			}
 		}
 
-		var assembliesPath = new Uri(new Uri(_siteUri, packagePath + "/"), managePath + "/");
+		return new UnoConfigFields(managePath, packagePath, mainAssembly, assemblies, dotnetJsFilename);
+	}
 
-		return new UnoConfig(assembliesPath, mainAssembly, assemblies, server);
+	private async Task<DotnetConfig?> GetDotnetConfigFromDotnetJs(string dotnetJsFilename)
+	{
+		var dotnetJsUrl = new Uri(_siteUri, $"_framework/{dotnetJsFilename}");
+
+		try
+		{
+			using var response = await _httpClient.GetAsync(dotnetJsUrl);
+			if (!response.IsSuccessStatusCode)
+			{
+				return null;
+			}
+
+			var content = await response.Content.ReadAsStringAsync();
+			var config = ExtractBootConfigFromScript(content);
+
+			if (config is null)
+			{
+				return null;
+			}
+
+			Console.WriteLineFormatted(
+				"Boot configuration extracted from {0}.",
+				Color.Gray,
+				new Formatter(dotnetJsFilename, Color.Aqua));
+
+			return config with { assembliesPath = new Uri(_siteUri, "_framework/") };
+		}
+		catch (HttpRequestException ex)
+		{
+			Console.WriteLineFormatted(
+				"Failed to download {0}: {1}",
+				Color.Yellow,
+				new Formatter(dotnetJsUrl.ToString(), Color.Aqua),
+				new Formatter(ex.Message, Color.Red));
+			return null;
+		}
 	}
 
 	private static readonly Regex COMMIT_REGEX = new Regex(
@@ -507,8 +657,4 @@ public sealed class UnoVersionExtractor : IDisposable
 	public void Dispose() => _httpClient.Dispose();
 }
 
-internal record DotnetConfig(string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)
-{
-	public static implicit operator (string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath)(DotnetConfig value) => (value.mainAssemblyName, value.globalizationMode, value.assemblies, value.assembliesPath);
-	public static implicit operator DotnetConfig((string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath) value) => new DotnetConfig(value.mainAssemblyName, value.globalizationMode, value.assemblies, value.assembliesPath);
-}
+internal record DotnetConfig(string? mainAssemblyName, string? globalizationMode, string[] assemblies, Uri? assembliesPath, int? debugLevel, bool? linkerEnabled);

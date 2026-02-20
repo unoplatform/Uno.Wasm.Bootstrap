@@ -36,6 +36,7 @@ And the progress bar should reach 100% when loading completes
 ```
 
 **Edge Cases**:
+
 - Application with 50+ assemblies (large dependency tree)
 - Application loading from local development server (extremely fast)
 - Browser with aggressive parallel download limits
@@ -60,6 +61,7 @@ And the user should see visible progress updates at least every 2 seconds
 ```
 
 **Edge Cases**:
+
 - Intermittent network interruptions with retry behavior
 - Network timeout followed by successful retry
 - Downloading large satellite assemblies (> 1MB)
@@ -84,6 +86,7 @@ And the progress bar should complete within 5% of the actual loading completion
 ```
 
 **Edge Cases**:
+
 - Application with zero additional dependencies beyond initial manifest
 - Application where all dependencies are discovered immediately (no incremental discovery)
 - Application with unusual asset types (ICU data, PDB files, resources)
@@ -136,34 +139,40 @@ And the progress bar should complete within 5% of the actual loading completion
 
 The implementation uses a multi-layered approach combining algorithmic smoothing in TypeScript and visual smoothing via CSS transitions:
 
-**Layer 1: Smart Initial Estimation**
+#### Layer 1: Smart Initial Estimation
+
 - Analyzes MonoConfig assets by type (assembly, resource, PDB, other)
 - Applies 1.5x dependency multiplier to assemblies (empirically determined based on typical dependency patterns)
 - Sets conservative initial target (20% of estimated final, capped at 50%)
 - Provides detailed debug logging for estimation accuracy validation
 
-**Layer 2: Velocity-Based Smoothing**
+#### Layer 2: Velocity-Based Smoothing
+
 - Maintains sliding window of progress history (1.5 seconds)
 - Calculates download velocity (resources/second) from recent history
 - Proactively advances target when completion ratio approaches 90% of target
 - Caps velocity-based advancement at 10% per update to prevent overcorrection
 
-**Layer 3: Stall Detection**
+#### Layer 3: Stall Detection
+
 - Monitors time since last progress update (1 second threshold)
 - Gently advances target by up to 2% when stalled
 - Ensures continuous visual feedback during pauses
 
-**Layer 4: Dynamic Target Adjustment**
+#### Layer 4: Dynamic Target Adjustment
+
 - Uses convergence rate (50%) when new dependencies discovered
 - Converges to 95% to reserve final 5% for initialization
 - Updates estimated final total when runtime reports exceed estimates
 
-**Layer 5: Strictly Non-Decreasing Progress**
+#### Layer 5: Strictly Non-Decreasing Progress
+
 - Tracks last reported value to prevent backward movement
 - Scales progress as `(loaded/total) * currentTarget`
 - Guarantees monotonic progress regardless of runtime behavior
 
-**Layer 6: Visual Smoothing (CSS)**
+#### Layer 6: Visual Smoothing (CSS)
+
 - 300ms ease-out transitions on progress bar width
 - Smooths discrete JavaScript value updates
 - Cross-browser support (Chrome, Firefox, Safari, Edge)
@@ -172,6 +181,7 @@ The implementation uses a multi-layered approach combining algorithmic smoothing
 ### Implementation Files
 
 **Modified Files**:
+
 1. `src/Uno.Wasm.Bootstrap/ts/Uno/WebAssembly/Bootstrapper.ts`
    - Added 7 configuration constants
    - Added 4 progress tracking fields
@@ -201,12 +211,14 @@ ASSEMBLY_DEPENDENCY_MULTIPLIER = 1.5 // Assemblies trigger more loads
 ### Debug Logging
 
 When `MonoConfig.debugLevel > 0`, the system outputs:
+
 - Initial asset analysis: counts by type, estimated final, initial target
 - Target advancement: when total increases, new target value
 - Velocity adjustments: advancement amount and calculated load rate
 - Per-update progress: current value, loaded/total, current target
 
 Debug logging respects the full `debugLevel` semantics:
+
 - `debugLevel > 0`: Debugging enabled with console logging
 - `debugLevel == 0`: Debugging disabled, no logs
 - `debugLevel < 0`: Debugging enabled without console logging
@@ -214,6 +226,7 @@ Debug logging respects the full `debugLevel` semantics:
 ### Testing Approach
 
 For manual testing and validation, the `Uno.Wasm.Sample.RayTracer` project can be temporarily modified to include additional NuGet packages with many transitive dependencies:
+
 - Newtonsoft.Json
 - System.Linq.Async
 - Microsoft.Extensions.Logging
@@ -236,5 +249,6 @@ This creates a realistic scenario with numerous assemblies to validate smooth pr
 ---
 
 **Sources**:
+
 - [Diving Into Spec-Driven Development With GitHub Spec Kit - Microsoft for Developers](https://developer.microsoft.com/blog/spec-driven-development-spec-kit)
 - [GitHub Spec Kit Repository](https://github.com/github/spec-kit)
