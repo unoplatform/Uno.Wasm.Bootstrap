@@ -459,7 +459,8 @@
 
 	<!--
 		Update uno-config.js directly in the publish output directory.
-		This runs AFTER files have been copied to ensure the fingerprint is always correct.
+		This runs AFTER files have been copied and rewrites dotnet.js only when a fingerprinted
+		dotnet.<hash>.js file exists in publish output.
 		This target scans actual files in the publish output rather than relying on StaticWebAsset
 		metadata, which can be incomplete or stale during publish operations.
 	-->
@@ -486,29 +487,39 @@
 		<Message Importance="low" Text="[Uno] PublishDir=$(PublishDir), OutputPath=$(OutputPath), OutDir=$(OutDir)" />
 		<Message Importance="low" Text="[Uno] Checking publish output directory: $(_UnoActualPublishDir)" />
 
-		<!-- Find the actual dotnet.js file in the publish _framework directory -->
+		<!-- Find dotnet.js candidates in known publish layouts -->
 		<ItemGroup>
-			<_UnoPublishedDotnetJs Include="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.*.js"
-				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js" />
+			<_UnoPublishedDotnetJsCandidates Include="$(_UnoActualPublishDir)wwwroot/_framework/dotnet*.js"
+				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.diagnostics*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.es6.*.js" />
+			<_UnoPublishedDotnetJsCandidates Include="$(_UnoActualPublishDir)_framework/dotnet*.js"
+				Exclude="$(_UnoActualPublishDir)_framework/dotnet.native*.js;$(_UnoActualPublishDir)_framework/dotnet.runtime*.js;$(_UnoActualPublishDir)_framework/dotnet.diagnostics*.js;$(_UnoActualPublishDir)_framework/dotnet.es6.*.js" />
+			<_UnoPublishedDotnetJsCandidates Include="$(_UnoActualPublishDir)dotnet*.js"
+				Exclude="$(_UnoActualPublishDir)dotnet.native*.js;$(_UnoActualPublishDir)dotnet.runtime*.js;$(_UnoActualPublishDir)dotnet.diagnostics*.js;$(_UnoActualPublishDir)dotnet.es6.*.js" />
+
+			<_UnoPublishedFingerprintDotnetJs Include="@(_UnoPublishedDotnetJsCandidates)"
+				Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '^dotnet\.[a-z0-9]+$'))" />
 		</ItemGroup>
 
 		<!-- Extract fingerprint from actual filename -->
 		<PropertyGroup>
-			<_UnoActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoActualDotnetJsFingerprint>
+			<_UnoActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoPublishedFingerprintDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoActualDotnetJsFingerprint>
 			<_UnoPublishConfigJsPath Condition="'$(_UnoActualPublishDir)' != ''">$(_UnoActualPublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
 			<!-- Fallback without package path -->
 			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
 		</PropertyGroup>
 
 		<Message Importance="low"
-				 Text="[Uno] Found dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint) at $(_UnoActualPublishDir)wwwroot/_framework/"
+				 Text="[Uno] dotnet.js candidates in publish output: @(_UnoPublishedDotnetJsCandidates)" />
+
+		<Message Importance="low"
+				 Text="[Uno] Found dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
 
 		<Message Importance="low"
 				 Text="[Uno] Updating uno-config.js at: $(_UnoPublishConfigJsPath)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
-		<Warning Text="[Uno] Could not find dotnet.js file in publish output at: $(_UnoActualPublishDir)wwwroot/_framework/"
+		<Warning Text="[Uno] Could not find fingerprinted dotnet.&lt;hash&gt;.js file in publish output. Skipping uno-config.js fingerprint rewrite for this publish layout."
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' == '' AND '$(_UnoActualPublishDir)' != ''" />
 
 		<Warning Text="[Uno] Could not find uno-config.js at: $(_UnoPublishConfigJsPath)"
@@ -527,7 +538,10 @@
 	</Target>
 
 	<!--
-		Validate that uno-config.js fingerprint matches the actual dotnet.js file.
+		Validate dotnet.js publish output.
+		- If fingerprinted dotnet.<hash>.js files exist, validate uno-config.js fingerprint consistency.
+		- If only non-fingerprinted dotnet.js exists, skip fingerprint validation.
+		- If no dotnet.js runtime file exists, fail with UNOWASM003.
 	-->
 	<Target Name="_UnoValidateDotnetJsFingerprintPublish"
 			AfterTargets="_UnoUpdateDotnetJsFingerprintPublishOutput"
@@ -547,18 +561,37 @@
 
 			<_UnoPublishConfigJsPath Condition="'$(_UnoValidatePublishDir)' != ''">$(_UnoValidatePublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
 			<_UnoPublishConfigJsPath Condition="!Exists('$(_UnoPublishConfigJsPath)')">$(_UnoValidatePublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
-			<_UnoFrameworkPath Condition="'$(_UnoValidatePublishDir)' != ''">$(_UnoValidatePublishDir)wwwroot/_framework</_UnoFrameworkPath>
+			<_UnoShouldValidateFingerprint>false</_UnoShouldValidateFingerprint>
 		</PropertyGroup>
 
-		<!-- List all dotnet.*.js files for diagnostics -->
+		<!-- List all dotnet.*.js files for diagnostics (known publish layout variants) -->
 		<ItemGroup>
-			<_UnoDotnetJsFilesFound Include="$(_UnoFrameworkPath)/dotnet.*.js"
-				Exclude="$(_UnoFrameworkPath)/dotnet.native.*.js;$(_UnoFrameworkPath)/dotnet.runtime.*.js" />
+			<_UnoDotnetJsFilesFound Include="$(_UnoValidatePublishDir)wwwroot/_framework/dotnet*.js"
+				Exclude="$(_UnoValidatePublishDir)wwwroot/_framework/dotnet.native*.js;$(_UnoValidatePublishDir)wwwroot/_framework/dotnet.runtime*.js;$(_UnoValidatePublishDir)wwwroot/_framework/dotnet.diagnostics*.js;$(_UnoValidatePublishDir)wwwroot/_framework/dotnet.es6.*.js" />
+			<_UnoDotnetJsFilesFound Include="$(_UnoValidatePublishDir)_framework/dotnet*.js"
+				Exclude="$(_UnoValidatePublishDir)_framework/dotnet.native*.js;$(_UnoValidatePublishDir)_framework/dotnet.runtime*.js;$(_UnoValidatePublishDir)_framework/dotnet.diagnostics*.js;$(_UnoValidatePublishDir)_framework/dotnet.es6.*.js" />
+			<_UnoDotnetJsFilesFound Include="$(_UnoValidatePublishDir)dotnet*.js"
+				Exclude="$(_UnoValidatePublishDir)dotnet.native*.js;$(_UnoValidatePublishDir)dotnet.runtime*.js;$(_UnoValidatePublishDir)dotnet.diagnostics*.js;$(_UnoValidatePublishDir)dotnet.es6.*.js" />
+
+			<_UnoFingerprintDotnetJsFilesFound Include="@(_UnoDotnetJsFilesFound)"
+				Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '^dotnet\.[a-z0-9]+$'))" />
 		</ItemGroup>
+
+		<PropertyGroup Condition="'@(_UnoFingerprintDotnetJsFilesFound)' != ''">
+			<_UnoShouldValidateFingerprint>true</_UnoShouldValidateFingerprint>
+		</PropertyGroup>
 
 		<Message Importance="low"
 				 Text="[Uno] Found dotnet.js files in publish output: @(_UnoDotnetJsFilesFound)"
 				 Condition="'@(_UnoDotnetJsFilesFound)' != ''" />
+
+		<Message Importance="low"
+				 Text="[Uno] Fingerprinted dotnet.js files in publish output: @(_UnoFingerprintDotnetJsFilesFound), ShouldValidate=$(_UnoShouldValidateFingerprint)"
+				 Condition="'@(_UnoDotnetJsFilesFound)' != ''" />
+
+		<Error Condition="'$(_UnoValidatePublishDir)' != '' AND '@(_UnoDotnetJsFilesFound)' == ''"
+			   Code="UNOWASM003"
+			   Text="No dotnet.js runtime file was found in publish output. Checked locations under $(_UnoValidatePublishDir): wwwroot/_framework, _framework, and publish root." />
 
 		<PropertyGroup Condition="Exists('$(_UnoPublishConfigJsPath)')">
 			<_UnoConfigContent>$([System.IO.File]::ReadAllText('$(_UnoPublishConfigJsPath)'))</_UnoConfigContent>
@@ -566,17 +599,21 @@
 		</PropertyGroup>
 
 		<!-- Only validate if we found a publish directory and config file -->
-		<Error Condition="'$(_UnoValidatePublishDir)' != '' AND Exists('$(_UnoPublishConfigJsPath)') AND '$(_UnoConfigFingerprint)' == ''"
+		<Error Condition="'$(_UnoShouldValidateFingerprint)' == 'true' AND '$(_UnoValidatePublishDir)' != '' AND Exists('$(_UnoPublishConfigJsPath)') AND '$(_UnoConfigFingerprint)' == ''"
 			   Code="UNOWASM001"
 			   Text="uno-config.js does not contain a fingerprinted dotnet.js reference." />
 
-		<Error Condition="'$(_UnoValidatePublishDir)' != '' AND '$(_UnoConfigFingerprint)' != '' AND !Exists('$(_UnoFrameworkPath)/dotnet.$(_UnoConfigFingerprint).js')"
+		<Error Condition="'$(_UnoShouldValidateFingerprint)' == 'true' AND '$(_UnoValidatePublishDir)' != '' AND '$(_UnoConfigFingerprint)' != '' AND !Exists('$(_UnoValidatePublishDir)wwwroot/_framework/dotnet.$(_UnoConfigFingerprint).js') AND !Exists('$(_UnoValidatePublishDir)_framework/dotnet.$(_UnoConfigFingerprint).js') AND !Exists('$(_UnoValidatePublishDir)dotnet.$(_UnoConfigFingerprint).js')"
 			   Code="UNOWASM002"
-			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_UnoConfigFingerprint).js but file does not exist in $(_UnoFrameworkPath). Found: @(_UnoDotnetJsFilesFound)" />
+			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_UnoConfigFingerprint).js but file does not exist in publish output. Found: @(_UnoDotnetJsFilesFound)" />
 
 		<Message Importance="normal"
 				 Text="Validated: uno-config.js fingerprint ($(_UnoConfigFingerprint)) matches actual dotnet.js file"
-				 Condition="'$(_UnoConfigFingerprint)' != ''" />
+				 Condition="'$(_UnoShouldValidateFingerprint)' == 'true' AND '$(_UnoConfigFingerprint)' != ''" />
+
+		<Message Importance="low"
+				 Text="[Uno] Skipping dotnet.js fingerprint validation because no fingerprinted dotnet.&lt;hash&gt;.js file exists in publish output."
+				 Condition="'$(_UnoShouldValidateFingerprint)' != 'true'" />
 	</Target>
 
 	<PropertyGroup>
