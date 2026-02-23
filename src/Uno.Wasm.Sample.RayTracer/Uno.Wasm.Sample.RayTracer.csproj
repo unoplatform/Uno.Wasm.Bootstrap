@@ -76,14 +76,16 @@
 		<Error Condition="$(_unoConfigJsContent.Contains('_framework/dotnet.js'))"
 			   Text="uno-config.js contains non-fingerprinted _framework/dotnet.js reference in offline_files. Expected fingerprinted path like '_framework/dotnet.abc123.js'" />
 
-		<!-- Validate that the fingerprinted dotnet.js file referenced in uno-config.js actually exists -->
-		<Error Condition="'$(_configDotnetJsFingerprint)' != '' AND !Exists('$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js')"
-			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_configDotnetJsFingerprint).js but this file does not exist in $(_frameworkPath). The publish-time fingerprint update may have failed." />
+		<!-- Validate that the fingerprinted dotnet.js file referenced in uno-config.js actually exists.
+			 With custom PublishDir, framework files may be directly in PublishDir (not wwwroot/_framework/). -->
+		<Error Condition="'$(_configDotnetJsFingerprint)' != '' AND !Exists('$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js') AND !Exists('$(PublishDir)dotnet.js')"
+			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_configDotnetJsFingerprint).js but this file does not exist in $(_frameworkPath) or $(PublishDir)." />
 
 		<!-- Validate that dotnet.js contains embedded boot config with json-start/json-end markers -->
 		<PropertyGroup>
-			<_dotnetJsFile>$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js</_dotnetJsFile>
-			<_dotnetJsContent Condition="'$(_configDotnetJsFingerprint)' != '' AND Exists('$(_dotnetJsFile)')">$([System.IO.File]::ReadAllText('$(_dotnetJsFile)'))</_dotnetJsContent>
+			<_dotnetJsFile Condition="Exists('$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js')">$(_frameworkPath)/dotnet.$(_configDotnetJsFingerprint).js</_dotnetJsFile>
+			<_dotnetJsFile Condition="'$(_dotnetJsFile)' == '' AND Exists('$(PublishDir)dotnet.js')">$(PublishDir)dotnet.js</_dotnetJsFile>
+			<_dotnetJsContent Condition="'$(_configDotnetJsFingerprint)' != '' AND '$(_dotnetJsFile)' != '' AND Exists('$(_dotnetJsFile)')">$([System.IO.File]::ReadAllText('$(_dotnetJsFile)'))</_dotnetJsContent>
 		</PropertyGroup>
 
 		<Error Condition="'$(_dotnetJsContent)' != '' AND !$(_dotnetJsContent.Contains('/*json-start*/'))"

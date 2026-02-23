@@ -40,6 +40,21 @@
 			<_UnoServerActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoServerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoServerActualDotnetJsFingerprint>
 		</PropertyGroup>
 
+		<!--
+			Fallback: when using a custom PublishDir, framework files may be placed directly
+			in wwwroot/ root (not wwwroot/_framework/). Compute a hash-based fingerprint.
+		-->
+		<GetFileHash Files="$(_UnoServerActualPublishDir)wwwroot/dotnet.js"
+					 Algorithm="SHA256"
+					 HashEncoding="hex"
+					 Condition="'$(_UnoServerActualDotnetJsFingerprint)' == '' AND '$(_UnoServerActualPublishDir)' != '' AND Exists('$(_UnoServerActualPublishDir)wwwroot/dotnet.js')">
+			<Output TaskParameter="Hash" PropertyName="_UnoServerPublishedDotnetJsHash" />
+		</GetFileHash>
+
+		<PropertyGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' == '' AND '$(_UnoServerPublishedDotnetJsHash)' != ''">
+			<_UnoServerActualDotnetJsFingerprint>$(_UnoServerPublishedDotnetJsHash.Substring(0, 10).ToLowerInvariant())</_UnoServerActualDotnetJsFingerprint>
+		</PropertyGroup>
+
 		<!-- Find uno-config.js (it could be in a package_* subdirectory) -->
 		<ItemGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''">
 			<_UnoServerConfigJs Include="$(_UnoServerActualPublishDir)wwwroot/**/uno-config.js" />

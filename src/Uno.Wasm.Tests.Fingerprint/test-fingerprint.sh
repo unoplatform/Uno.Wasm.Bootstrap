@@ -54,16 +54,19 @@ fi
 
 echo -e "${GREEN}✓ Found fingerprint in build config: $BUILD_FINGERPRINT${NC}"
 
-# Verify the actual dotnet.js file exists
+# Verify the actual dotnet.js file exists (check both old and .NET 10 layouts)
 BUILD_DOTNET_JS="$BUILD_OUTPUT/wwwroot/_framework/dotnet.$BUILD_FINGERPRINT.js"
-if [ ! -f "$BUILD_DOTNET_JS" ]; then
-    echo -e "${RED}❌ FAIL: dotnet.$BUILD_FINGERPRINT.js not found in build output${NC}"
-    echo "Files in _framework:"
-    ls -la "$BUILD_OUTPUT/wwwroot/_framework/" | grep dotnet
+BUILD_DOTNET_JS_ROOT="$BUILD_OUTPUT/dotnet.js"
+if [ -f "$BUILD_DOTNET_JS" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.$BUILD_FINGERPRINT.js exists in build output (_framework layout)${NC}"
+elif [ -f "$BUILD_DOTNET_JS_ROOT" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.js exists in build output root (custom PublishDir layout, fingerprint from hash)${NC}"
+else
+    echo -e "${RED}❌ FAIL: dotnet.js not found in build output${NC}"
+    echo "Checked: $BUILD_DOTNET_JS"
+    echo "Checked: $BUILD_DOTNET_JS_ROOT"
     exit 1
 fi
-
-echo -e "${GREEN}✓ Verified dotnet.$BUILD_FINGERPRINT.js exists in build output${NC}"
 
 # Test 2: Publish
 echo ""
@@ -96,16 +99,19 @@ fi
 
 echo -e "${GREEN}✓ Found fingerprint in publish config: $PUBLISH_FINGERPRINT${NC}"
 
-# Verify the actual dotnet.js file exists in publish output
+# Verify the actual dotnet.js file exists in publish output (check both old and .NET 10 layouts)
 PUBLISH_DOTNET_JS="$PUBLISH_DIR/wwwroot/_framework/dotnet.$PUBLISH_FINGERPRINT.js"
-if [ ! -f "$PUBLISH_DOTNET_JS" ]; then
-    echo -e "${RED}❌ FAIL: dotnet.$PUBLISH_FINGERPRINT.js not found in publish output${NC}"
-    echo "Files in _framework:"
-    ls -la "$PUBLISH_DIR/wwwroot/_framework/" | grep dotnet
+PUBLISH_DOTNET_JS_ROOT="$PUBLISH_DIR/dotnet.js"
+if [ -f "$PUBLISH_DOTNET_JS" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.$PUBLISH_FINGERPRINT.js exists in publish output (_framework layout)${NC}"
+elif [ -f "$PUBLISH_DOTNET_JS_ROOT" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.js exists in publish output root (custom PublishDir layout, fingerprint from hash)${NC}"
+else
+    echo -e "${RED}❌ FAIL: dotnet.js not found in publish output${NC}"
+    echo "Checked: $PUBLISH_DOTNET_JS"
+    echo "Checked: $PUBLISH_DOTNET_JS_ROOT"
     exit 1
 fi
-
-echo -e "${GREEN}✓ Verified dotnet.$PUBLISH_FINGERPRINT.js exists in publish output${NC}"
 
 # Test 3: Verify no duplicate fingerprints in config
 echo ""
@@ -245,6 +251,129 @@ fi
 
 echo -e "${GREEN}✓ Publish config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
 
+# Test 8: Publish with custom absolute PublishDir
+# This reproduces the CI scenario where PublishDir is an external absolute path.
+# In this layout, dotnet.js lands directly in PublishDir root (not wwwroot/_framework/).
+echo ""
+echo "📤 Test 8: Publish with custom absolute PublishDir"
+echo "----------------------------------------"
+CUSTOM_PUBLISH_DIR=$(mktemp -d)
+rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
+
+CUSTOM_LOG=$(mktemp)
+set +e
+dotnet publish "$PROJECT_FILE" --configuration Release \
+    -p:PublishDir="$CUSTOM_PUBLISH_DIR" 2>&1 | tee "$CUSTOM_LOG"
+CUSTOM_EXIT=${PIPESTATUS[0]}
+set -e
+
+if grep -qE "error UNOWASM001|error UNOWASM002" "$CUSTOM_LOG"; then
+    echo -e "${RED}❌ FAIL: Fingerprint error emitted with custom PublishDir${NC}"
+    grep -E "UNOWASM001|UNOWASM002" "$CUSTOM_LOG"
+    rm -f "$CUSTOM_LOG"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+rm -f "$CUSTOM_LOG"
+
+if [ "$CUSTOM_EXIT" -ne 0 ]; then
+    echo -e "${RED}❌ FAIL: dotnet publish with custom PublishDir failed (exit $CUSTOM_EXIT)${NC}"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit "$CUSTOM_EXIT"
+fi
+
+echo -e "${GREEN}✓ Publish with custom PublishDir succeeded without errors${NC}"
+
+# Find uno-config.js in the custom publish output
+CUSTOM_CONFIG=$(find "$CUSTOM_PUBLISH_DIR/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+
+if [ ! -f "$CUSTOM_CONFIG" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js not found in custom publish output${NC}"
+    echo "Searched in: $CUSTOM_PUBLISH_DIR/wwwroot"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+echo "Found config at: $CUSTOM_CONFIG"
+
+# Extract fingerprint
+CUSTOM_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$CUSTOM_CONFIG" | head -1)
+
+if [ -z "$CUSTOM_FINGERPRINT" ]; then
+    echo -e "${RED}❌ FAIL: No fingerprint found in custom publish uno-config.js${NC}"
+    cat "$CUSTOM_CONFIG"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Found fingerprint in custom publish config: $CUSTOM_FINGERPRINT${NC}"
+
+# Verify dotnet.js exists (in _framework/ or publish root)
+CUSTOM_DOTNET_JS="$CUSTOM_PUBLISH_DIR/wwwroot/_framework/dotnet.$CUSTOM_FINGERPRINT.js"
+CUSTOM_DOTNET_JS_ROOT="$CUSTOM_PUBLISH_DIR/dotnet.js"
+if [ -f "$CUSTOM_DOTNET_JS" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.$CUSTOM_FINGERPRINT.js exists (_framework layout)${NC}"
+elif [ -f "$CUSTOM_DOTNET_JS_ROOT" ]; then
+    echo -e "${GREEN}✓ Verified dotnet.js exists in publish root (hash-based fingerprint)${NC}"
+else
+    echo -e "${RED}❌ FAIL: dotnet.js not found in custom publish output${NC}"
+    echo "Checked: $CUSTOM_DOTNET_JS"
+    echo "Checked: $CUSTOM_DOTNET_JS_ROOT"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+# Verify no stale compressed files
+if [ -f "$CUSTOM_CONFIG.gz" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $CUSTOM_CONFIG.gz${NC}"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+if [ -f "$CUSTOM_CONFIG.br" ]; then
+    echo -e "${RED}❌ FAIL: Stale compressed file exists: $CUSTOM_CONFIG.br${NC}"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ No stale compressed files in custom publish output${NC}"
+rm -rf "$CUSTOM_PUBLISH_DIR"
+
+# Test 9: Publish with custom absolute PublishDir and fingerprinting disabled
+echo ""
+echo "🚫 Test 9: Publish with custom PublishDir + WasmShellEnableDotnetJsFingerprinting=false"
+echo "----------------------------------------"
+CUSTOM_NOFP_DIR=$(mktemp -d)
+rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
+
+set +e
+dotnet publish "$PROJECT_FILE" --configuration Release \
+    -p:PublishDir="$CUSTOM_NOFP_DIR" \
+    -p:WasmShellEnableDotnetJsFingerprinting=false 2>&1
+CUSTOM_NOFP_EXIT=$?
+set -e
+
+if [ "$CUSTOM_NOFP_EXIT" -ne 0 ]; then
+    echo -e "${RED}❌ FAIL: Publish with custom PublishDir + disabled fingerprinting failed${NC}"
+    rm -rf "$CUSTOM_NOFP_DIR"
+    exit "$CUSTOM_NOFP_EXIT"
+fi
+
+CUSTOM_NOFP_CONFIG=$(find "$CUSTOM_NOFP_DIR/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+
+if [ -f "$CUSTOM_NOFP_CONFIG" ]; then
+    CUSTOM_NOFP_FP=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$CUSTOM_NOFP_CONFIG" | head -1)
+    if [ -n "$CUSTOM_NOFP_FP" ]; then
+        echo -e "${RED}❌ FAIL: Fingerprint found despite WasmShellEnableDotnetJsFingerprinting=false${NC}"
+        echo "  Unexpected fingerprint: $CUSTOM_NOFP_FP"
+        rm -rf "$CUSTOM_NOFP_DIR"
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✓ Custom PublishDir + disabled fingerprinting: no fingerprint in config${NC}"
+rm -rf "$CUSTOM_NOFP_DIR"
+
 # Summary
 echo ""
 echo "========================================="
@@ -252,8 +381,9 @@ echo -e "${GREEN}✅ ALL TESTS PASSED${NC}"
 echo "========================================="
 echo ""
 echo "Summary:"
-echo "  Build fingerprint:   $BUILD_FINGERPRINT"
-echo "  Publish fingerprint: $PUBLISH_FINGERPRINT"
+echo "  Build fingerprint:          $BUILD_FINGERPRINT"
+echo "  Publish fingerprint:        $PUBLISH_FINGERPRINT"
+echo "  Custom PublishDir fp:       $CUSTOM_FINGERPRINT"
 echo ""
 
 if [ "$BUILD_FINGERPRINT" != "$PUBLISH_FINGERPRINT" ]; then

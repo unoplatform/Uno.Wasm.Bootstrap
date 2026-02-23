@@ -433,9 +433,35 @@
 				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime'))" />
 		</ItemGroup>
 
+		<!--
+			Fallback: when using a custom PublishDir (absolute external path), the RelativePath
+			may not include the _framework/ prefix. Look for StaticWebAsset items with
+			RelativePath starting with 'dotnet' directly.
+		-->
+		<ItemGroup Condition="'@(_UnoDotnetJsAsset)' == ''">
+			<_UnoDotnetJsAsset Include="@(StaticWebAsset)"
+				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime'))" />
+		</ItemGroup>
+
 		<PropertyGroup>
 			<_UnoDotnetJsFingerprint>@(_UnoDotnetJsAsset->'%(Fingerprint)')</_UnoDotnetJsFingerprint>
 			<_UnoConfigJsPath>$(IntermediateOutputPath)unowwwrootassets/uno-config.js</_UnoConfigJsPath>
+		</PropertyGroup>
+
+		<!--
+			Fallback: if dotnet.js is not a fingerprinted StaticWebAsset (e.g. custom PublishDir
+			or SDK version that doesn't fingerprint native assets), compute a hash-based
+			fingerprint from the physical file in the build output.
+		-->
+		<GetFileHash Files="$(OutputPath)dotnet.js"
+					 Algorithm="SHA256"
+					 HashEncoding="hex"
+					 Condition="'$(_UnoDotnetJsFingerprint)' == '' AND Exists('$(OutputPath)dotnet.js')">
+			<Output TaskParameter="Hash" PropertyName="_UnoDotnetJsHash" />
+		</GetFileHash>
+
+		<PropertyGroup Condition="'$(_UnoDotnetJsFingerprint)' == '' AND '$(_UnoDotnetJsHash)' != ''">
+			<_UnoDotnetJsFingerprint>$(_UnoDotnetJsHash.Substring(0, 10).ToLowerInvariant())</_UnoDotnetJsFingerprint>
 		</PropertyGroup>
 
 		<!-- Update the uno-config.js file with the fingerprinted filename if we found a fingerprint -->
@@ -487,7 +513,23 @@
 			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
 		</PropertyGroup>
 
-		<Warning Text="[Uno] Could not find dotnet.js file in publish output at: $(_UnoActualPublishDir)wwwroot/_framework/"
+		<!--
+			Fallback: when using a custom PublishDir, framework files may be placed directly
+			in PublishDir root (not wwwroot/_framework/). Compute a hash-based fingerprint.
+		-->
+		<GetFileHash Files="$(_UnoActualPublishDir)dotnet.js"
+					 Algorithm="SHA256"
+					 HashEncoding="hex"
+					 Condition="'$(_UnoActualDotnetJsFingerprint)' == '' AND '$(_UnoActualPublishDir)' != '' AND Exists('$(_UnoActualPublishDir)dotnet.js')">
+			<Output TaskParameter="Hash" PropertyName="_UnoPublishedDotnetJsHash" />
+		</GetFileHash>
+
+		<PropertyGroup Condition="'$(_UnoActualDotnetJsFingerprint)' == '' AND '$(_UnoPublishedDotnetJsHash)' != ''">
+			<_UnoActualDotnetJsFingerprint>$(_UnoPublishedDotnetJsHash.Substring(0, 10).ToLowerInvariant())</_UnoActualDotnetJsFingerprint>
+			<_UnoDotnetJsInPublishRoot>true</_UnoDotnetJsInPublishRoot>
+		</PropertyGroup>
+
+		<Warning Text="[Uno] Could not find dotnet.js file in publish output at: $(_UnoActualPublishDir)wwwroot/_framework/ or $(_UnoActualPublishDir)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' == '' AND '$(_UnoActualPublishDir)' != ''" />
 
 		<Warning Text="[Uno] Could not find uno-config.js at: $(_UnoPublishConfigJsPath)"
@@ -520,11 +562,11 @@
 			<_UnoConfigFingerprint>$([System.Text.RegularExpressions.Regex]::Match('$(_UnoConfigContent)', 'dotnet\.([a-z0-9]+)\.js').Groups[1].Value)</_UnoConfigFingerprint>
 		</PropertyGroup>
 
-		<Error Condition="'$(_UnoActualPublishDir)' != '' AND Exists('$(_UnoPublishConfigJsPath)') AND '$(_UnoConfigFingerprint)' == ''"
+		<Error Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND '$(_UnoActualPublishDir)' != '' AND Exists('$(_UnoPublishConfigJsPath)') AND '$(_UnoConfigFingerprint)' == ''"
 			   Code="UNOWASM001"
 			   Text="uno-config.js does not contain a fingerprinted dotnet.js reference." />
 
-		<Error Condition="'$(_UnoActualPublishDir)' != '' AND '$(_UnoConfigFingerprint)' != '' AND !Exists('$(_UnoActualPublishDir)wwwroot/_framework/dotnet.$(_UnoConfigFingerprint).js')"
+		<Error Condition="'$(_UnoActualPublishDir)' != '' AND '$(_UnoConfigFingerprint)' != '' AND '$(_UnoDotnetJsInPublishRoot)' != 'true' AND !Exists('$(_UnoActualPublishDir)wwwroot/_framework/dotnet.$(_UnoConfigFingerprint).js')"
 			   Code="UNOWASM002"
 			   Text="Fingerprint mismatch: uno-config.js references dotnet.$(_UnoConfigFingerprint).js but file does not exist in $(_UnoActualPublishDir)wwwroot/_framework/." />
 
