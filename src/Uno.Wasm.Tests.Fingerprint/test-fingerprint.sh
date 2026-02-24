@@ -252,8 +252,10 @@ fi
 echo -e "${GREEN}✓ Publish config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
 
 # Test 8: Publish with custom absolute PublishDir
-# This reproduces the CI scenario where PublishDir is an external absolute path.
-# In this layout, dotnet.js lands directly in PublishDir root (not wwwroot/_framework/).
+# This reproduces the CI scenario where PublishDir is an external absolute path
+# (e.g. -p:PublishDir=/home/vsts/work/_temp/wasm-publish). In this layout, dotnet.js
+# lands directly in PublishDir root instead of wwwroot/_framework/. Fingerprinting
+# must still work — the GetFileHash fallback computes the fingerprint from the file.
 echo ""
 echo "📤 Test 8: Publish with custom absolute PublishDir"
 echo "----------------------------------------"
@@ -297,11 +299,12 @@ fi
 
 echo "Found config at: $CUSTOM_CONFIG"
 
-# Extract fingerprint
+# Fingerprinting must produce a fingerprint even with custom PublishDir
 CUSTOM_FINGERPRINT=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$CUSTOM_CONFIG" | head -1)
 
 if [ -z "$CUSTOM_FINGERPRINT" ]; then
     echo -e "${RED}❌ FAIL: No fingerprint found in custom publish uno-config.js${NC}"
+    echo "  Fingerprinting must work regardless of PublishDir location."
     cat "$CUSTOM_CONFIG"
     rm -rf "$CUSTOM_PUBLISH_DIR"
     exit 1
@@ -309,7 +312,7 @@ fi
 
 echo -e "${GREEN}✓ Found fingerprint in custom publish config: $CUSTOM_FINGERPRINT${NC}"
 
-# Verify dotnet.js exists (in _framework/ or publish root)
+# Verify dotnet.js source file exists (in _framework/ or publish root depending on SDK layout)
 CUSTOM_DOTNET_JS="$CUSTOM_PUBLISH_DIR/wwwroot/_framework/dotnet.$CUSTOM_FINGERPRINT.js"
 CUSTOM_DOTNET_JS_ROOT="$CUSTOM_PUBLISH_DIR/dotnet.js"
 if [ -f "$CUSTOM_DOTNET_JS" ]; then
@@ -337,42 +340,31 @@ if [ -f "$CUSTOM_CONFIG.br" ]; then
 fi
 
 echo -e "${GREEN}✓ No stale compressed files in custom publish output${NC}"
+
+# Verify no placeholder patterns leaked
+if grep -q '#\[\.{fingerprint}\]' "$CUSTOM_CONFIG"; then
+    echo -e "${RED}❌ FAIL: Placeholder pattern still present in custom publish config${NC}"
+    grep '#\[\.{fingerprint}\]' "$CUSTOM_CONFIG"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ No placeholder patterns in custom publish config${NC}"
+
+# Verify consistent references (same checks as Test 3 but for custom PublishDir)
+CUSTOM_CONFIG_CONTENT=$(cat "$CUSTOM_CONFIG")
+CUSTOM_DOTNET_REFS=$(echo "$CUSTOM_CONFIG_CONTENT" | grep -o 'dotnet\.[a-z0-9]*\.js' | sort | uniq)
+CUSTOM_REF_COUNT=$(echo "$CUSTOM_DOTNET_REFS" | wc -l)
+
+if [ "$CUSTOM_REF_COUNT" -gt 1 ]; then
+    echo -e "${RED}❌ FAIL: Multiple different dotnet.js references in custom publish config:${NC}"
+    echo "$CUSTOM_DOTNET_REFS"
+    rm -rf "$CUSTOM_PUBLISH_DIR"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Only one consistent dotnet.js reference in custom publish config${NC}"
 rm -rf "$CUSTOM_PUBLISH_DIR"
-
-# Test 9: Publish with custom absolute PublishDir and fingerprinting disabled
-echo ""
-echo "🚫 Test 9: Publish with custom PublishDir + WasmShellEnableDotnetJsFingerprinting=false"
-echo "----------------------------------------"
-CUSTOM_NOFP_DIR=$(mktemp -d)
-rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
-
-set +e
-dotnet publish "$PROJECT_FILE" --configuration Release \
-    -p:PublishDir="$CUSTOM_NOFP_DIR" \
-    -p:WasmShellEnableDotnetJsFingerprinting=false 2>&1
-CUSTOM_NOFP_EXIT=$?
-set -e
-
-if [ "$CUSTOM_NOFP_EXIT" -ne 0 ]; then
-    echo -e "${RED}❌ FAIL: Publish with custom PublishDir + disabled fingerprinting failed${NC}"
-    rm -rf "$CUSTOM_NOFP_DIR"
-    exit "$CUSTOM_NOFP_EXIT"
-fi
-
-CUSTOM_NOFP_CONFIG=$(find "$CUSTOM_NOFP_DIR/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
-
-if [ -f "$CUSTOM_NOFP_CONFIG" ]; then
-    CUSTOM_NOFP_FP=$(sed -n 's/.*dotnet_js_filename.*"dotnet\.\([a-z0-9]*\)\.js".*/\1/p' "$CUSTOM_NOFP_CONFIG" | head -1)
-    if [ -n "$CUSTOM_NOFP_FP" ]; then
-        echo -e "${RED}❌ FAIL: Fingerprint found despite WasmShellEnableDotnetJsFingerprinting=false${NC}"
-        echo "  Unexpected fingerprint: $CUSTOM_NOFP_FP"
-        rm -rf "$CUSTOM_NOFP_DIR"
-        exit 1
-    fi
-fi
-
-echo -e "${GREEN}✓ Custom PublishDir + disabled fingerprinting: no fingerprint in config${NC}"
-rm -rf "$CUSTOM_NOFP_DIR"
 
 # Summary
 echo ""

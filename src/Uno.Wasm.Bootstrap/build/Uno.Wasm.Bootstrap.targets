@@ -433,35 +433,9 @@
 				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('_framework/dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime'))" />
 		</ItemGroup>
 
-		<!--
-			Fallback: when using a custom PublishDir (absolute external path), the RelativePath
-			may not include the _framework/ prefix. Look for StaticWebAsset items with
-			RelativePath starting with 'dotnet' directly.
-		-->
-		<ItemGroup Condition="'@(_UnoDotnetJsAsset)' == ''">
-			<_UnoDotnetJsAsset Include="@(StaticWebAsset)"
-				Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('dotnet#[.{fingerprint}]')) AND $([System.String]::Copy('%(RelativePath)').EndsWith('.js')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.native')) AND !$([System.String]::Copy('%(RelativePath)').Contains('.runtime'))" />
-		</ItemGroup>
-
 		<PropertyGroup>
 			<_UnoDotnetJsFingerprint>@(_UnoDotnetJsAsset->'%(Fingerprint)')</_UnoDotnetJsFingerprint>
 			<_UnoConfigJsPath>$(IntermediateOutputPath)unowwwrootassets/uno-config.js</_UnoConfigJsPath>
-		</PropertyGroup>
-
-		<!--
-			Fallback: if dotnet.js is not a fingerprinted StaticWebAsset (e.g. custom PublishDir
-			or SDK version that doesn't fingerprint native assets), compute a hash-based
-			fingerprint from the physical file in the build output.
-		-->
-		<GetFileHash Files="$(OutputPath)dotnet.js"
-					 Algorithm="SHA256"
-					 HashEncoding="hex"
-					 Condition="'$(_UnoDotnetJsFingerprint)' == '' AND Exists('$(OutputPath)dotnet.js')">
-			<Output TaskParameter="Hash" PropertyName="_UnoDotnetJsHash" />
-		</GetFileHash>
-
-		<PropertyGroup Condition="'$(_UnoDotnetJsFingerprint)' == '' AND '$(_UnoDotnetJsHash)' != ''">
-			<_UnoDotnetJsFingerprint>$(_UnoDotnetJsHash.Substring(0, 10).ToLowerInvariant())</_UnoDotnetJsFingerprint>
 		</PropertyGroup>
 
 		<!-- Update the uno-config.js file with the fingerprinted filename if we found a fingerprint -->
