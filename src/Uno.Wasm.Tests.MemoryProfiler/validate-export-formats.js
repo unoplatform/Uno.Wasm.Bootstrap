@@ -47,10 +47,6 @@ MOCK_ALLOCATIONS[
     "at dotnet.native.wasm.custom_alloc (http://localhost:8000/_framework/dotnet.native.wasm:wasm-function[400]:0x6000)"
 ] = [1, 16384, ""];
 
-function delay(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
-}
-
 /**
  * Calls downloadSnapshot inside the page, intercepting the Blob to capture
  * the JSON string instead of triggering a real file download.
