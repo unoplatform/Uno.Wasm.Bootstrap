@@ -1,0 +1,9 @@
+{
+  "name": "uno-wasm-tests-vfs-assembly-load",
+  "version": "0.0.0",
+  "description": "VFS framework assembly load validation",
+  "main": "validate-vfs-runtime.js",
+  "dependencies": {
+    "puppeteer": "^14.1.2"
+  }
+}

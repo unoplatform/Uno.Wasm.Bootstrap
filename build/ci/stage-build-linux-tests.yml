@@ -299,6 +299,22 @@ jobs:
       ArtifactName: memory-profiler-exports
       ArtifactType: Container
 
+  ## VFS framework assembly load test - builds RayTracer with VFS loading + cleanup, then validates at runtime
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.VfsAssemblyLoad
+      chmod +x test-vfs-assembly-load.sh
+      ./test-vfs-assembly-load.sh "$(build.artifactstagingdirectory)/vfs-assembly-load"
+    displayName: VFS Framework Assembly Load Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/vfs-assembly-load
+      ArtifactName: vfs-assembly-load
+      ArtifactType: Container
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
