@@ -38,5 +38,9 @@
 		uno_load_all_satellite_resources?: string[];
 
 		enable_memory_profiler?: boolean;
+
+		uno_vfs_framework_assembly_load?: boolean;
+
+		uno_vfs_framework_assembly_load_cleanup?: boolean;
 	}
 }
