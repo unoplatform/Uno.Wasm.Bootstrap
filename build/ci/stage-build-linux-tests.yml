@@ -249,3 +249,57 @@ jobs:
       PathtoPublish: $(build.artifactstagingdirectory)
       ArtifactName: uno-wasm-bootstrap-linux-aot
       ArtifactType: Container
+
+- job: ${{ parameters.jobName }}_02
+  timeoutInMinutes: 90
+
+  container: ${{ parameters.linux_container }}
+
+  workspace:
+    clean: all
+
+  pool:
+    vmImage: ${{ parameters.linux_vmImage }}
+
+  variables:
+    NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+    WasmCachePath: $(Agent.TempDirectory)/emsdk-cache
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - template: dotnet-install.yml
+  - template: gitversion.yml
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Bootstrap
+      dotnet msbuild /r /p:Configuration=Release
+    displayName: Build bootstrap
+
+  ## Memory profiler export format test - builds RayTracer with profiler enabled, then validates export formats
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer
+      dotnet clean -c Release
+      dotnet publish -c Release /m:1 /p:WasmShellEnableWasmMemoryProfiler=true /bl:$(build.artifactstagingdirectory)/MemoryProfiler-linux.binlog
+    displayName: Build RayTracer with Memory Profiler
+
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.MemoryProfiler
+      chmod +x test-memory-profiler-export.sh
+      ./test-memory-profiler-export.sh "$(build.artifactstagingdirectory)/memory-profiler-exports"
+    displayName: Memory Profiler Export Format Test
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/memory-profiler-exports
+      ArtifactName: memory-profiler-exports
+      ArtifactType: Container
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: uno-wasm-bootstrap-linux-02
+      ArtifactType: Container

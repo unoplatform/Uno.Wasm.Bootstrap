@@ -1,4 +1,5 @@
 ﻿/// <reference path="AotProfilerSupport.ts"/>
+/// <reference path="EmscriptenMemoryProfilerSupport.ts"/>
 /// <reference path="HotReloadSupport.ts"/>
 /// <reference path="UnoConfig.ts"/>
 
@@ -123,7 +124,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				m.dotnet
 					.withModuleConfig({
-						preRun: () => bootstrapper.wasmRuntimePreRun(),
+						preRun: [() => bootstrapper.wasmRuntimePreRun()],
 					})
 					.withRuntimeOptions(config.config.uno_runtime_options)
 					.withConfig({ loadAllSatelliteResources: config.config.uno_load_all_satellite_resources });
@@ -206,6 +207,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.initializeRequire();
 			this._aotProfiler = AotProfilerSupport.initialize(this._context, this._unoConfig);
+			EmscriptenMemoryProfilerSupport.initialize(this._unoConfig);
 		}
 
 		private configureGlobal() {

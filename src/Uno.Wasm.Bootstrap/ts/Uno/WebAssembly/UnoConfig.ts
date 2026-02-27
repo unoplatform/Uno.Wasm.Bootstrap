@@ -36,5 +36,7 @@
 		uno_runtime_options?: string[];
 
 		uno_load_all_satellite_resources?: string[];
+
+		enable_memory_profiler?: boolean;
 	}
 }

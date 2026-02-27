@@ -57,6 +57,7 @@ server=/visualstudio.com/${UPSTREAM_DNS}
 
 # Azure Blob Storage — covers ALL *.blob.core.windows.net
 server=/core.windows.net/${UPSTREAM_DNS}
+server=/vsblob.vsassets.io/${UPSTREAM_DNS}
 
 # NuGet
 server=/nuget.org/${UPSTREAM_DNS}
