@@ -20,7 +20,7 @@ Set the `WasmShellEnableWasmMemoryProfiler` property in your project file:
 
 Then rebuild your application. On startup, the console will display:
 
-```
+```text
 [MemoryProfiler] Emscripten memory profiler bridge activated.
 [MemoryProfiler] Export hotkey: Ctrl+Shift+H (speedscope format).
   For PerfView format, run: Uno.WebAssembly.Bootstrap.EmscriptenMemoryProfilerSupport.downloadSnapshot("perfview")

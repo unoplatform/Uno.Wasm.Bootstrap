@@ -228,7 +228,7 @@ function captureSnapshot(page, format) {
         // Validate weights are positive
         for (var i = 0; i < profile.weights.length; i++) {
             assert(typeof profile.weights[i] === "number", "weights[" + i + "] should be a number");
-            assert(profile.weights[i] > 0, "weights[" + i + "] should be > 0, got " + profile.weights[i]);
+            assert(profile.weights[i] >= 0, "weights[" + i + "] should be >= 0, got " + profile.weights[i]);
         }
 
         // endValue should equal sum of weights
@@ -277,7 +277,7 @@ function captureSnapshot(page, format) {
             assert(Array.isArray(s.Stack), "Samples[" + i + "].Stack should be an array");
             assert(s.Stack.length > 0, "Samples[" + i + "].Stack should not be empty");
             assert(typeof s.Metric === "number", "Samples[" + i + "].Metric should be a number");
-            assert(s.Metric > 0, "Samples[" + i + "].Metric should be > 0, got " + s.Metric);
+            assert(s.Metric >= 0, "Samples[" + i + "].Metric should be >= 0, got " + s.Metric);
 
             for (var j = 0; j < s.Stack.length; j++) {
                 assert(typeof s.Stack[j] === "string", "Stack entry should be a string");

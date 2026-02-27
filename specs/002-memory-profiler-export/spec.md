@@ -88,6 +88,7 @@ And the difference in "outstandingBytes" reveals memory growth or shrinkage
 **FR-3**: The `downloadSnapshot()` method SHALL accept an optional format parameter (`"speedscope"` or `"perfview"`), defaulting to `"speedscope"`.
 
 **FR-4**: The speedscope export SHALL conform to the [speedscope file format schema](https://www.speedscope.app/file-format-schema.json) with:
+
 - `shared.frames`: deduplicated array of function names
 - `profiles[0].type`: `"sampled"`
 - `profiles[0].unit`: `"bytes"`
@@ -95,6 +96,7 @@ And the difference in "outstandingBytes" reveals memory growth or shrinkage
 - `profiles[0].weights`: outstanding bytes per allocation site
 
 **FR-5**: The PerfView export SHALL produce a JSON file named `memory-profile-{timestamp}.PerfView.json` with:
+
 - `Samples`: array of objects, each with `Stack` (function names innermost-first) and `Metric` (outstanding bytes)
 
 **FR-6**: Allocation sites SHALL be sorted by `outstandingBytes` descending before export in both formats.
@@ -167,7 +169,6 @@ File extension: `.PerfView.json`. Open in [PerfView](https://github.com/microsof
 
 - `Stack` — array of function names, innermost first (matches our existing frame order)
 - `Metric` — outstanding bytes for that allocation site
-```
 
 ## Implementation
 
