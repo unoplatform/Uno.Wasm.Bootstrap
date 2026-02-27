@@ -289,6 +289,8 @@ jobs:
       chmod +x test-memory-profiler-export.sh
       ./test-memory-profiler-export.sh "$(build.artifactstagingdirectory)/memory-profiler-exports"
     displayName: Memory Profiler Export Format Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
   - task: PublishBuildArtifacts@1
     condition: always()
