@@ -221,7 +221,7 @@
 			<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 			<!-- https://github.com/dotnet/runtime/blob/1231a9addd0fb3cfb806c2a89cb45a3018c48bb2/src/mono/browser/build/BrowserWasmApp.targets#L125-L126 -->
-			<_WasmPThreadPoolInitialSize Condition=" '$(WasmShellPThreadsPoolSize)' == 'true' ">true</_WasmPThreadPoolInitialSize>
+			<_WasmPThreadPoolInitialSize Condition=" '$(WasmShellPThreadsPoolSize)' == '' ">2</_WasmPThreadPoolInitialSize>
 
 			<!-- Native build compatibility -->
 			<WasmBuildNative Condition=" 
