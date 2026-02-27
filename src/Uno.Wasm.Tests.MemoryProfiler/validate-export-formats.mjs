@@ -158,7 +158,10 @@ const safeSource = jsSource.replace(
 // populates globalThis (new Function() would create a local scope).
 (0, eval)(safeSource);
 
-const MemProfiler = globalThis.Uno?.WebAssembly?.Bootstrap?.EmscriptenMemoryProfilerSupport;
+const MemProfiler = globalThis.Uno
+    && globalThis.Uno.WebAssembly
+    && globalThis.Uno.WebAssembly.Bootstrap
+    && globalThis.Uno.WebAssembly.Bootstrap.EmscriptenMemoryProfilerSupport;
 if (!MemProfiler) {
     console.error("ERROR: Could not find Uno.WebAssembly.Bootstrap.EmscriptenMemoryProfilerSupport on globalThis.");
     console.error("  The compiled uno-bootstrap.js may be stale. Rebuild with: dotnet build src/Uno.Wasm.Bootstrap/Uno.Wasm.Bootstrap.csproj");
