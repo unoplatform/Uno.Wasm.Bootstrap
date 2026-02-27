@@ -91,28 +91,33 @@ function assert(condition, message) {
         }
 
         // =================================================================
-        // Test 2: MONO_PATH was set in the runtime environment
+        // Test 2: VFS feature flag is active in the runtime config
         // =================================================================
-        console.log("\n=== Test 2: MONO_PATH configuration ===");
+        console.log("\n=== Test 2: VFS feature enabled in config ===");
 
-        var monoPathSet = consoleLogs.some(function (line) {
-            return line.indexOf("MONO_PATH=/managed") !== -1;
-        });
-
-        // Also check via the global config object
-        var configMonoPath = await page.evaluate(function () {
+        // globalThis.config is the UnoConfig. MONO_PATH lives on the
+        // internal MonoConfig (not exposed), but its effect is already
+        // proven by Test 1 (the app loaded assemblies from VFS). Here
+        // we verify the UnoConfig flags are set correctly.
+        var vfsFlags = await page.evaluate(function () {
             try {
-                return globalThis.config &&
-                    globalThis.config.environmentVariables &&
-                    globalThis.config.environmentVariables["MONO_PATH"];
+                var c = globalThis.config;
+                return {
+                    load: !!(c && c.uno_vfs_framework_assembly_load),
+                    cleanup: !!(c && c.uno_vfs_framework_assembly_load_cleanup),
+                };
             } catch (_e) {
                 return null;
             }
         });
 
         assert(
-            monoPathSet || configMonoPath === "/managed",
-            "MONO_PATH is set to /managed (console log or config object)"
+            vfsFlags && vfsFlags.load === true,
+            "uno_vfs_framework_assembly_load is true in runtime config"
+        );
+        assert(
+            vfsFlags && vfsFlags.cleanup === true,
+            "uno_vfs_framework_assembly_load_cleanup is true in runtime config"
         );
 
         // =================================================================
