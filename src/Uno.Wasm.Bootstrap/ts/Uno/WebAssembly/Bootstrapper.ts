@@ -243,7 +243,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					try {
 						fs.unlink(path);
 
-						if (this._monoConfig?.debugLevel) {
+						if (this._monoConfig && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
 							console.log(`[Bootstrap] VFS cleanup: deleted ${path}`);
 						}
 					} catch (e) {
@@ -349,7 +349,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				return;
 			}
 
-			if (this._monoConfig.debugLevel) {
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
 				console.log("[Bootstrap] Redirecting assembly loading to VFS-based loading for image cache deduplication");
 			}
 
