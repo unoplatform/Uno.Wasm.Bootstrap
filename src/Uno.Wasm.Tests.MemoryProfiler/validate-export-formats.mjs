@@ -149,10 +149,16 @@ const jsSource = readFileSync(bootstrapJsPath, "utf-8");
 // The file ends with `Uno.WebAssembly.Bootstrap.Bootstrapper.bootstrap();`
 // which tries to import modules and access the real DOM.  We strip that
 // auto-invocation line so we can load the class definitions without side effects.
-const safeSource = jsSource.replace(
+let safeSource = jsSource.replace(
     /Uno\.WebAssembly\.Bootstrap\.Bootstrapper\.bootstrap\(\);?/g,
     "// (bootstrap auto-invocation stripped for testing)"
 );
+
+// The compiled JS may contain optional chaining (?.) which older Node.js
+// versions (< 14) do not support.  Since we already stripped the bootstrap()
+// call, these code paths are never executed — just replace ?. with plain .
+// so the syntax parses.
+safeSource = safeSource.replace(/\?\./g, ".");
 
 // Use indirect eval to execute in the true global scope so `var Uno`
 // populates globalThis (new Function() would create a local scope).
