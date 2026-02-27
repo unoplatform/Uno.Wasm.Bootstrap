@@ -44,6 +44,8 @@ items:
       href: features-simd.md
     - name: Profiling
       href: features-profiling.md
+    - name: Native Memory Profiling
+      href: features-native-memory-profiling.md
     - name: PWA Support
       href: features-pwa.md
     - name: 4GB Support

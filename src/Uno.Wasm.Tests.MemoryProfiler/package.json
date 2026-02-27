@@ -1,0 +1,9 @@
+{
+  "name": "uno-wasm-tests-memoryprofiler",
+  "version": "0.0.0",
+  "description": "Memory profiler export format validation",
+  "main": "validate-export-formats.js",
+  "dependencies": {
+    "puppeteer": "^14.1.2"
+  }
+}

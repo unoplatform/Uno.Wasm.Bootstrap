@@ -125,6 +125,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool GenerateAOTProfile { get; set; }
 
+		public bool EnableMemoryProfiler { get; set; }
+
 		public string FetchRetries { get; set; } = "1";
 
 		public bool EnableThreads { get; set; }
@@ -576,6 +578,11 @@ namespace Uno.Wasm.Bootstrap
 				if (GenerateAOTProfile)
 				{
 					config.AppendLine($"config.generate_aot_profile = true;");
+				}
+
+				if (EnableMemoryProfiler)
+				{
+					config.AppendLine($"config.enable_memory_profiler = true;");
 				}
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");

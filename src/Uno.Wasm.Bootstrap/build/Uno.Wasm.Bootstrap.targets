@@ -159,6 +159,9 @@
 			<WasmShellExtraEmccFlags Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="-lidbfs.js" />
 			<WasmShellEmccExportedRuntimeMethod Condition=" '$(WasmShellEnableIDBFS)' == 'true' " Include="IDBFS" />
 
+			<!-- Native memory profiler support -->
+			<WasmShellExtraEmccFlags Condition=" '$(WasmShellEnableWasmMemoryProfiler)' == 'true' " Include="--memoryprofiler" />
+
 			<!-- PInvoke compat -->
 			<_WasmPInvokeModules Include="__Native" />
 			<_WasmPInvokeModules Include="__Internal" />
@@ -371,6 +374,7 @@
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
 			EmccFlags="@(EmccFlags)"
 			EnableLogProfiler="$(WasmShellEnableLogProfiler)"
+			EnableMemoryProfiler="$(WasmShellEnableWasmMemoryProfiler)"
 			EnableThreads="@(WasmEnableThreads)"
 			EnableTracing="@(WasmEnableTracing)"
 			GenerateAOTProfile="$(WasmShellGenerateAOTProfile)"
