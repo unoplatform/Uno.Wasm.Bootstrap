@@ -23,6 +23,16 @@
 		     Users can disable this by setting WasmShellEnableDotnetJsFingerprinting to false. -->
 		<WasmShellEnableDotnetJsFingerprinting Condition="'$(WasmShellEnableDotnetJsFingerprinting)' == ''">true</WasmShellEnableDotnetJsFingerprinting>
 		<WasmFingerprintDotnetJs>$(WasmShellEnableDotnetJsFingerprinting)</WasmFingerprintDotnetJs>
+
+		<!-- When true, assemblies are placed in Emscripten VFS instead of being loaded
+		     as in-memory bundled resources. This enables the .NET runtime's image-level
+		     cache to deduplicate assemblies loaded from separate AssemblyLoadContexts. -->
+		<WasmShellVfsFrameworkAssemblyLoad Condition="'$(WasmShellVfsFrameworkAssemblyLoad)' == ''">false</WasmShellVfsFrameworkAssemblyLoad>
+
+		<!-- When true (and VFS loading is enabled), assembly files are deleted from the
+		     Emscripten VFS after the Mono runtime closes them. The runtime's in-memory
+		     image cache retains the MonoImage, so the VFS copy is no longer needed. -->
+		<WasmShellVfsFrameworkAssemblyLoadCleanup Condition="'$(WasmShellVfsFrameworkAssemblyLoadCleanup)' == ''">false</WasmShellVfsFrameworkAssemblyLoadCleanup>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -381,6 +391,8 @@
 			IndexHtmlPath="$(WasmShellIndexHtmlPath)"
 			IntermediateOutputPath="$(IntermediateOutputPath)"
 			LoadAllSatelliteResources="$(WasmShellLoadAllSatelliteResources)"
+			VfsFrameworkAssemblyLoad="$(WasmShellVfsFrameworkAssemblyLoad)"
+			VfsFrameworkAssemblyLoadCleanup="$(WasmShellVfsFrameworkAssemblyLoadCleanup)"
 			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"

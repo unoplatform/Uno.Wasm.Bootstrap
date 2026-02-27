@@ -33,6 +33,7 @@ This work is based on the excellent work from @praeclarum's [OOui Wasm MSBuild t
   - [4GB Support](doc/features-4gb.md)
   - [HttpRequestMessage Extensions](doc/features-httprequestmessage-extensions.md)
   - [dotnet.js Fingerprinting](doc/features-dotnetjs-fingerprinting.md)
+  - [VFS Assembly Loading](doc/features-vfs-assembly-loading.md)
   - [Assemblies obfuscation](doc/features-obfuscation.md)
 - Tools
   - [Uno Version Checker](doc/features-version-checker.md)

@@ -52,6 +52,8 @@ items:
       href: features-4gb.md
     - name: HttpRequestMessage Extensions
       href: features-httprequestmessage-extensions.md
+    - name: VFS Assembly Loading
+      href: features-vfs-assembly-loading.md
 
 - name: Tools
   items:

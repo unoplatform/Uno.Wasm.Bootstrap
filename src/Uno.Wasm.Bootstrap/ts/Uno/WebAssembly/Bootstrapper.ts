@@ -124,7 +124,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				m.dotnet
 					.withModuleConfig({
-						preRun: [() => bootstrapper.wasmRuntimePreRun()],
+						preRun: [(module: any) => bootstrapper.wasmRuntimePreRun(module)],
 					})
 					.withRuntimeOptions(config.config.uno_runtime_options)
 					.withConfig({ loadAllSatelliteResources: config.config.uno_load_all_satellite_resources });
@@ -195,10 +195,62 @@ namespace Uno.WebAssembly.Bootstrap {
 			anyModule.imports.require = (<any>globalThis).require;
 		}
 
-		private wasmRuntimePreRun() {
+		private wasmRuntimePreRun(module?: any) {
+			// Pre-create VFS directories that MONO_PATH references so that the
+			// path validation in mono_set_assemblies_path (assembly.c) succeeds
+			// during mono_init. Without this, a g_warning fires because the
+			// directory does not yet exist when the runtime validates MONO_PATH.
+			if (this._unoConfig.uno_vfs_framework_assembly_load && module?.FS) {
+				try {
+					module.FS.mkdir("/managed");
+				} catch (e) {
+					// Directory may already exist
+				}
+
+				// When enabled, register a close-file hook so that assembly files
+				// are removed from the Emscripten VFS as soon as the Mono runtime
+				// finishes reading them. The runtime's in-memory image cache
+				// (mono_image_open_a_lot) retains the MonoImage by filename, so
+				// the VFS copy is redundant after the first load and can be freed
+				// to reduce memory pressure.
+				if (this._unoConfig.uno_vfs_framework_assembly_load_cleanup) {
+					this.setupVfsCleanupOnClose(module.FS);
+				}
+			}
+
 			if (LogProfilerSupport.initializeLogProfiler(this._unoConfig)) {
 				this._logProfiler = new LogProfilerSupport(this._context, this._unoConfig);
 			}
+		}
+
+		/**
+		 * Hooks Emscripten's FS.trackingDelegate['onCloseFile'] so that files
+		 * under /managed are unlinked immediately after the runtime closes them.
+		 */
+		private setupVfsCleanupOnClose(fs: any) {
+			const vfsPrefix = "/managed/";
+
+			// Chain any pre-existing handler.
+			fs.trackingDelegate = fs.trackingDelegate || {};
+			const existingHandler = fs.trackingDelegate['onCloseFile'];
+
+			fs.trackingDelegate['onCloseFile'] = (path: string) => {
+				if (existingHandler) {
+					existingHandler(path);
+				}
+
+				if (path.startsWith(vfsPrefix)) {
+					try {
+						fs.unlink(path);
+
+						if (this._monoConfig?.debugLevel) {
+							console.log(`[Bootstrap] VFS cleanup: deleted ${path}`);
+						}
+					} catch (e) {
+						// File may already have been deleted.
+					}
+				}
+			};
 		}
 
 		private RuntimeReady() {
@@ -266,8 +318,90 @@ namespace Uno.WebAssembly.Bootstrap {
 				};
 			}
 
+			// When enabled, redirect assemblies to the Emscripten VFS instead of
+			// loading them as in-memory bundled resources. This allows the .NET
+			// runtime's image-level cache (mono_image_open_a_lot) to deduplicate
+			// assembly images loaded from separate AssemblyLoadContexts.
+			if (this._unoConfig.uno_vfs_framework_assembly_load) {
+				this.redirectAssembliesToVfs(config);
+			}
+
 			// Initialize progress tracking with best-guess estimation
 			this.initializeProgressEstimation();
+		}
+
+		/**
+		 * Redirects assembly/pdb/resource assets from in-memory bundled resource
+		 * loading ("assembly" behavior) to Emscripten VFS placement ("vfs" behavior).
+		 *
+		 * When assemblies are loaded as bundled resources, each AssemblyLoadContext
+		 * creates its own MonoImage copy. By placing them in the VFS, the runtime's
+		 * filename-based image cache can deduplicate across ALCs.
+		 *
+		 * This operates on config.resources (the declarative dictionary structure)
+		 * which is the form available at configLoaded time. The runtime converts
+		 * resources into the assets array internally afterward.
+		 */
+		private redirectAssembliesToVfs(config: MonoConfig) {
+			const vfsManagedDir = "/managed";
+
+			if (!config.resources) {
+				return;
+			}
+
+			if (this._monoConfig.debugLevel) {
+				console.log("[Bootstrap] Redirecting assembly loading to VFS-based loading for image cache deduplication");
+			}
+
+			// Set MONO_PATH so the runtime probes this directory for assemblies
+			config.environmentVariables = config.environmentVariables || {};
+			config.environmentVariables["MONO_PATH"] = vfsManagedDir;
+
+			// Ensure resources.vfs exists
+			config.resources.vfs = config.resources.vfs || {};
+
+			// Keep the main assembly on the standard bundled resource path so the
+			// runtime can resolve the entry point without relying on VFS probing.
+			const mainAssemblyName = config.mainAssemblyName;
+
+			// Helper: move entries from a ResourceList into a VFS virtual path,
+			// skipping the main assembly so it stays as a bundled resource.
+			const moveToVfs = (source: { [name: string]: string | null | "" } | undefined, vfsPath: string) => {
+				if (!source) return;
+				const kept: { [name: string]: string | null | "" } = {};
+				const target = config.resources.vfs[vfsPath] = config.resources.vfs[vfsPath] || {};
+				for (const name in source) {
+					if (source.hasOwnProperty(name)) {
+						if (name === mainAssemblyName) {
+							kept[name] = source[name];
+						} else {
+							target[name] = source[name];
+						}
+					}
+				}
+				return kept;
+			};
+
+			// Move assemblies to VFS at /managed (main assembly stays as bundled resource)
+			if (config.resources.assembly) {
+				config.resources.assembly = moveToVfs(config.resources.assembly, vfsManagedDir) || {};
+			}
+
+			// Move PDBs to VFS at /managed
+			if (config.resources.pdb) {
+				moveToVfs(config.resources.pdb, vfsManagedDir);
+				config.resources.pdb = {};
+			}
+
+			// Move satellite resource assemblies to VFS at /managed/<culture>
+			if (config.resources.satelliteResources) {
+				for (const culture in config.resources.satelliteResources) {
+					if (config.resources.satelliteResources.hasOwnProperty(culture)) {
+						moveToVfs(config.resources.satelliteResources[culture], vfsManagedDir + "/" + culture);
+					}
+				}
+				config.resources.satelliteResources = {};
+			}
 		}
 
 		public preInit() {

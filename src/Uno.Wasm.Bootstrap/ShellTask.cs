@@ -131,6 +131,10 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool EnableThreads { get; set; }
 
+		public bool VfsFrameworkAssemblyLoad { get; set; }
+
+		public bool VfsFrameworkAssemblyLoadCleanup { get; set; }
+
 		public ITaskItem[]? ReferencePath { get; set; }
 
 		[Output]
@@ -573,7 +577,9 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_enable_tracing = {EnableTracing.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_load_all_satellite_resources = {LoadAllSatelliteResources.ToString().ToLowerInvariant()};");
-				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}];");
+				config.AppendLine($"config.uno_vfs_framework_assembly_load = {VfsFrameworkAssemblyLoad.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_vfs_framework_assembly_load_cleanup = {VfsFrameworkAssemblyLoadCleanup.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.emcc_exported_runtime_methods = [{emccExportedRuntimeMethodsParams}]");
 
 				if (GenerateAOTProfile)
 				{
