@@ -8,7 +8,12 @@
  *
  *   1. The app ran successfully (assemblies loaded from VFS via MONO_PATH).
  *   2. MONO_PATH was set to /managed in the runtime config.
- *   3. VFS cleanup removed assembly files from /managed after they were read.
+ *   3. VFS cleanup removed assembly files (.dll/.wasm) from /managed after load.
+ *   4. VFS cleanup log messages are emitted (when debugLevel is active).
+ *   5. No assembly.c MONO_PATH assertion warnings.
+ *   6. No mono_wasm_bind_assembly_exports assertion (ExitStatus crash).
+ *   7. coreAssembly entries (System.Runtime.InteropServices.JavaScript,
+ *      System.Private.CoreLib) are NOT redirected to VFS /managed.
  *
  * Usage:  node validate-vfs-runtime.js <output-dir> [app-url]
  */
@@ -44,15 +49,18 @@ function assert(condition, message) {
 
         var page = await browser.newPage();
 
-        // Collect console messages for diagnostics
+        // Collect console messages and page errors for diagnostics
         var consoleLogs = [];
+        var pageErrors = [];
         page.on("console", function (msg) {
             var text = msg.text();
             consoleLogs.push(text);
             console.log("BROWSER: " + text);
         });
         page.on("pageerror", function (err) {
-            console.error("PAGE ERROR: " + err.message);
+            var text = err.message || err.toString();
+            pageErrors.push(text);
+            console.error("PAGE ERROR: " + text);
         });
 
         // =================================================================
@@ -190,17 +198,18 @@ function assert(condition, message) {
                     remainingFiles.map(function (f) { return f.name; }).join(", "));
             }
 
-            // After cleanup, assembly .dll files should be gone.
+            // After cleanup, assembly files should be gone.
+            // .NET 10+ uses .wasm extension; older runtimes used .dll.
             // Only subdirectories (culture folders) may remain as empty dirs.
-            var remainingDlls = remainingFiles.filter(function (f) {
-                return f.name.endsWith(".dll");
+            var remainingAssemblies = remainingFiles.filter(function (f) {
+                return f.name.endsWith(".dll") || f.name.endsWith(".wasm");
             });
 
             assert(
-                remainingDlls.length === 0,
-                "No .dll files remain in /managed after cleanup" +
-                (remainingDlls.length > 0
-                    ? " (found: " + remainingDlls.map(function (f) { return f.name; }).join(", ") + ")"
+                remainingAssemblies.length === 0,
+                "No assembly files (.dll/.wasm) remain in /managed after cleanup" +
+                (remainingAssemblies.length > 0
+                    ? " (found: " + remainingAssemblies.map(function (f) { return f.name; }).join(", ") + ")"
                     : "")
             );
         }
@@ -240,6 +249,78 @@ function assert(condition, message) {
                 ? " (found " + assemblyWarnings.length + " warning(s))"
                 : "")
         );
+
+        // =================================================================
+        // Test 6: Verify no mono_wasm_bind_assembly_exports assertion
+        // =================================================================
+        console.log("\n=== Test 6: No bind_assembly_exports assertion ===");
+
+        // The ExitStatus / mono_wasm_bind_assembly_exports assertion fires
+        // when a coreAssembly (e.g. System.Runtime.InteropServices.JavaScript)
+        // is accidentally redirected to VFS instead of being loaded as a
+        // bundled resource. Check both console logs and page errors.
+        var allMessages = consoleLogs.concat(pageErrors);
+        var bindExportErrors = allMessages.filter(function (line) {
+            return line.indexOf("mono_wasm_bind_assembly_exports") !== -1
+                || line.indexOf("corebindings.c") !== -1;
+        });
+
+        assert(
+            bindExportErrors.length === 0,
+            "No mono_wasm_bind_assembly_exports assertion errors" +
+            (bindExportErrors.length > 0
+                ? " (found: " + bindExportErrors[0].substring(0, 200) + ")"
+                : "")
+        );
+
+        // =================================================================
+        // Test 7: coreAssembly entries are not in VFS /managed
+        // =================================================================
+        console.log("\n=== Test 7: coreAssembly not redirected to VFS ===");
+
+        // System.Runtime.InteropServices.JavaScript must be loaded as a
+        // bundled resource (not via VFS) because mono_wasm_bind_assembly_exports
+        // in corebindings.c requires it before VFS probing is available.
+        // Verify these files do NOT exist under /managed in the VFS.
+        var coreAssemblyVfsState = await page.evaluate(function () {
+            try {
+                var mod = globalThis.Module;
+                if (!mod || !mod.FS) return { error: "Module.FS not available" };
+
+                var coreNames = [
+                    "System.Runtime.InteropServices.JavaScript.wasm",
+                    "System.Runtime.InteropServices.JavaScript.dll",
+                    "System.Private.CoreLib.wasm",
+                    "System.Private.CoreLib.dll"
+                ];
+
+                var found = [];
+                for (var i = 0; i < coreNames.length; i++) {
+                    try {
+                        mod.FS.stat("/managed/" + coreNames[i]);
+                        found.push(coreNames[i]);
+                    } catch (_e) {
+                        // File does not exist — expected
+                    }
+                }
+
+                return { foundInVfs: found };
+            } catch (e) {
+                return { error: e.toString() };
+            }
+        });
+
+        if (coreAssemblyVfsState.error) {
+            console.log("  INFO: Could not inspect VFS for coreAssembly: " + coreAssemblyVfsState.error);
+        } else {
+            assert(
+                coreAssemblyVfsState.foundInVfs.length === 0,
+                "coreAssembly files are not present in VFS /managed" +
+                (coreAssemblyVfsState.foundInVfs.length > 0
+                    ? " (found: " + coreAssemblyVfsState.foundInVfs.join(", ") + ")"
+                    : "")
+            );
+        }
 
         await browser.close();
 

@@ -338,9 +338,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		 * creates its own MonoImage copy. By placing them in the VFS, the runtime's
 		 * filename-based image cache can deduplicate across ALCs.
 		 *
-		 * This operates on config.resources (the declarative dictionary structure)
-		 * which is the form available at configLoaded time. The runtime converts
-		 * resources into the assets array internally afterward.
+		 * This operates on config.resources which uses the .NET 10+ array-based
+		 * format (arrays of {virtualPath, name, integrity, cache} objects).
 		 */
 		private redirectAssembliesToVfs(config: MonoConfig) {
 			const vfsManagedDir = "/managed";
@@ -348,6 +347,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (!config.resources) {
 				return;
 			}
+
+			// Cast to any because the .NET 10+ runtime uses an array-based
+			// resource format ({virtualPath, name, integrity, cache}[]) while
+			// the local TypeScript definitions still declare the older
+			// dictionary-based ResourceList / ResourceGroups shapes.
+			const res: any = config.resources;
 
 			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
 				console.log("[Bootstrap] Redirecting assembly loading to VFS-based loading for image cache deduplication");
@@ -357,50 +362,79 @@ namespace Uno.WebAssembly.Bootstrap {
 			config.environmentVariables = config.environmentVariables || {};
 			config.environmentVariables["MONO_PATH"] = vfsManagedDir;
 
-			// Ensure resources.vfs exists
-			config.resources.vfs = config.resources.vfs || {};
+			// Ensure resources.vfs is an array (the .NET 10+ resource format)
+			if (!Array.isArray(res.vfs)) {
+				res.vfs = [];
+			}
 
-			// Keep the main assembly on the standard bundled resource path so the
-			// runtime can resolve the entry point without relying on VFS probing.
 			const mainAssemblyName = config.mainAssemblyName;
 
-			// Helper: move entries from a ResourceList into a VFS virtual path,
-			// skipping the main assembly so it stays as a bundled resource.
-			const moveToVfs = (source: { [name: string]: string | null | "" } | undefined, vfsPath: string) => {
-				if (!source) return;
-				const kept: { [name: string]: string | null | "" } = {};
-				const target = config.resources.vfs[vfsPath] = config.resources.vfs[vfsPath] || {};
-				for (const name in source) {
-					if (source.hasOwnProperty(name)) {
-						if (name === mainAssemblyName) {
-							kept[name] = source[name];
-						} else {
-							target[name] = source[name];
-						}
+			// Helper: strip file extension from a virtualPath to get the
+			// assembly name for comparison with mainAssemblyName.
+			const assemblyNameOf = (entry: any): string => {
+				const vp: string = entry.virtualPath || entry.name || "";
+				return vp.replace(/\.(wasm|dll)$/, "");
+			};
+
+			// Helper: move array entries to VFS, returning only entries that
+			// should remain as bundled resources.
+			const moveArrayToVfs = (
+				source: any[] | undefined,
+				vfsDir: string,
+				keepPredicate?: (entry: any) => boolean
+			): any[] => {
+				if (!source || !Array.isArray(source)) return [];
+
+				const kept: any[] = [];
+				for (const entry of source) {
+					if (keepPredicate && keepPredicate(entry)) {
+						kept.push(entry);
+					} else {
+						const vfsEntry = { ...entry };
+						const originalVirtualPath = entry.virtualPath || entry.name;
+						vfsEntry.virtualPath = vfsDir + "/" + originalVirtualPath;
+						res.vfs.push(vfsEntry);
 					}
 				}
 				return kept;
 			};
 
-			// Move assemblies to VFS at /managed (main assembly stays as bundled resource)
-			if (config.resources.assembly) {
-				config.resources.assembly = moveToVfs(config.resources.assembly, vfsManagedDir) || {};
+			// Move regular assemblies to VFS (keep the main assembly as a
+			// bundled resource so the runtime resolves the entry point directly).
+			if (res.assembly) {
+				res.assembly = moveArrayToVfs(
+					res.assembly,
+					vfsManagedDir,
+					(entry) => assemblyNameOf(entry) === mainAssemblyName
+				);
 			}
 
+			// coreAssembly contains runtime-critical assemblies such as
+			// System.Runtime.InteropServices.JavaScript which must be loaded
+			// explicitly as bundled resources because mono_wasm_bind_assembly_exports
+			// requires them before VFS probing is available. Leave coreAssembly
+			// untouched so these assemblies load through the standard path.
+
 			// Move PDBs to VFS at /managed
-			if (config.resources.pdb) {
-				moveToVfs(config.resources.pdb, vfsManagedDir);
-				config.resources.pdb = {};
+			if (res.pdb) {
+				res.pdb = moveArrayToVfs(res.pdb, vfsManagedDir);
+			}
+
+			// Move core PDBs to VFS at /managed
+			if (res.corePdb) {
+				res.corePdb = moveArrayToVfs(res.corePdb, vfsManagedDir);
 			}
 
 			// Move satellite resource assemblies to VFS at /managed/<culture>
-			if (config.resources.satelliteResources) {
-				for (const culture in config.resources.satelliteResources) {
-					if (config.resources.satelliteResources.hasOwnProperty(culture)) {
-						moveToVfs(config.resources.satelliteResources[culture], vfsManagedDir + "/" + culture);
+			if (res.satelliteResources) {
+				for (const culture in res.satelliteResources) {
+					if (res.satelliteResources.hasOwnProperty(culture)) {
+						res.satelliteResources[culture] = moveArrayToVfs(
+							res.satelliteResources[culture],
+							vfsManagedDir + "/" + culture
+						);
 					}
 				}
-				config.resources.satelliteResources = {};
 			}
 		}
 
