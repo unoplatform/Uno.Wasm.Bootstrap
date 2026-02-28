@@ -423,10 +423,19 @@ namespace Uno.WebAssembly.Bootstrap {
 				);
 			}
 
-			// coreAssembly contains runtime-critical assemblies (e.g.
-			// System.Runtime.InteropServices.JavaScript, System.Private.CoreLib).
-			// Keep all coreAssembly entries as bundled resources — they are
-			// required before VFS probing is available.
+			// The SDK may place all assemblies in coreAssembly (with an empty
+			// assembly section). Redirect those to VFS as well, keeping only
+			// the main assembly and runtime-critical assemblies that
+			// mono_wasm_bind_assembly_exports needs before VFS probing is
+			// available (System.Runtime.InteropServices.JavaScript,
+			// System.Private.CoreLib).
+			if (res.coreAssembly) {
+				res.coreAssembly = moveArrayToVfs(
+					res.coreAssembly,
+					vfsManagedDir,
+					mustKeepBundled
+				);
+			}
 
 			// Move PDBs to VFS at /managed
 			if (res.pdb) {
