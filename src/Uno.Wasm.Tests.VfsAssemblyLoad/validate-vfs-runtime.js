@@ -7,12 +7,13 @@
  * produce output, then verifies:
  *
  *   1. The app ran successfully (assemblies loaded from VFS via MONO_PATH).
- *   2. MONO_PATH was set to /managed in the runtime config.
- *   3. VFS cleanup removed assembly files (.dll/.wasm) from /managed after load.
- *   4. VFS cleanup log messages are emitted (when debugLevel is active).
- *   5. No assembly.c MONO_PATH assertion warnings.
- *   6. No mono_wasm_bind_assembly_exports assertion (ExitStatus crash).
- *   7. coreAssembly entries (System.Runtime.InteropServices.JavaScript,
+ *   2. VFS feature flags are active in the runtime config.
+ *   3. Assemblies were redirected to VFS /managed (non-zero entry count).
+ *   4. VFS cleanup removed assembly files (.dll/.wasm) from /managed after load.
+ *   5. VFS cleanup log messages are emitted (when debugLevel is active).
+ *   6. No assembly.c MONO_PATH assertion warnings.
+ *   7. No mono_wasm_bind_assembly_exports assertion (ExitStatus crash).
+ *   8. coreAssembly entries (System.Runtime.InteropServices.JavaScript,
  *      System.Private.CoreLib) are NOT redirected to VFS /managed.
  *
  * Usage:  node validate-vfs-runtime.js <output-dir> [app-url]
@@ -129,9 +130,36 @@ function assert(condition, message) {
         );
 
         // =================================================================
-        // Test 3: VFS cleanup removed assembly files from /managed
+        // Test 3: Assemblies were redirected to VFS /managed
         // =================================================================
-        console.log("\n=== Test 3: VFS cleanup after load ===");
+        console.log("\n=== Test 3: Assemblies redirected to VFS ===");
+
+        // The Bootstrapper always logs the number of entries moved into VFS.
+        // Verify the log exists and reports a non-zero count.
+        var redirectLog = null;
+        for (var i = 0; i < consoleLogs.length; i++) {
+            var match = consoleLogs[i].match(/\[Bootstrap\] VFS redirect: (\d+) entries moved to \/managed/);
+            if (match) {
+                redirectLog = { count: parseInt(match[1], 10), line: consoleLogs[i] };
+                break;
+            }
+        }
+
+        assert(
+            redirectLog !== null,
+            "VFS redirect log message found in console output"
+        );
+
+        assert(
+            redirectLog !== null && redirectLog.count > 0,
+            "VFS redirect moved assemblies to /managed" +
+            (redirectLog ? " (" + redirectLog.count + " entries)" : "")
+        );
+
+        // =================================================================
+        // Test 4: VFS cleanup removed assembly files from /managed
+        // =================================================================
+        console.log("\n=== Test 4: VFS cleanup after load ===");
 
         var vfsState = await page.evaluate(function () {
             try {
@@ -215,9 +243,9 @@ function assert(condition, message) {
         }
 
         // =================================================================
-        // Test 4: Check VFS cleanup log messages
+        // Test 5: Check VFS cleanup log messages
         // =================================================================
-        console.log("\n=== Test 4: VFS cleanup log messages ===");
+        console.log("\n=== Test 5: VFS cleanup log messages ===");
 
         var cleanupLogs = consoleLogs.filter(function (line) {
             return line.indexOf("[Bootstrap] VFS cleanup: deleted") !== -1;
@@ -234,9 +262,9 @@ function assert(condition, message) {
         }
 
         // =================================================================
-        // Test 5: Verify no assembly.c assertion warning
+        // Test 6: Verify no assembly.c assertion warning
         // =================================================================
-        console.log("\n=== Test 5: No MONO_PATH assertion warning ===");
+        console.log("\n=== Test 6: No MONO_PATH assertion warning ===");
 
         var assemblyWarnings = consoleLogs.filter(function (line) {
             return line.indexOf("assembly.c") !== -1 && line.indexOf("<disabled>") !== -1;
@@ -251,9 +279,9 @@ function assert(condition, message) {
         );
 
         // =================================================================
-        // Test 6: Verify no mono_wasm_bind_assembly_exports assertion
+        // Test 7: Verify no mono_wasm_bind_assembly_exports assertion
         // =================================================================
-        console.log("\n=== Test 6: No bind_assembly_exports assertion ===");
+        console.log("\n=== Test 7: No bind_assembly_exports assertion ===");
 
         // The ExitStatus / mono_wasm_bind_assembly_exports assertion fires
         // when a coreAssembly (e.g. System.Runtime.InteropServices.JavaScript)
@@ -274,9 +302,9 @@ function assert(condition, message) {
         );
 
         // =================================================================
-        // Test 7: coreAssembly entries are not in VFS /managed
+        // Test 8: coreAssembly entries are not in VFS /managed
         // =================================================================
-        console.log("\n=== Test 7: coreAssembly not redirected to VFS ===");
+        console.log("\n=== Test 8: coreAssembly not redirected to VFS ===");
 
         // System.Runtime.InteropServices.JavaScript must be loaded as a
         // bundled resource (not via VFS) because mono_wasm_bind_assembly_exports

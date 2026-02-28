@@ -369,11 +369,25 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const mainAssemblyName = config.mainAssemblyName;
 
+			// System.Runtime.InteropServices.JavaScript must stay as a bundled
+			// resource because mono_wasm_bind_assembly_exports (corebindings.c)
+			// requires it loaded before VFS probing is available.
+			const bundledAssemblies = new Set([
+				"System.Runtime.InteropServices.JavaScript",
+				"System.Private.CoreLib",
+			]);
+
 			// Helper: strip file extension from a virtualPath to get the
-			// assembly name for comparison with mainAssemblyName.
+			// assembly name for comparison.
 			const assemblyNameOf = (entry: any): string => {
 				const vp: string = entry.virtualPath || entry.name || "";
 				return vp.replace(/\.(wasm|dll)$/, "");
+			};
+
+			// Returns true when an entry must remain as a bundled resource.
+			const mustKeepBundled = (entry: any): boolean => {
+				const name = assemblyNameOf(entry);
+				return name === mainAssemblyName || bundledAssemblies.has(name);
 			};
 
 			// Helper: move array entries to VFS, returning only entries that
@@ -399,21 +413,20 @@ namespace Uno.WebAssembly.Bootstrap {
 				return kept;
 			};
 
-			// Move regular assemblies to VFS (keep the main assembly as a
-			// bundled resource so the runtime resolves the entry point directly).
+			// Move regular assemblies to VFS (keep main assembly and
+			// runtime-critical assemblies as bundled resources).
 			if (res.assembly) {
 				res.assembly = moveArrayToVfs(
 					res.assembly,
 					vfsManagedDir,
-					(entry) => assemblyNameOf(entry) === mainAssemblyName
+					mustKeepBundled
 				);
 			}
 
-			// coreAssembly contains runtime-critical assemblies such as
-			// System.Runtime.InteropServices.JavaScript which must be loaded
-			// explicitly as bundled resources because mono_wasm_bind_assembly_exports
-			// requires them before VFS probing is available. Leave coreAssembly
-			// untouched so these assemblies load through the standard path.
+			// coreAssembly contains runtime-critical assemblies (e.g.
+			// System.Runtime.InteropServices.JavaScript, System.Private.CoreLib).
+			// Keep all coreAssembly entries as bundled resources — they are
+			// required before VFS probing is available.
 
 			// Move PDBs to VFS at /managed
 			if (res.pdb) {
@@ -436,6 +449,11 @@ namespace Uno.WebAssembly.Bootstrap {
 					}
 				}
 			}
+
+			// Always log the redirect count so CI tests can verify that
+			// assemblies were actually placed into the VFS.
+			const vfsCount = res.vfs.length;
+			console.log(`[Bootstrap] VFS redirect: ${vfsCount} entries moved to ${vfsManagedDir}`);
 		}
 
 		public preInit() {
