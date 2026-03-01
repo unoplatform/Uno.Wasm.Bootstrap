@@ -7,6 +7,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmShellVfsFrameworkAssemblyLoad>true</WasmShellVfsFrameworkAssemblyLoad>
     <WasmShellVfsFrameworkAssemblyLoadCleanup>true</WasmShellVfsFrameworkAssemblyLoadCleanup>
+    <!-- Enable debug-level logging so Puppeteer tests can validate VFS redirect/cleanup log messages -->
+    <WasmDebugLevel>1</WasmDebugLevel>
   </PropertyGroup>
 
   <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />

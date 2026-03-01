@@ -379,15 +379,17 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const mainAssemblyName = config.mainAssemblyName;
 
-			// Log pre-processing state for diagnostics
-			const asmBefore = Array.isArray(res.assembly) ? res.assembly.length : typeof res.assembly;
-			const coreBefore = Array.isArray(res.coreAssembly) ? res.coreAssembly.length : typeof res.coreAssembly;
-			console.log(
-				`[Bootstrap] VFS redirect: pre-processing state` +
-				` (assembly: ${asmBefore}` +
-				`, coreAssembly: ${coreBefore}` +
-				`, mainAssemblyName: ${mainAssemblyName}` +
-				`, resourceKeys: ${Object.keys(res).join(",")})`);
+			// Log pre-processing state for diagnostics (debug only)
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+				const asmBefore = Array.isArray(res.assembly) ? res.assembly.length : typeof res.assembly;
+				const coreBefore = Array.isArray(res.coreAssembly) ? res.coreAssembly.length : typeof res.coreAssembly;
+				console.log(
+					`[Bootstrap] VFS redirect: pre-processing state` +
+					` (assembly: ${asmBefore}` +
+					`, coreAssembly: ${coreBefore}` +
+					`, mainAssemblyName: ${mainAssemblyName}` +
+					`, resourceKeys: ${Object.keys(res).join(",")})`);
+			}
 
 			// System.Runtime.InteropServices.JavaScript must stay as a bundled
 			// resource because mono_wasm_bind_assembly_exports (corebindings.c)
@@ -483,16 +485,16 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			}
 
-			// Always log the redirect count so CI tests can verify that
-			// assemblies were actually placed into the VFS.
-			const vfsCount = res.vfs.length;
-			const asmIsArray = Array.isArray(res.assembly);
-			const coreIsArray = Array.isArray(res.coreAssembly);
-			console.log(
-				`[Bootstrap] VFS redirect: ${vfsCount} entries moved to ${vfsManagedDir}` +
-				` (assembly: ${asmIsArray ? res.assembly.length : typeof res.assembly}` +
-				`, coreAssembly: ${coreIsArray ? res.coreAssembly.length : typeof res.coreAssembly}` +
-				`, mainAssemblyName: ${config.mainAssemblyName})`);
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+				const vfsCount = res.vfs.length;
+				const asmIsArray = Array.isArray(res.assembly);
+				const coreIsArray = Array.isArray(res.coreAssembly);
+				console.log(
+					`[Bootstrap] VFS redirect: ${vfsCount} entries moved to ${vfsManagedDir}` +
+					` (assembly: ${asmIsArray ? res.assembly.length : typeof res.assembly}` +
+					`, coreAssembly: ${coreIsArray ? res.coreAssembly.length : typeof res.coreAssembly}` +
+					`, mainAssemblyName: ${config.mainAssemblyName})`);
+			}
 		}
 
 		public preInit() {
