@@ -207,12 +207,15 @@ namespace Uno.WebAssembly.Bootstrap {
 					// Directory may already exist
 				}
 
-				// When enabled, register a close-file hook so that assembly files
-				// are removed from the Emscripten VFS as soon as the Mono runtime
-				// finishes reading them. The runtime's in-memory image cache
-				// (mono_image_open_a_lot) retains the MonoImage by filename, so
-				// the VFS copy is redundant after the first load and can be freed
-				// to reduce memory pressure.
+				// When enabled, intercept FS.close so that assembly files are
+				// removed from the Emscripten VFS after the Mono runtime reads
+				// them. The runtime's in-memory image cache retains the
+				// MonoImage, so the VFS copy is redundant after the first load
+				// and can be freed to reduce memory pressure.
+				//
+				// We wrap FS.close directly instead of using the
+				// FS.trackingDelegate['onCloseFile'] callback, which is not
+				// reliably invoked in all Emscripten builds.
 				if (this._unoConfig.uno_vfs_framework_assembly_load_cleanup) {
 					this.setupVfsCleanupOnClose(module.FS);
 				}
@@ -224,29 +227,36 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		/**
-		 * Hooks Emscripten's FS.trackingDelegate['onCloseFile'] so that files
-		 * under /managed are unlinked immediately after the runtime closes them.
+		 * Wraps Emscripten's FS.close so that assembly files under /managed
+		 * are unlinked after the runtime closes them. This is more reliable
+		 * than FS.trackingDelegate['onCloseFile'] which is not always called.
 		 */
 		private setupVfsCleanupOnClose(fs: any) {
 			const vfsPrefix = "/managed/";
+			const originalClose = fs.close.bind(fs);
 
-			// Chain any pre-existing handler.
-			fs.trackingDelegate = fs.trackingDelegate || {};
-			const existingHandler = fs.trackingDelegate['onCloseFile'];
+			fs.close = (stream: any) => {
+				const path: string | undefined = stream?.path;
+				const flags: number = stream?.flags ?? -1;
 
-			fs.trackingDelegate['onCloseFile'] = (path: string) => {
-				if (existingHandler) {
-					existingHandler(path);
-				}
+				// Call the original close first so the fd is released.
+				originalClose(stream);
 
-				if (path.startsWith(vfsPrefix)) {
+				// Only unlink after read-only close operations.
+				// The VFS resource loader writes files using O_WRONLY|O_CREAT
+				// (FS.writeFile), and we must not delete during that phase.
+				// The Mono runtime reads assemblies with O_RDONLY (0).
+				// O_ACCMODE (lowest 2 bits) == 0 means O_RDONLY.
+				const isReadOnly = flags >= 0 && (flags & 3) === 0;
+
+				if (isReadOnly && path && path.startsWith(vfsPrefix)) {
 					try {
 						fs.unlink(path);
 
-						if (this._monoConfig && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						if (this._monoConfig?.debugLevel && this._monoConfig.debugLevel > 0) {
 							console.log(`[Bootstrap] VFS cleanup: deleted ${path}`);
 						}
-					} catch (e) {
+					} catch (_e) {
 						// File may already have been deleted.
 					}
 				}
@@ -416,7 +426,11 @@ namespace Uno.WebAssembly.Bootstrap {
 					} else {
 						const vfsEntry = { ...entry };
 						const originalVirtualPath = entry.virtualPath || entry.name;
-						vfsEntry.virtualPath = vfsDir + "/" + originalVirtualPath;
+						// MONO_PATH probing (assembly.c) looks for .dll and .exe
+						// extensions only, but .NET 10+ uses .wasm (WebCIL).
+						// Rename the VFS path so the runtime can find the file.
+						const vfsFileName = originalVirtualPath.replace(/\.wasm$/, ".dll");
+						vfsEntry.virtualPath = vfsDir + "/" + vfsFileName;
 						res.vfs.push(vfsEntry);
 					}
 				}
