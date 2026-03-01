@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Test script to verify VFS framework assembly loading works correctly.
-# Publishes the RayTracer app with WasmShellVfsFrameworkAssemblyLoad=true and
-# WasmShellVfsFrameworkAssemblyLoadCleanup=true, validates the generated config,
-# then launches headless Chrome to confirm the app runs and VFS cleanup occurs.
+# Publishes the VfsAssemblyLoad.App with WasmShellVfsFrameworkAssemblyLoad=true
+# and WasmShellVfsFrameworkAssemblyLoadCleanup=true (set in its csproj), validates
+# the generated config, then launches headless Chrome to confirm the app runs and
+# VFS cleanup occurs.
 #
 # Usage: ./test-vfs-assembly-load.sh [artifacts-dir]
 
@@ -24,8 +25,8 @@ REPO_ROOT="${BUILD_SOURCESDIRECTORY:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 ARTIFACTS_DIR="${1:-$SCRIPT_DIR/artifacts}"
 mkdir -p "$ARTIFACTS_DIR"
 
-RAYTRACER_DIR="$REPO_ROOT/src/Uno.Wasm.Sample.RayTracer"
-PUBLISH_DIR="$RAYTRACER_DIR/bin/Release/net10.0/publish"
+VFS_APP_DIR="$REPO_ROOT/src/Uno.Wasm.Tests.VfsAssemblyLoad.App"
+PUBLISH_DIR="$VFS_APP_DIR/bin/Release/net10.0/publish"
 WWWROOT="$PUBLISH_DIR/wwwroot"
 
 echo "========================================="
@@ -34,15 +35,13 @@ echo "========================================="
 echo ""
 
 # -------------------------------------------------------------------
-# Step 1: Publish RayTracer with VFS loading + cleanup enabled
+# Step 1: Publish VFS test app (VFS loading + cleanup enabled in csproj)
 # -------------------------------------------------------------------
-echo "Step 1: Publishing RayTracer with VFS assembly loading..."
+echo "Step 1: Publishing VFS test app..."
 echo "-----------------------------------------"
-cd "$RAYTRACER_DIR"
+cd "$VFS_APP_DIR"
 dotnet clean -c Release > /dev/null 2>&1 || true
 dotnet publish -c Release /m:1 \
-    /p:WasmShellVfsFrameworkAssemblyLoad=true \
-    /p:WasmShellVfsFrameworkAssemblyLoadCleanup=true \
     /bl:"$ARTIFACTS_DIR/VfsAssemblyLoad-linux.binlog"
 
 if [ ! -d "$WWWROOT" ]; then

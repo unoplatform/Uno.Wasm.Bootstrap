@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Launches headless Chrome via Puppeteer, loads the published RayTracer app
+ * Launches headless Chrome via Puppeteer, loads the published VFS test app
  * (built with WasmShellVfsFrameworkAssemblyLoad=true and
  * WasmShellVfsFrameworkAssemblyLoadCleanup=true), waits for the app to
  * produce output, then verifies:
@@ -72,7 +72,7 @@ function assert(condition, message) {
         console.log("Navigating to " + appUrl);
         await page.goto(appUrl, { waitUntil: "load", timeout: 120000 });
 
-        // Wait for the RayTracer to produce output (the #results element)
+        // Wait for the app to produce output (the #results element)
         var results = null;
         var retries = 30;
         while (results == null && retries-- > 0) {
@@ -96,8 +96,16 @@ function assert(condition, message) {
         );
 
         if (results) {
-            console.log("  App output: " + results.substring(0, 120));
+            console.log("  App output: " + results.substring(0, 200));
         }
+
+        // The VFS test app calls into a non-BCL library (VfsTestHelper)
+        // that must be loaded from VFS. Verify the library's greeting
+        // appears in the output.
+        assert(
+            results !== null && results.indexOf("Hello from VFS-loaded library") !== -1,
+            "Non-BCL library assembly was loaded successfully from VFS"
+        );
 
         // =================================================================
         // Test 2: VFS feature flag is active in the runtime config
@@ -134,21 +142,33 @@ function assert(condition, message) {
         // =================================================================
         console.log("\n=== Test 3: Assemblies redirected to VFS ===");
 
-        // The Bootstrapper always logs the number of entries moved into VFS.
-        // Verify the log exists and reports a non-zero count.
+        // The Bootstrapper logs the pre-processing state and the number of
+        // entries moved into VFS. Capture both for diagnostics.
+        var preProcessLog = null;
         var redirectLog = null;
         for (var i = 0; i < consoleLogs.length; i++) {
+            var preMatch = consoleLogs[i].match(/\[Bootstrap\] VFS redirect: pre-processing state/);
+            if (preMatch) {
+                preProcessLog = consoleLogs[i];
+            }
             var match = consoleLogs[i].match(/\[Bootstrap\] VFS redirect: (\d+) entries moved to \/managed/);
             if (match) {
                 redirectLog = { count: parseInt(match[1], 10), line: consoleLogs[i] };
-                break;
             }
+        }
+
+        if (preProcessLog) {
+            console.log("  Pre-processing: " + preProcessLog);
         }
 
         assert(
             redirectLog !== null,
             "VFS redirect log message found in console output"
         );
+
+        if (redirectLog) {
+            console.log("  Redirect details: " + redirectLog.line);
+        }
 
         assert(
             redirectLog !== null && redirectLog.count > 0,
