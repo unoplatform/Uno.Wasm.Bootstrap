@@ -413,13 +413,22 @@ namespace Uno.WebAssembly.Bootstrap {
 			};
 
 			// Helper: move array entries to VFS, returning only entries that
-			// should remain as bundled resources.
+			// should remain as bundled resources. Returns undefined when the
+			// source is not an array (e.g. older dictionary format) so the
+			// caller can leave the original value untouched.
 			const moveArrayToVfs = (
-				source: any[] | undefined,
+				source: any,
 				vfsDir: string,
 				keepPredicate?: (entry: any) => boolean
-			): any[] => {
-				if (!source || !Array.isArray(source)) return [];
+			): any[] | undefined => {
+				if (!Array.isArray(source)) {
+					if (source && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						console.warn(
+							`[Bootstrap] VFS redirect: skipping non-array resource section` +
+							` (type: ${typeof source})`);
+					}
+					return undefined;
+				}
 
 				const kept: any[] = [];
 				for (const entry of source) {
@@ -441,12 +450,11 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			// Move regular assemblies to VFS (keep main assembly and
 			// runtime-critical assemblies as bundled resources).
-			if (res.assembly) {
-				res.assembly = moveArrayToVfs(
-					res.assembly,
-					vfsManagedDir,
-					mustKeepBundled
-				);
+			// Only transform array-format sections; leave dictionary-format
+			// sections (older tooling) unchanged.
+			const newAssembly = moveArrayToVfs(res.assembly, vfsManagedDir, mustKeepBundled);
+			if (newAssembly !== undefined) {
+				res.assembly = newAssembly;
 			}
 
 			// The SDK may place all assemblies in coreAssembly (with an empty
@@ -455,32 +463,34 @@ namespace Uno.WebAssembly.Bootstrap {
 			// mono_wasm_bind_assembly_exports needs before VFS probing is
 			// available (System.Runtime.InteropServices.JavaScript,
 			// System.Private.CoreLib).
-			if (res.coreAssembly) {
-				res.coreAssembly = moveArrayToVfs(
-					res.coreAssembly,
-					vfsManagedDir,
-					mustKeepBundled
-				);
+			const newCoreAssembly = moveArrayToVfs(res.coreAssembly, vfsManagedDir, mustKeepBundled);
+			if (newCoreAssembly !== undefined) {
+				res.coreAssembly = newCoreAssembly;
 			}
 
 			// Move PDBs to VFS at /managed
-			if (res.pdb) {
-				res.pdb = moveArrayToVfs(res.pdb, vfsManagedDir);
+			const newPdb = moveArrayToVfs(res.pdb, vfsManagedDir);
+			if (newPdb !== undefined) {
+				res.pdb = newPdb;
 			}
 
 			// Move core PDBs to VFS at /managed
-			if (res.corePdb) {
-				res.corePdb = moveArrayToVfs(res.corePdb, vfsManagedDir);
+			const newCorePdb = moveArrayToVfs(res.corePdb, vfsManagedDir);
+			if (newCorePdb !== undefined) {
+				res.corePdb = newCorePdb;
 			}
 
 			// Move satellite resource assemblies to VFS at /managed/<culture>
 			if (res.satelliteResources) {
 				for (const culture in res.satelliteResources) {
 					if (res.satelliteResources.hasOwnProperty(culture)) {
-						res.satelliteResources[culture] = moveArrayToVfs(
+						const newSat = moveArrayToVfs(
 							res.satelliteResources[culture],
 							vfsManagedDir + "/" + culture
 						);
+						if (newSat !== undefined) {
+							res.satelliteResources[culture] = newSat;
+						}
 					}
 				}
 			}

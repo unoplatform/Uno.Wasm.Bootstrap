@@ -143,8 +143,8 @@ function assert(condition, message) {
         console.log("\n=== Test 3: Assemblies redirected to VFS ===");
 
         // The Bootstrapper logs the pre-processing state and the number of
-        // entries moved into VFS, but only when debugLevel > 0. In Release
-        // builds these logs are absent, so treat them as informational.
+        // entries moved into VFS when debugLevel > 0. The test project sets
+        // WasmDebugLevel=1 so these logs must be present.
         var preProcessLog = null;
         var redirectLog = null;
         for (var i = 0; i < consoleLogs.length; i++) {
@@ -162,20 +162,20 @@ function assert(condition, message) {
             console.log("  Pre-processing: " + preProcessLog);
         }
 
+        assert(
+            redirectLog !== null,
+            "VFS redirect log message found in console output"
+        );
+
         if (redirectLog) {
             console.log("  Redirect details: " + redirectLog.line);
-            assert(
-                redirectLog.count > 0,
-                "VFS redirect moved assemblies to /managed (" + redirectLog.count + " entries)"
-            );
-        } else {
-            console.log("  INFO: VFS redirect log not present (expected in Release builds without debugLevel)");
         }
 
-        // The real proof that VFS redirect worked is Test 1 (non-BCL
-        // library loaded successfully) and Test 4 (cleanup removed files
-        // from /managed). The log messages are supplementary diagnostics.
-        assert(true, "VFS redirect verified (via Test 1 app output)");
+        assert(
+            redirectLog !== null && redirectLog.count > 0,
+            "VFS redirect moved assemblies to /managed" +
+            (redirectLog ? " (" + redirectLog.count + " entries)" : "")
+        );
 
         // =================================================================
         // Test 4: VFS cleanup removed assembly files from /managed
@@ -272,15 +272,12 @@ function assert(condition, message) {
             return line.indexOf("[Bootstrap] VFS cleanup: deleted") !== -1;
         });
 
-        // Cleanup logs are only emitted at debugLevel, so they may not
-        // appear in a release build. If they do appear, that's extra
-        // confirmation; if not, we rely on the FS state check above.
-        if (cleanupLogs.length > 0) {
-            console.log("  Found " + cleanupLogs.length + " VFS cleanup log(s)");
-            assert(true, "VFS cleanup log messages present (" + cleanupLogs.length + " files deleted)");
-        } else {
-            console.log("  INFO: No VFS cleanup log messages (expected in Release builds without debugLevel)");
-        }
+        // The test project sets WasmDebugLevel=1 so cleanup logs must appear.
+        console.log("  Found " + cleanupLogs.length + " VFS cleanup log(s)");
+        assert(
+            cleanupLogs.length > 0,
+            "VFS cleanup log messages present (" + cleanupLogs.length + " files deleted)"
+        );
 
         // =================================================================
         // Test 6: Verify no assembly.c assertion warning

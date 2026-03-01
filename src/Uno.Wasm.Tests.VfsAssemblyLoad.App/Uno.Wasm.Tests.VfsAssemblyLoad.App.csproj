@@ -7,8 +7,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmShellVfsFrameworkAssemblyLoad>true</WasmShellVfsFrameworkAssemblyLoad>
     <WasmShellVfsFrameworkAssemblyLoadCleanup>true</WasmShellVfsFrameworkAssemblyLoadCleanup>
-    <!-- Enable debug-level logging so Puppeteer tests can validate VFS redirect/cleanup log messages -->
+    <!-- Enable debug-level logging so Puppeteer tests can validate VFS redirect/cleanup log messages.
+         WasmDebugLevel>0 sets _WasmDebuggerSupport=true which disables trimming by default,
+         so we explicitly re-enable it to keep the assembly set small and realistic. -->
     <WasmDebugLevel>1</WasmDebugLevel>
+    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
