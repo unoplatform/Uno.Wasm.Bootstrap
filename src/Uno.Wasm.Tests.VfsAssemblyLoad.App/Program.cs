@@ -12,9 +12,10 @@ public static partial class Program
         var greeting = VfsTestHelper.Greet("VFS");
         Console.WriteLine(greeting);
 
-        // Write results to the DOM so the Puppeteer test can verify.
+        // Create a #results element and write to it so the Puppeteer test can verify.
+        // The bootstrap-generated index.html does not include this element.
         WebAssembly.Runtime.InvokeJS(
-            $"document.getElementById('results').textContent = \"{greeting}\"");
+            $"(function(){{ var el = document.createElement('div'); el.id = 'results'; el.textContent = '{greeting}'; document.body.appendChild(el); }})()");
 
         Console.WriteLine("VFS assembly load test completed successfully.");
     }
