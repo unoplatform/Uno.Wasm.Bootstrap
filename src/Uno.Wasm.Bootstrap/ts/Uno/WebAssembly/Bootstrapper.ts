@@ -336,6 +336,30 @@ namespace Uno.WebAssembly.Bootstrap {
 				this.redirectAssembliesToVfs(config);
 			}
 
+			// Fix satellite resource VFS entries: include culture prefix in name so download URL
+			// resolves to _framework/{culture}/{fingerprinted}.wasm instead of _framework/{fingerprinted}.wasm
+			const res = config.resources as any;
+			if (res?.satelliteResources) {
+				const vfsManagedDir = "/managed";
+
+				const moveArrayToVfs = (source: any[], vfsDir: string, namePrefix: string | undefined) => {
+					if (!source) return;
+					for (const entry of source) {
+						const vfsEntry = { ...entry };
+						if (namePrefix) {
+							vfsEntry.name = namePrefix + "/" + vfsEntry.name;
+						}
+						vfsEntry.virtualPath = vfsDir + "/" + (entry.virtualPath || entry.name);
+						res.vfs = res.vfs || [];
+						res.vfs.push(vfsEntry);
+					}
+				};
+
+				for (const culture in res.satelliteResources) {
+					moveArrayToVfs(res.satelliteResources[culture], vfsManagedDir + "/" + culture, culture);
+				}
+			}
+
 			// Initialize progress tracking with best-guess estimation
 			this.initializeProgressEstimation();
 		}
@@ -425,7 +449,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			const moveArrayToVfs = (
 				source: any,
 				vfsDir: string,
-				keepPredicate?: (entry: any) => boolean
+				keepPredicate?: (entry: any) => boolean,
+				namePrefix?: string
 			): any[] | undefined => {
 				if (!Array.isArray(res.vfs)) {
 					if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
@@ -450,6 +475,11 @@ namespace Uno.WebAssembly.Bootstrap {
 						kept.push(entry);
 					} else {
 						const vfsEntry = { ...entry };
+						if (namePrefix) {
+							// For satellite resources: download URL is _framework/{culture}/{fingerprinted}.wasm,
+							// so the name must carry the culture prefix for the runtime's URL resolver.
+							vfsEntry.name = namePrefix + "/" + vfsEntry.name;
+						}
 						const originalVirtualPath = entry.virtualPath || entry.name;
 						// MONO_PATH probing (assembly.c) looks for .dll and .exe
 						// extensions only, but .NET 10+ uses .wasm (WebCIL).
@@ -500,7 +530,9 @@ namespace Uno.WebAssembly.Bootstrap {
 					if (res.satelliteResources.hasOwnProperty(culture)) {
 						const newSat = moveArrayToVfs(
 							res.satelliteResources[culture],
-							vfsManagedDir + "/" + culture
+							vfsManagedDir + "/" + culture,
+							undefined,
+							culture
 						);
 						if (newSat !== undefined) {
 							res.satelliteResources[culture] = newSat;
