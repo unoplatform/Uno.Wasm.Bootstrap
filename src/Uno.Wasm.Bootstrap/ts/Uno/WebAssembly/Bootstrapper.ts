@@ -336,6 +336,30 @@ namespace Uno.WebAssembly.Bootstrap {
 				this.redirectAssembliesToVfs(config);
 			}
 
+			// Fix satellite resource VFS entries: include culture prefix in name so download URL
+			// resolves to _framework/{culture}/{fingerprinted}.wasm instead of _framework/{fingerprinted}.wasm
+			const res = config.resources as any;
+			if (res?.satelliteResources) {
+				const vfsManagedDir = "/managed";
+
+				const moveArrayToVfs = (source: any[], vfsDir: string, namePrefix: string | undefined) => {
+					if (!source) return;
+					for (const entry of source) {
+						const vfsEntry = { ...entry };
+						if (namePrefix) {
+							vfsEntry.name = namePrefix + "/" + vfsEntry.name;
+						}
+						vfsEntry.virtualPath = vfsDir + "/" + (entry.virtualPath || entry.name);
+						res.vfs = res.vfs || [];
+						res.vfs.push(vfsEntry);
+					}
+				};
+
+				for (const culture in res.satelliteResources) {
+					moveArrayToVfs(res.satelliteResources[culture], vfsManagedDir + "/" + culture, culture);
+				}
+			}
+
 			// Initialize progress tracking with best-guess estimation
 			this.initializeProgressEstimation();
 		}
