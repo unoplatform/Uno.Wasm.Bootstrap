@@ -1,14 +1,20 @@
 "use strict";
 
 /**
- * Launches headless Chrome via Puppeteer, loads the published RayTracer app
+ * Launches headless Chrome via Puppeteer, loads the published VFS test app
  * (built with WasmShellVfsFrameworkAssemblyLoad=true and
  * WasmShellVfsFrameworkAssemblyLoadCleanup=true), waits for the app to
  * produce output, then verifies:
  *
  *   1. The app ran successfully (assemblies loaded from VFS via MONO_PATH).
- *   2. MONO_PATH was set to /managed in the runtime config.
- *   3. VFS cleanup removed assembly files from /managed after they were read.
+ *   2. VFS feature flags are active in the runtime config.
+ *   3. Assemblies were redirected to VFS /managed (non-zero entry count).
+ *   4. VFS cleanup removed assembly files (.dll/.wasm) from /managed after load.
+ *   5. VFS cleanup log messages are emitted (when debugLevel is active).
+ *   6. No assembly.c MONO_PATH assertion warnings.
+ *   7. No mono_wasm_bind_assembly_exports assertion (ExitStatus crash).
+ *   8. coreAssembly entries (System.Runtime.InteropServices.JavaScript,
+ *      System.Private.CoreLib) are NOT redirected to VFS /managed.
  *
  * Usage:  node validate-vfs-runtime.js <output-dir> [app-url]
  */
@@ -44,15 +50,18 @@ function assert(condition, message) {
 
         var page = await browser.newPage();
 
-        // Collect console messages for diagnostics
+        // Collect console messages and page errors for diagnostics
         var consoleLogs = [];
+        var pageErrors = [];
         page.on("console", function (msg) {
             var text = msg.text();
             consoleLogs.push(text);
             console.log("BROWSER: " + text);
         });
         page.on("pageerror", function (err) {
-            console.error("PAGE ERROR: " + err.message);
+            var text = err.message || err.toString();
+            pageErrors.push(text);
+            console.error("PAGE ERROR: " + text);
         });
 
         // =================================================================
@@ -63,7 +72,7 @@ function assert(condition, message) {
         console.log("Navigating to " + appUrl);
         await page.goto(appUrl, { waitUntil: "load", timeout: 120000 });
 
-        // Wait for the RayTracer to produce output (the #results element)
+        // Wait for the app to produce output (the #results element)
         var results = null;
         var retries = 30;
         while (results == null && retries-- > 0) {
@@ -87,8 +96,16 @@ function assert(condition, message) {
         );
 
         if (results) {
-            console.log("  App output: " + results.substring(0, 120));
+            console.log("  App output: " + results.substring(0, 200));
         }
+
+        // The VFS test app calls into a non-BCL library (VfsTestHelper)
+        // that must be loaded from VFS. Verify the library's greeting
+        // appears in the output.
+        assert(
+            results !== null && results.indexOf("Hello from VFS-loaded library") !== -1,
+            "Non-BCL library assembly was loaded successfully from VFS"
+        );
 
         // =================================================================
         // Test 2: VFS feature flag is active in the runtime config
@@ -121,9 +138,49 @@ function assert(condition, message) {
         );
 
         // =================================================================
-        // Test 3: VFS cleanup removed assembly files from /managed
+        // Test 3: Assemblies were redirected to VFS /managed
         // =================================================================
-        console.log("\n=== Test 3: VFS cleanup after load ===");
+        console.log("\n=== Test 3: Assemblies redirected to VFS ===");
+
+        // The Bootstrapper logs the pre-processing state and the number of
+        // entries moved into VFS when debugLevel > 0. The test project sets
+        // WasmDebugLevel=1 so these logs must be present.
+        var preProcessLog = null;
+        var redirectLog = null;
+        for (var i = 0; i < consoleLogs.length; i++) {
+            var preMatch = consoleLogs[i].match(/\[Bootstrap\] VFS redirect: pre-processing state/);
+            if (preMatch) {
+                preProcessLog = consoleLogs[i];
+            }
+            var match = consoleLogs[i].match(/\[Bootstrap\] VFS redirect: (\d+) entries moved to \/managed/);
+            if (match) {
+                redirectLog = { count: parseInt(match[1], 10), line: consoleLogs[i] };
+            }
+        }
+
+        if (preProcessLog) {
+            console.log("  Pre-processing: " + preProcessLog);
+        }
+
+        assert(
+            redirectLog !== null,
+            "VFS redirect log message found in console output"
+        );
+
+        if (redirectLog) {
+            console.log("  Redirect details: " + redirectLog.line);
+        }
+
+        assert(
+            redirectLog !== null && redirectLog.count > 0,
+            "VFS redirect moved assemblies to /managed" +
+            (redirectLog ? " (" + redirectLog.count + " entries)" : "")
+        );
+
+        // =================================================================
+        // Test 4: VFS cleanup removed assembly files from /managed
+        // =================================================================
+        console.log("\n=== Test 4: VFS cleanup after load ===");
 
         var vfsState = await page.evaluate(function () {
             try {
@@ -190,44 +247,42 @@ function assert(condition, message) {
                     remainingFiles.map(function (f) { return f.name; }).join(", "));
             }
 
-            // After cleanup, assembly .dll files should be gone.
+            // After cleanup, assembly files should be gone.
+            // .NET 10+ uses .wasm extension; older runtimes used .dll.
             // Only subdirectories (culture folders) may remain as empty dirs.
-            var remainingDlls = remainingFiles.filter(function (f) {
-                return f.name.endsWith(".dll");
+            var remainingAssemblies = remainingFiles.filter(function (f) {
+                return f.name.endsWith(".dll") || f.name.endsWith(".wasm");
             });
 
             assert(
-                remainingDlls.length === 0,
-                "No .dll files remain in /managed after cleanup" +
-                (remainingDlls.length > 0
-                    ? " (found: " + remainingDlls.map(function (f) { return f.name; }).join(", ") + ")"
+                remainingAssemblies.length === 0,
+                "No assembly files (.dll/.wasm) remain in /managed after cleanup" +
+                (remainingAssemblies.length > 0
+                    ? " (found: " + remainingAssemblies.map(function (f) { return f.name; }).join(", ") + ")"
                     : "")
             );
         }
 
         // =================================================================
-        // Test 4: Check VFS cleanup log messages
+        // Test 5: Check VFS cleanup log messages
         // =================================================================
-        console.log("\n=== Test 4: VFS cleanup log messages ===");
+        console.log("\n=== Test 5: VFS cleanup log messages ===");
 
         var cleanupLogs = consoleLogs.filter(function (line) {
             return line.indexOf("[Bootstrap] VFS cleanup: deleted") !== -1;
         });
 
-        // Cleanup logs are only emitted at debugLevel, so they may not
-        // appear in a release build. If they do appear, that's extra
-        // confirmation; if not, we rely on the FS state check above.
-        if (cleanupLogs.length > 0) {
-            console.log("  Found " + cleanupLogs.length + " VFS cleanup log(s)");
-            assert(true, "VFS cleanup log messages present (" + cleanupLogs.length + " files deleted)");
-        } else {
-            console.log("  INFO: No VFS cleanup log messages (expected in Release builds without debugLevel)");
-        }
+        // The test project sets WasmDebugLevel=1 so cleanup logs must appear.
+        console.log("  Found " + cleanupLogs.length + " VFS cleanup log(s)");
+        assert(
+            cleanupLogs.length > 0,
+            "VFS cleanup log messages present (" + cleanupLogs.length + " files deleted)"
+        );
 
         // =================================================================
-        // Test 5: Verify no assembly.c assertion warning
+        // Test 6: Verify no assembly.c assertion warning
         // =================================================================
-        console.log("\n=== Test 5: No MONO_PATH assertion warning ===");
+        console.log("\n=== Test 6: No MONO_PATH assertion warning ===");
 
         var assemblyWarnings = consoleLogs.filter(function (line) {
             return line.indexOf("assembly.c") !== -1 && line.indexOf("<disabled>") !== -1;
@@ -240,6 +295,139 @@ function assert(condition, message) {
                 ? " (found " + assemblyWarnings.length + " warning(s))"
                 : "")
         );
+
+        // =================================================================
+        // Test 7: Verify no mono_wasm_bind_assembly_exports assertion
+        // =================================================================
+        console.log("\n=== Test 7: No bind_assembly_exports assertion ===");
+
+        // The ExitStatus / mono_wasm_bind_assembly_exports assertion fires
+        // when a coreAssembly (e.g. System.Runtime.InteropServices.JavaScript)
+        // is accidentally redirected to VFS instead of being loaded as a
+        // bundled resource. Check both console logs and page errors.
+        var allMessages = consoleLogs.concat(pageErrors);
+        var bindExportErrors = allMessages.filter(function (line) {
+            return line.indexOf("mono_wasm_bind_assembly_exports") !== -1
+                || line.indexOf("corebindings.c") !== -1;
+        });
+
+        assert(
+            bindExportErrors.length === 0,
+            "No mono_wasm_bind_assembly_exports assertion errors" +
+            (bindExportErrors.length > 0
+                ? " (found: " + bindExportErrors[0].substring(0, 200) + ")"
+                : "")
+        );
+
+        // =================================================================
+        // Test 8: coreAssembly entries remain bundled (not redirected to VFS)
+        // =================================================================
+        console.log("\n=== Test 8: coreAssembly not redirected to VFS ===");
+
+        // System.Runtime.InteropServices.JavaScript and System.Private.CoreLib
+        // must stay bundled because mono_wasm_bind_assembly_exports requires
+        // them before VFS probing is available.
+        //
+        // Validate this from runtime config metadata rather than post-load VFS
+        // filesystem state (which may be cleaned up and hide an earlier redirect).
+        var coreAssemblyConfigState = await page.evaluate(function () {
+            try {
+                var mod = globalThis.Module;
+                if (!mod || !mod.config || !mod.config.resources) {
+                    return { error: "Module.config.resources not available" };
+                }
+
+                var resources = mod.config.resources;
+                var coreAssemblies = [
+                    "System.Runtime.InteropServices.JavaScript",
+                    "System.Private.CoreLib"
+                ];
+
+                var normalizeName = function (value) {
+                    if (!value) {
+                        return "";
+                    }
+                    var fileName = value.split("/").pop() || value;
+                    return fileName.replace(/\.(dll|wasm)$/i, "");
+                };
+
+                var collectNames = function (section) {
+                    if (!section) {
+                        return [];
+                    }
+
+                    if (Array.isArray(section)) {
+                        return section
+                            .map(function (entry) {
+                                if (!entry) {
+                                    return "";
+                                }
+                                return normalizeName(entry.virtualPath || entry.name);
+                            })
+                            .filter(function (name) { return !!name; });
+                    }
+
+                    if (typeof section === "object") {
+                        var names = [];
+                        Object.keys(section).forEach(function (key) {
+                            var list = section[key];
+                            if (Array.isArray(list)) {
+                                list.forEach(function (entry) {
+                                    if (!entry) {
+                                        return;
+                                    }
+                                    var name = normalizeName(entry.virtualPath || entry.name);
+                                    if (name) {
+                                        names.push(name);
+                                    }
+                                });
+                            }
+                        });
+                        return names;
+                    }
+
+                    return [];
+                };
+
+                var bundledNames = collectNames(resources.assembly)
+                    .concat(collectNames(resources.coreAssembly));
+                var vfsNames = collectNames(resources.vfs);
+
+                var bundledCore = coreAssemblies.filter(function (name) {
+                    return bundledNames.indexOf(name) !== -1;
+                });
+
+                var redirectedCore = coreAssemblies.filter(function (name) {
+                    return vfsNames.indexOf(name) !== -1;
+                });
+
+                return {
+                    bundledCore: bundledCore,
+                    redirectedCore: redirectedCore,
+                    vfsShape: Array.isArray(resources.vfs) ? "array" : typeof resources.vfs
+                };
+            } catch (e) {
+                return { error: e.toString() };
+            }
+        });
+
+        if (coreAssemblyConfigState.error) {
+            console.log("  INFO: Could not inspect runtime config for coreAssembly: " + coreAssemblyConfigState.error);
+        } else {
+            assert(
+                coreAssemblyConfigState.redirectedCore.length === 0,
+                "coreAssembly entries are not redirected to resources.vfs" +
+                (coreAssemblyConfigState.redirectedCore.length > 0
+                    ? " (found: " + coreAssemblyConfigState.redirectedCore.join(", ") + ")"
+                    : "")
+            );
+
+            assert(
+                coreAssemblyConfigState.bundledCore.length === 2,
+                "coreAssembly entries remain bundled in resources.assembly/coreAssembly" +
+                " (found: " + coreAssemblyConfigState.bundledCore.join(", ") + ")"
+            );
+        }
 
         await browser.close();
 
