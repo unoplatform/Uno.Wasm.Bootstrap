@@ -372,8 +372,14 @@ namespace Uno.WebAssembly.Bootstrap {
 			config.environmentVariables = config.environmentVariables || {};
 			config.environmentVariables["MONO_PATH"] = vfsManagedDir;
 
-			// Ensure resources.vfs is an array (the .NET 10+ resource format)
-			if (!Array.isArray(res.vfs)) {
+			const usesArrayResources =
+				Array.isArray(res.assembly) ||
+				Array.isArray(res.coreAssembly);
+
+			// Only coerce resources.vfs to an array when we are processing the
+			// .NET 10+ array-based resource shape. Preserve legacy dictionary
+			// resource shapes untouched.
+			if (usesArrayResources && !Array.isArray(res.vfs)) {
 				res.vfs = [];
 			}
 
@@ -421,6 +427,14 @@ namespace Uno.WebAssembly.Bootstrap {
 				vfsDir: string,
 				keepPredicate?: (entry: any) => boolean
 			): any[] | undefined => {
+				if (!Array.isArray(res.vfs)) {
+					if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						console.warn(
+							`[Bootstrap] VFS redirect: skipping transformation because resources.vfs is not array-based`);
+					}
+					return undefined;
+				}
+
 				if (!Array.isArray(source)) {
 					if (source && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
 						console.warn(
@@ -496,13 +510,14 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
-				const vfsCount = res.vfs.length;
+				const vfsCount = Array.isArray(res.vfs) ? res.vfs.length : 0;
 				const asmIsArray = Array.isArray(res.assembly);
 				const coreIsArray = Array.isArray(res.coreAssembly);
 				console.log(
 					`[Bootstrap] VFS redirect: ${vfsCount} entries moved to ${vfsManagedDir}` +
 					` (assembly: ${asmIsArray ? res.assembly.length : typeof res.assembly}` +
 					`, coreAssembly: ${coreIsArray ? res.coreAssembly.length : typeof res.coreAssembly}` +
+					`, vfs: ${Array.isArray(res.vfs) ? "array" : typeof res.vfs}` +
 					`, mainAssemblyName: ${config.mainAssemblyName})`);
 			}
 		}

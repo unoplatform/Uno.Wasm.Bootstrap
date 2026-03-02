@@ -320,51 +320,112 @@ function assert(condition, message) {
         );
 
         // =================================================================
-        // Test 8: coreAssembly entries are not in VFS /managed
+        // Test 8: coreAssembly entries remain bundled (not redirected to VFS)
         // =================================================================
         console.log("\n=== Test 8: coreAssembly not redirected to VFS ===");
 
-        // System.Runtime.InteropServices.JavaScript must be loaded as a
-        // bundled resource (not via VFS) because mono_wasm_bind_assembly_exports
-        // in corebindings.c requires it before VFS probing is available.
-        // Verify these files do NOT exist under /managed in the VFS.
-        var coreAssemblyVfsState = await page.evaluate(function () {
+        // System.Runtime.InteropServices.JavaScript and System.Private.CoreLib
+        // must stay bundled because mono_wasm_bind_assembly_exports requires
+        // them before VFS probing is available.
+        //
+        // Validate this from runtime config metadata rather than post-load VFS
+        // filesystem state (which may be cleaned up and hide an earlier redirect).
+        var coreAssemblyConfigState = await page.evaluate(function () {
             try {
                 var mod = globalThis.Module;
-                if (!mod || !mod.FS) return { error: "Module.FS not available" };
-
-                var coreNames = [
-                    "System.Runtime.InteropServices.JavaScript.wasm",
-                    "System.Runtime.InteropServices.JavaScript.dll",
-                    "System.Private.CoreLib.wasm",
-                    "System.Private.CoreLib.dll"
-                ];
-
-                var found = [];
-                for (var i = 0; i < coreNames.length; i++) {
-                    try {
-                        mod.FS.stat("/managed/" + coreNames[i]);
-                        found.push(coreNames[i]);
-                    } catch (_e) {
-                        // File does not exist — expected
-                    }
+                if (!mod || !mod.config || !mod.config.resources) {
+                    return { error: "Module.config.resources not available" };
                 }
 
-                return { foundInVfs: found };
+                var resources = mod.config.resources;
+                var coreAssemblies = [
+                    "System.Runtime.InteropServices.JavaScript",
+                    "System.Private.CoreLib"
+                ];
+
+                var normalizeName = function (value) {
+                    if (!value) {
+                        return "";
+                    }
+                    var fileName = value.split("/").pop() || value;
+                    return fileName.replace(/\.(dll|wasm)$/i, "");
+                };
+
+                var collectNames = function (section) {
+                    if (!section) {
+                        return [];
+                    }
+
+                    if (Array.isArray(section)) {
+                        return section
+                            .map(function (entry) {
+                                if (!entry) {
+                                    return "";
+                                }
+                                return normalizeName(entry.virtualPath || entry.name);
+                            })
+                            .filter(function (name) { return !!name; });
+                    }
+
+                    if (typeof section === "object") {
+                        var names = [];
+                        Object.keys(section).forEach(function (key) {
+                            var list = section[key];
+                            if (Array.isArray(list)) {
+                                list.forEach(function (entry) {
+                                    if (!entry) {
+                                        return;
+                                    }
+                                    var name = normalizeName(entry.virtualPath || entry.name);
+                                    if (name) {
+                                        names.push(name);
+                                    }
+                                });
+                            }
+                        });
+                        return names;
+                    }
+
+                    return [];
+                };
+
+                var bundledNames = collectNames(resources.assembly)
+                    .concat(collectNames(resources.coreAssembly));
+                var vfsNames = collectNames(resources.vfs);
+
+                var bundledCore = coreAssemblies.filter(function (name) {
+                    return bundledNames.indexOf(name) !== -1;
+                });
+
+                var redirectedCore = coreAssemblies.filter(function (name) {
+                    return vfsNames.indexOf(name) !== -1;
+                });
+
+                return {
+                    bundledCore: bundledCore,
+                    redirectedCore: redirectedCore,
+                    vfsShape: Array.isArray(resources.vfs) ? "array" : typeof resources.vfs
+                };
             } catch (e) {
                 return { error: e.toString() };
             }
         });
 
-        if (coreAssemblyVfsState.error) {
-            console.log("  INFO: Could not inspect VFS for coreAssembly: " + coreAssemblyVfsState.error);
+        if (coreAssemblyConfigState.error) {
+            console.log("  INFO: Could not inspect runtime config for coreAssembly: " + coreAssemblyConfigState.error);
         } else {
             assert(
-                coreAssemblyVfsState.foundInVfs.length === 0,
-                "coreAssembly files are not present in VFS /managed" +
-                (coreAssemblyVfsState.foundInVfs.length > 0
-                    ? " (found: " + coreAssemblyVfsState.foundInVfs.join(", ") + ")"
+                coreAssemblyConfigState.redirectedCore.length === 0,
+                "coreAssembly entries are not redirected to resources.vfs" +
+                (coreAssemblyConfigState.redirectedCore.length > 0
+                    ? " (found: " + coreAssemblyConfigState.redirectedCore.join(", ") + ")"
                     : "")
+            );
+
+            assert(
+                coreAssemblyConfigState.bundledCore.length === 2,
+                "coreAssembly entries remain bundled in resources.assembly/coreAssembly" +
+                " (found: " + coreAssemblyConfigState.bundledCore.join(", ") + ")"
             );
         }
 
