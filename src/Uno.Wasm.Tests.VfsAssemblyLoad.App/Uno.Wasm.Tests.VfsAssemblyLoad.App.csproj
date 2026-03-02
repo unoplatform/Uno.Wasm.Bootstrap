@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmShellVfsFrameworkAssemblyLoad>true</WasmShellVfsFrameworkAssemblyLoad>
+    <WasmShellVfsFrameworkAssemblyLoadCleanup>true</WasmShellVfsFrameworkAssemblyLoadCleanup>
+    <!-- Enable debug-level logging so Puppeteer tests can validate VFS redirect/cleanup log messages.
+         WasmDebugLevel>0 sets _WasmDebuggerSupport=true which disables trimming by default,
+         so we explicitly re-enable it to keep the assembly set small and realistic. -->
+    <WasmDebugLevel>1</WasmDebugLevel>
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
+  <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <UndefineProperties>TargetFramework</UndefineProperties>
+    </ProjectReference>
+    <ProjectReference Include="..\Uno.Wasm.Tests.VfsAssemblyLoad.Library\Uno.Wasm.Tests.VfsAssemblyLoad.Library.csproj" />
+  </ItemGroup>
+
+</Project>

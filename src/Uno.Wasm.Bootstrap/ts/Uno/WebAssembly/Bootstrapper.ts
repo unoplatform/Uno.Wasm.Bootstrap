@@ -207,12 +207,15 @@ namespace Uno.WebAssembly.Bootstrap {
 					// Directory may already exist
 				}
 
-				// When enabled, register a close-file hook so that assembly files
-				// are removed from the Emscripten VFS as soon as the Mono runtime
-				// finishes reading them. The runtime's in-memory image cache
-				// (mono_image_open_a_lot) retains the MonoImage by filename, so
-				// the VFS copy is redundant after the first load and can be freed
-				// to reduce memory pressure.
+				// When enabled, intercept FS.close so that assembly files are
+				// removed from the Emscripten VFS after the Mono runtime reads
+				// them. The runtime's in-memory image cache retains the
+				// MonoImage, so the VFS copy is redundant after the first load
+				// and can be freed to reduce memory pressure.
+				//
+				// We wrap FS.close directly instead of using the
+				// FS.trackingDelegate['onCloseFile'] callback, which is not
+				// reliably invoked in all Emscripten builds.
 				if (this._unoConfig.uno_vfs_framework_assembly_load_cleanup) {
 					this.setupVfsCleanupOnClose(module.FS);
 				}
@@ -224,29 +227,36 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		/**
-		 * Hooks Emscripten's FS.trackingDelegate['onCloseFile'] so that files
-		 * under /managed are unlinked immediately after the runtime closes them.
+		 * Wraps Emscripten's FS.close so that assembly files under /managed
+		 * are unlinked after the runtime closes them. This is more reliable
+		 * than FS.trackingDelegate['onCloseFile'] which is not always called.
 		 */
 		private setupVfsCleanupOnClose(fs: any) {
 			const vfsPrefix = "/managed/";
+			const originalClose = fs.close.bind(fs);
 
-			// Chain any pre-existing handler.
-			fs.trackingDelegate = fs.trackingDelegate || {};
-			const existingHandler = fs.trackingDelegate['onCloseFile'];
+			fs.close = (stream: any) => {
+				const path: string | undefined = stream?.path;
+				const flags: number = stream?.flags ?? -1;
 
-			fs.trackingDelegate['onCloseFile'] = (path: string) => {
-				if (existingHandler) {
-					existingHandler(path);
-				}
+				// Call the original close first so the fd is released.
+				originalClose(stream);
 
-				if (path.startsWith(vfsPrefix)) {
+				// Only unlink after read-only close operations.
+				// The VFS resource loader writes files using O_WRONLY|O_CREAT
+				// (FS.writeFile), and we must not delete during that phase.
+				// The Mono runtime reads assemblies with O_RDONLY (0).
+				// O_ACCMODE (lowest 2 bits) == 0 means O_RDONLY.
+				const isReadOnly = flags >= 0 && (flags & 3) === 0;
+
+				if (isReadOnly && path && path.startsWith(vfsPrefix)) {
 					try {
 						fs.unlink(path);
 
-						if (this._monoConfig && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						if (this._monoConfig?.debugLevel && this._monoConfig.debugLevel > 0) {
 							console.log(`[Bootstrap] VFS cleanup: deleted ${path}`);
 						}
-					} catch (e) {
+					} catch (_e) {
 						// File may already have been deleted.
 					}
 				}
@@ -338,9 +348,8 @@ namespace Uno.WebAssembly.Bootstrap {
 		 * creates its own MonoImage copy. By placing them in the VFS, the runtime's
 		 * filename-based image cache can deduplicate across ALCs.
 		 *
-		 * This operates on config.resources (the declarative dictionary structure)
-		 * which is the form available at configLoaded time. The runtime converts
-		 * resources into the assets array internally afterward.
+		 * This operates on config.resources which uses the .NET 10+ array-based
+		 * format (arrays of {virtualPath, name, integrity, cache} objects).
 		 */
 		private redirectAssembliesToVfs(config: MonoConfig) {
 			const vfsManagedDir = "/managed";
@@ -348,6 +357,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (!config.resources) {
 				return;
 			}
+
+			// Cast to any because the .NET 10+ runtime uses an array-based
+			// resource format ({virtualPath, name, integrity, cache}[]) while
+			// the local TypeScript definitions still declare the older
+			// dictionary-based ResourceList / ResourceGroups shapes.
+			const res: any = config.resources;
 
 			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
 				console.log("[Bootstrap] Redirecting assembly loading to VFS-based loading for image cache deduplication");
@@ -357,50 +372,153 @@ namespace Uno.WebAssembly.Bootstrap {
 			config.environmentVariables = config.environmentVariables || {};
 			config.environmentVariables["MONO_PATH"] = vfsManagedDir;
 
-			// Ensure resources.vfs exists
-			config.resources.vfs = config.resources.vfs || {};
+			const usesArrayResources =
+				Array.isArray(res.assembly) ||
+				Array.isArray(res.coreAssembly);
 
-			// Keep the main assembly on the standard bundled resource path so the
-			// runtime can resolve the entry point without relying on VFS probing.
+			// Only coerce resources.vfs to an array when we are processing the
+			// .NET 10+ array-based resource shape. Preserve legacy dictionary
+			// resource shapes untouched.
+			if (usesArrayResources && !Array.isArray(res.vfs)) {
+				res.vfs = [];
+			}
+
 			const mainAssemblyName = config.mainAssemblyName;
 
-			// Helper: move entries from a ResourceList into a VFS virtual path,
-			// skipping the main assembly so it stays as a bundled resource.
-			const moveToVfs = (source: { [name: string]: string | null | "" } | undefined, vfsPath: string) => {
-				if (!source) return;
-				const kept: { [name: string]: string | null | "" } = {};
-				const target = config.resources.vfs[vfsPath] = config.resources.vfs[vfsPath] || {};
-				for (const name in source) {
-					if (source.hasOwnProperty(name)) {
-						if (name === mainAssemblyName) {
-							kept[name] = source[name];
-						} else {
-							target[name] = source[name];
-						}
+			// Log pre-processing state for diagnostics (debug only)
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+				const asmBefore = Array.isArray(res.assembly) ? res.assembly.length : typeof res.assembly;
+				const coreBefore = Array.isArray(res.coreAssembly) ? res.coreAssembly.length : typeof res.coreAssembly;
+				console.log(
+					`[Bootstrap] VFS redirect: pre-processing state` +
+					` (assembly: ${asmBefore}` +
+					`, coreAssembly: ${coreBefore}` +
+					`, mainAssemblyName: ${mainAssemblyName}` +
+					`, resourceKeys: ${Object.keys(res).join(",")})`);
+			}
+
+			// System.Runtime.InteropServices.JavaScript must stay as a bundled
+			// resource because mono_wasm_bind_assembly_exports (corebindings.c)
+			// requires it loaded before VFS probing is available.
+			const bundledAssemblies = new Set([
+				"System.Runtime.InteropServices.JavaScript",
+				"System.Private.CoreLib",
+			]);
+
+			// Helper: strip file extension from a virtualPath to get the
+			// assembly name for comparison.
+			const assemblyNameOf = (entry: any): string => {
+				const vp: string = entry.virtualPath || entry.name || "";
+				return vp.replace(/\.(wasm|dll)$/, "");
+			};
+
+			// Returns true when an entry must remain as a bundled resource.
+			const mustKeepBundled = (entry: any): boolean => {
+				const name = assemblyNameOf(entry);
+				return name === mainAssemblyName || bundledAssemblies.has(name);
+			};
+
+			// Helper: move array entries to VFS, returning only entries that
+			// should remain as bundled resources. Returns undefined when the
+			// source is not an array (e.g. older dictionary format) so the
+			// caller can leave the original value untouched.
+			const moveArrayToVfs = (
+				source: any,
+				vfsDir: string,
+				keepPredicate?: (entry: any) => boolean
+			): any[] | undefined => {
+				if (!Array.isArray(res.vfs)) {
+					if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						console.warn(
+							`[Bootstrap] VFS redirect: skipping transformation because resources.vfs is not array-based`);
+					}
+					return undefined;
+				}
+
+				if (!Array.isArray(source)) {
+					if (source && this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+						console.warn(
+							`[Bootstrap] VFS redirect: skipping non-array resource section` +
+							` (type: ${typeof source})`);
+					}
+					return undefined;
+				}
+
+				const kept: any[] = [];
+				for (const entry of source) {
+					if (keepPredicate && keepPredicate(entry)) {
+						kept.push(entry);
+					} else {
+						const vfsEntry = { ...entry };
+						const originalVirtualPath = entry.virtualPath || entry.name;
+						// MONO_PATH probing (assembly.c) looks for .dll and .exe
+						// extensions only, but .NET 10+ uses .wasm (WebCIL).
+						// Rename the VFS path so the runtime can find the file.
+						const vfsFileName = originalVirtualPath.replace(/\.wasm$/, ".dll");
+						vfsEntry.virtualPath = vfsDir + "/" + vfsFileName;
+						res.vfs.push(vfsEntry);
 					}
 				}
 				return kept;
 			};
 
-			// Move assemblies to VFS at /managed (main assembly stays as bundled resource)
-			if (config.resources.assembly) {
-				config.resources.assembly = moveToVfs(config.resources.assembly, vfsManagedDir) || {};
+			// Move regular assemblies to VFS (keep main assembly and
+			// runtime-critical assemblies as bundled resources).
+			// Only transform array-format sections; leave dictionary-format
+			// sections (older tooling) unchanged.
+			const newAssembly = moveArrayToVfs(res.assembly, vfsManagedDir, mustKeepBundled);
+			if (newAssembly !== undefined) {
+				res.assembly = newAssembly;
+			}
+
+			// The SDK may place all assemblies in coreAssembly (with an empty
+			// assembly section). Redirect those to VFS as well, keeping only
+			// the main assembly and runtime-critical assemblies that
+			// mono_wasm_bind_assembly_exports needs before VFS probing is
+			// available (System.Runtime.InteropServices.JavaScript,
+			// System.Private.CoreLib).
+			const newCoreAssembly = moveArrayToVfs(res.coreAssembly, vfsManagedDir, mustKeepBundled);
+			if (newCoreAssembly !== undefined) {
+				res.coreAssembly = newCoreAssembly;
 			}
 
 			// Move PDBs to VFS at /managed
-			if (config.resources.pdb) {
-				moveToVfs(config.resources.pdb, vfsManagedDir);
-				config.resources.pdb = {};
+			const newPdb = moveArrayToVfs(res.pdb, vfsManagedDir);
+			if (newPdb !== undefined) {
+				res.pdb = newPdb;
+			}
+
+			// Move core PDBs to VFS at /managed
+			const newCorePdb = moveArrayToVfs(res.corePdb, vfsManagedDir);
+			if (newCorePdb !== undefined) {
+				res.corePdb = newCorePdb;
 			}
 
 			// Move satellite resource assemblies to VFS at /managed/<culture>
-			if (config.resources.satelliteResources) {
-				for (const culture in config.resources.satelliteResources) {
-					if (config.resources.satelliteResources.hasOwnProperty(culture)) {
-						moveToVfs(config.resources.satelliteResources[culture], vfsManagedDir + "/" + culture);
+			if (res.satelliteResources) {
+				for (const culture in res.satelliteResources) {
+					if (res.satelliteResources.hasOwnProperty(culture)) {
+						const newSat = moveArrayToVfs(
+							res.satelliteResources[culture],
+							vfsManagedDir + "/" + culture
+						);
+						if (newSat !== undefined) {
+							res.satelliteResources[culture] = newSat;
+						}
 					}
 				}
-				config.resources.satelliteResources = {};
+			}
+
+			if (this._monoConfig.debugLevel && this._monoConfig.debugLevel > 0) {
+				const vfsCount = Array.isArray(res.vfs) ? res.vfs.length : 0;
+				const asmIsArray = Array.isArray(res.assembly);
+				const coreIsArray = Array.isArray(res.coreAssembly);
+				console.log(
+					`[Bootstrap] VFS redirect: ${vfsCount} entries moved to ${vfsManagedDir}` +
+					` (assembly: ${asmIsArray ? res.assembly.length : typeof res.assembly}` +
+					`, coreAssembly: ${coreIsArray ? res.coreAssembly.length : typeof res.coreAssembly}` +
+					`, vfs: ${Array.isArray(res.vfs) ? "array" : typeof res.vfs}` +
+					`, mainAssemblyName: ${config.mainAssemblyName})`);
 			}
 		}
 
