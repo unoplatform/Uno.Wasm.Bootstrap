@@ -271,3 +271,17 @@ thumbs.db
 /src/Uno.Wasm.Bootstrap/build/packager
 /src/Uno.Wasm.Bootstrap/build/wasm-tuner
 
+build/tools/.store/dotnet-serve/1.10.175/project.assets.json
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/.nupkg.metadata
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/.signature.p7s
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/dotnet-serve.1.10.175.nupkg.sha512
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/dotnet-serve.nuspec
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/README.md
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/BouncyCastle.Crypto.dll
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/dotnet-serve.deps.json
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/dotnet-serve.dll
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/dotnet-serve.runtimeconfig.json
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/DotNetConfig.dll
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/DotnetToolSettings.xml
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/McMaster.Extensions.CommandLineUtils.dll
+build/tools/.store/dotnet-serve/1.10.175/dotnet-serve/1.10.175/tools/net6.0/any/Yarp.ReverseProxy.dll

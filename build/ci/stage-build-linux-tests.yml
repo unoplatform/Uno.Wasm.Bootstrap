@@ -315,6 +315,22 @@ jobs:
       ArtifactName: vfs-assembly-load
       ArtifactType: Container
 
+  ## Worker fork test - builds WorkerFork.App, forks a WebWorker, validates message round-trip
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.WorkerFork
+      chmod +x test-worker-fork.sh
+      ./test-worker-fork.sh "$(build.artifactstagingdirectory)/worker-fork"
+    displayName: Worker Fork Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/worker-fork
+      ArtifactName: worker-fork
+      ArtifactType: Container
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:

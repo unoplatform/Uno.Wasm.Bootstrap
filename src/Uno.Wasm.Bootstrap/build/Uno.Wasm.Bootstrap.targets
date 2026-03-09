@@ -33,6 +33,11 @@
 		     Emscripten VFS after the Mono runtime closes them. The runtime's in-memory
 		     image cache retains the MonoImage, so the VFS copy is no longer needed. -->
 		<WasmShellVfsFrameworkAssemblyLoadCleanup Condition="'$(WasmShellVfsFrameworkAssemblyLoadCleanup)' == ''">false</WasmShellVfsFrameworkAssemblyLoadCleanup>
+
+		<!-- When true, enables the Worker Fork feature which allows spawning a new
+		     .NET WebAssembly runtime instance in a Web Worker, reusing the already-compiled
+		     WebAssembly.Module from the main thread for fast startup. -->
+		<WasmShellEnableWorkerFork Condition="'$(WasmShellEnableWorkerFork)' == ''">false</WasmShellEnableWorkerFork>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -393,6 +398,7 @@
 			LoadAllSatelliteResources="$(WasmShellLoadAllSatelliteResources)"
 			VfsFrameworkAssemblyLoad="$(WasmShellVfsFrameworkAssemblyLoad)"
 			VfsFrameworkAssemblyLoadCleanup="$(WasmShellVfsFrameworkAssemblyLoadCleanup)"
+			WorkerFork="$(WasmShellEnableWorkerFork)"
 			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
