@@ -42,5 +42,7 @@
 		uno_vfs_framework_assembly_load?: boolean;
 
 		uno_vfs_framework_assembly_load_cleanup?: boolean;
+
+		uno_worker_fork?: boolean;
 	}
 }

@@ -34,6 +34,7 @@ This work is based on the excellent work from @praeclarum's [OOui Wasm MSBuild t
   - [HttpRequestMessage Extensions](doc/features-httprequestmessage-extensions.md)
   - [dotnet.js Fingerprinting](doc/features-dotnetjs-fingerprinting.md)
   - [VFS Assembly Loading](doc/features-vfs-assembly-loading.md)
+  - [Worker Fork](doc/features-worker-fork.md)
   - [Assemblies obfuscation](doc/features-obfuscation.md)
 - Tools
   - [Uno Version Checker](doc/features-version-checker.md)
