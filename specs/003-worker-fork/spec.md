@@ -96,6 +96,7 @@ And each worker should have its own independent linear memory
 **FR-6**: The worker SHALL invoke `dotnetRuntime.runMain(mainAssemblyName, args)` where `args` are provided by the caller via `options.args`.
 
 **FR-7**: The returned `WorkerHandle` SHALL provide:
+
 - `postMessage(data)` — send a JSON-serializable message to the worker
 - `terminate()` — immediately terminate the worker
 - `ready: Promise<void>` — resolves when the worker's .NET runtime is initialized
@@ -150,6 +151,7 @@ New TypeScript file in the `Uno.WebAssembly.Bootstrap` namespace. Contains:
 3. **`buildWorkerScript()` private method** that generates the inline worker blob script as a string
 
 The worker blob script:
+
 - Listens for the `uno:worker:init` message
 - Dynamically imports the .NET runtime JS via `import(dotnetJsUrl)`
 - Configures `instantiateWasm` to reuse the received `WebAssembly.Module`
@@ -161,6 +163,7 @@ The worker blob script:
 **`src/Uno.Wasm.Tests.WorkerFork.App/Uno.Wasm.Tests.WorkerFork.App.csproj`**
 
 Test project following the `Uno.Wasm.Tests.VfsAssemblyLoad.App` pattern:
+
 - SDK: `Microsoft.NET.Sdk.WebAssembly`
 - TargetFramework: `net10.0`
 - OutputType: `Exe`
@@ -170,6 +173,7 @@ Test project following the `Uno.Wasm.Tests.VfsAssemblyLoad.App` pattern:
 **`src/Uno.Wasm.Tests.WorkerFork.App/Program.cs`**
 
 Dual-mode entry point:
+
 - Detects worker via `args` containing `"--worker"` or env var `UNO_BOOTSTRAP_IS_WORKER == "true"`
 - **Main mode**: Calls `WorkerFork.forkToWorker` via `InvokeJS`, sends a test message when ready, writes worker response to a `#results` DOM element
 - **Worker mode**: Registers `__unoWorkerMessageCallback` to call a `[JSExport]` method, echoes received messages back with modification via `__unoWorkerPostMessage`
@@ -180,11 +184,13 @@ Dual-mode entry point:
 
 - Add `/// <reference path="WorkerFork.ts"/>` at the top with the other reference directives
 - Add a static convenience method:
+
   ```typescript
   public static forkToWorker(options?: WorkerForkOptions): WorkerHandle {
       return WorkerFork.forkToWorker(options);
   }
   ```
+
 - The `WorkerFork` class is automatically accessible at `globalThis.Uno.WebAssembly.Bootstrap.WorkerFork` via the existing `globalThis.Uno = Uno` assignment (line 80)
 
 **`src/Uno.Wasm.Bootstrap.sln`**
@@ -200,6 +206,7 @@ Add the new test project.
 ## Browser Compatibility
 
 The feature uses module Web Workers (`new Worker(blobUrl, { type: 'module' })`), which requires:
+
 - Chrome 80+
 - Edge 80+
 - Firefox 114+
