@@ -80,15 +80,8 @@ Enable it in your project file:
 ```xml
 <PropertyGroup>
     <WasmShellEnableBrowserProfiler>true</WasmShellEnableBrowserProfiler>
+    <WasmShellBrowserProfilerSampleInterval>10</WasmShellBrowserProfilerSampleInterval>
 </PropertyGroup>
-```
-
-Then configure the sampling interval in your JavaScript initialization:
-
-```javascript
-dotnet.withConfig({
-    browserProfilerOptions: { sampleIntervalMs: 10 }
-})
 ```
 
 The default interval is 1000 ms. Lower values give finer granularity but add more overhead.
@@ -179,6 +172,7 @@ dotnet tool install --global dotnet-counters
 | `WasmShellEnableEmccProfiling` | `bool` | Preserves WebAssembly function names so the browser Performance tab shows readable stacks. |
 | `WasmShellEnableBrowserProfiler` | `bool` | Enables the Mono browser profiler (samplepoint instrumentation). Requires .NET 10+. |
 | `WasmShellBrowserProfilerCallSpec` | `string` | Optional `callspec` filter for the browser profiler (e.g. `N:MyApp.MyNamespace`). |
+| `WasmShellBrowserProfilerSampleInterval` | `string` | Sampling interval in milliseconds for the browser profiler (default: `1000`). |
 | `WasmShellEnablePerfTracing` | `bool` | Enables EventPipe diagnostics: GC dumps, CPU samples, and performance counters. Requires .NET 10+. |
 | `WasmShellPerfInstrumentation` | `string` | Optional namespace filter for EventPipe instrumentation (e.g. `N:MyApp.MyNamespace`). |
 | `WasmShellDiagnosticPorts` | `string` | Sets `DOTNET_DiagnosticPorts` for remote collection via `dotnet-dsrouter` (e.g. `ws://127.0.0.1:8088/diagnostics`). |

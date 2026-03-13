@@ -84,3 +84,6 @@ declare type CoverageProfilerOptions = {
 declare type LogProfilerOptions = {
 	configuration?: string, //  log profiler options string"
 }
+declare type BrowserProfilerOptions = {
+	sampleIntervalMs?: number;
+};

@@ -420,6 +420,7 @@
 			VfsFrameworkAssemblyLoad="$(WasmShellVfsFrameworkAssemblyLoad)"
 			VfsFrameworkAssemblyLoadCleanup="$(WasmShellVfsFrameworkAssemblyLoadCleanup)"
 			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
+			BrowserProfilerSampleInterval="$(WasmShellBrowserProfilerSampleInterval)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
 			RunILLink="$(RunILLink)"
