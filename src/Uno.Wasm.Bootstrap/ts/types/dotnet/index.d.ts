@@ -192,6 +192,7 @@ type MonoConfig = {
 	aotProfilerOptions?: AOTProfilerOptions;
 	coverageProfilerOptions?: CoverageProfilerOptions;
 	logProfilerOptions?: LogProfilerOptions;
+	browserProfilerOptions?: BrowserProfilerOptions;
 	runtimeOptions?: string[], // array of runtime options as strings
 	/**
 	 * END UNO SPECIFIC

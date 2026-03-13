@@ -72,6 +72,32 @@
 		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 
+	<!-- Browser profiler support (Mono samplepoint instrumentation, .NET 10+) -->
+	<PropertyGroup Condition=" '$(WasmShellEnableBrowserProfiler)' == 'true' AND '$(WasmShellBrowserProfilerCallSpec)' == '' ">
+		<WasmProfilers>$(WasmProfilers);browser;</WasmProfilers>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(WasmShellEnableBrowserProfiler)' == 'true' AND '$(WasmShellBrowserProfilerCallSpec)' != '' ">
+		<WasmProfilers>$(WasmProfilers);browser:callspec=$(WasmShellBrowserProfilerCallSpec);</WasmProfilers>
+	</PropertyGroup>
+
+	<!-- EventPipe perf tracing support (.NET 10+) -->
+	<PropertyGroup Condition=" '$(WasmShellEnablePerfTracing)' == 'true' ">
+		<WasmPerfTracing>true</WasmPerfTracing>
+		<EventSourceSupport>true</EventSourceSupport>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(WasmShellEnablePerfTracing)' == 'true' AND '$(WasmShellPerfInstrumentation)' != '' ">
+		<WasmPerfInstrumentation>$(WasmShellPerfInstrumentation)</WasmPerfInstrumentation>
+	</PropertyGroup>
+
+	<!-- EventPipe diagnostic port support: injects DOTNET_DiagnosticPorts into the runtime environment -->
+	<Target Name="_UnoInjectDiagnosticPorts"
+			BeforeTargets="GenerateUnoWasmAssets"
+			Condition=" '$(WasmShellDiagnosticPorts)' != '' ">
+		<ItemGroup>
+			<WasmShellMonoEnvironment Include="DOTNET_DiagnosticPorts" Value="$(WasmShellDiagnosticPorts)" />
+		</ItemGroup>
+	</Target>
+
 	<PropertyGroup Condition=" '$(WasmShellMonoRuntimeExecutionMode)' == 'InterpreterAndAOT' AND '$(WasmShellGenerateAOTProfile)' != 'true' ">
 		<RunAOTCompilation>true</RunAOTCompilation>
 		<WasmBuildNative>true</WasmBuildNative>
@@ -394,6 +420,7 @@
 			VfsFrameworkAssemblyLoad="$(WasmShellVfsFrameworkAssemblyLoad)"
 			VfsFrameworkAssemblyLoadCleanup="$(WasmShellVfsFrameworkAssemblyLoadCleanup)"
 			LogProfilerOptions="$(WasmShellLogProfilerOptions)"
+			BrowserProfilerSampleInterval="$(WasmShellBrowserProfilerSampleInterval)"
 			MonoEnvironment="@(WasmShellMonoEnvironment)"
 			PublishTrimmed="$(PublishTrimmed)"
 			RunILLink="$(RunILLink)"
