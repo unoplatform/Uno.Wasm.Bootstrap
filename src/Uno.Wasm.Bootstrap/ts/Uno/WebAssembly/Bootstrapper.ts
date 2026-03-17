@@ -2,6 +2,7 @@
 /// <reference path="EmscriptenMemoryProfilerSupport.ts"/>
 /// <reference path="HotReloadSupport.ts"/>
 /// <reference path="UnoConfig.ts"/>
+/// <reference path="WorkerFork.ts"/>
 
 namespace Uno.WebAssembly.Bootstrap {
 
@@ -84,6 +85,59 @@ namespace Uno.WebAssembly.Bootstrap {
 			return eval(value);
 		}
 
+		public static forkToWorker(options?: WorkerForkOptions): WorkerHandle {
+			return WorkerFork.forkToWorker(options);
+		}
+
+		/**
+		 * Wraps globalThis.WebAssembly.instantiate and instantiateStreaming
+		 * to capture the compiled WebAssembly.Module during runtime init.
+		 * The module is stored on globalThis.__unoWasmModule for WorkerFork.
+		 */
+		private static installWasmModuleCapture() {
+			const WA = (<any>globalThis).WebAssembly;
+			const origInstantiate = WA.instantiate.bind(WA);
+			const origStreaming = WA.instantiateStreaming ? WA.instantiateStreaming.bind(WA) : null;
+			const origCompile = WA.compile.bind(WA);
+			const origCompileStreaming = WA.compileStreaming ? WA.compileStreaming.bind(WA) : null;
+
+			WA.compile = function (bytes: any) {
+				return origCompile(bytes).then((mod: any) => {
+					(<any>globalThis).__unoWasmModule = mod;
+					return mod;
+				});
+			};
+
+			if (origCompileStreaming) {
+				WA.compileStreaming = function (source: any) {
+					return origCompileStreaming(source).then((mod: any) => {
+						(<any>globalThis).__unoWasmModule = mod;
+						return mod;
+					});
+				};
+			}
+
+			WA.instantiate = function (source: any, imports: any) {
+				return origInstantiate(source, imports).then((result: any) => {
+					if (result && result.module) {
+						(<any>globalThis).__unoWasmModule = result.module;
+					}
+					return result;
+				});
+			};
+
+			if (origStreaming) {
+				WA.instantiateStreaming = function (source: any, imports: any) {
+					return origStreaming(source, imports).then((result: any) => {
+						if (result && result.module) {
+							(<any>globalThis).__unoWasmModule = result.module;
+						}
+						return result;
+					});
+				};
+			}
+		}
+
 		public static async bootstrap(): Promise<void> {
 
 			try {
@@ -122,7 +176,13 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`../_framework/${config.config.dotnet_js_filename}`);
 
-				m.dotnet
+				// Wrap WebAssembly.instantiate/instantiateStreaming to capture
+			// the compiled Module for later reuse (e.g. WorkerFork).
+			if (config.config.uno_worker_fork) {
+				Bootstrapper.installWasmModuleCapture();
+			}
+
+			m.dotnet
 					.withModuleConfig({
 						preRun: [(module: any) => bootstrapper.wasmRuntimePreRun(module)],
 					})
