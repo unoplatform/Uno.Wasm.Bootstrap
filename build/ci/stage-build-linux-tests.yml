@@ -315,6 +315,22 @@ jobs:
       ArtifactName: vfs-assembly-load
       ArtifactType: Container
 
+  ## WebWorker mode test - builds WebWorker.App and validates worker runtime
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.WebWorker
+      chmod +x test-webworker.sh
+      ./test-webworker.sh "$(build.artifactstagingdirectory)/webworker"
+    displayName: WebWorker Mode Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/webworker
+      ArtifactName: webworker-test
+      ArtifactType: Container
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:
