@@ -744,7 +744,34 @@
 		<Copy SourceFiles="@(_UnoWorkerFrameworkFiles)"
 			  DestinationFiles="@(_UnoWorkerFrameworkFiles->'$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/%(RecursiveDir)%(Filename)%(Extension)')" />
 
-		<Message Importance="high" Text="WebWorker: Copied @(_UnoWorkerFrameworkFiles->Count()) _framework/ files to $(WasmShellWorkerBasePath)/_framework/" />
+		<!-- Fix up the worker's uno-config.js fingerprint to match the published
+		     dotnet.js (the build-time config has the unfingerprinted name). -->
+		<ItemGroup>
+			<_UnoWorkerPublishedDotnetJs Include="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.*.js"
+				Exclude="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.native.*.js;$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.runtime.*.js" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_UnoWorkerDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoWorkerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoWorkerDotnetJsFingerprint>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<_UnoWorkerConfigJs Include="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/**/uno-config.js" />
+		</ItemGroup>
+
+		<WriteLinesToFile
+			File="%(_UnoWorkerConfigJs.Identity)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('%(_UnoWorkerConfigJs.Identity)')), 'config\.dotnet_js_filename = &quot;dotnet(\.[^&quot;]+)?\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoWorkerDotnetJsFingerprint).js&quot;')), '_framework/dotnet(\.[^&quot;]+)?\.js', '_framework/dotnet.$(_UnoWorkerDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoWorkerDotnetJsFingerprint)' != '' AND '@(_UnoWorkerConfigJs)' != ''" />
+
+		<!-- Delete stale compressed versions of uno-config.js -->
+		<ItemGroup>
+			<_UnoWorkerStaleCompressed Include="@(_UnoWorkerConfigJs->'%(Identity).gz');@(_UnoWorkerConfigJs->'%(Identity).br')" />
+		</ItemGroup>
+		<Delete Files="@(_UnoWorkerStaleCompressed)" Condition="'@(_UnoWorkerStaleCompressed)' != ''" />
+
+		<Message Importance="high" Text="WebWorker: Copied @(_UnoWorkerFrameworkFiles->Count()) _framework/ files to $(WasmShellWorkerBasePath)/_framework/ (dotnet.js fingerprint: $(_UnoWorkerDotnetJsFingerprint))" />
 	</Target>
 
 </Project>
