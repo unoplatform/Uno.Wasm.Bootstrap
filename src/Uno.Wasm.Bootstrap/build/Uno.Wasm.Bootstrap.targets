@@ -15,6 +15,7 @@
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
+		<WasmShellWorkerFileName Condition="'$(WasmShellWorkerFileName)'==''">worker.js</WasmShellWorkerFileName>
 
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 
@@ -139,7 +140,7 @@
 
 	<Target Name="_UnoInjectHotReloadSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
-			Condition=" '$(Optimize)' != 'true' ">
+			Condition=" '$(Optimize)' != 'true' AND '$(WasmShellMode)' != 'WebWorker' ">
 		<ItemGroup>
 			<Reference Include="Uno.Wasm.MetadataUpdater"
 					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.MetadataUpdater.dll"
@@ -432,7 +433,8 @@
 			Optimize="$(Optimize)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
-			WebAppBasePath="$(WasmShellWebAppBasePath)">
+			WebAppBasePath="$(WasmShellWebAppBasePath)"
+			WorkerFileName="$(WasmShellWorkerFileName)">
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
 			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>
@@ -632,6 +634,82 @@
 		<Error Code="UNOWA0001"
 				Condition="'$(_UnoRequiresWasmTools)' == 'true' and '$(WasmNativeWorkloadAvailable)' != 'true'"
 				Text="Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'." />
+	</Target>
+
+	<!--
+		WebWorker project integration.
+		When a host project sets WasmShellWebWorkerProject to the path of a WebWorker-mode
+		.csproj, this target publishes the worker project during the host's publish and copies
+		the worker's output into the host's wwwroot under WasmShellWorkerBasePath (default: _worker).
+
+		Usage in the host project:
+		  <PropertyGroup>
+		    <WasmShellWebWorkerProject>..\MyWorker\MyWorker.csproj</WasmShellWebWorkerProject>
+		    <WasmShellWorkerBasePath>_worker</WasmShellWorkerBasePath>
+		  </PropertyGroup>
+	-->
+	<PropertyGroup>
+		<WasmShellWorkerBasePath Condition="'$(WasmShellWorkerBasePath)'==''">_worker</WasmShellWorkerBasePath>
+	</PropertyGroup>
+
+	<Target Name="_UnoPublishWebWorkerProject"
+			AfterTargets="Publish"
+			Condition="'$(WasmShellWebWorkerProject)' != '' AND '$(WasmBuildingForNestedPublish)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
+			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
+			<_UnoWorkerPublishDir>$(_UnoWorkerProjectDir)/bin/$(Configuration)/net10.0/publish/</_UnoWorkerPublishDir>
+		</PropertyGroup>
+
+		<Message Importance="high" Text="Publishing WebWorker project: $(_UnoWorkerProjectFullPath)" />
+		<Message Importance="high" Text="WebWorker output path: $(WasmShellWorkerBasePath)/" />
+
+		<!-- Clean and publish the worker project to its own standard publish directory.
+		     Do NOT use -o flag as it produces incomplete output (missing runtime JS files).
+		     Clean is needed because incremental publish may skip runtime JS generation. -->
+		<Exec Command="dotnet clean &quot;$(_UnoWorkerProjectFullPath)&quot; -c $(Configuration)" />
+		<Exec Command="dotnet publish &quot;$(_UnoWorkerProjectFullPath)&quot; -c $(Configuration) /m:1 /p:WasmBuildingForNestedPublish=true" />
+
+		<ItemGroup>
+			<_UnoWorkerWwwrootFiles Include="$(_UnoWorkerPublishDir)wwwroot/**/*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(_UnoWorkerWwwrootFiles)"
+			  DestinationFiles="@(_UnoWorkerWwwrootFiles->'$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+		<Message Importance="high" Text="Copied @(_UnoWorkerWwwrootFiles->Count()) worker files to $(WasmShellWorkerBasePath)/" />
+
+		<!-- Fix up the worker's uno-config.js fingerprint. The nested publish may
+		     produce a different dotnet.js fingerprint than the build-time config. -->
+		<ItemGroup>
+			<_UnoWorkerPublishedDotnetJs Include="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.*.js"
+				Exclude="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.native.*.js;$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/dotnet.runtime.*.js" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_UnoWorkerDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoWorkerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoWorkerDotnetJsFingerprint>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<_UnoWorkerConfigJs Include="$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/**/uno-config.js" />
+		</ItemGroup>
+
+		<WriteLinesToFile
+			File="%(_UnoWorkerConfigJs.Identity)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('%(_UnoWorkerConfigJs.Identity)')), 'config\.dotnet_js_filename = &quot;dotnet(\.[^&quot;]+)?\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoWorkerDotnetJsFingerprint).js&quot;')), '_framework/dotnet(\.[^&quot;]+)?\.js', '_framework/dotnet.$(_UnoWorkerDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoWorkerDotnetJsFingerprint)' != '' AND '@(_UnoWorkerConfigJs)' != ''" />
+
+		<!-- Delete stale compressed versions of the worker's uno-config.js -->
+		<ItemGroup>
+			<_UnoWorkerStaleCompressed Include="@(_UnoWorkerConfigJs->'%(Identity).gz');@(_UnoWorkerConfigJs->'%(Identity).br')" />
+		</ItemGroup>
+		<Delete Files="@(_UnoWorkerStaleCompressed)" Condition="'@(_UnoWorkerStaleCompressed)' != ''" />
+
+		<Message Importance="high"
+				 Text="Updated worker uno-config.js with dotnet.js fingerprint: $(_UnoWorkerDotnetJsFingerprint)"
+				 Condition="'$(_UnoWorkerDotnetJsFingerprint)' != ''" />
 	</Target>
 
 </Project>

@@ -137,6 +137,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public bool VfsFrameworkAssemblyLoadCleanup { get; set; }
 
+		public string WorkerFileName { get; set; } = "worker.js";
+
 		public ITaskItem[]? ReferencePath { get; set; }
 
 		[Output]
@@ -162,6 +164,7 @@ namespace Uno.Wasm.Bootstrap
 				GeneratePackageFolder();
 				BuildServiceWorker();
 				GenerateEmbeddedJs();
+				GenerateWorkerJs();
 				GenerateIndexHtml();
 				GenerateConfig();
 				RemoveDuplicateAssets();
@@ -305,6 +308,11 @@ namespace Uno.Wasm.Bootstrap
 
 		private void BuildServiceWorker()
 		{
+			if (_shellMode == ShellMode.WebWorker)
+			{
+				return;
+			}
+
 			using var resourceStream = GetType().Assembly.GetManifestResourceStream("Uno.Wasm.Bootstrap.v0.Embedded.service-worker.js");
 			using var reader = new StreamReader(resourceStream);
 
@@ -855,6 +863,136 @@ namespace Uno.Wasm.Bootstrap
 			w2.Flush();
 
 			AddStaticAsset("embedded.js", scriptPath, DeployMode.Root);
+			AddStaticAsset("index.html", htmlPath, DeployMode.Root);
+		}
+
+		private void GenerateWorkerJs()
+		{
+			if (_shellMode != ShellMode.WebWorker)
+			{
+				return;
+			}
+
+			var workerFileName = string.IsNullOrWhiteSpace(WorkerFileName) ? "worker.js" : WorkerFileName;
+			var scriptPath = Path.Combine(IntermediateOutputPath, "shell-worker.js");
+
+			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
+			const string javascriptTemplate =
+				"""
+				(async function() {
+					const workerScript = self.location.href;
+					const basePath = workerScript.substring(0, workerScript.lastIndexOf('/') + 1);
+					const packagePath = basePath + '$(PACKAGE_PATH)/';
+					const frameworkPath = basePath + '_framework/';
+
+					// Load uno-config.js via fetch+eval (it uses ES module export syntax
+					// which is incompatible with importScripts in classic workers)
+					const configResponse = await fetch(packagePath + 'uno-config.js');
+					let configText = await configResponse.text();
+					configText = configText.replace(/export\s*\{[^}]*\};?\s*$/, '');
+					configText = configText.replace(/\blet\s+config\b/, 'self.config');
+					(new Function(configText))();
+					const config = self.config;
+
+					// Setup invokeJS shim for [JSImport] interop
+					globalThis.Uno = globalThis.Uno || {};
+					globalThis.Uno.WebAssembly = globalThis.Uno.WebAssembly || {};
+					globalThis.Uno.WebAssembly.Bootstrap = globalThis.Uno.WebAssembly.Bootstrap || {};
+					globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper = globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper || {};
+					globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper.invokeJS = function(value) {
+						return eval(value);
+					};
+
+					// Import dotnet.js (dynamic import works in modern classic workers)
+					const dotnetModule = await import(frameworkPath + config.dotnet_js_filename);
+
+					dotnetModule.dotnet
+						.withRuntimeOptions(config.uno_runtime_options || [])
+						.withConfig({ loadAllSatelliteResources: config.uno_load_all_satellite_resources });
+
+					const dotnetRuntime = await dotnetModule.default(
+						(context) => {
+							return {
+								disableDotnet6Compatibility: false,
+								configSrc: undefined,
+								baseUrl: config.uno_app_base,
+								mainScriptPath: '_framework/' + config.dotnet_js_filename,
+								onConfigLoaded: (monoConfig) => {
+									if (config.environmentVariables) {
+										for (let key in config.environmentVariables) {
+											if (config.environmentVariables.hasOwnProperty(key)) {
+												monoConfig.environmentVariables[key] = config.environmentVariables[key];
+											}
+										}
+									}
+								},
+								onDotnetReady: () => { },
+							};
+						}
+					);
+
+					globalThis.Module = dotnetRuntime.Module;
+
+					await dotnetRuntime.runMain(config.uno_main, []);
+
+					// Signal readiness AFTER runtime is fully initialized.
+					// IMPORTANT: self.onmessage is NOT set before dotnet.create() —
+					// the .NET runtime checks globalThis.onmessage to detect pthread
+					// deputy workers, and setting it prematurely causes hangs.
+					self.postMessage({ type: 'uno-worker-ready' });
+				})();
+				""";
+
+			var javascript = javascriptTemplate
+				.Replace("$(PACKAGE_PATH)", PackageAssetsFolder);
+			w.Write(javascript);
+			w.Flush();
+
+			// Generate a minimal index.html host page for dev testing
+			var htmlPath = Path.Combine(IntermediateOutputPath, "shell-worker-index.html");
+			using var w2 = new StreamWriter(htmlPath, append: false, _utf8Encoding);
+
+			const string htmlTemplate =
+				"""
+				<!DOCTYPE html>
+				<html>
+				<head><meta charset="utf-8" /><title>WebWorker Host</title></head>
+				<body>
+					<div id="status">Starting worker...</div>
+					<div id="results"></div>
+					<script>
+						const worker = new Worker('./$(WORKER_FILENAME)');
+						const results = document.getElementById('results');
+						const statusEl = document.getElementById('status');
+						const logs = [];
+
+						worker.addEventListener('message', function(e) {
+							logs.push(JSON.stringify(e.data));
+							if (e.data && e.data.type === 'dotnet-ready') {
+								results.textContent = e.data.message;
+								statusEl.textContent = 'Worker ready';
+							} else if (e.data && e.data.type === 'uno-worker-ready') {
+								if (!results.textContent) {
+									statusEl.textContent = 'Runtime initialized';
+								}
+							}
+							var logsEl = document.getElementById('logs');
+							if (logsEl) { logsEl.textContent = logs.join('\n'); }
+						});
+
+						worker.addEventListener('error', function(e) {
+							statusEl.textContent = 'Worker error: ' + e.message;
+						});
+					</script>
+					<pre id="logs"></pre>
+				</body>
+				</html>
+				""";
+
+			w2.Write(htmlTemplate.Replace("$(WORKER_FILENAME)", workerFileName));
+			w2.Flush();
+
+			AddStaticAsset(workerFileName, scriptPath, DeployMode.Root);
 			AddStaticAsset("index.html", htmlPath, DeployMode.Root);
 		}
 

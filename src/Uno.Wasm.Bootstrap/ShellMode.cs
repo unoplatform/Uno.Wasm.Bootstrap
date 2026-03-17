@@ -24,6 +24,7 @@ namespace Uno.Wasm.Bootstrap
 	{
 		Browser,
 		Node,
-		BrowserEmbedded
+		BrowserEmbedded,
+		WebWorker
 	}
 }

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Point to the WebWorker project to publish alongside this host app.
+         The _UnoPublishWebWorkerProject target in Uno.Wasm.Bootstrap.targets
+         will publish the worker and copy its output into wwwroot/_worker/. -->
+    <WasmShellWebWorkerProject>..\Uno.Wasm.Tests.WebWorker.App\Uno.Wasm.Tests.WebWorker.App.csproj</WasmShellWebWorkerProject>
+    <WasmShellWorkerBasePath>_worker</WasmShellWorkerBasePath>
+  </PropertyGroup>
+
+  <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <UndefineProperties>TargetFramework</UndefineProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!--
+    The worker project is NOT referenced as a ProjectReference to avoid
+    _framework/ static web asset conflicts (both projects produce the
+    same runtime assemblies). Instead, WasmShellWebWorkerProject points
+    to the worker .csproj, and the publish target handles everything.
+  -->
+
+</Project>
