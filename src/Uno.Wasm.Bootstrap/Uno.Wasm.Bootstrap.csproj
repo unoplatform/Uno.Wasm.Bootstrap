@@ -91,6 +91,7 @@
 
 	<ItemGroup>
 		<ConfigFiles Include="tsconfig.json" />
+		<ConfigFiles Include="tsconfig.worker.json" />
 		<UpToDateCheckInput Include="ts\**\*" />
 	</ItemGroup>
 
@@ -161,7 +162,7 @@
 			<_IntermediateGeneratedJavascript Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
 			<FileWrites Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
 
-			<EmbeddedResource Include="@(_IntermediateGeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
+			<EmbeddedResource Include="@(_IntermediateGeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(Filename)%(Extension)" />
 			<Content Remove="@(_IntermediateGeneratedJavascript)" />
 		</ItemGroup>
 	</Target>

@@ -28,16 +28,18 @@ By default, the project is launched with a HTML page (`index.html`) in the brows
 
 When published, the bootstrapper generates:
 
-- **`worker.js`** (or your custom filename) — A self-contained script that initializes the .NET runtime inside a Web Worker. It loads the configuration, sets up the runtime, and runs the application's `Main` method.
+- **`worker.js`** (or your custom filename) — A compiled TypeScript bootstrapper (`WorkerBootstrapper.ts`) that initializes the .NET runtime inside a Web Worker. It loads the configuration, sets up the runtime, configures profilers, and runs the application's `Main` method.
 - **`index.html`** — A minimal host page that creates the worker and displays status. This is provided for development and testing; in production, you would create the worker from your own host page.
 
 The generated `worker.js`:
 
 1. Fetches and parses `uno-config.js` for runtime configuration
-2. Dynamically imports `dotnet.js` from `_framework/`
-3. Configures environment variables and runtime options
-4. Runs the application's `Main` method
-5. Posts `{ type: "uno-worker-ready" }` to signal successful initialization
+2. Sets up the `invokeJS` shim for `[JSImport]` interop
+3. Dynamically imports `dotnet.js` from `_framework/`
+4. Configures environment variables, runtime options, and profilers (log, AOT, memory)
+5. Runs the application's `Main` method
+6. Posts `{ type: "uno-worker-ready" }` to signal successful initialization
+7. Registers a profiler command handler for host-initiated profiler data retrieval
 
 ## Using the worker from a host page
 
@@ -93,6 +95,88 @@ Interop.InvokeJS(@"
 > [!IMPORTANT]
 > Do **not** set `self.onmessage` before the .NET runtime has initialized. The .NET runtime checks `globalThis.onmessage` during startup to detect worker types, and setting it prematurely will cause the runtime to hang. Always use `self.addEventListener('message', ...)` instead.
 
+## Profiling in workers
+
+Workers cannot use DOM-based hotkeys or file downloads. Instead, the worker bootstrapper exposes global helper functions that you can call directly from the **worker's DevTools console**. The profiler data is posted to the host page via `postMessage`, which automatically triggers a file download.
+
+To access the worker console, open the browser DevTools, go to **Sources** (Chrome) or **Debugger** (Firefox), find the worker in the sidebar, and switch to its console context.
+
+### Memory profiler
+
+Enable the memory profiler on the worker project:
+
+```xml
+<WasmShellEnableWasmMemoryProfiler>true</WasmShellEnableWasmMemoryProfiler>
+```
+
+Then in the worker's console:
+
+```javascript
+saveMemoryProfile()            // speedscope format (default)
+saveMemoryProfile("perfview")  // PerfView format
+```
+
+### Log profiler
+
+Enable the log profiler on the worker project:
+
+```xml
+<WasmShellEnableLogProfiler>true</WasmShellEnableLogProfiler>
+```
+
+Then in the worker's console:
+
+```javascript
+saveLogProfile()
+```
+
+### AOT profiler
+
+Enable AOT profiling on the worker project:
+
+```xml
+<WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
+```
+
+Then in the worker's console:
+
+```javascript
+saveAotProfile()
+```
+
+When the worker initializes with profilers enabled, it prints the available commands to the console:
+
+```
+[WorkerProfiler] Available profiler commands (run from this worker console):
+  saveMemoryProfile("speedscope") or saveMemoryProfile("perfview")
+  saveLogProfile()
+```
+
+### How it works
+
+The worker posts profiler data to the host via `postMessage` with type `uno-profiler-data`. The generated standalone host page (`index.html`) automatically handles these messages and triggers file downloads. If you use your own host page, add this handler:
+
+```javascript
+worker.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'uno-profiler-data') {
+        var bytes = Uint8Array.from(atob(e.data.data), function(c) { return c.charCodeAt(0); });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([bytes]));
+        a.download = e.data.filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+});
+```
+
+The host can also programmatically request profiler data:
+
+```javascript
+worker.postMessage({ type: 'uno-profiler-command', command: 'memory-snapshot', format: 'speedscope' });
+worker.postMessage({ type: 'uno-profiler-command', command: 'log-profiler-save' });
+worker.postMessage({ type: 'uno-profiler-command', command: 'aot-profiler-save' });
+```
+
 ## Important notes
 
 - The worker runs in its own thread with no access to the DOM. All DOM interactions must happen on the main thread.
@@ -119,9 +203,9 @@ The WebWorker project is designed to be consumed by a host app. The host project
 </PropertyGroup>
 ```
 
-During `dotnet publish`, the build system automatically:
-1. Publishes the worker project
-2. Copies its output (including its own `_framework/`) into `wwwroot/_worker/`
+During build and publish, the build system automatically:
+1. Builds the worker project and registers its assets via the static web assets pipeline
+2. Publishes the worker's `_framework/` directory and copies it into `wwwroot/_worker/`
 3. Fixes up the `dotnet.js` fingerprint in the worker's `uno-config.js`
 
 The host then creates a Worker pointing to the worker's base path:
@@ -130,8 +214,18 @@ The host then creates a Worker pointing to the worker's base path:
 const worker = new Worker('./_worker/worker.js');
 ```
 
-> [!NOTE]
-> Do **not** use a `<ProjectReference>` to the worker project for assembly referencing. Both projects produce their own `_framework/` directory with .NET runtime assemblies, which causes static web asset conflicts. Instead, use `WasmShellWebWorkerProject` to point to the worker project.
+### Sharing code via linked files
+
+The worker project can reuse code from the host or a shared project using linked files instead of duplicating source:
+
+```xml
+<!-- In the worker .csproj -->
+<ItemGroup>
+    <Compile Include="..\MyShared\Benchmark.cs" Link="Benchmark.cs" />
+</ItemGroup>
+```
+
+This is the recommended approach for scenarios like running the same computation on both the main thread and a worker (e.g., side-by-side ray tracer comparison).
 
 ## MSBuild properties
 
