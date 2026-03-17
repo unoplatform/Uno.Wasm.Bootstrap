@@ -17,6 +17,7 @@ class Program
 		RayTraceBenchmark.Console.WriteLineCallback = s =>
 		{
 			System.Console.WriteLine($"Worker: {s}");
+			Runtime.InvokeJS($"self.postMessage({{ type: 'raytracer-log', text: '{s}' }})");
 		};
 
 		BenchmarkMain.SaveImageCallback = rgbData =>

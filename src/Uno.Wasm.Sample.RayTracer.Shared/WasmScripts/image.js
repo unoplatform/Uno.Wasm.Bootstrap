@@ -53,9 +53,15 @@ define(() => {
                 var parent = document.getElementById('workerImage');
                 parent.insertBefore(img, parent.lastChild);
 
-                workerResults.textContent = 'Rendered in ' + e.data.elapsed + ' (worker)';
+                // Append final timing as a log line (same format as main thread)
+                var node = document.createTextNode('Total: ' + e.data.elapsed);
+                workerResults.appendChild(node);
+            } else if (e.data && e.data.type === 'raytracer-log') {
+                // Append progress/stats text (mirrors main thread's appendResult)
+                var node = document.createTextNode(e.data.text);
+                workerResults.appendChild(node);
             } else if (e.data && e.data.type === 'uno-worker-ready') {
-                workerResults.textContent = 'Worker runtime initialized, rendering...';
+                workerResults.textContent = '';
             }
         });
 
