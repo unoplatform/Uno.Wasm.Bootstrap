@@ -6,13 +6,13 @@ define(() => {
         "<div style='display:flex; gap:20px;'>" +
         "  <div style='flex:1;'>" +
         "    <h3>Main Thread</h3>" +
-        "    <div id='resultImage' />" +
-        "    <div id='results' />" +
+        "    <div id='resultImage'></div>" +
+        "    <div id='results'></div>" +
         "  </div>" +
         "  <div style='flex:1;'>" +
         "    <h3>Web Worker</h3>" +
-        "    <div id='workerImage' />" +
-        "    <div id='workerResults' />" +
+        "    <div id='workerImage'></div>" +
+        "    <div id='workerResults'></div>" +
         "  </div>" +
         "</div>";
 

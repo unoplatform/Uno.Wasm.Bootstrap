@@ -870,75 +870,28 @@ namespace Uno.Wasm.Bootstrap
 			var scriptPath = Path.Combine(IntermediateOutputPath, "shell-worker.js");
 
 			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
-			const string javascriptTemplate =
-				"""
-				(async function() {
-					const workerScript = self.location.href;
-					const basePath = workerScript.substring(0, workerScript.lastIndexOf('/') + 1);
-					const packagePath = basePath + '$(PACKAGE_PATH)/';
-					const frameworkPath = basePath + '_framework/';
 
-					// Load uno-config.js via fetch+eval (it uses ES module export syntax
-					// which is incompatible with importScripts in classic workers)
-					const configResponse = await fetch(packagePath + 'uno-config.js');
-					let configText = await configResponse.text();
-					configText = configText.replace(/export\s*\{[^}]*\};?\s*$/, '');
-					configText = configText.replace(/\blet\s+config\b/, 'self.config');
-					(new Function(configText))();
-					const config = self.config;
+			// Set the package path before the bootstrapper runs, so it can find uno-config.js.
+			w.WriteLine($"self.__unoWorkerPackagePath = '{PackageAssetsFolder}/';");
 
-					// Setup invokeJS shim for [JSImport] interop
-					globalThis.Uno = globalThis.Uno || {};
-					globalThis.Uno.WebAssembly = globalThis.Uno.WebAssembly || {};
-					globalThis.Uno.WebAssembly.Bootstrap = globalThis.Uno.WebAssembly.Bootstrap || {};
-					globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper = globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper || {};
-					globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper.invokeJS = function(value) {
-						return eval(value);
-					};
+			// Read the compiled TypeScript worker bootstrapper from the embedded resource.
+			// The resource name varies by build configuration, so we search for it by suffix.
+			var resourceName = GetType().Assembly.GetManifestResourceNames()
+				.FirstOrDefault(n => n.EndsWith("uno-worker-bootstrap.js"));
+			using var resourceStream = resourceName != null
+				? GetType().Assembly.GetManifestResourceStream(resourceName)
+				: null;
+			if (resourceStream != null)
+			{
+				using var reader = new StreamReader(resourceStream);
+				w.Write(reader.ReadToEnd());
+			}
+			else
+			{
+				Log.LogWarning("Could not find embedded uno-worker-bootstrap.js resource. Worker bootstrap may not function correctly.");
+			}
 
-					// Import dotnet.js (dynamic import works in modern classic workers)
-					const dotnetModule = await import(frameworkPath + config.dotnet_js_filename);
-
-					dotnetModule.dotnet
-						.withRuntimeOptions(config.uno_runtime_options || [])
-						.withConfig({ loadAllSatelliteResources: config.uno_load_all_satellite_resources });
-
-					const dotnetRuntime = await dotnetModule.default(
-						(context) => {
-							return {
-								disableDotnet6Compatibility: false,
-								configSrc: undefined,
-								baseUrl: config.uno_app_base,
-								mainScriptPath: '_framework/' + config.dotnet_js_filename,
-								onConfigLoaded: (monoConfig) => {
-									if (config.environmentVariables) {
-										for (let key in config.environmentVariables) {
-											if (config.environmentVariables.hasOwnProperty(key)) {
-												monoConfig.environmentVariables[key] = config.environmentVariables[key];
-											}
-										}
-									}
-								},
-								onDotnetReady: () => { },
-							};
-						}
-					);
-
-					globalThis.Module = dotnetRuntime.Module;
-
-					await dotnetRuntime.runMain(config.uno_main, []);
-
-					// Signal readiness AFTER runtime is fully initialized.
-					// IMPORTANT: self.onmessage is NOT set before dotnet.create() —
-					// the .NET runtime checks globalThis.onmessage to detect pthread
-					// deputy workers, and setting it prematurely causes hangs.
-					self.postMessage({ type: 'uno-worker-ready' });
-				})();
-				""";
-
-			var javascript = javascriptTemplate
-				.Replace("$(PACKAGE_PATH)", PackageAssetsFolder);
-			w.Write(javascript);
+			w.Flush();
 			w.Flush();
 
 			// Generate a minimal index.html host page for dev testing
@@ -968,6 +921,17 @@ namespace Uno.Wasm.Bootstrap
 								if (!results.textContent) {
 									statusEl.textContent = 'Runtime initialized';
 								}
+							} else if (e.data && e.data.type === 'uno-profiler-data') {
+								var bytes = Uint8Array.from(atob(e.data.data), function(c) { return c.charCodeAt(0); });
+								var blob = new Blob([bytes]);
+								var a = document.createElement('a');
+								a.href = URL.createObjectURL(blob);
+								a.download = e.data.filename;
+								a.click();
+								URL.revokeObjectURL(a.href);
+								console.log('Downloaded: ' + e.data.filename);
+							} else if (e.data && e.data.type === 'uno-profiler-error') {
+								console.error('Profiler error (' + e.data.command + '): ' + e.data.error);
 							}
 							var logsEl = document.getElementById('logs');
 							if (logsEl) { logsEl.textContent = logs.join('\n'); }
