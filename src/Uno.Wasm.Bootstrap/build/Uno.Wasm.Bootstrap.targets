@@ -685,7 +685,39 @@
 			<StaticWebAssetEndpoint Include="@(_UnoWorkerManifestEndpoint)" />
 		</ItemGroup>
 
-		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) assets and @(_UnoWorkerManifestEndpoint->Count()) endpoints from worker under $(WasmShellWorkerBasePath)/" />
+		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) manifest assets and @(_UnoWorkerManifestEndpoint->Count()) endpoints from worker under $(WasmShellWorkerBasePath)/" />
+	</Target>
+
+	<!--
+		The worker's _framework/ files (dotnet.js, assemblies, ICU data) are only
+		generated during publish (via WasmTriggerPublishApp). They don't exist in
+		the build manifest or build output. This target publishes the worker and
+		copies only the _framework/ directory into the host's publish output.
+		Non-framework files (worker.js, package_*, etc.) are already handled by
+		the _UnoBuildAndImportWebWorkerAssets target via static web assets.
+	-->
+	<Target Name="_UnoPublishWebWorkerFramework"
+			AfterTargets="Publish"
+			Condition="'$(WasmShellWebWorkerProject)' != '' AND '$(_UnoIsNestedWorkerPublish)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
+			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
+			<_UnoWorkerPublishWwwroot>$(_UnoWorkerProjectDir)/bin/$(Configuration)/net10.0/publish/wwwroot/</_UnoWorkerPublishWwwroot>
+		</PropertyGroup>
+
+		<Message Importance="high" Text="Publishing WebWorker _framework/: $(_UnoWorkerProjectFullPath)" />
+
+		<Exec Command="dotnet publish &quot;$(_UnoWorkerProjectFullPath)&quot; -c $(Configuration) /m:1 /p:_UnoIsNestedWorkerPublish=true" />
+
+		<ItemGroup>
+			<_UnoWorkerFrameworkFiles Include="$(_UnoWorkerPublishWwwroot)_framework/**/*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(_UnoWorkerFrameworkFiles)"
+			  DestinationFiles="@(_UnoWorkerFrameworkFiles->'$(PublishDir)wwwroot/$(WasmShellWorkerBasePath)/_framework/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+		<Message Importance="high" Text="WebWorker: Copied @(_UnoWorkerFrameworkFiles->Count()) _framework/ files to $(WasmShellWorkerBasePath)/_framework/" />
 	</Target>
 
 </Project>
