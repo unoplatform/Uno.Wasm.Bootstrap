@@ -328,6 +328,13 @@ namespace Uno.WebAssembly.Bootstrap {
 				};
 			}
 
+			var browserProfilerInterval = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_BROWSER_PROFILER_SAMPLE_INTERVAL"];
+			if (browserProfilerInterval) {
+				this._monoConfig.browserProfilerOptions = <BrowserProfilerOptions>{
+					sampleIntervalMs: parseInt(browserProfilerInterval)
+				};
+			}
+
 			// When enabled, redirect assemblies to the Emscripten VFS instead of
 			// loading them as in-memory bundled resources. This allows the .NET
 			// runtime's image-level cache (mono_image_open_a_lot) to deduplicate

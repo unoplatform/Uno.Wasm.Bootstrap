@@ -121,6 +121,8 @@ namespace Uno.Wasm.Bootstrap
 
 		public string LogProfilerOptions { get; set; } = "log:alloc,output=output.mlpd";
 
+		public string BrowserProfilerSampleInterval { get; set; } = "";
+
 		public string WebAppBasePath { get; set; } = "./";
 
 		public bool GenerateAOTProfile { get; set; }
@@ -624,6 +626,11 @@ namespace Uno.Wasm.Bootstrap
 				if (EnableLogProfiler)
 				{
 					AddEnvironmentVariable("UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS", LogProfilerOptions);
+				}
+
+				if (!string.IsNullOrEmpty(BrowserProfilerSampleInterval))
+				{
+					AddEnvironmentVariable("UNO_BOOTSTRAP_BROWSER_PROFILER_SAMPLE_INTERVAL", BrowserProfilerSampleInterval);
 				}
 
 				config.AppendLine("export { config };");
