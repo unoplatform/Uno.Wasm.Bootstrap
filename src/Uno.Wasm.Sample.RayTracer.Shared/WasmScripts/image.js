@@ -12,16 +12,15 @@ define(() => {
         "  <div style='flex:1;'>" +
         "    <h3>Web Worker</h3>" +
         "    <div id='workerImage'></div>" +
-        "    <div id='workerResults'></div>" +
+        "    <div id='workerResults'>Starting worker...</div>" +
         "  </div>" +
         "</div>";
 
     // Start the worker (if available)
     try {
         var worker = new Worker('./_worker/worker.js');
-
         var workerResults = document.getElementById('workerResults');
-        workerResults.textContent = 'Starting worker...';
+        var workerReady = false;
 
         worker.addEventListener('message', function (e) {
             if (e.data && e.data.type === 'raytracer-result') {
@@ -51,17 +50,21 @@ define(() => {
                 var img = document.createElement("img");
                 img.src = rawCanvas.toDataURL();
                 var parent = document.getElementById('workerImage');
-                parent.insertBefore(img, parent.lastChild);
+                parent.appendChild(img);
 
-                // Append final timing as a log line (same format as main thread)
-                var node = document.createTextNode('Total: ' + e.data.elapsed);
-                workerResults.appendChild(node);
+                workerResults.appendChild(document.createTextNode('Total: ' + e.data.elapsed));
+
             } else if (e.data && e.data.type === 'raytracer-log') {
-                // Append progress/stats text (mirrors main thread's appendResult)
-                var node = document.createTextNode(e.data.text);
-                workerResults.appendChild(node);
+                if (!workerReady) {
+                    // First log message clears the "Starting worker..." text
+                    workerResults.textContent = '';
+                    workerReady = true;
+                }
+                workerResults.appendChild(document.createTextNode(e.data.text));
+
             } else if (e.data && e.data.type === 'uno-worker-ready') {
-                workerResults.textContent = '';
+                // Runtime initialized — don't clear results here since
+                // raytracer-log and raytracer-result arrive before this.
             }
         });
 
@@ -78,7 +81,7 @@ var Interop = {
     setImageRawData: function (dataPtr, width, height) {
         var img = document.createElement("img");
         var parent = document.getElementById('resultImage');
-        parent.insertBefore(img, parent.lastChild);
+        parent.appendChild(img);
 
         var rawCanvas = document.createElement("canvas");
         rawCanvas.width = width;
