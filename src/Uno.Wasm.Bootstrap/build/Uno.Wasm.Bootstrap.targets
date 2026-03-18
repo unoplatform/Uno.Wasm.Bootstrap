@@ -735,7 +735,9 @@
 
 		<Message Importance="high" Text="Publishing WebWorker _framework/: $(_UnoWorkerProjectFullPath)" />
 
-		<Exec Command="dotnet publish &quot;$(_UnoWorkerProjectFullPath)&quot; -c $(Configuration) /m:1 /p:_UnoIsNestedWorkerPublish=true" />
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="Restore;Publish"
+				 Properties="Configuration=$(Configuration);_UnoIsNestedWorkerPublish=true" />
 
 		<ItemGroup>
 			<_UnoWorkerFrameworkFiles Include="$(_UnoWorkerPublishWwwroot)_framework/**/*" />
