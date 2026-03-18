@@ -140,7 +140,7 @@
 
 	<Target Name="_UnoInjectHotReloadSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
-			Condition=" '$(Optimize)' != 'true' AND '$(WasmShellMode)' != 'WebWorker' ">
+			Condition=" '$(Optimize)' != 'true' AND '$([System.String]::Copy($(WasmShellMode)).ToLowerInvariant())' != 'webworker' ">
 		<ItemGroup>
 			<Reference Include="Uno.Wasm.MetadataUpdater"
 					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.MetadataUpdater.dll"
@@ -730,7 +730,7 @@
 		<PropertyGroup>
 			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
 			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
-			<_UnoWorkerPublishWwwroot>$(_UnoWorkerProjectDir)/bin/$(Configuration)/net10.0/publish/wwwroot/</_UnoWorkerPublishWwwroot>
+			<_UnoWorkerPublishWwwroot>$(_UnoWorkerProjectDir)/bin/$(Configuration)/$(TargetFramework)/publish/wwwroot/</_UnoWorkerPublishWwwroot>
 		</PropertyGroup>
 
 		<Message Importance="high" Text="Publishing WebWorker _framework/: $(_UnoWorkerProjectFullPath)" />

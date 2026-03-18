@@ -874,6 +874,16 @@ namespace Uno.Wasm.Bootstrap
 			}
 
 			var workerFileName = string.IsNullOrWhiteSpace(WorkerFileName) ? "worker.js" : WorkerFileName;
+
+			// Validate the worker filename to prevent injection into generated JS/HTML.
+			if (workerFileName.IndexOfAny(new[] { '"', '\'', '\\', '/', '<', '>', '&', '\n', '\r' }) >= 0
+				|| workerFileName != Path.GetFileName(workerFileName))
+			{
+				throw new InvalidOperationException(
+					$"WasmShellWorkerFileName '{workerFileName}' contains invalid characters. " +
+					"It must be a simple filename without path separators, quotes, or special characters.");
+			}
+
 			var scriptPath = Path.Combine(IntermediateOutputPath, "shell-worker.js");
 
 			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
@@ -898,7 +908,6 @@ namespace Uno.Wasm.Bootstrap
 				Log.LogWarning("Could not find embedded uno-worker-bootstrap.js resource. Worker bootstrap may not function correctly.");
 			}
 
-			w.Flush();
 			w.Flush();
 
 			// Generate a minimal index.html host page for dev testing
