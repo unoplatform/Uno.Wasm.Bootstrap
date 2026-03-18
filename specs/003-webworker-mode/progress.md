@@ -72,7 +72,6 @@ Five approaches were tried before arriving at the current manifest-based solutio
 | 4 | Explicit `dotnet publish` + file copy (`_UnoPublishWebWorkerProject`) | OK | OK | Works but requires `RemoveDir` hack for stale incremental state, shells out to `dotnet publish` |
 | 5 | **Manifest-based**: `GetCurrentProjectBuildStaticWebAssetItems` + `DefineStaticWebAssets` for `_framework/` | OK | OK | Current approach. Uses the SDK's own target to get worker assets, registers them with modified metadata. |
 
-
 Key discoveries:
 
 - `GetCurrentProjectBuildStaticWebAssetItems` returns ALL assets including those from referenced projects, with proper metadata
