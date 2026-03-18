@@ -145,10 +145,9 @@ function assert(condition, message) {
         console.log("");
         if (failures > 0) {
             console.error("FAILED: " + failures + " validation(s) failed.");
-            process.exit(1);
+            process.exitCode = 1;
         } else {
             console.log("ALL VALIDATIONS PASSED.");
-            process.exit(0);
         }
         } finally {
             if (browser) {

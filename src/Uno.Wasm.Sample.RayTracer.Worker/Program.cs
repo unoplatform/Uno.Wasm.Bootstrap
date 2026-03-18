@@ -16,7 +16,8 @@ class Program
 		RayTraceBenchmark.Console.WriteLineCallback = s =>
 		{
 			System.Console.WriteLine($"Worker: {s}");
-			Runtime.InvokeJS($"self.postMessage({{ type: 'raytracer-log', text: '{s}' }})");
+			var escaped = s.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
+			Runtime.InvokeJS($"self.postMessage({{ type: 'raytracer-log', text: '{escaped}' }})");
 		};
 
 		BenchmarkMain.SaveImageCallback = rgbData =>

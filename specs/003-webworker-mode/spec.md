@@ -83,6 +83,7 @@ And index.html SHALL reference my-worker.js
 **FR-1**: The `ShellMode` enum SHALL include a `WebWorker` value.
 
 **FR-2**: When `WasmShellMode=WebWorker`, the build SHALL generate a `worker.js` (or custom filename) that:
+
 - Loads `uno-config.js` via fetch (stripping ES module export syntax for classic worker compatibility)
 - Sets up `globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper.invokeJS` shim for `[JSImport]` interop
 - Dynamically imports `dotnet.js` from `_framework/`
@@ -104,6 +105,7 @@ And index.html SHALL reference my-worker.js
 **FR-7**: The host project SHALL set `WasmShellWebWorkerProject` to the worker `.csproj` path and `WasmShellWorkerBasePath` (default: `_worker`) to control the output subdirectory.
 
 **FR-8**: During the host's build, the `_UnoBuildAndImportWebWorkerAssets` target SHALL:
+
 - Build the worker project via `MSBuild` task
 - Read the worker's static web assets via `GetCurrentProjectBuildStaticWebAssetItems`
 - Register manifest assets (worker.js, package_*, etc.) as `StaticWebAsset` items in the host with `BasePath=_worker` and cleared `WasmResource`/`Culture` traits
@@ -127,11 +129,13 @@ And index.html SHALL reference my-worker.js
 **`src/Uno.Wasm.Bootstrap/ShellMode.cs`**: Added `WebWorker` to the enum.
 
 **`src/Uno.Wasm.Bootstrap/ShellTask.cs`**:
+
 - Added `WorkerFileName` property (default: `worker.js`)
 - Added `GenerateWorkerJs()` method — generates the worker bootstrap script and host page, called from `Execute()` between `GenerateEmbeddedJs()` and `GenerateIndexHtml()`
 - `BuildServiceWorker()` returns early for `WebWorker` mode (no PWA service worker)
 
 **`src/Uno.Wasm.Bootstrap/build/Uno.Wasm.Bootstrap.targets`**:
+
 - Added `WasmShellWorkerFileName` property (default: `worker.js`)
 - Added `WasmShellWorkerBasePath` property (default: `_worker`)
 - Passes `WorkerFileName` to `ShellTask_v0`

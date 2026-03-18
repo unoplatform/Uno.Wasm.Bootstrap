@@ -105,13 +105,14 @@ namespace Uno.WebAssembly.Bootstrap {
 			let configText = await configResponse.text();
 
 			// Strip ES module export syntax (incompatible with classic workers)
-			// and replace block-scoped `let config` with `self.config` so it
-			// escapes the Function constructor's scope.
+			// and replace block-scoped `let config` with function-scoped `var config`
+			// so bare `config.xxx = ...` references work inside the Function body.
 			configText = configText.replace(/export\s*\{[^}]*\};?\s*$/, '');
-			configText = configText.replace(/\blet\s+config\b/, 'self.config');
-			(new Function(configText))();
-
-			return (<any>self).config as UnoConfig;
+			configText = configText.replace(/\blet\s+config\b/, 'var config');
+			const configFn = new Function(configText + '\nreturn config;');
+			const config = configFn();
+			(<any>self).config = config;
+			return config as UnoConfig;
 		}
 
 		/**

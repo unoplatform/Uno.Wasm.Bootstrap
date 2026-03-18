@@ -12,7 +12,7 @@ fi
 echo "Validating dotnet.js fingerprint in: $PUBLISH_PATH"
 
 # Find uno-config.js (it could be in a package_* subdirectory)
-UNO_CONFIG=$(find "$PUBLISH_PATH" -name "uno-config.js" -type f | head -1)
+UNO_CONFIG=$(find "$PUBLISH_PATH" -name "uno-config.js" -type f -not -path '*/_worker/*' | head -1)
 
 if [ -z "$UNO_CONFIG" ]; then
     echo "ERROR: uno-config.js not found in $PUBLISH_PATH"
