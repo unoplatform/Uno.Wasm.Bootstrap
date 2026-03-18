@@ -10,8 +10,11 @@
 
 set -e
 
+SERVER_PID=""
 cleanup() {
-    kill %% 2>/dev/null || true
+    if [ -n "$SERVER_PID" ]; then
+        kill "$SERVER_PID" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT
 
@@ -127,6 +130,7 @@ cd "$WWWROOT"
 dotnet serve -p 8001 -c -b \
     -h "Cross-Origin-Embedder-Policy: require-corp" \
     -h "Cross-Origin-Opener-Policy: same-origin" &
+SERVER_PID=$!
 sleep 5
 
 # Install Puppeteer dependencies
@@ -136,8 +140,8 @@ npm install
 # Run the Puppeteer-based validation
 echo ""
 echo "Running runtime validation..."
-node validate-webworker.js "$ARTIFACTS_DIR" "http://localhost:8001/"
-RESULT=$?
+RESULT=0
+node validate-webworker.js "$ARTIFACTS_DIR" "http://localhost:8001/" || RESULT=$?
 
 echo ""
 echo "-----------------------------------------"
