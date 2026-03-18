@@ -13,5 +13,9 @@
   "compileOnSave": false,
   "include": [
     "ts/**/*"
+  ],
+  "exclude": [
+    "ts/Uno/WebAssembly/WorkerBootstrapper.ts",
+    "ts/WorkerEntrypoint.ts"
   ]
 }
