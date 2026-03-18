@@ -898,7 +898,7 @@ namespace Uno.Wasm.Bootstrap
 			}
 			else
 			{
-				Log.LogWarning("Could not find embedded uno-worker-bootstrap.js resource. Worker bootstrap may not function correctly.");
+				throw new InvalidOperationException("Could not find embedded uno-worker-bootstrap.js resource. Ensure the TypeScript worker bootstrapper compiled successfully.");
 			}
 
 			w.Flush();

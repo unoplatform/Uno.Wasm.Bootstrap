@@ -14,7 +14,7 @@ By default, the project is launched with a HTML page (`index.html`) in the brows
    <WasmShellMode>WebWorker</WasmShellMode>
    ```
 
-   This generates a `worker.js` file instead of the standard `index.html` bootstrapper.
+   This generates a `worker.js` bootstrapper file and a minimal `index.html` host page for testing.
 
 2. Optionally, customize the worker filename:
 
@@ -146,7 +146,7 @@ saveAotProfile()
 
 When the worker initializes with profilers enabled, it prints the available commands to the console:
 
-```
+```text
 [WorkerProfiler] Available profiler commands (run from this worker console):
   saveMemoryProfile("speedscope") or saveMemoryProfile("perfview")
   saveLogProfile()
@@ -185,7 +185,8 @@ worker.postMessage({ type: 'uno-profiler-command', command: 'aot-profiler-save' 
 - **Hot Reload is automatically disabled** in WebWorker mode, as it relies on browser APIs not available in workers.
 - **Service Worker (PWA) is not generated** in WebWorker mode, since service workers are a separate concept from web workers.
 - For cross-origin isolation (required for `SharedArrayBuffer` and threading), ensure your server sends the appropriate headers:
-  ```
+
+  ```text
   Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Opener-Policy: same-origin
   ```
@@ -204,6 +205,7 @@ The WebWorker project is designed to be consumed by a host app. The host project
 ```
 
 During build and publish, the build system automatically:
+
 1. Builds the worker project and registers its assets via the static web assets pipeline
 2. Publishes the worker's `_framework/` directory and copies it into `wwwroot/_worker/`
 3. Fixes up the `dotnet.js` fingerprint in the worker's `uno-config.js`
