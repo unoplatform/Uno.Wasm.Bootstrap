@@ -36,7 +36,9 @@ function assert(condition, message) {
 (function () {
     var _run = async function () {
         console.log("Launching headless browser...");
-        var browser = await puppeteer.launch({
+        var browser = null;
+        try {
+        browser = await puppeteer.launch({
             headless: true,
             args: ["--no-sandbox", "--disable-setuid-sandbox"],
             defaultViewport: { width: 1280, height: 1024 },
@@ -137,8 +139,6 @@ function assert(condition, message) {
                 : "")
         );
 
-        await browser.close();
-
         // =================================================================
         // Summary
         // =================================================================
@@ -149,6 +149,11 @@ function assert(condition, message) {
         } else {
             console.log("ALL VALIDATIONS PASSED.");
             process.exit(0);
+        }
+        } finally {
+            if (browser) {
+                await browser.close();
+            }
         }
     };
 

@@ -99,6 +99,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			const configUrl = basePath + packagePath + 'uno-config.js';
 
 			const configResponse = await fetch(configUrl);
+			if (!configResponse.ok) {
+				throw new Error(`Failed to load worker config from ${configUrl}: ${configResponse.status} ${configResponse.statusText}`);
+			}
 			let configText = await configResponse.text();
 
 			// Strip ES module export syntax (incompatible with classic workers)
