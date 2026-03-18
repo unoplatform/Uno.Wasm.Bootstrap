@@ -43,20 +43,18 @@ namespace Uno.WebAssembly.Bootstrap {
 					EmscriptenMemoryProfilerSupport.initialize(config);
 				}
 
-				await dotnetRuntime.runMain(config.uno_main, []);
-
-				// Signal readiness AFTER runtime is fully initialized.
+				// Signal readiness and register profiler handlers BEFORE runMain.
+				// runMain may be long-running (e.g., a worker service that waits
+				// on messages), so we must not block these on Main completing.
 				// IMPORTANT: self.onmessage is NOT set before dotnet.create() —
 				// the .NET runtime checks globalThis.onmessage to detect pthread
 				// deputy workers, and setting it prematurely causes hangs.
+				// At this point dotnet.create() has completed, so it's safe.
 				(self as any).postMessage({ type: 'uno-worker-ready' });
-
-				// Register profiler command handler for host-initiated requests
 				WorkerBootstrapper.registerProfilerCommandHandler(config, dotnetRuntime);
-
-				// Expose convenience functions on globalThis so developers can
-				// call them directly from the worker's DevTools console.
 				WorkerBootstrapper.registerConsoleHelpers(config, dotnetRuntime);
+
+				await dotnetRuntime.runMain(config.uno_main, []);
 
 			} catch (e) {
 				console.error(`Worker .NET runtime initialization failed (${e})`);
@@ -261,17 +259,12 @@ namespace Uno.WebAssembly.Bootstrap {
 
 					if (stat && stat.size > 0) {
 						const data: Uint8Array = mod.FS.readFile(profilePath);
-						// Convert to base64 for transfer
-						let binary = '';
-						for (let i = 0; i < data.length; i++) {
-							binary += String.fromCharCode(data[i]);
-						}
 
 						(self as any).postMessage({
 							type: 'uno-profiler-data',
 							command: 'log-profiler-save',
 							filename: 'profile.mlpd',
-							data: btoa(binary)
+							data: WorkerBootstrapper.uint8ArrayToBase64(data)
 						});
 						return;
 					}
@@ -300,16 +293,11 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				const profileData: Uint8Array = dotnetRuntime.INTERNAL?.aotProfileData;
 				if (profileData && profileData.length > 0) {
-					let binary = '';
-					for (let i = 0; i < profileData.length; i++) {
-						binary += String.fromCharCode(profileData[i]);
-					}
-
 					(self as any).postMessage({
 						type: 'uno-profiler-data',
 						command: 'aot-profiler-save',
 						filename: 'aot.profile',
-						data: btoa(binary)
+						data: WorkerBootstrapper.uint8ArrayToBase64(profileData)
 					});
 					return;
 				}
@@ -322,6 +310,20 @@ namespace Uno.WebAssembly.Bootstrap {
 				command: 'aot-profiler-save',
 				error: 'AOT profiler data not available'
 			});
+		}
+
+		/**
+		 * Converts a Uint8Array to a base64 string using chunked processing
+		 * to avoid quadratic string concatenation and stack overflow on large arrays.
+		 */
+		private static uint8ArrayToBase64(data: Uint8Array): string {
+			const CHUNK_SIZE = 8192;
+			const chunks: string[] = [];
+			for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+				const slice = data.subarray(i, Math.min(i + CHUNK_SIZE, data.length));
+				chunks.push(String.fromCharCode.apply(null, slice as any));
+			}
+			return btoa(chunks.join(''));
 		}
 
 		private static setupInvokeJSShim(): void {
