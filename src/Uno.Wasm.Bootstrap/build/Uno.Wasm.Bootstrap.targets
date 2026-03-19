@@ -109,6 +109,13 @@
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.LogProfiler" />
+			<!--
+				Native compatibility shim for .NET 10+: provides mono_profiler_flush_log()
+				which was removed from Mono's libmono-profiler-log.a. The shim forwards
+				to proflog_trigger_heapshot() which drains the writer/dumper queues
+				(the only way to flush profiler data in WASM single-threaded mode).
+			-->
+			<NativeFileReference Include="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))profiler_flush_wasm.c" />
 		</ItemGroup>
 	</Target>
 
