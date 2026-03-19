@@ -135,6 +135,10 @@
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
 			</Content>
+			<Content Include="./tools/support/profiler_flush_wasm.c">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
 			<Content Include="./tools/support/Uno.Wasm.MetadataUpdater.*">
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
