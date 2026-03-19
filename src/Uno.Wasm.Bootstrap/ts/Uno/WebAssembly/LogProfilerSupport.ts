@@ -1,4 +1,4 @@
-﻿namespace Uno.WebAssembly.Bootstrap {
+namespace Uno.WebAssembly.Bootstrap {
 
 	export class LogProfilerSupport {
 
@@ -25,14 +25,18 @@
 			return false;
 		}
 
-		public postInitializeLogProfiler() {
+		public async postInitializeLogProfiler() {
 			if (LogProfilerSupport._logProfilerEnabled) {
 
 				this.attachHotKey();
 
+				// Resolve exports once eagerly, then flush on interval
+				await this.ensureInitializeProfilerMethods();
+
 				setInterval(() => {
-					this.ensureInitializeProfilerMethods();
-					this._flushLogProfile();
+					if (this._flushLogProfile) {
+						this._flushLogProfile();
+					}
 				}, 5000);
 			}
 		}
@@ -78,16 +82,17 @@
 			}
 		}
 
-		private takeHeapShot() {
-			this.ensureInitializeProfilerMethods();
-
-			this.triggerHeapShotLogProfiler();
+		private async takeHeapShot() {
+			await this.ensureInitializeProfilerMethods();
+			if (this.triggerHeapShotLogProfiler) {
+				this.triggerHeapShotLogProfiler();
+			}
 		}
 
-		private readProfileFile() {
-			this.ensureInitializeProfilerMethods();
+		private async readProfileFile() {
+			await this.ensureInitializeProfilerMethods();
 
-			this._flushLogProfile();
+			if (this._flushLogProfile) this._flushLogProfile();
 			var profileFilePath = this._getLogProfilerProfileOutputFile();
 
 			var stat = FS.stat(profileFilePath);
@@ -101,10 +106,10 @@
 			}
 		}
 
-		private saveLogProfile() {
-			this.ensureInitializeProfilerMethods();
+		private async saveLogProfile() {
+			await this.ensureInitializeProfilerMethods();
 
-			var profileArray = this.readProfileFile();
+			var profileArray = await this.readProfileFile();
 
 			var a = window.document.createElement('a');
 			a.href = window.URL.createObjectURL(new Blob([profileArray]));
