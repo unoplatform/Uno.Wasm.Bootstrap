@@ -261,35 +261,10 @@ namespace Uno.WebAssembly.Bootstrap {
 			return;
 		}
 
-		// Flush the log profiler and read the output file.
-		// .NET 10+: use getAssemblyExports (replaces legacy BINDING API).
-		// Fallback: BINDING.bind_static_method for older runtimes.
 		try {
-			let flush: (() => void) | null = null;
-			let getPath: (() => string) | null = null;
-
-			// Modern path: getAssemblyExports (.NET 10+)
-			const getExports = dotnetRuntime.getAssemblyExports;
-			if (getExports) {
-				try {
-					const exports = await getExports("Uno.Wasm.LogProfiler");
-					flush = exports.Uno.LogProfilerSupport.FlushProfile;
-					getPath = exports.Uno.LogProfilerSupport.GetProfilerProfileOutputFile;
-				} catch {
-					// Assembly exports not available, fall through to legacy
-				}
-			}
-
-			// Legacy fallback: BINDING.bind_static_method (pre-.NET 10)
-			if (!flush) {
-				const binding = (<any>globalThis).BINDING || dotnetRuntime.BINDING;
-				if (binding) {
-					flush = binding.bind_static_method(
-						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
-					getPath = binding.bind_static_method(
-						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
-				}
-			}
+			const exports = await dotnetRuntime.getAssemblyExports("Uno.Wasm.LogProfiler");
+			const flush = exports.Uno.LogProfilerSupport.FlushProfile;
+			const getPath = exports.Uno.LogProfilerSupport.GetProfilerProfileOutputFile;
 
 			if (flush) {
 				flush();

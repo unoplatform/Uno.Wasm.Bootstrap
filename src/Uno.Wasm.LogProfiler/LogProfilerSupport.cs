@@ -38,6 +38,7 @@ namespace Uno
 			return outputFile;
 		}
 
+		[JSExport]
 		public static void TriggerHeapShot()
 		{
 			mono_profiler_flush_log();
