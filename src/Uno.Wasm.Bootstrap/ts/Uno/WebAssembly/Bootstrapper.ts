@@ -324,7 +324,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			var logProfilerConfig = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
 			if (logProfilerConfig) {
 				this._monoConfig.logProfilerOptions = <LogProfilerOptions>{
-					configuration: logProfilerConfig
+					configuration: logProfilerConfig,
+					takeHeapshot: "Uno.LogProfilerSupport:FlushProfile"
 				};
 			}
 
