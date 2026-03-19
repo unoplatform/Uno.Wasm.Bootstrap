@@ -43,6 +43,21 @@ namespace Uno.WebAssembly.Bootstrap {
 					EmscriptenMemoryProfilerSupport.initialize(config);
 				}
 
+				// Load WasmScripts dependencies (uno_dependencies) before runMain.
+				// The main-app bootstrapper uses require.js, but workers run as
+				// ES modules so we use dynamic import() instead.
+				if (config.uno_dependencies && config.uno_dependencies.length > 0) {
+					const depBase = (self as any).location.href.substring(0, (self as any).location.href.lastIndexOf('/') + 1);
+					for (const dep of config.uno_dependencies) {
+						try {
+							await import(depBase + dep + '.js');
+						} catch (e) {
+							console.warn(`[WorkerBootstrapper] Failed to load dependency ${dep}: ${e}`);
+						}
+					}
+				}
+
+
 				// Signal readiness and register profiler handlers BEFORE runMain.
 				// runMain may be long-running (e.g., a worker service that waits
 				// on messages), so we must not block these on Main completing.
