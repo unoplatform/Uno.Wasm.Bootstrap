@@ -79,7 +79,11 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			if (logProfilerConfig) {
 				monoConfig.logProfilerOptions = {
-					configuration: logProfilerConfig
+					configuration: logProfilerConfig,
+					// .NET 10+ requires takeHeapshot when the log profiler
+					// component is linked. Point at FlushProfile which calls
+					// the native shim to drain the writer/dumper queues.
+					takeHeapshot: "Uno.LogProfilerSupport:FlushProfile"
 				};
 			}
 
@@ -231,55 +235,74 @@ namespace Uno.WebAssembly.Bootstrap {
 			});
 		}
 
-		private static handleLogProfilerSave(dotnetRuntime: any): void {
-			const mod = dotnetRuntime.Module;
-			if (!mod || !mod.FS) {
-				(self as any).postMessage({
-					type: 'uno-profiler-error',
-					command: 'log-profiler-save',
-					error: 'Module.FS not available'
-				});
-				return;
-			}
-
-			// Flush the log profiler and read the output file
-			try {
-				const binding = (<any>globalThis).BINDING ||
-					(dotnetRuntime.BINDING);
-
-				if (binding) {
-					const flush = binding.bind_static_method(
-						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
-					const getPath = binding.bind_static_method(
-						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
-
-					flush();
-					const profilePath = getPath();
-					const stat = mod.FS.stat(profilePath);
-
-					if (stat && stat.size > 0) {
-						const data: Uint8Array = mod.FS.readFile(profilePath);
-
-						(self as any).postMessage({
-							type: 'uno-profiler-data',
-							command: 'log-profiler-save',
-							filename: 'profile.mlpd',
-							data: WorkerBootstrapper.uint8ArrayToBase64(data)
-						});
-						return;
-					}
-				}
-			} catch (err) {
-				// Fall through to error
-				console.error(`[WorkerProfiler] Log profiler error: ${err}`);
-			}
-
+		private static async handleLogProfilerSave(dotnetRuntime: any): Promise<void> {
+		const mod = dotnetRuntime.Module;
+		if (!mod || !mod.FS) {
 			(self as any).postMessage({
 				type: 'uno-profiler-error',
 				command: 'log-profiler-save',
-				error: 'Log profiler data not available'
+				error: 'Module.FS not available'
 			});
+			return;
 		}
+
+		// Flush the log profiler and read the output file.
+		// .NET 10+: use getAssemblyExports (replaces legacy BINDING API).
+		// Fallback: BINDING.bind_static_method for older runtimes.
+		try {
+			let flush: (() => void) | null = null;
+			let getPath: (() => string) | null = null;
+
+			// Modern path: getAssemblyExports (.NET 10+)
+			const getExports = dotnetRuntime.getAssemblyExports;
+			if (getExports) {
+				try {
+					const exports = await getExports("Uno.Wasm.LogProfiler");
+					flush = exports.Uno.LogProfilerSupport.FlushProfile;
+					getPath = exports.Uno.LogProfilerSupport.GetProfilerProfileOutputFile;
+				} catch {
+					// Assembly exports not available, fall through to legacy
+				}
+			}
+
+			// Legacy fallback: BINDING.bind_static_method (pre-.NET 10)
+			if (!flush) {
+				const binding = (<any>globalThis).BINDING || dotnetRuntime.BINDING;
+				if (binding) {
+					flush = binding.bind_static_method(
+						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
+					getPath = binding.bind_static_method(
+						"[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
+				}
+			}
+
+			if (flush) {
+				flush();
+				const profilePath = getPath ? getPath() : "output.mlpd";
+				const stat = mod.FS.stat(profilePath);
+
+				if (stat && stat.size > 0) {
+					const data: Uint8Array = mod.FS.readFile(profilePath);
+
+					(self as any).postMessage({
+						type: 'uno-profiler-data',
+						command: 'log-profiler-save',
+						filename: 'profile.mlpd',
+						data: WorkerBootstrapper.uint8ArrayToBase64(data)
+					});
+					return;
+				}
+			}
+		} catch (err) {
+			console.error(`[WorkerProfiler] Log profiler error: ${err}`);
+		}
+
+		(self as any).postMessage({
+			type: 'uno-profiler-error',
+			command: 'log-profiler-save',
+			error: 'Log profiler data not available'
+		});
+	}
 
 		private static handleAotProfilerSave(dotnetRuntime: any): void {
 			try {
