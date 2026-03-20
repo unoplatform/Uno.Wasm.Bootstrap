@@ -17,7 +17,26 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				const dotnetModule: any = await import(frameworkPath + config.dotnet_js_filename);
 
-				dotnetModule.dotnet
+				// When the log profiler is enabled, wrap Emscripten's Module.out to
+			// suppress "log-profiler not called (0x...)" printf spam from Mono's
+			// prof_jit_done (log.c). See Bootstrapper.ts for full explanation.
+			const workerLogProfilerEnabled = config.environmentVariables?.["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
+			const workerModuleConfig: any = {};
+			if (workerLogProfilerEnabled) {
+				const defaultOut = console.log.bind(console);
+				workerModuleConfig.out = (message: string) => {
+					if (typeof message === "string" && (
+						message.startsWith("log-profiler not called") ||
+						message.startsWith("log-profiler | taking heapshot") ||
+						message.startsWith("take-heapshot-method:"))) {
+						return;
+					}
+					defaultOut(message);
+				};
+			}
+
+			dotnetModule.dotnet
+					.withModuleConfig(workerModuleConfig)
 					.withRuntimeOptions(config.uno_runtime_options || [])
 					.withConfig({ loadAllSatelliteResources: config.uno_load_all_satellite_resources });
 
@@ -95,9 +114,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (logProfilerConfig) {
 				monoConfig.logProfilerOptions = {
 					configuration: logProfilerConfig,
-					// .NET 10+ requires takeHeapshot when the log profiler
-					// component is linked. Point at FlushProfile which calls
-					// the native shim to drain the writer/dumper queues.
+					// takeHeapshot is required by the .NET runtime assert in profiler.ts.
+					// In interpreter mode this registers a JIT-done callback that never
+					// matches (methods aren't JIT'd), producing "log-profiler not called"
+					// printf spam — suppressed via the Module.out filter installed in
+					// bootstrap() before dotnet.create().
 					takeHeapshot: "Uno.LogProfilerSupport:FlushProfile"
 				};
 			}
