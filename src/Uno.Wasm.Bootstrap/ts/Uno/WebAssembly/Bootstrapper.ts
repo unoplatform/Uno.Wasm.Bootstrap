@@ -122,10 +122,30 @@ namespace Uno.WebAssembly.Bootstrap {
 				//@ts-ignore
 				var m = await import(`../_framework/${config.config.dotnet_js_filename}`);
 
-				m.dotnet
-					.withModuleConfig({
-						preRun: [(module: any) => bootstrapper.wasmRuntimePreRun(module)],
-					})
+				// When the log profiler is enabled, wrap Emscripten's Module.out to
+			// suppress "log-profiler not called (0x...)" printf spam from Mono's
+			// prof_jit_done (log.c). In interpreter mode, the take-heapshot-method
+			// is never JIT-compiled, so every interpreted method triggers this
+			// debug printf — thousands per second, enough to overwhelm test runners.
+			const logProfilerEnabled = config.config.environmentVariables?.["UNO_BOOTSTRAP_LOG_PROFILER_OPTIONS"];
+			const moduleConfig: any = {
+				preRun: [(module: any) => bootstrapper.wasmRuntimePreRun(module)],
+			};
+			if (logProfilerEnabled) {
+				const defaultOut = console.log.bind(console);
+				moduleConfig.out = (message: string) => {
+					if (typeof message === "string" && (
+						message.startsWith("log-profiler not called") ||
+						message.startsWith("log-profiler | taking heapshot") ||
+						message.startsWith("take-heapshot-method:"))) {
+						return;
+					}
+					defaultOut(message);
+				};
+			}
+
+			m.dotnet
+				.withModuleConfig(moduleConfig)
 					.withRuntimeOptions(config.config.uno_runtime_options)
 					.withConfig({ loadAllSatelliteResources: config.config.uno_load_all_satellite_resources });
 
@@ -325,8 +345,15 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (logProfilerConfig) {
 				this._monoConfig.logProfilerOptions = <LogProfilerOptions>{
 					configuration: logProfilerConfig,
+					// takeHeapshot is required by the .NET runtime assert in profiler.ts.
+					// The method name registers a JIT-done callback that triggers
+					// proflog_trigger_heapshot() when the named method is JIT-compiled.
+					// In interpreter mode this never fires (methods aren't JIT'd), and
+					// every other method logs "log-profiler not called" — we suppress
+					// that noise below via the Module.out filter.
 					takeHeapshot: "Uno.LogProfilerSupport:FlushProfile"
 				};
+
 			}
 
 			// When enabled, redirect assemblies to the Emscripten VFS instead of
