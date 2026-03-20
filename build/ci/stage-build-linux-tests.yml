@@ -320,6 +320,11 @@ jobs:
       ArtifactType: Container
 
   ## WebWorker mode test - builds WebWorker.App and validates worker runtime
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: Use Node 18.x (Puppeteer requirement)
+
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.WebWorker
       chmod +x test-webworker.sh
