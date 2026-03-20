@@ -745,12 +745,18 @@
 		<Message Importance="high" Text="Publishing WebWorker _framework/: $(_UnoWorkerProjectFullPath)" />
 
 		<!-- Query the worker project's TargetFramework so we can compute the
-		     correct publish output path (the worker's TFM may differ from the host's). -->
+		     correct publish output path (the worker's TFM may differ from the host's).
+		     TargetOutputs is always an item list, so capture into an item first and
+		     then extract to a property to avoid brittle direct assignment. -->
 		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
 				 Targets="_UnoGetTargetFramework"
 				 Properties="Configuration=$(Configuration)">
-			<Output TaskParameter="TargetOutputs" PropertyName="_UnoWorkerTargetFramework" />
+			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerTfmItems" />
 		</MSBuild>
+
+		<PropertyGroup>
+			<_UnoWorkerTargetFramework>@(_UnoWorkerTfmItems)</_UnoWorkerTargetFramework>
+		</PropertyGroup>
 
 		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
 				 Targets="Restore;Publish"

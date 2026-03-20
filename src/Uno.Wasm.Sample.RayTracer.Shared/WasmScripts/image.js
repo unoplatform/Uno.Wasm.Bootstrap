@@ -38,11 +38,12 @@ define(() => {
                 var ctx = rawCanvas.getContext("2d");
                 var imgData = ctx.createImageData(width, height);
 
+                // Convert BGRA → RGBA for canvas ImageData
                 for (var i = 0; i < bufferSize; i += 4) {
-                    imgData.data[i + 0] = raw.charCodeAt(i + 2); // R from B
-                    imgData.data[i + 1] = raw.charCodeAt(i + 1); // G
-                    imgData.data[i + 2] = raw.charCodeAt(i + 0); // B from R
-                    imgData.data[i + 3] = raw.charCodeAt(i + 3); // A
+                    imgData.data[i + 0] = raw.charCodeAt(i + 2); // R (from BGRA offset 2)
+                    imgData.data[i + 1] = raw.charCodeAt(i + 1); // G (from BGRA offset 1)
+                    imgData.data[i + 2] = raw.charCodeAt(i + 0); // B (from BGRA offset 0)
+                    imgData.data[i + 3] = raw.charCodeAt(i + 3); // A (from BGRA offset 3)
                 }
 
                 ctx.putImageData(imgData, 0, 0);
