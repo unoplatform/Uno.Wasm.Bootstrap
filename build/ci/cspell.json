@@ -94,7 +94,10 @@
 		"subresource",
 		"SIMD",
 		"Newtonsoft",
-		"Linq"
+		"Linq",
+		"wwwroot",
+		"webworker",
+		"pthread"
 	],
 	"ignoreWords": [
 		"ADAL",
