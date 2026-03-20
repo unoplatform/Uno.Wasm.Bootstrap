@@ -51,6 +51,7 @@ namespace Uno.WebAssembly.Bootstrap {
 								WorkerBootstrapper.configLoaded(config, monoConfig);
 							},
 							onDotnetReady: () => { },
+							exports: ["FS"].concat(config.emcc_exported_runtime_methods || []),
 						};
 					}
 				);
@@ -169,13 +170,13 @@ namespace Uno.WebAssembly.Bootstrap {
 				console.info('[WorkerProfiler] Memory snapshot posted to host for download.');
 			};
 
-			g.saveLogProfile = function () {
-				WorkerBootstrapper.handleLogProfilerSave(dotnetRuntime);
+			g.saveLogProfile = async function () {
+				await WorkerBootstrapper.handleLogProfilerSave(dotnetRuntime);
 				console.info('[WorkerProfiler] Log profiler data posted to host for download.');
 			};
 
-			g.saveAotProfile = function () {
-				WorkerBootstrapper.handleAotProfilerSave(dotnetRuntime);
+			g.saveAotProfile = async function () {
+				await WorkerBootstrapper.handleAotProfilerSave(dotnetRuntime);
 				console.info('[WorkerProfiler] AOT profile posted to host for download.');
 			};
 
@@ -211,7 +212,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		 *   { type: 'uno-profiler-error', command, error }
 		 */
 		private static registerProfilerCommandHandler(_config: UnoConfig, dotnetRuntime: any): void {
-			self.addEventListener("message", (e: any) => {
+			self.addEventListener("message", async (e: any) => {
 				const msg = e.data;
 				if (!msg || msg.type !== 'uno-profiler-command') {
 					return;
@@ -224,11 +225,11 @@ namespace Uno.WebAssembly.Bootstrap {
 							break;
 
 						case 'log-profiler-save':
-							WorkerBootstrapper.handleLogProfilerSave(dotnetRuntime);
+							await WorkerBootstrapper.handleLogProfilerSave(dotnetRuntime);
 							break;
 
 						case 'aot-profiler-save':
-							WorkerBootstrapper.handleAotProfilerSave(dotnetRuntime);
+							await WorkerBootstrapper.handleAotProfilerSave(dotnetRuntime);
 							break;
 
 						default:
@@ -315,14 +316,14 @@ namespace Uno.WebAssembly.Bootstrap {
 		});
 	}
 
-		private static handleAotProfilerSave(dotnetRuntime: any): void {
+		private static async handleAotProfilerSave(dotnetRuntime: any): Promise<void> {
 			try {
 				const getExports = dotnetRuntime.getAssemblyExports;
 				if (!getExports) {
 					throw 'getAssemblyExports not available';
 				}
 
-				const exports = getExports("Uno.Wasm.AotProfiler");
+				const exports = await getExports("Uno.Wasm.AotProfiler");
 				exports.Uno.AotProfilerSupport.StopProfile();
 
 				const profileData: Uint8Array = dotnetRuntime.INTERNAL?.aotProfileData;
