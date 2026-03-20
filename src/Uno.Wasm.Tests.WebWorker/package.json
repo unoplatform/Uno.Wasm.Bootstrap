@@ -4,6 +4,6 @@
   "description": "WebWorker mode validation",
   "main": "validate-webworker.js",
   "dependencies": {
-    "puppeteer": "^14.1.2"
+    "puppeteer": "^24.9.0"
   }
 }

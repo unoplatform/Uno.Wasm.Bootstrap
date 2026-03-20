@@ -33,6 +33,9 @@ namespace Uno.WebAssembly.Bootstrap {
 				// Resolve exports once eagerly, then flush on interval
 				await this.ensureInitializeProfilerMethods();
 
+				// Expose saveLogProfile on globalThis for console access
+				(globalThis as any).saveLogProfile = () => this.saveLogProfile();
+
 				setInterval(() => {
 					if (this._flushLogProfile) {
 						this._flushLogProfile();

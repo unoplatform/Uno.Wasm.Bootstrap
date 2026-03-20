@@ -571,6 +571,10 @@ namespace Uno.WebAssembly.Bootstrap {
 					await this._hotReloadSupport.initializeHotReload();
 				}
 
+				if (this._logProfiler) {
+					await this._logProfiler.postInitializeLogProfiler();
+				}
+
 				this._runMain(this._unoConfig.uno_main, []);
 
 				this.initializePWA();
