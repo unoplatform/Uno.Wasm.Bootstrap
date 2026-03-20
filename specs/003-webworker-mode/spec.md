@@ -182,7 +182,7 @@ The key insight: by using a different `SourceId` and clearing `WasmResource`/`Cu
 
 ### `self.onmessage` Never Set Before Runtime Init
 
-The .NET runtime checks `globalThis.onmessage` during startup to detect whether it's running as a pthread deputy worker. If set, the runtime skips asset promise resolution and hangs. The worker script uses `self.addEventListener("message", ...)` only after full initialization, and the `uno-worker-ready` message is posted after `runMain` completes.
+The .NET runtime checks `globalThis.onmessage` during startup to detect whether it's running as a pthread deputy worker. If set, the runtime skips asset promise resolution and hangs. The worker script uses `self.addEventListener("message", ...)` only after `dotnet.create()` completes but **before** `runMain`. The `uno-worker-ready` message is likewise posted before `runMain` — this is intentional because `runMain` may be long-running (e.g., a worker service that blocks on incoming messages) and must not delay the readiness signal or profiler handler registration.
 
 ## Success Criteria
 

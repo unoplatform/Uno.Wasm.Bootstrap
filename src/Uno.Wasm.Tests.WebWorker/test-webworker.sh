@@ -133,9 +133,9 @@ dotnet serve -p 8001 -c -b \
 SERVER_PID=$!
 sleep 5
 
-# Install Puppeteer dependencies
+# Install Puppeteer dependencies (ci uses lockfile exactly for reproducibility)
 cd "$SCRIPT_DIR"
-npm install
+npm ci
 
 # Run the Puppeteer-based validation
 echo ""
