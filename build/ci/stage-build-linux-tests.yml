@@ -23,6 +23,8 @@ jobs:
   - checkout: self
     clean: true
 
+  - template: host-cleanup-linux.yml
+
   - template: dotnet-install.yml
   - template: gitversion.yml
 
@@ -268,6 +270,8 @@ jobs:
   steps:
   - checkout: self
     clean: true
+
+  - template: host-cleanup-linux.yml
 
   - template: dotnet-install.yml
   - template: gitversion.yml

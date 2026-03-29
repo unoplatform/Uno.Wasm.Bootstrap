@@ -1,0 +1,13 @@
+steps:
+  - bash: |
+      echo "Disk space before cleanup:"
+      df -h /
+      rm -fR ~/.cargo ~/.rustup ~/.dotnet
+      sudo rm -fR /usr/share/swift /opt/microsoft/msedge /usr/local/.ghcup /usr/lib/mono /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      sudo snap remove lxd || true
+      sudo snap remove core20 || true
+      sudo apt remove -y snapd || true
+      echo "Disk space after cleanup:"
+      df -h /
+    displayName: Cleanup unused host dependencies
+    condition: eq(variables['Agent.OS'], 'Linux')

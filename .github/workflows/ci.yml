@@ -29,6 +29,9 @@ jobs:
           fetch-depth: 0 # Required for gitversion
           submodules: true
 
+      - name: Free disk space (Linux)
+        uses: ./.github/actions/host-cleanup-linux
+
       # Required for nbgv
       - name: Setup .NET
         uses: actions/setup-dotnet@v1.7.2
