@@ -1,18 +1,10 @@
-name: 'Host Cleanup (Linux)'
-description: 'Remove unused toolchains and SDKs to free disk space on Linux runners'
+name: Host Cleanup (Linux)
+description: Reclaims disk space on Linux CI agents by removing unused pre-installed software
+
 runs:
   using: 'composite'
   steps:
-    - name: Cleanup unused image dependencies
+    - name: Cleanup unused host dependencies
       if: runner.os == 'Linux'
       shell: bash
-      run: |
-        echo "Disk space before cleanup:"
-        df -h /
-        rm -fR ~/.cargo ~/.rustup ~/.dotnet
-        sudo rm -fR /usr/share/swift /opt/microsoft/msedge /usr/local/.ghcup /usr/lib/mono /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo snap remove lxd || true
-        sudo snap remove core20 || true
-        sudo apt remove -y snapd || true
-        echo "Disk space after cleanup:"
-        df -h /
+      run: bash "$GITHUB_WORKSPACE/build/ci/scripts/host-cleanup-linux.sh"
