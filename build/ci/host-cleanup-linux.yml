@@ -1,0 +1,7 @@
+# Reusable AzDO template: Cleanup unused dependencies on Linux CI agents.
+# Calls the shared host-cleanup-linux.sh script to avoid duplication with GitHub Actions.
+steps:
+  - bash: |
+      bash "$(Build.SourcesDirectory)/build/ci/scripts/host-cleanup-linux.sh"
+    displayName: Cleanup unused host dependencies
+    condition: eq(variables['Agent.OS'], 'Linux')
