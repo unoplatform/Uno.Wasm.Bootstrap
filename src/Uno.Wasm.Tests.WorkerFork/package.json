@@ -1,0 +1,9 @@
+{
+  "name": "uno-wasm-tests-worker-fork",
+  "version": "0.0.0",
+  "description": "Worker fork validation",
+  "main": "validate-worker-fork.js",
+  "dependencies": {
+    "puppeteer": "^14.1.2"
+  }
+}
