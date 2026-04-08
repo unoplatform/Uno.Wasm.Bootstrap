@@ -595,7 +595,7 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
-				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{name}\"] = \"{value}\";");
+				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{JsStringHelper.EscapeJsString(name)}\"] = \"{JsStringHelper.EscapeJsString(value)}\";");
 
 				if (MonoEnvironment != null)
 				{
@@ -878,6 +878,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private string BuildRuntimeFeatures()
 			=> EnableThreads ? "threads" : "";
+
+		internal static string EscapeJsString(string value)
+			=> JsStringHelper.EscapeJsString(value);
 
 		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
 		{
