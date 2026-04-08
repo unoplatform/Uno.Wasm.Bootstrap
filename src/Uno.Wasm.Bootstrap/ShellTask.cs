@@ -595,7 +595,7 @@ namespace Uno.Wasm.Bootstrap
 
 				config.AppendLine($"config.environmentVariables = config.environmentVariables || {{}};");
 
-				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{name}\"] = \"{EscapeJsString(value)}\";");
+				void AddEnvironmentVariable(string name, string value) => config.AppendLine($"config.environmentVariables[\"{JsStringHelper.EscapeJsString(name)}\"] = \"{JsStringHelper.EscapeJsString(value)}\";");
 
 				if (MonoEnvironment != null)
 				{

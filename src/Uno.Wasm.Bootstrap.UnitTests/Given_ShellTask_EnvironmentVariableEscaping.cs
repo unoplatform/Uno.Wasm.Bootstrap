@@ -29,6 +29,11 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		[DataRow("{\"sub\":\"7074\"}", "{\\\"sub\\\":\\\"7074\\\"}")]
 		[DataRow("back\\slash and \"quote\"", "back\\\\slash and \\\"quote\\\"")]
 		[DataRow("", "")]
+		[DataRow("line\nfeed", "line\\nfeed")]
+		[DataRow("carriage\rreturn", "carriage\\rreturn")]
+		[DataRow("tab\there", "tab\\there")]
+		[DataRow("ls\u2028sep", "ls\\u2028sep")]
+		[DataRow("ps\u2029sep", "ps\\u2029sep")]
 		public void When_EscapeJsString_Then_SpecialCharsAreCorrectlyEscaped(string input, string expected)
 		{
 			var result = JsStringHelper.EscapeJsString(input);
