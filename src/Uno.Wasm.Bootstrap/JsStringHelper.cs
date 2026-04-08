@@ -14,25 +14,12 @@
 // limitations under the License.
 //
 // ******************************************************************
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Uno.Wasm.Bootstrap;
 
-namespace Uno.Wasm.Bootstrap.UnitTests
+namespace Uno.Wasm.Bootstrap
 {
-	[TestClass]
-	public class Given_ShellTask_EnvironmentVariableEscaping
+	public static class JsStringHelper
 	{
-		[TestMethod]
-		[DataRow("plain value", "plain value")]
-		[DataRow("value with \"quotes\"", "value with \\\"quotes\\\"")]
-		[DataRow("value with \\backslash", "value with \\\\backslash")]
-		[DataRow("{\"sub\":\"7074\"}", "{\\\"sub\\\":\\\"7074\\\"}")]
-		[DataRow("back\\slash and \"quote\"", "back\\\\slash and \\\"quote\\\"")]
-		[DataRow("", "")]
-		public void When_EscapeJsString_Then_SpecialCharsAreCorrectlyEscaped(string input, string expected)
-		{
-			var result = JsStringHelper.EscapeJsString(input);
-			Assert.AreEqual(expected, result);
-		}
+		public static string EscapeJsString(string value)
+			=> value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 	}
 }

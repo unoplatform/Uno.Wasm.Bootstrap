@@ -880,7 +880,7 @@ namespace Uno.Wasm.Bootstrap
 			=> EnableThreads ? "threads" : "";
 
 		internal static string EscapeJsString(string value)
-			=> value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+			=> JsStringHelper.EscapeJsString(value);
 
 		private void ParseEnumProperty<TEnum>(string name, string stringValue, out TEnum value) where TEnum : struct
 		{
