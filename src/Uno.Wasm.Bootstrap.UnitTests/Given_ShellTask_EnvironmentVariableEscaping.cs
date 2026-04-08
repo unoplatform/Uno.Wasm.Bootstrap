@@ -15,6 +15,7 @@
 //
 // ******************************************************************
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Uno.Wasm.Bootstrap;
 
 namespace Uno.Wasm.Bootstrap.UnitTests
 {
