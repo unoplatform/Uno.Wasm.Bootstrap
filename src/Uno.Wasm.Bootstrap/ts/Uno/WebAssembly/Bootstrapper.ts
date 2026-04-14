@@ -802,9 +802,16 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (manifest && manifest.darkThemeBackgroundColor) {
 					this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
 				}
-				if (manifest && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
+
+				// The inline splashScreenColor override is a legacy single-theme path — it
+				// would clobber the @media (prefers-color-scheme: dark) rule on .uno-loader.
+				// Skip it when per-theme values are provided so theme selection flows through CSS.
+				const hasPerThemeBackground =
+					manifest && (manifest.lightThemeBackgroundColor || manifest.darkThemeBackgroundColor);
+				if (manifest && !hasPerThemeBackground && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
 					this.loader.style.setProperty("background-color", manifest.splashScreenColor);
 				}
+
 				if (manifest && manifest.accentColor) {
 					this.loader.style.setProperty("--accent-color", manifest.accentColor);
 				}
@@ -816,13 +823,24 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 				const img = this.loader.querySelector("img");
 				if (img) {
-					if (manifest && manifest.splashScreenImage) {
-						if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g)) {
-							// Local images need to be prefixed with the app based path
-							manifest.splashScreenImage = `${this._unoConfig.uno_app_base}/${manifest.splashScreenImage}`;
-						}
+					const rewriteLocal = (src: string) =>
+						src.match(/^(http(s)?:\/\/.)/g)
+							? src
+							: `${this._unoConfig.uno_app_base}/${src}`;
 
-						img.setAttribute("src", manifest.splashScreenImage);
+					const lightSrc = manifest && manifest.splashScreenImage
+						? rewriteLocal(manifest.splashScreenImage)
+						: null;
+					const darkSrc = manifest && manifest.splashScreenImageDark
+						? rewriteLocal(manifest.splashScreenImageDark)
+						: lightSrc;
+
+					const prefersDark = typeof window.matchMedia === "function"
+						&& window.matchMedia("(prefers-color-scheme: dark)").matches;
+					const chosenSrc = prefersDark ? darkSrc : lightSrc;
+
+					if (chosenSrc) {
+						img.setAttribute("src", chosenSrc);
 					} else {
 						img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
 					}

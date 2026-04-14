@@ -21,6 +21,8 @@ The default configuration for the bootstrapper is to show the Uno Platform logo.
 
 These properties are supported in the manifest:
 
-- `lightThemeBackgroundColor` (optional) to change the light theme background color
-- `darkThemeBackgroundColor` (optional)to change the dark theme background color
-- `splashScreenColor` to change the background color regardless of the theme. When set to `transparent`, `lightThemeBackgroundColor` and `darkThemeBackgroundColor` will be used, otherwise the default browser background color will be used.
+- `lightThemeBackgroundColor` (optional) background color used when the browser reports `prefers-color-scheme: light` (or has no preference). Typically emitted by `Uno.Resizetizer` from the `BackgroundColor` metadata on `UnoSplashScreen`.
+- `darkThemeBackgroundColor` (optional) background color used when the browser reports `prefers-color-scheme: dark`. Typically emitted by `Uno.Resizetizer` from the `DarkBackgroundColor` metadata on `UnoSplashScreen`. Applied via the existing `@media (prefers-color-scheme: dark)` rule on `.uno-loader`, so theme switching is handled entirely by CSS.
+- `splashScreenColor` (optional, legacy) single-theme background color. Applied inline and therefore overrides any `@media`-driven theme switching. When `lightThemeBackgroundColor` or `darkThemeBackgroundColor` is also set, `splashScreenColor` is ignored so theme selection flows through CSS. When set to `transparent`, the default browser background color is used.
+- `splashScreenImage` (optional) path or URL to the splash image shown while the application boots.
+- `splashScreenImageDark` (optional) path or URL to the splash image used when the browser reports `prefers-color-scheme: dark`. When absent, `splashScreenImage` is used in both themes. Typically emitted by `Uno.Resizetizer` from the `DarkImage` metadata on `UnoSplashScreen`. The theme is snapshotted at splash-render time via `window.matchMedia('(prefers-color-scheme: dark)')`; toggling the OS theme mid-load does not re-render the already-visible splash.
