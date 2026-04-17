@@ -1,4 +1,4 @@
-﻿namespace Uno.WebAssembly.Bootstrap {
+namespace Uno.WebAssembly.Bootstrap {
 
 	export class LogProfilerSupport {
 
@@ -25,14 +25,21 @@
 			return false;
 		}
 
-		public postInitializeLogProfiler() {
+		public async postInitializeLogProfiler() {
 			if (LogProfilerSupport._logProfilerEnabled) {
 
 				this.attachHotKey();
 
+				// Resolve exports once eagerly, then flush on interval
+				await this.ensureInitializeProfilerMethods();
+
+				// Expose saveLogProfile on globalThis for console access
+				(globalThis as any).saveLogProfile = () => this.saveLogProfile();
+
 				setInterval(() => {
-					this.ensureInitializeProfilerMethods();
-					this._flushLogProfile();
+					if (this._flushLogProfile) {
+						this._flushLogProfile();
+					}
 				}, 5000);
 			}
 		}
@@ -68,28 +75,27 @@
 			}
 		}
 
-		private ensureInitializeProfilerMethods() {
-			// This will fail when CSP is enabled, but initialization of the profiler
-			// cannot happen asynchronously. Until this is fixed by the runtime, we'll need
-			// to keep using bind_static_method.
-
+		private async ensureInitializeProfilerMethods() {
 			if (LogProfilerSupport._logProfilerEnabled && !this._flushLogProfile) {
-				this._flushLogProfile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:FlushProfile");
-				this._getLogProfilerProfileOutputFile = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:GetProfilerProfileOutputFile");
-				this.triggerHeapShotLogProfiler = this._context.BINDING.bind_static_method("[Uno.Wasm.LogProfiler] Uno.LogProfilerSupport:TriggerHeapShot");
+				const anyContext = this._context as any;
+				const exports = await anyContext.getAssemblyExports("Uno.Wasm.LogProfiler");
+				this._flushLogProfile = exports.Uno.LogProfilerSupport.FlushProfile;
+				this._getLogProfilerProfileOutputFile = exports.Uno.LogProfilerSupport.GetProfilerProfileOutputFile;
+				this.triggerHeapShotLogProfiler = exports.Uno.LogProfilerSupport.TriggerHeapShot;
 			}
 		}
 
-		private takeHeapShot() {
-			this.ensureInitializeProfilerMethods();
-
-			this.triggerHeapShotLogProfiler();
+		private async takeHeapShot() {
+			await this.ensureInitializeProfilerMethods();
+			if (this.triggerHeapShotLogProfiler) {
+				this.triggerHeapShotLogProfiler();
+			}
 		}
 
-		private readProfileFile() {
-			this.ensureInitializeProfilerMethods();
+		private async readProfileFile() {
+			await this.ensureInitializeProfilerMethods();
 
-			this._flushLogProfile();
+			if (this._flushLogProfile) this._flushLogProfile();
 			var profileFilePath = this._getLogProfilerProfileOutputFile();
 
 			var stat = FS.stat(profileFilePath);
@@ -103,10 +109,10 @@
 			}
 		}
 
-		private saveLogProfile() {
-			this.ensureInitializeProfilerMethods();
+		private async saveLogProfile() {
+			await this.ensureInitializeProfilerMethods();
 
-			var profileArray = this.readProfileFile();
+			var profileArray = await this.readProfileFile();
 
 			var a = window.document.createElement('a');
 			a.href = window.URL.createObjectURL(new Blob([profileArray]));

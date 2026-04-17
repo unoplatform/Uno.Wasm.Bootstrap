@@ -151,6 +151,28 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		/**
+		 * Returns a speedscope JSON string of the current allocation state.
+		 * Usable from worker context (no DOM dependency).
+		 */
+		static buildSpeedscopeJson(): string {
+			const profiler = (<any>globalThis).emscriptenMemoryProfiler;
+			if (!profiler) { return "{}"; }
+			const sites = EmscriptenMemoryProfilerSupport.captureAllocationSites(profiler);
+			return JSON.stringify(EmscriptenMemoryProfilerSupport.buildSpeedscopeDocument(sites), null, 2);
+		}
+
+		/**
+		 * Returns a PerfView JSON string of the current allocation state.
+		 * Usable from worker context (no DOM dependency).
+		 */
+		static buildPerfViewJson(): string {
+			const profiler = (<any>globalThis).emscriptenMemoryProfiler;
+			if (!profiler) { return "{}"; }
+			const sites = EmscriptenMemoryProfilerSupport.captureAllocationSites(profiler);
+			return JSON.stringify(EmscriptenMemoryProfilerSupport.buildPerfViewDocument(sites), null, 2);
+		}
+
+		/**
 		 * Builds a speedscope-compatible JSON document from the captured allocation sites.
 		 * Uses a shared frame table with index references; stacks are reversed to root-to-leaf order.
 		 */

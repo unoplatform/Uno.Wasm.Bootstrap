@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmShellMode>WebWorker</WasmShellMode>
+    <DefineConstants>$(DefineConstants);__WASM__;UWP;WEBWORKER</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Link Benchmark.cs from the shared project (ray tracer core logic) -->
+  <ItemGroup>
+    <Compile Include="..\Uno.Wasm.Sample.RayTracer.Shared\Benchmark.cs" Link="Benchmark.cs" />
+  </ItemGroup>
+
+  <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <UndefineProperties>TargetFramework</UndefineProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

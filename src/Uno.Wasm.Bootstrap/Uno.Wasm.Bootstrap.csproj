@@ -91,6 +91,7 @@
 
 	<ItemGroup>
 		<ConfigFiles Include="tsconfig.json" />
+		<ConfigFiles Include="tsconfig.worker.json" />
 		<UpToDateCheckInput Include="ts\**\*" />
 	</ItemGroup>
 
@@ -124,6 +125,14 @@
 		</ProjectReference>
 	</ItemGroup>
 
+	<!-- Copy the native profiler shim from Uno.Wasm.LogProfiler source to tools/support -->
+	<Target Name="_CopyProfilerFlushShim" BeforeTargets="UpdateAdditionalAssemblies;Pack">
+		<Copy SourceFiles="$(MSBuildThisFileDirectory)../Uno.Wasm.LogProfiler/profiler_flush_wasm.c"
+			  DestinationFolder="$(MSBuildThisFileDirectory)tools/support/"
+			  SkipUnchangedFiles="true"
+			  Condition="Exists('$(MSBuildThisFileDirectory)../Uno.Wasm.LogProfiler/profiler_flush_wasm.c')" />
+	</Target>
+
 	<Target Name="UpdateAdditionalAssemblies" AfterTargets="CoreCompile">
 		<ItemGroup>
 			<Content Include="./tools/support/Uno.Wasm.AotProfiler.*">
@@ -131,6 +140,11 @@
 				<PackagePath>tools/support</PackagePath>
 			</Content>
 			<Content Include="./tools/support/Uno.Wasm.LogProfiler.*">
+				<Pack>true</Pack>
+				<PackagePath>tools/support</PackagePath>
+			</Content>
+			<!-- Native shim: source lives in Uno.Wasm.LogProfiler project, copied here by _CopyProfilerFlushShim -->
+			<Content Include="./tools/support/profiler_flush_wasm.c" Condition="Exists('./tools/support/profiler_flush_wasm.c')">
 				<Pack>true</Pack>
 				<PackagePath>tools/support</PackagePath>
 			</Content>
@@ -161,7 +175,7 @@
 			<_IntermediateGeneratedJavascript Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
 			<FileWrites Include="@(GeneratedJavascript->'$(IntermediateOutputPath)%(FileName)%(Extension)')" />
 
-			<EmbeddedResource Include="@(_IntermediateGeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(RecursiveDir)%(Filename)%(Extension)" />
+			<EmbeddedResource Include="@(_IntermediateGeneratedJavascript)" LogicalName="$(AssemblyName).WasmScripts.%(Filename)%(Extension)" />
 			<Content Remove="@(_IntermediateGeneratedJavascript)" />
 		</ItemGroup>
 	</Target>
