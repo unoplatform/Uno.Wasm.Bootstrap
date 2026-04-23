@@ -15,12 +15,12 @@ public class Given_ExtractBootConfigFromScript
 		// more javascript
 		""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNotNull(config);
-		Assert.AreEqual("MyApp", config.mainAssemblyName);
-		Assert.AreEqual(1, config.assemblies.Length);
-		Assert.AreEqual("MyApp.abc.wasm", config.assemblies[0]);
+		Assert.AreEqual("MyApp", config.MainAssemblyName);
+		Assert.AreEqual(1, config.Assemblies.Length);
+		Assert.AreEqual("MyApp.abc.wasm", config.Assemblies[0]);
 	}
 
 	[TestMethod]
@@ -31,7 +31,7 @@ public class Given_ExtractBootConfigFromScript
 		var x = 42;
 		""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNull(config);
 	}
@@ -41,14 +41,14 @@ public class Given_ExtractBootConfigFromScript
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"MinimalApp"}/*json-end*/""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNotNull(config);
-		Assert.AreEqual("MinimalApp", config.mainAssemblyName);
-		Assert.AreEqual(0, config.assemblies.Length);
-		Assert.IsNull(config.globalizationMode);
-		Assert.IsNull(config.debugLevel);
-		Assert.IsNull(config.linkerEnabled);
+		Assert.AreEqual("MinimalApp", config.MainAssemblyName);
+		Assert.AreEqual(0, config.Assemblies.Length);
+		Assert.IsNull(config.GlobalizationMode);
+		Assert.IsNull(config.DebugLevel);
+		Assert.IsNull(config.LinkerEnabled);
 	}
 
 	[TestMethod]
@@ -58,16 +58,16 @@ public class Given_ExtractBootConfigFromScript
 		stuff/*json-start*/{"mainAssemblyName":"FullApp","globalizationMode":"hybrid","debugLevel":1,"linkerEnabled":true,"resources":{"coreAssembly":[{"virtualPath":"System.Private.CoreLib.wasm","name":"System.Private.CoreLib.abc.wasm","integrity":"sha256-aaa"}],"assembly":[{"virtualPath":"FullApp.wasm","name":"FullApp.def.wasm","integrity":"sha256-bbb"}]}}/*json-end*/more
 		""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNotNull(config);
-		Assert.AreEqual("FullApp", config.mainAssemblyName);
-		Assert.AreEqual("hybrid", config.globalizationMode);
-		Assert.AreEqual(1, config.debugLevel);
-		Assert.AreEqual(true, config.linkerEnabled);
-		Assert.AreEqual(2, config.assemblies.Length);
-		Assert.AreEqual("System.Private.CoreLib.abc.wasm", config.assemblies[0]);
-		Assert.AreEqual("FullApp.def.wasm", config.assemblies[1]);
+		Assert.AreEqual("FullApp", config.MainAssemblyName);
+		Assert.AreEqual("hybrid", config.GlobalizationMode);
+		Assert.AreEqual(1, config.DebugLevel);
+		Assert.AreEqual(true, config.LinkerEnabled);
+		Assert.AreEqual(2, config.Assemblies.Length);
+		Assert.AreEqual("System.Private.CoreLib.abc.wasm", config.Assemblies[0]);
+		Assert.AreEqual("FullApp.def.wasm", config.Assemblies[1]);
 	}
 
 	[TestMethod]
@@ -75,7 +75,7 @@ public class Given_ExtractBootConfigFromScript
 	{
 		var script = """/*json-start*/{ this is not valid json /*json-end*/""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNull(config);
 	}
@@ -85,9 +85,9 @@ public class Given_ExtractBootConfigFromScript
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"Test"}/*json-end*/""";
 
-		var config = UnoVersionExtractor.ExtractBootConfigFromScript(script);
+		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
 		Assert.IsNotNull(config);
-		Assert.IsNull(config.assembliesPath);
+		Assert.IsNull(config.AssembliesPath);
 	}
 }

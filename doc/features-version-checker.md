@@ -28,17 +28,23 @@ Assembly files are supported in both PE (`.dll`) and WebCIL (`.wasm`) formats.
 
 ## Quick start with `dnx`
 
-With .NET 10+, you can run the tool directly without installing it, using [`dnx`](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/sdk):
+With .NET 10+, the recommended way to try the tool is to run it directly with [`dnx`](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/sdk), without installing it first:
 
 ```shell
 dnx Uno.Wasm.VersionChecker myapp.example.com
 ```
 
-This downloads and runs the latest version on the fly.
+If you prefer the explicit form, this works too:
+
+```shell
+dotnet dnx Uno.Wasm.VersionChecker myapp.example.com
+```
+
+Both commands download and run the latest version on the fly.
 
 ## Installation (optional)
 
-If you prefer a global installation for repeated use:
+If you prefer a global installation for repeated use, you can still install the tool:
 
 ```shell
 dotnet tool install -g Uno.Wasm.VersionChecker
@@ -62,6 +68,18 @@ The `https://` scheme is assumed if not specified, so this also works:
 
 ```shell
 uno-wasm-version myapp.example.com
+```
+
+On .NET 10, the tool also supports an interactive mode through its Repl host. Running it without a target starts the prompt, and you can use either the direct shorthand or an explicit command:
+
+```shell
+uno-wasm-version
+> inspect https://myapp.example.com
+```
+
+```shell
+uno-wasm-version
+> myapp.example.com
 ```
 
 ## Example output

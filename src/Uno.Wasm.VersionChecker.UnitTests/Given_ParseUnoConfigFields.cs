@@ -14,10 +14,10 @@ public class Given_ParseUnoConfigFields
 			config.uno_app_base = "/myapp";
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("dotnet.abc123.js", fields.dotnetJsFilename);
-		Assert.AreEqual("/myapp", fields.packagePath);
+		Assert.AreEqual("dotnet.abc123.js", fields.DotnetJsFilename);
+		Assert.AreEqual("/myapp", fields.PackagePath);
 	}
 
 	[TestMethod]
@@ -28,11 +28,11 @@ public class Given_ParseUnoConfigFields
 			config.uno_remote_managedpath = "managed";
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.IsNull(fields.dotnetJsFilename);
-		Assert.AreEqual("/myapp", fields.packagePath);
-		Assert.AreEqual("managed", fields.managePath);
+		Assert.IsNull(fields.DotnetJsFilename);
+		Assert.AreEqual("/myapp", fields.PackagePath);
+		Assert.AreEqual("managed", fields.ManagePath);
 	}
 
 	[TestMethod]
@@ -45,12 +45,12 @@ public class Given_ParseUnoConfigFields
 			config.assemblies_with_size = {"MyApp.dll":12345,"System.Runtime.dll":67890};
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.IsNotNull(fields.assemblies);
-		Assert.AreEqual(2, fields.assemblies.Length);
-		CollectionAssert.Contains(fields.assemblies, "MyApp.dll");
-		CollectionAssert.Contains(fields.assemblies, "System.Runtime.dll");
+		Assert.IsNotNull(fields.Assemblies);
+		Assert.AreEqual(2, fields.Assemblies.Length);
+		CollectionAssert.Contains(fields.Assemblies, "MyApp.dll");
+		CollectionAssert.Contains(fields.Assemblies, "System.Runtime.dll");
 	}
 
 	[TestMethod]
@@ -64,15 +64,15 @@ public class Given_ParseUnoConfigFields
 			config.assemblies_with_size = {"MyApp.dll":100};
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/myapp", fields.packagePath);
-		Assert.AreEqual("managed", fields.managePath);
-		Assert.AreEqual("MyApp.Wasm", fields.mainAssembly);
-		Assert.IsNotNull(fields.assemblies);
-		Assert.AreEqual(1, fields.assemblies.Length);
-		Assert.AreEqual("MyApp.dll", fields.assemblies[0]);
-		Assert.AreEqual("dotnet.xyz789.js", fields.dotnetJsFilename);
+		Assert.AreEqual("/myapp", fields.PackagePath);
+		Assert.AreEqual("managed", fields.ManagePath);
+		Assert.AreEqual("MyApp.Wasm", fields.MainAssembly);
+		Assert.IsNotNull(fields.Assemblies);
+		Assert.AreEqual(1, fields.Assemblies.Length);
+		Assert.AreEqual("MyApp.dll", fields.Assemblies[0]);
+		Assert.AreEqual("dotnet.xyz789.js", fields.DotnetJsFilename);
 	}
 
 	[TestMethod]
@@ -86,25 +86,25 @@ public class Given_ParseUnoConfigFields
 			config.some_other_field = "should not be reached";
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/myapp", fields.packagePath);
-		Assert.AreEqual("managed", fields.managePath);
-		Assert.AreEqual("MyApp.Wasm", fields.mainAssembly);
-		Assert.IsNotNull(fields.assemblies);
-		Assert.IsNull(fields.dotnetJsFilename);
+		Assert.AreEqual("/myapp", fields.PackagePath);
+		Assert.AreEqual("managed", fields.ManagePath);
+		Assert.AreEqual("MyApp.Wasm", fields.MainAssembly);
+		Assert.IsNotNull(fields.Assemblies);
+		Assert.IsNull(fields.DotnetJsFilename);
 	}
 
 	[TestMethod]
 	public void When_EmptyContent_Then_AllFieldsNull()
 	{
-		var fields = UnoVersionExtractor.ParseUnoConfigFields("");
+		var fields = VersionCheckService.ParseUnoConfigFields("");
 
-		Assert.IsNull(fields.managePath);
-		Assert.IsNull(fields.packagePath);
-		Assert.IsNull(fields.mainAssembly);
-		Assert.IsNull(fields.assemblies);
-		Assert.IsNull(fields.dotnetJsFilename);
+		Assert.IsNull(fields.ManagePath);
+		Assert.IsNull(fields.PackagePath);
+		Assert.IsNull(fields.MainAssembly);
+		Assert.IsNull(fields.Assemblies);
+		Assert.IsNull(fields.DotnetJsFilename);
 	}
 
 	[TestMethod]
@@ -116,8 +116,8 @@ public class Given_ParseUnoConfigFields
 			some random text
 			""";
 
-		var fields = UnoVersionExtractor.ParseUnoConfigFields(content);
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/app", fields.packagePath);
+		Assert.AreEqual("/app", fields.PackagePath);
 	}
 }

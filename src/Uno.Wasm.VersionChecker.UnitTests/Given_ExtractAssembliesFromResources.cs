@@ -21,7 +21,7 @@ public class Given_ExtractAssembliesFromResources
 		""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(2, assemblies.Count);
 		Assert.AreEqual("System.Runtime.abc123.wasm", assemblies[0]);
@@ -41,7 +41,7 @@ public class Given_ExtractAssembliesFromResources
 		""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(2, assemblies.Count);
 		Assert.AreEqual("System.Runtime.dll", assemblies[0]);
@@ -54,7 +54,7 @@ public class Given_ExtractAssembliesFromResources
 		var json = JsonDocument.Parse("{}");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(0, assemblies.Count);
 	}
@@ -72,7 +72,7 @@ public class Given_ExtractAssembliesFromResources
 		""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(1, assemblies.Count);
 		Assert.AreEqual("MyApp.def456.wasm", assemblies[0]);
@@ -84,7 +84,7 @@ public class Given_ExtractAssembliesFromResources
 		var json = JsonDocument.Parse("""{"assembly": []}""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(0, assemblies.Count);
 	}
@@ -95,7 +95,7 @@ public class Given_ExtractAssembliesFromResources
 		var json = JsonDocument.Parse("""{"assembly": {}}""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(0, assemblies.Count);
 	}
@@ -115,8 +115,8 @@ public class Given_ExtractAssembliesFromResources
 		""");
 
 		var assemblies = new List<string>();
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "coreAssembly", assemblies);
-		UnoVersionExtractor.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "coreAssembly", assemblies);
+		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
 
 		Assert.AreEqual(2, assemblies.Count);
 		Assert.AreEqual("Core.abc.wasm", assemblies[0]);
