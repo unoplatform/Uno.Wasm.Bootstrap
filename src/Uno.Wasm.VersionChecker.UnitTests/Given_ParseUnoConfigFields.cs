@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.VersionChecker;
 
@@ -7,7 +8,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_ParseUnoConfigFields
 {
 	[TestMethod]
-	[Description("Regression guard: verifies dotnet.js filenames are extracted from uno-config.js.")]
+	[Description("Verifies dotnet.js filenames are extracted from uno-config.js.")]
 	public void When_ConfigWithDotnetJsFilename_Then_ExtractsIt()
 	{
 		var content = """
@@ -17,12 +18,12 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("dotnet.abc123.js", fields.DotnetJsFilename);
-		Assert.AreEqual("/myapp", fields.PackagePath);
+		fields.DotnetJsFilename.Should().Be("dotnet.abc123.js");
+		fields.PackagePath.Should().Be("/myapp");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies optional dotnet.js filenames stay null when absent.")]
+	[Description("Verifies optional dotnet.js filenames stay null when absent.")]
 	public void When_ConfigWithoutDotnetJsFilename_Then_FieldIsNull()
 	{
 		var content = """
@@ -32,13 +33,13 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.IsNull(fields.DotnetJsFilename);
-		Assert.AreEqual("/myapp", fields.PackagePath);
-		Assert.AreEqual("managed", fields.ManagedPath);
+		fields.DotnetJsFilename.Should().BeNull();
+		fields.PackagePath.Should().Be("/myapp");
+		fields.ManagedPath.Should().Be("managed");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies assemblies_with_size keys are preserved as assembly names.")]
+	[Description("Verifies assemblies_with_size keys are preserved as assembly names.")]
 	public void When_ConfigWithAssembliesWithSize_Then_ExtractsAssemblyNames()
 	{
 		var content = """
@@ -50,14 +51,14 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.IsNotNull(fields.Assemblies);
-		Assert.AreEqual(2, fields.Assemblies.Length);
-		CollectionAssert.Contains(fields.Assemblies, "MyApp.dll");
-		CollectionAssert.Contains(fields.Assemblies, "System.Runtime.dll");
+		fields.Assemblies.Should().NotBeNull();
+		fields.Assemblies.Length.Should().Be(2);
+		fields.Assemblies.Should().Contain("MyApp.dll");
+		fields.Assemblies.Should().Contain("System.Runtime.dll");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies all supported uno-config fields can be parsed together.")]
+	[Description("Verifies all supported uno-config fields can be parsed together.")]
 	public void When_ConfigWithAllFields_Then_ExtractsEverything()
 	{
 		var content = """
@@ -70,17 +71,17 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/myapp", fields.PackagePath);
-		Assert.AreEqual("managed", fields.ManagedPath);
-		Assert.AreEqual("MyApp.Wasm", fields.MainAssembly);
-		Assert.IsNotNull(fields.Assemblies);
-		Assert.AreEqual(1, fields.Assemblies.Length);
-		Assert.AreEqual("MyApp.dll", fields.Assemblies[0]);
-		Assert.AreEqual("dotnet.xyz789.js", fields.DotnetJsFilename);
+		fields.PackagePath.Should().Be("/myapp");
+		fields.ManagedPath.Should().Be("managed");
+		fields.MainAssembly.Should().Be("MyApp.Wasm");
+		fields.Assemblies.Should().NotBeNull();
+		fields.Assemblies.Length.Should().Be(1);
+		fields.Assemblies[0].Should().Be("MyApp.dll");
+		fields.DotnetJsFilename.Should().Be("dotnet.xyz789.js");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies dotnet_js_filename is still captured even when it appears after the other known fields.")]
+	[Description("Verifies dotnet_js_filename is still captured even when it appears after the other known fields.")]
 	public void When_DotnetJsFilenameAppearsLast_Then_ItIsStillCaptured()
 	{
 		var content = """
@@ -93,28 +94,28 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/myapp", fields.PackagePath);
-		Assert.AreEqual("managed", fields.ManagedPath);
-		Assert.AreEqual("MyApp.Wasm", fields.MainAssembly);
-		Assert.IsNotNull(fields.Assemblies);
-		Assert.AreEqual("dotnet.late.js", fields.DotnetJsFilename);
+		fields.PackagePath.Should().Be("/myapp");
+		fields.ManagedPath.Should().Be("managed");
+		fields.MainAssembly.Should().Be("MyApp.Wasm");
+		fields.Assemblies.Should().NotBeNull();
+		fields.DotnetJsFilename.Should().Be("dotnet.late.js");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies empty config content leaves every parsed field unset.")]
+	[Description("Verifies empty config content leaves every parsed field unset.")]
 	public void When_EmptyContent_Then_AllFieldsNull()
 	{
 		var fields = VersionCheckService.ParseUnoConfigFields("");
 
-		Assert.IsNull(fields.ManagedPath);
-		Assert.IsNull(fields.PackagePath);
-		Assert.IsNull(fields.MainAssembly);
-		Assert.IsTrue(fields.Assemblies.IsDefaultOrEmpty);
-		Assert.IsNull(fields.DotnetJsFilename);
+		fields.ManagedPath.Should().BeNull();
+		fields.PackagePath.Should().BeNull();
+		fields.MainAssembly.Should().BeNull();
+		fields.Assemblies.IsDefaultOrEmpty.Should().BeTrue();
+		fields.DotnetJsFilename.Should().BeNull();
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies malformed non-assignment lines are ignored without breaking subsequent parsing.")]
+	[Description("Verifies malformed non-assignment lines are ignored without breaking subsequent parsing.")]
 	public void When_LinesWithoutEquals_Then_IgnoredGracefully()
 	{
 		var content = """
@@ -125,11 +126,11 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/app", fields.PackagePath);
+		fields.PackagePath.Should().Be("/app");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies malformed JSON literals in uno-config.js do not crash the whole inspection.")]
+	[Description("Verifies malformed JSON literals in uno-config.js do not crash the whole inspection.")]
 	public void When_FieldValueIsMalformedJson_Then_ParseContinues()
 	{
 		var content = """
@@ -139,7 +140,7 @@ public class Given_ParseUnoConfigFields
 
 		var fields = VersionCheckService.ParseUnoConfigFields(content);
 
-		Assert.AreEqual("/app", fields.PackagePath);
-		Assert.IsNull(fields.DotnetJsFilename);
+		fields.PackagePath.Should().Be("/app");
+		fields.DotnetJsFilename.Should().BeNull();
 	}
 }

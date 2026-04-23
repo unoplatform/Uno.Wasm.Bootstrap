@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.VersionChecker;
+using AwesomeAssertions;
 
 namespace Uno.Wasm.VersionChecker.UnitTests;
 
@@ -7,7 +8,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_ExtractBootConfigFromScript
 {
 	[TestMethod]
-	[Description("Regression guard: verifies embedded boot-config markers are extracted from dotnet.js payloads.")]
+	[Description("Verifies embedded boot-config markers are extracted from dotnet.js payloads.")]
 	public void When_ValidScriptWithMarkers_Then_ExtractsConfig()
 	{
 		var script = """
@@ -18,14 +19,14 @@ public class Given_ExtractBootConfigFromScript
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNotNull(config);
-		Assert.AreEqual("MyApp", config.MainAssemblyName);
-		Assert.AreEqual(1, config.Assemblies.Length);
-		Assert.AreEqual("MyApp.abc.wasm", config.Assemblies[0]);
+		config.Should().NotBeNull();
+		config!.MainAssemblyName.Should().Be("MyApp");
+		config!.Assemblies.Length.Should().Be(1);
+		config!.Assemblies[0].Should().Be("MyApp.abc.wasm");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies unrelated scripts do not accidentally parse as boot configuration.")]
+	[Description("Verifies unrelated scripts do not accidentally parse as boot configuration.")]
 	public void When_ScriptWithoutMarkers_Then_ReturnsNull()
 	{
 		var script = """
@@ -35,27 +36,27 @@ public class Given_ExtractBootConfigFromScript
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNull(config);
+		config.Should().BeNull();
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies minimal boot config payloads still return a valid parsed object.")]
+	[Description("Verifies minimal boot config payloads still return a valid parsed object.")]
 	public void When_MinimalBootConfig_Then_ExtractsMainAssemblyName()
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"MinimalApp"}/*json-end*/""";
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNotNull(config);
-		Assert.AreEqual("MinimalApp", config.MainAssemblyName);
-		Assert.AreEqual(0, config.Assemblies.Length);
-		Assert.IsNull(config.GlobalizationMode);
-		Assert.IsNull(config.DebugLevel);
-		Assert.IsNull(config.LinkerEnabled);
+		config.Should().NotBeNull();
+		config.MainAssemblyName.Should().Be("MinimalApp");
+		config.Assemblies.Length.Should().Be(0);
+		config.GlobalizationMode.Should().BeNull();
+		config.DebugLevel.Should().BeNull();
+		config.LinkerEnabled.Should().BeNull();
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies all boot config metadata fields survive parsing.")]
+	[Description("Verifies all boot config metadata fields survive parsing.")]
 	public void When_FullBootConfig_Then_ExtractsAllFields()
 	{
 		var script = """
@@ -64,36 +65,36 @@ public class Given_ExtractBootConfigFromScript
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNotNull(config);
-		Assert.AreEqual("FullApp", config.MainAssemblyName);
-		Assert.AreEqual("hybrid", config.GlobalizationMode);
-		Assert.AreEqual(1, config.DebugLevel);
-		Assert.AreEqual(true, config.LinkerEnabled);
-		Assert.AreEqual(2, config.Assemblies.Length);
-		Assert.AreEqual("System.Private.CoreLib.abc.wasm", config.Assemblies[0]);
-		Assert.AreEqual("FullApp.def.wasm", config.Assemblies[1]);
+		config.Should().NotBeNull();
+		config.MainAssemblyName.Should().Be("FullApp");
+		config.GlobalizationMode.Should().Be("hybrid");
+		config.DebugLevel.Should().Be(1);
+		config.LinkerEnabled.Should().BeTrue();
+		config.Assemblies.Length.Should().Be(2);
+		config.Assemblies[0].Should().Be("System.Private.CoreLib.abc.wasm");
+		config.Assemblies[1].Should().Be("FullApp.def.wasm");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies malformed JSON between markers is ignored safely.")]
+	[Description("Verifies malformed JSON between markers is ignored safely.")]
 	public void When_MalformedJson_Then_ReturnsNull()
 	{
 		var script = """/*json-start*/{ this is not valid json /*json-end*/""";
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNull(config);
+		config.Should().BeNull();
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies dotnet.js extraction does not invent an assemblies path before URL resolution.")]
+	[Description("Verifies dotnet.js extraction does not invent an assemblies path before URL resolution.")]
 	public void When_AssembliesPathNotSet_Then_IsNull()
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"Test"}/*json-end*/""";
 
 		var config = VersionCheckService.ExtractBootConfigFromScript(script);
 
-		Assert.IsNotNull(config);
-		Assert.IsNull(config.AssembliesPath);
+		config.Should().NotBeNull();
+		config.AssembliesPath.Should().BeNull();
 	}
 }

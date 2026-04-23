@@ -1,12 +1,13 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
+using AwesomeAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.VersionChecker;
 
@@ -16,7 +17,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public sealed class Given_VersionCheckService
 {
 	[TestMethod]
-	[Description("Regression guard: verifies compressed dotnet.js payloads are decompressed and parsed through the default HTTP client.")]
+	[Description("Verifies compressed dotnet.js payloads are decompressed and parsed through the default HTTP client.")]
 	public async Task When_DotnetScriptIsGzipCompressed_Then_BootConfigIsExtracted()
 	{
 		await using var server = await TestHttpServer.StartAsync();
@@ -57,14 +58,14 @@ public sealed class Given_VersionCheckService
 
 		var report = await service.InspectAsync(new VersionCheckTarget(server.BaseAddress, new Uri(server.BaseAddress)));
 
-		Assert.AreEqual("dotnet.abc.js", report.BootConfigSource);
-		Assert.AreEqual(2, report.Assemblies.Length);
-		Assert.AreEqual(VersionCheckerTestAssets.MainAssemblyVersion, report.MainAssembly?.Version);
-		Assert.AreEqual(VersionCheckerTestAssets.RuntimeAssemblyVersion, report.RuntimeVersion);
+		report.BootConfigSource.Should().Be("dotnet.abc.js");
+		report.Assemblies.Length.Should().Be(2);
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+		report.RuntimeVersion.Should().Be(VersionCheckerTestAssets.RuntimeAssemblyVersion);
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies embedded.js package fallback resolves uno-config.js when the HTML page does not reference it directly.")]
+	[Description("Verifies embedded.js package fallback resolves uno-config.js when the HTML page does not reference it directly.")]
 	public async Task When_EmbeddedPackageScriptIsPresent_Then_PackageUnoConfigIsResolved()
 	{
 		using var client = new HttpClient(new StubHttpMessageHandler(request =>
@@ -87,13 +88,13 @@ public sealed class Given_VersionCheckService
 
 		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
 
-		Assert.AreEqual("https://example.com/package_hash/uno-config.js", report.UnoConfigUrl);
-		Assert.AreEqual(1, report.Assemblies.Length);
-		Assert.AreEqual(VersionCheckerTestAssets.MainAssemblyName, report.MainAssembly?.Name);
+		report.UnoConfigUrl.Should().Be("https://example.com/package_hash/uno-config.js");
+		report.Assemblies.Length.Should().Be(1);
+		(report.MainAssembly?.Name).Should().Be(VersionCheckerTestAssets.MainAssemblyName);
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies uno-bootstrap.js links are rewritten to uno-config.js before config parsing.")]
+	[Description("Verifies uno-bootstrap.js links are rewritten to uno-config.js before config parsing.")]
 	public async Task When_PageReferencesUnoBootstrap_Then_UnoConfigIsLoaded()
 	{
 		using var client = new HttpClient(new StubHttpMessageHandler(request =>
@@ -115,12 +116,12 @@ public sealed class Given_VersionCheckService
 
 		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
 
-		Assert.AreEqual("https://example.com/pkg/uno-config.js", report.UnoConfigUrl);
-		Assert.AreEqual(VersionCheckerTestAssets.MainAssemblyVersion, report.MainAssembly?.Version);
+		report.UnoConfigUrl.Should().Be("https://example.com/pkg/uno-config.js");
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies PE and WebCIL payloads are both parsed into assembly metadata.")]
+	[Description("Verifies PE and WebCIL payloads are both parsed into assembly metadata.")]
 	public async Task When_AssembliesContainPeAndWebcil_Then_BothFormatsAreParsed()
 	{
 		using var client = new HttpClient(new StubHttpMessageHandler(request =>
@@ -143,9 +144,9 @@ public sealed class Given_VersionCheckService
 
 		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
 
-		Assert.AreEqual(2, report.Assemblies.Length);
-		Assert.IsTrue(report.Assemblies.Any(assembly => assembly.Name == VersionCheckerTestAssets.MainAssemblyName));
-		Assert.IsTrue(report.Assemblies.Any(assembly => assembly.Name == "System.ValueTuple"));
+		report.Assemblies.Length.Should().Be(2);
+		report.Assemblies.Any(assembly => assembly.Name == VersionCheckerTestAssets.MainAssemblyName).Should().BeTrue();
+		report.Assemblies.Any(assembly => assembly.Name == "System.ValueTuple").Should().BeTrue();
 	}
 
 	private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

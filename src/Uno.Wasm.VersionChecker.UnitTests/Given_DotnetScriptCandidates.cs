@@ -1,6 +1,7 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.VersionChecker;
+using AwesomeAssertions;
 
 namespace Uno.Wasm.VersionChecker.UnitTests;
 
@@ -8,7 +9,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_DotnetScriptCandidates
 {
 	[TestMethod]
-	[Description("Regression guard: verifies package-scoped _framework paths are preferred before the site-root fallback.")]
+	[Description("Verifies package-scoped _framework paths are preferred before the site-root fallback.")]
 	public void When_ManagedPathIsPackageBased_Then_PackageCandidateIsTriedFirst()
 	{
 		var siteUri = new Uri("https://sl-dev.unoplatform.net/");
@@ -16,13 +17,13 @@ public class Given_DotnetScriptCandidates
 
 		var candidates = VersionCheckService.BuildDotnetScriptCandidates(siteUri, managedPath, "dotnet.abc.js");
 
-		Assert.AreEqual(2, candidates.Length);
-		Assert.AreEqual("https://sl-dev.unoplatform.net/package_hash/_framework/dotnet.abc.js", candidates[0].ToString());
-		Assert.AreEqual("https://sl-dev.unoplatform.net/_framework/dotnet.abc.js", candidates[1].ToString());
+		candidates.Length.Should().Be(2);
+		candidates[0].ToString().Should().Be("https://sl-dev.unoplatform.net/package_hash/_framework/dotnet.abc.js");
+		candidates[1].ToString().Should().Be("https://sl-dev.unoplatform.net/_framework/dotnet.abc.js");
 	}
 
 	[TestMethod]
-	[Description("Regression guard: verifies candidate generation deduplicates identical managed-path and fallback URLs.")]
+	[Description("Verifies candidate generation deduplicates identical managed-path and fallback URLs.")]
 	public void When_ManagedPathMatchesRoot_Then_CandidatesAreDeduplicated()
 	{
 		var siteUri = new Uri("https://example.com/");
@@ -30,7 +31,7 @@ public class Given_DotnetScriptCandidates
 
 		var candidates = VersionCheckService.BuildDotnetScriptCandidates(siteUri, managedPath, "dotnet.js");
 
-		Assert.AreEqual(1, candidates.Length);
-		Assert.AreEqual("https://example.com/_framework/dotnet.js", candidates[0].ToString());
+		candidates.Length.Should().Be(1);
+		candidates[0].ToString().Should().Be("https://example.com/_framework/dotnet.js");
 	}
 }

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AwesomeAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Repl;
 using Uno.VersionChecker;
@@ -20,42 +21,46 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public sealed class Given_ReplHost
 {
 	[TestMethod]
-	[Description("Regression guard: verifies the root route accepts hostnames without a scheme and renders the structured report.")]
+	[Description("Verifies the root route accepts hostnames without a scheme and renders the structured report.")]
 	public Task When_RootHostnameCommandRuns_Then_SiteConstraintAcceptsHostWithoutScheme() =>
 		AssertStructuredExecutionAsync(["example.com", "--no-logo"]);
 
 	[TestMethod]
-	[Description("Regression guard: verifies the explicit inspect alias reaches the same structured inspection pipeline.")]
+	[Description("Verifies the explicit inspect alias reaches the same structured inspection pipeline.")]
 	public Task When_InspectAliasRuns_Then_ExplicitCommandUsesSamePath() =>
 		AssertStructuredExecutionAsync(["inspect", "example.com", "--no-logo"]);
 
 	[TestMethod]
-	[Description("Regression guard: verifies JSON output contains rich structured payloads with real assembly metadata.")]
-	public async Task When_RenderingJson_Then_ReplSerializesStructuredPayloads()
+	[Description("Verifies JSON output contains rich structured payloads with real assembly metadata.")]
+	public void When_RenderingJson_Then_ReplSerializesStructuredPayloads()
 	{
 		using var client = new HttpClient(new StubHttpMessageHandler());
-		var execution = CaptureExecution(() => VersionCheckerReplHost.CreateApp(httpClient: client).Run(["inspect", "example.com", "--json", "--no-logo"]));
+		var execution = CaptureExecution(() =>
+			VersionCheckerReplHost.CreateApp(httpClient: client)
+				.Run(["inspect", "example.com", "--json", "--no-logo"]));
 
-		Assert.AreEqual(0, execution.ExitCode);
+		execution.ExitCode.Should().Be(0);
 
 		var documents = ParseJsonDocuments(execution.OutputText);
-		Assert.AreEqual(4, documents.Length);
+		documents.Length.Should().Be(4);
 
-		Assert.AreEqual("https://example.com/", documents[0].RootElement.GetProperty("target").GetString());
-		Assert.AreEqual(2, documents[0].RootElement.GetProperty("assemblyCount").GetInt32());
-		Assert.AreEqual(VersionCheckerTestAssets.MainAssemblyName, documents[1].RootElement.GetProperty("mainAssembly").GetString());
-		Assert.AreEqual(VersionCheckerTestAssets.MainAssemblyVersion, documents[1].RootElement.GetProperty("mainAssemblyVersion").GetString());
-		Assert.AreEqual(VersionCheckerTestAssets.RuntimeAssemblyFramework, documents[1].RootElement.GetProperty("runtimeFramework").GetString());
+		documents[0].RootElement.GetProperty("target").GetString().Should().Be("https://example.com/");
+		documents[0].RootElement.GetProperty("assemblyCount").GetInt32().Should().Be(2);
+		documents[1].RootElement.GetProperty("mainAssembly").GetString().Should().Be(VersionCheckerTestAssets.MainAssemblyName);
+		documents[1].RootElement.GetProperty("mainAssemblyVersion").GetString().Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+		documents[1].RootElement.GetProperty("runtimeFramework").GetString().Should().Be(VersionCheckerTestAssets.RuntimeAssemblyFramework);
 
 		var assemblies = documents[2].RootElement.EnumerateArray().ToArray();
-		Assert.AreEqual(2, assemblies.Length);
-		Assert.IsTrue(assemblies.Any(assembly => assembly.GetProperty("name").GetString() == VersionCheckerTestAssets.MainAssemblyName
+		assemblies.Should().HaveCount(2);
+		assemblies.Should().Contain(assembly =>
+			assembly.GetProperty("name").GetString() == VersionCheckerTestAssets.MainAssemblyName
 			&& assembly.GetProperty("version").GetString() == VersionCheckerTestAssets.MainAssemblyVersion
-			&& assembly.GetProperty("framework").GetString() == VersionCheckerTestAssets.MainAssemblyFramework));
-		Assert.IsTrue(assemblies.Any(assembly => assembly.GetProperty("name").GetString() == VersionCheckerTestAssets.RuntimeAssemblyName
-			&& assembly.GetProperty("version").GetString() == VersionCheckerTestAssets.RuntimeAssemblyVersion));
+			&& assembly.GetProperty("framework").GetString() == VersionCheckerTestAssets.MainAssemblyFramework);
+		assemblies.Should().Contain(assembly =>
+			assembly.GetProperty("name").GetString() == VersionCheckerTestAssets.RuntimeAssemblyName
+			&& assembly.GetProperty("version").GetString() == VersionCheckerTestAssets.RuntimeAssemblyVersion);
 
-		Assert.AreEqual("Inspection completed. Found 2 assemblies.", documents[3].RootElement.GetProperty("message").GetString());
+		documents[3].RootElement.GetProperty("message").GetString().Should().Be("Inspection completed. Found 2 assemblies.");
 	}
 
 	private static async Task AssertStructuredExecutionAsync(string[] args)
@@ -63,11 +68,11 @@ public sealed class Given_ReplHost
 		using var client = new HttpClient(new StubHttpMessageHandler());
 		var execution = CaptureExecution(() => VersionCheckerReplHost.CreateApp(httpClient: client).Run(args));
 
-		Assert.AreEqual(0, execution.ExitCode);
-		StringAssert.Contains(execution.OutputText, "AssemblyCount");
-		StringAssert.Contains(execution.OutputText, "2");
-		StringAssert.Contains(execution.OutputText, VersionCheckerTestAssets.MainAssemblyName);
-		StringAssert.Contains(execution.OutputText, VersionCheckerTestAssets.RuntimeAssemblyName);
+		execution.ExitCode.Should().Be(0);
+		execution.OutputText.Should().Contain("AssemblyCount");
+		execution.OutputText.Should().Contain("2");
+		execution.OutputText.Should().Contain(VersionCheckerTestAssets.MainAssemblyName);
+		execution.OutputText.Should().Contain(VersionCheckerTestAssets.RuntimeAssemblyName);
 
 		await Task.CompletedTask;
 	}
@@ -172,9 +177,9 @@ public sealed class Given_ReplHost
 
 	private sealed class StubHttpMessageHandler : HttpMessageHandler
 	{
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-		{
-			return Task.FromResult(request.RequestUri?.AbsolutePath switch
+		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+			CancellationToken cancellationToken)
+			=> Task.FromResult(request.RequestUri?.AbsolutePath switch
 			{
 				"/" => Text("""<html><body><script src="pkg/uno-config.js"></script></body></html>"""),
 				"/pkg/uno-config.js" => Text("""
@@ -187,7 +192,6 @@ public sealed class Given_ReplHost
 				"/pkg/_framework/System.Private.CoreLib.dll" => Bytes(VersionCheckerTestAssets.RuntimeAssemblyBytes),
 				_ => NotFound()
 			});
-		}
 
 		private static HttpResponseMessage Text(string content) =>
 			new(HttpStatusCode.OK) { Content = new StringContent(content, Encoding.UTF8, "text/plain") };
