@@ -134,14 +134,14 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 	{
 		if (!string.IsNullOrWhiteSpace(unoConfig?.DotnetJsFilename))
 		{
-			var config = await GetDotnetConfigFromDotnetJsAsync(siteUri, unoConfig.DotnetJsFilename!, cancellationToken);
+			var config = await GetDotnetConfigFromDotnetJsAsync(siteUri, unoConfig.DotnetJsFilename!, unoConfig?.AssembliesPath, cancellationToken);
 			if (config is not null)
 			{
 				return config;
 			}
 		}
 
-		var defaultConfig = await GetDotnetConfigFromDotnetJsAsync(siteUri, "dotnet.js", cancellationToken);
+		var defaultConfig = await GetDotnetConfigFromDotnetJsAsync(siteUri, "dotnet.js", unoConfig?.AssembliesPath, cancellationToken);
 		if (defaultConfig is not null)
 		{
 			return defaultConfig;
@@ -322,33 +322,62 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 		return new UnoConfigFields(managePath, packagePath, mainAssembly, assemblies, dotnetJsFilename);
 	}
 
-	private async Task<DotnetConfig?> GetDotnetConfigFromDotnetJsAsync(Uri siteUri, string dotnetJsFilename, CancellationToken cancellationToken)
+	internal static Uri[] BuildDotnetScriptCandidates(Uri siteUri, Uri? managedPath, string dotnetJsFilename)
 	{
-		var dotnetJsUrl = new Uri(siteUri, $"_framework/{dotnetJsFilename}");
+		var candidates = new List<Uri>();
 
-		try
+		if (managedPath is not null)
 		{
-			using var response = await httpClient.GetAsync(dotnetJsUrl, cancellationToken);
-			if (!response.IsSuccessStatusCode)
-			{
-				return null;
-			}
+			candidates.Add(new Uri(managedPath, dotnetJsFilename));
+		}
 
-			var content = await response.Content.ReadAsStringAsync(cancellationToken);
-			var config = ExtractBootConfigFromScript(content);
-			return config is null
-				? null
-				: config with
-				{
-					AssembliesPath = new Uri(siteUri, "_framework/"),
-					SourceUrl = dotnetJsUrl.ToString()
-				};
-		}
-		catch (HttpRequestException)
-		{
-			return null;
-		}
+		candidates.Add(new Uri(siteUri, $"_framework/{dotnetJsFilename}"));
+
+		return candidates
+			.Distinct()
+			.ToArray();
 	}
+
+	private async Task<DotnetConfig?> GetDotnetConfigFromDotnetJsAsync(
+		Uri siteUri,
+		string dotnetJsFilename,
+		Uri? managedPath,
+		CancellationToken cancellationToken)
+	{
+		foreach (var dotnetJsUrl in BuildDotnetScriptCandidates(siteUri, managedPath, dotnetJsFilename))
+		{
+			try
+			{
+				using var response = await httpClient.GetAsync(dotnetJsUrl, cancellationToken);
+				if (!response.IsSuccessStatusCode)
+				{
+					continue;
+				}
+
+				var content = await response.Content.ReadAsStringAsync(cancellationToken);
+				var config = ExtractBootConfigFromScript(content);
+				if (config is not null)
+				{
+					return config with
+					{
+						AssembliesPath = EnsureTrailingSlash(new Uri(dotnetJsUrl, ".")),
+						SourceUrl = dotnetJsUrl.ToString()
+					};
+				}
+			}
+			catch (HttpRequestException)
+			{
+				// Try the next valid bootstrapper location.
+			}
+		}
+
+		return null;
+	}
+
+	private static Uri EnsureTrailingSlash(Uri uri) =>
+		uri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)
+			? uri
+			: new Uri($"{uri.AbsoluteUri}/");
 
 	private static DotnetConfig ParseDotnetConfig(JsonElement root)
 	{

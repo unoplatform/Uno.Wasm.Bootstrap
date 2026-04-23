@@ -16,7 +16,7 @@ internal static class VersionCheckerReplHost
 	{
 		var app = ReplApp.Create(services =>
 			{
-				services.AddSingleton(httpClient ?? new HttpClient());
+				services.AddSingleton(httpClient ?? VersionCheckHttp.CreateDefaultHttpClient());
 				services.AddSingleton<VersionCheckService>();
 			})
 			.WithDescription("Inspect a deployed Uno Platform WebAssembly application and extract version information.")

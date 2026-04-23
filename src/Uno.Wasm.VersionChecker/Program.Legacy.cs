@@ -37,7 +37,7 @@ internal static class Program
 
 		try
 		{
-			using var httpClient = new HttpClient();
+			using var httpClient = VersionCheckHttp.CreateDefaultHttpClient();
 			using var service = new VersionCheckService(httpClient);
 			var report = await service.InspectAsync(target!);
 			ConsoleReportWriter.WriteSuccessPreamble(report);
