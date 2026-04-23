@@ -74,4 +74,15 @@ public class Given_VersionCheckTarget
 		target.Should().BeNull();
 		error.Should().Contain("Unable to parse target");
 	}
+
+	[TestMethod]
+	[Description("Verifies local and metadata network targets are rejected before inspection starts.")]
+	public void When_TargetIsPrivateAddress_Then_ParseFails()
+	{
+		var result = VersionCheckTarget.TryParse("http://169.254.169.254/latest/meta-data/", out var target, out var error);
+
+		result.Should().BeFalse();
+		target.Should().BeNull();
+		error.Should().Contain("private network");
+	}
 }

@@ -69,10 +69,17 @@ public sealed class Given_ReplHost
 		var execution = CaptureExecution(() => VersionCheckerReplHost.CreateApp(httpClient: client).Run(args));
 
 		execution.ExitCode.Should().Be(0);
-		execution.OutputText.Should().Contain("AssemblyCount");
-		execution.OutputText.Should().Contain("2");
-		execution.OutputText.Should().Contain(VersionCheckerTestAssets.MainAssemblyName);
-		execution.OutputText.Should().Contain(VersionCheckerTestAssets.RuntimeAssemblyName);
+		var outputLines = execution.OutputText
+			.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+		outputLines.Should().Contain(line => line.Contains("AssemblyCount", StringComparison.Ordinal)
+			&& line.Contains("2", StringComparison.Ordinal));
+		outputLines.Should().Contain(line => line.Contains("MainAssemblyVersion", StringComparison.Ordinal)
+			&& line.Contains(VersionCheckerTestAssets.MainAssemblyVersion, StringComparison.Ordinal));
+		outputLines.Should().Contain(line => line.Contains("RuntimeVersion", StringComparison.Ordinal)
+			&& line.Contains(VersionCheckerTestAssets.RuntimeAssemblyVersion, StringComparison.Ordinal));
+		outputLines.Should().Contain(line => line.Contains(VersionCheckerTestAssets.MainAssemblyName, StringComparison.Ordinal));
+		outputLines.Should().Contain(line => line.Contains(VersionCheckerTestAssets.RuntimeAssemblyName, StringComparison.Ordinal));
 
 		await Task.CompletedTask;
 	}

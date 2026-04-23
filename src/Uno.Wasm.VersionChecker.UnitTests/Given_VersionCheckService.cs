@@ -17,7 +17,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public sealed class Given_VersionCheckService
 {
 	[TestMethod]
-	[Description("Verifies compressed dotnet.js payloads are decompressed and parsed through the default HTTP client.")]
+	[Description("Verifies compressed dotnet.js payloads are decompressed when the HTTP client enables automatic decompression.")]
 	public async Task When_DotnetScriptIsGzipCompressed_Then_BootConfigIsExtracted()
 	{
 		await using var server = await TestHttpServer.StartAsync();
@@ -53,7 +53,11 @@ public sealed class Given_VersionCheckService
 			}
 		});
 
-		using var client = VersionCheckHttp.CreateDefaultHttpClient();
+		using var client = new HttpClient(new SocketsHttpHandler
+		{
+			AutomaticDecompression = DecompressionMethods.All,
+			AllowAutoRedirect = false
+		});
 		var service = new VersionCheckService(client);
 
 		var report = await service.InspectAsync(new VersionCheckTarget(server.BaseAddress, new Uri(server.BaseAddress)));
@@ -62,6 +66,45 @@ public sealed class Given_VersionCheckService
 		report.Assemblies.Length.Should().Be(2);
 		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
 		report.RuntimeVersion.Should().Be(VersionCheckerTestAssets.RuntimeAssemblyVersion);
+	}
+
+	[TestMethod]
+	[Description("Verifies the compressed dotnet.js flow depends on the default client enabling automatic decompression.")]
+	public async Task When_DotnetScriptIsGzipCompressedWithoutAutoDecompression_Then_InspectionFails()
+	{
+		await using var server = await TestHttpServer.StartAsync();
+		server.SetResponder(async context =>
+		{
+			switch (context.Request.Url?.AbsolutePath)
+			{
+				case "/":
+					await TestHttpServer.WriteTextAsync(context, """<html><body><script src="pkg/uno-config.js"></script></body></html>""");
+					break;
+				case "/pkg/uno-config.js":
+					await TestHttpServer.WriteTextAsync(context, """
+						config.uno_app_base = "/pkg";
+						config.uno_remote_managedpath = "_framework";
+						config.dotnet_js_filename = "dotnet.abc.js";
+						""");
+					break;
+				case "/pkg/_framework/dotnet.abc.js":
+					await TestHttpServer.WriteGzipTextAsync(context, """
+						/*json-start*/{"mainAssemblyName":"Uno.Wasm.VersionChecker","resources":{"assembly":{"Uno.Wasm.VersionChecker.dll":"sha"}}}/*json-end*/
+						""");
+					break;
+				default:
+					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+					context.Response.Close();
+					break;
+			}
+		});
+
+		using var client = new HttpClient();
+		var service = new VersionCheckService(client);
+
+		var act = async () => await service.InspectAsync(new VersionCheckTarget(server.BaseAddress, new Uri(server.BaseAddress)));
+
+		await act.Should().ThrowAsync<InvalidOperationException>();
 	}
 
 	[TestMethod]
@@ -121,6 +164,31 @@ public sealed class Given_VersionCheckService
 	}
 
 	[TestMethod]
+	[Description("Verifies absolute package paths from uno-config.js cannot pivot inspection to another origin.")]
+	public async Task When_UnoConfigContainsAbsolutePackagePath_Then_InspectionFails()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="pkg/uno-config.js"></script></body></html>"""),
+				"/pkg/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "https://attacker.invalid/pkg";
+					config.uno_remote_managedpath = "_framework";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var act = async () => await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*outside the inspected site*");
+	}
+
+	[TestMethod]
 	[Description("Verifies PE and WebCIL payloads are both parsed into assembly metadata.")]
 	public async Task When_AssembliesContainPeAndWebcil_Then_BothFormatsAreParsed()
 	{
@@ -147,6 +215,47 @@ public sealed class Given_VersionCheckService
 		report.Assemblies.Length.Should().Be(2);
 		report.Assemblies.Any(assembly => assembly.Name == VersionCheckerTestAssets.MainAssemblyName).Should().BeTrue();
 		report.Assemblies.Any(assembly => assembly.Name == "System.ValueTuple").Should().BeTrue();
+	}
+
+	[TestMethod]
+	[Description("Verifies a UTF-8 BOM in blazor.boot.json does not prevent boot config discovery.")]
+	public async Task When_BootConfigStartsWithUtf8Bom_Then_ItIsStillDetected()
+	{
+		var bomPrefixedJson = "\uFEFF{\"mainAssemblyName\":\"Uno.Wasm.VersionChecker\",\"resources\":{\"assembly\":{\"Uno.Wasm.VersionChecker.dll\":\"sha\"}}}";
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("<html><body></body></html>"),
+				"/embedded.js" => StubHttpMessageHandler.NotFound(),
+				"/_framework/blazor.boot.json" => StubHttpMessageHandler.Text(bomPrefixedJson),
+				"/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.BootConfigSource.Should().Be("blazor.boot.json");
+		report.Assemblies.Length.Should().Be(1);
+	}
+
+	[TestMethod]
+	[Description("Verifies later duplicate uno-config fields override earlier values while parsing the same config file.")]
+	public void When_UnoConfigFieldsRepeat_Then_LastValueWins()
+	{
+		const string content = """
+			config.uno_app_base = "/first";
+			config.uno_app_base = "/final";
+			config.dotnet_js_filename = "dotnet.first.js";
+			config.dotnet_js_filename = "dotnet.final.js";
+			""";
+
+		var fields = VersionCheckService.ParseUnoConfigFields(content);
+
+		fields.PackagePath.Should().Be("/final");
+		fields.DotnetJsFilename.Should().Be("dotnet.final.js");
 	}
 
 	private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
@@ -241,10 +350,9 @@ public sealed class Given_VersionCheckService
 			context.Response.StatusCode = (int)HttpStatusCode.OK;
 			context.Response.ContentType = "application/javascript; charset=utf-8";
 			context.Response.AddHeader("Content-Encoding", "gzip");
-			await using var gzip = new GZipStream(context.Response.OutputStream, CompressionLevel.SmallestSize, leaveOpen: true);
+			await using var gzip = new GZipStream(context.Response.OutputStream, CompressionLevel.SmallestSize);
 			var bytes = Encoding.UTF8.GetBytes(content);
 			await gzip.WriteAsync(bytes, 0, bytes.Length);
-			await gzip.FlushAsync();
 		}
 
 		private static int GetAvailablePort()

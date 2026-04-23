@@ -50,9 +50,21 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 
 		try
 		{
+			var sanitizedBuilder = new UriBuilder(siteUri)
+			{
+				UserName = string.Empty,
+				Password = string.Empty
+			};
+			siteUri = sanitizedBuilder.Uri;
+
 			if (!siteUri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal))
 			{
 				siteUri = new UriBuilder(siteUri) { Path = $"{siteUri.AbsolutePath.TrimEnd('/')}/" }.Uri;
+			}
+
+			if (!VersionCheckNetworkPolicy.IsSafePublicTarget(siteUri, out error))
+			{
+				return false;
 			}
 		}
 		catch (UriFormatException)

@@ -39,6 +39,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		RegexTimeout);
 	private static readonly string[] RuntimeAssemblyNames = ["System.Private.CoreLib", "mscorlib", "netstandard"];
 	private static readonly TimeSpan[] TooManyRequestsBackoff = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
+	private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
 
 	public async Task<VersionCheckReport> InspectAsync(VersionCheckTarget target, CancellationToken cancellationToken = default)
 	{
@@ -116,7 +117,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		var content = await ReadContentAsStringAsync(embeddedResponse.Content, embeddedJsUri, cancellationToken);
 		if (EmbeddedPackageRegex.Match(content) is { Success: true } match)
 		{
-			return new Uri(siteUri, match.Groups["package"].Value + "/uno-config.js");
+			return VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, match.Groups["package"].Value + "/uno-config.js", "embedded.js");
 		}
 
 		return null;
@@ -132,7 +133,11 @@ public sealed class VersionCheckService(HttpClient httpClient)
 
 		var fields = ParseUnoConfigFields(content);
 		var assembliesPath = fields.PackagePath is not null && fields.ManagedPath is not null
-			? new Uri(new Uri(siteUri, fields.PackagePath.TrimEnd('/') + "/"), fields.ManagedPath.TrimEnd('/') + "/")
+			? VersionCheckNetworkPolicy.ResolveTrustedUri(
+				siteUri,
+				VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, fields.PackagePath.TrimEnd('/') + "/", "uno_app_base"),
+				fields.ManagedPath.TrimEnd('/') + "/",
+				"uno_remote_managedpath")
 			: siteUri;
 
 		return new UnoConfig(assembliesPath, fields.MainAssembly, fields.Assemblies, server, fields.DotnetJsFilename);
@@ -169,18 +174,19 @@ public sealed class VersionCheckService(HttpClient httpClient)
 	{
 		if (unoConfig is { Assemblies.IsDefaultOrEmpty: false })
 		{
-			return await ReadAssembliesAsync(unoConfig.AssembliesPath, unoConfig.Assemblies, cancellationToken);
+			return await ReadAssembliesAsync(siteUri, unoConfig.AssembliesPath, unoConfig.Assemblies, cancellationToken);
 		}
 
 		if (dotnetConfig?.AssembliesPath is not null && !dotnetConfig.Assemblies.IsDefaultOrEmpty)
 		{
-			return await ReadAssembliesAsync(dotnetConfig.AssembliesPath, dotnetConfig.Assemblies, cancellationToken);
+			return await ReadAssembliesAsync(siteUri, dotnetConfig.AssembliesPath, dotnetConfig.Assemblies, cancellationToken);
 		}
 
 		throw new InvalidOperationException($"No assemblies were found for '{siteUri}'.");
 	}
 
 	private async Task<ImmutableArray<AssemblyVersionInfo>> ReadAssembliesAsync(
+		Uri siteUri,
 		Uri basePath,
 		IReadOnlyList<string> assemblies,
 		CancellationToken cancellationToken)
@@ -191,7 +197,8 @@ public sealed class VersionCheckService(HttpClient httpClient)
 			await concurrencyGate.WaitAsync(cancellationToken);
 			try
 			{
-				return await GetAssemblyDetailsAsync(new Uri(basePath, assemblyPath), cancellationToken);
+				var assemblyUri = VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, basePath, assemblyPath, "assembly");
+				return await GetAssemblyDetailsAsync(assemblyUri, cancellationToken);
 			}
 			finally
 			{
@@ -241,7 +248,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		response.EnsureSuccessStatusCode();
 
 		var jsonBytes = await ReadContentAsBytesAsync(response.Content, dotnetConfigPath, cancellationToken);
-		using var json = JsonDocument.Parse(jsonBytes);
+		using var json = JsonDocument.Parse(StripUtf8Bom(jsonBytes));
 
 		var config = ParseDotnetConfig(json.RootElement);
 		var assembliesPath = new Uri(
@@ -368,10 +375,10 @@ public sealed class VersionCheckService(HttpClient httpClient)
 
 		if (managedPath is not null)
 		{
-			candidates.Add(new Uri(managedPath, dotnetJsFilename));
+			candidates.Add(VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, managedPath, dotnetJsFilename, "dotnet_js_filename"));
 		}
 
-		candidates.Add(new Uri(siteUri, $"_framework/{dotnetJsFilename}"));
+		candidates.Add(VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, $"_framework/{dotnetJsFilename}", "dotnet_js_filename"));
 
 		return candidates
 			.Distinct()
@@ -549,7 +556,8 @@ public sealed class VersionCheckService(HttpClient httpClient)
 	private static AssemblyVersionInfo? ParseAssemblyMetadata(Stream stream)
 	{
 		var assembly = AssemblyDefinition.ReadAssembly(stream);
-		var attributes = assembly.CustomAttributes.ToArray();
+		var attributes = assembly.CustomAttributes;
+		var hasAttributes = false;
 
 		var name = assembly.Name.Name;
 		var version = assembly.Name.Version.ToString();
@@ -560,6 +568,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 
 		foreach (var attribute in attributes)
 		{
+			hasAttributes = true;
 			switch (attribute.AttributeType.Name)
 			{
 				case nameof(AssemblyInformationalVersionAttribute):
@@ -583,7 +592,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 			}
 		}
 
-		if (attributes.Length == 0)
+		if (!hasAttributes)
 		{
 			targetFramework = "WASM AOT";
 		}
@@ -601,7 +610,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 	private static async Task<string> ReadContentAsStringAsync(HttpContent content, Uri sourceUri, CancellationToken cancellationToken)
 	{
 		var bytes = await ReadContentAsBytesAsync(content, sourceUri, cancellationToken);
-		return GetEncoding(content).GetString(bytes);
+		return Encoding.UTF8.GetString(bytes);
 	}
 
 	private static async Task<byte[]> ReadContentAsBytesAsync(HttpContent content, Uri sourceUri, CancellationToken cancellationToken)
@@ -610,29 +619,17 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		return await ReadStreamWithLimitAsync(stream, sourceUri, cancellationToken);
 	}
 
-	private static Encoding GetEncoding(HttpContent content)
-	{
-		var charset = content.Headers.ContentType?.CharSet;
-		if (!string.IsNullOrWhiteSpace(charset))
-		{
-			try
-			{
-				return Encoding.GetEncoding(charset);
-			}
-			catch (ArgumentException)
-			{
-			}
-		}
-
-		return Encoding.UTF8;
-	}
+	private static ReadOnlyMemory<byte> StripUtf8Bom(byte[] bytes) =>
+		bytes.AsSpan().StartsWith(Utf8Bom)
+			? bytes.AsMemory(Utf8Bom.Length)
+			: bytes;
 
 	private static async Task<byte[]> ReadStreamWithLimitAsync(Stream stream, Uri sourceUri, CancellationToken cancellationToken)
 	{
 		var buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
 		try
 		{
-			using var memory = new MemoryStream();
+			var writer = new ArrayBufferWriter<byte>();
 			var totalBytes = 0;
 
 			while (true)
@@ -640,7 +637,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 				var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
 				if (read == 0)
 				{
-					return memory.ToArray();
+					return writer.WrittenMemory.ToArray();
 				}
 
 				totalBytes += read;
@@ -649,7 +646,7 @@ public sealed class VersionCheckService(HttpClient httpClient)
 					throw new InvalidOperationException($"Response from '{sourceUri}' exceeded the {VersionCheckHttp.MaxResponseBytes} byte limit.");
 				}
 
-				await memory.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+				writer.Write(buffer.AsSpan(0, read));
 			}
 		}
 		finally
@@ -661,11 +658,19 @@ public sealed class VersionCheckService(HttpClient httpClient)
 	private static async Task<byte?> ReadFirstMeaningfulByteAsync(Stream stream, CancellationToken cancellationToken)
 	{
 		var buffer = new byte[1];
+		var bomIndex = 0;
 		while (await stream.ReadAsync(buffer.AsMemory(0, 1), cancellationToken) == 1)
 		{
-			if (!char.IsWhiteSpace((char)buffer[0]))
+			var current = buffer[0];
+			if (bomIndex < Utf8Bom.Length && current == Utf8Bom[bomIndex])
 			{
-				return buffer[0];
+				bomIndex++;
+				continue;
+			}
+
+			if (!char.IsWhiteSpace((char)current))
+			{
+				return current;
 			}
 		}
 
