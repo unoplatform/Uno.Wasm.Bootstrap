@@ -26,7 +26,7 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 			if ((absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps)
 				|| string.IsNullOrWhiteSpace(absolute.Host))
 			{
-				error = $"Unsupported target '{input}'. Only http(s) URLs are allowed.";
+				error = $"Unsupported target '{SanitizeForDisplay(input)}'. Only http(s) URLs are allowed.";
 				return false;
 			}
 
@@ -34,7 +34,7 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 		}
 		else if (candidate.Contains("://", StringComparison.Ordinal))
 		{
-			error = $"Unable to parse target '{input}'.";
+			error = $"Unable to parse target '{SanitizeForDisplay(input)}'.";
 			return false;
 		}
 		else if (Uri.TryCreate($"https://{candidate}", UriKind.Absolute, out var assumedHttps)
@@ -44,7 +44,7 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 		}
 		else
 		{
-			error = $"Unable to parse target '{input}'.";
+			error = $"Unable to parse target '{SanitizeForDisplay(input)}'.";
 			return false;
 		}
 
@@ -69,11 +69,31 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 		}
 		catch (UriFormatException)
 		{
-			error = $"Unable to parse target '{input}'.";
+			error = $"Unable to parse target '{SanitizeForDisplay(input)}'.";
 			return false;
 		}
 
 		target = new VersionCheckTarget(candidate, siteUri);
 		return true;
+	}
+
+	public static string SanitizeForDisplay(string? input)
+	{
+		if (string.IsNullOrWhiteSpace(input))
+		{
+			return string.Empty;
+		}
+
+		if (!Uri.TryCreate(input.Trim(), UriKind.Absolute, out var uri))
+		{
+			return input.Trim();
+		}
+
+		var builder = new UriBuilder(uri)
+		{
+			UserName = string.Empty,
+			Password = string.Empty
+		};
+		return builder.Uri.ToString();
 	}
 }

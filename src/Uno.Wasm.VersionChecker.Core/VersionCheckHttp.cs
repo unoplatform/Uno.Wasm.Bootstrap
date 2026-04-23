@@ -54,6 +54,11 @@ public static class VersionCheckHttp
 				await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken);
 				return new NetworkStream(socket, ownsSocket: true);
 			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				socket.Dispose();
+				throw;
+			}
 			catch (Exception ex)
 			{
 				lastError = ex;

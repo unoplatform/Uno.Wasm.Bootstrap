@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Net;
 using Uno.VersionChecker;
 
 namespace Uno.Wasm.VersionChecker.UnitTests;
@@ -84,5 +85,27 @@ public class Given_VersionCheckTarget
 		result.Should().BeFalse();
 		target.Should().BeNull();
 		error.Should().Contain("private network");
+	}
+
+	[TestMethod]
+	[Description("Verifies userinfo is stripped from user-facing parse errors.")]
+	public void When_InputContainsUserInfo_Then_ErrorIsSanitized()
+	{
+		var result = VersionCheckTarget.TryParse("ftp://user:secret@example.com", out var target, out var error);
+
+		result.Should().BeFalse();
+		target.Should().BeNull();
+		error.Should().NotContain("secret");
+		error.Should().NotContain("user:");
+	}
+
+	[TestMethod]
+	[Description("Verifies special and mapped IP ranges are treated as non-public for SSRF protection.")]
+	public void When_AddressIsNonRoutable_Then_IsPublicAddressReturnsFalse()
+	{
+		VersionCheckNetworkPolicy.IsPublicAddress(IPAddress.Parse("::")).Should().BeFalse();
+		VersionCheckNetworkPolicy.IsPublicAddress(IPAddress.Parse("::ffff:127.0.0.1")).Should().BeFalse();
+		VersionCheckNetworkPolicy.IsPublicAddress(IPAddress.Parse("100.64.0.1")).Should().BeFalse();
+		VersionCheckNetworkPolicy.IsPublicAddress(IPAddress.Parse("224.0.0.1")).Should().BeFalse();
 	}
 }

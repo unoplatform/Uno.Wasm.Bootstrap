@@ -45,7 +45,7 @@ public static class VersionCheckerReplHost
 	{
 		if (!VersionCheckTarget.TryParse(input, out var target, out var error) || target is null)
 		{
-			return Results.Exit(250, Results.Validation(error ?? $"Invalid target '{input}'."));
+			return Results.Exit(250, Results.Validation(error ?? $"Invalid target '{VersionCheckTarget.SanitizeForDisplay(input)}'."));
 		}
 
 		try

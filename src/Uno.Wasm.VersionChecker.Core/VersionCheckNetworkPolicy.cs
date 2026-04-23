@@ -48,6 +48,16 @@ internal static class VersionCheckNetworkPolicy
 
 	public static bool IsPublicAddress(IPAddress address)
 	{
+		if (address.IsIPv4MappedToIPv6)
+		{
+			address = address.MapToIPv4();
+		}
+
+		if (IPAddress.Any.Equals(address) || IPAddress.IPv6Any.Equals(address) || IPAddress.IPv6None.Equals(address))
+		{
+			return false;
+		}
+
 		if (IPAddress.IsLoopback(address))
 		{
 			return false;
@@ -65,11 +75,14 @@ internal static class VersionCheckNetworkPolicy
 		}
 
 		var ipv4Bytes = address.GetAddressBytes();
-		return !(ipv4Bytes[0] == 10
+		return !(ipv4Bytes[0] == 0
+			|| ipv4Bytes[0] == 10
 			|| ipv4Bytes[0] == 127
+			|| (ipv4Bytes[0] == 100 && ipv4Bytes[1] >= 64 && ipv4Bytes[1] <= 127)
 			|| (ipv4Bytes[0] == 169 && ipv4Bytes[1] == 254)
 			|| (ipv4Bytes[0] == 172 && ipv4Bytes[1] >= 16 && ipv4Bytes[1] <= 31)
-			|| (ipv4Bytes[0] == 192 && ipv4Bytes[1] == 168));
+			|| (ipv4Bytes[0] == 192 && ipv4Bytes[1] == 168)
+			|| ipv4Bytes[0] >= 224);
 	}
 
 	public static Uri EnsureSameOrigin(Uri siteUri, Uri candidate, string sourceName)
