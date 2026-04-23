@@ -1,4 +1,3 @@
-#if NET10_0
 using System;
 using System.ComponentModel;
 using System.Net.Http;
@@ -45,30 +44,26 @@ internal static class VersionCheckerReplHost
 	{
 		if (!VersionCheckTarget.TryParse(input, out var target, out var error))
 		{
-			Colorful.Console.Error.WriteLine(error ?? $"Invalid target '{input}'.", System.Drawing.Color.Red);
-			return Results.Exit(250);
+			return Results.Exit(250, Results.Validation(error ?? $"Invalid target '{input}'."));
 		}
-
-		ConsoleReportWriter.WriteBanner(version);
-		ConsoleReportWriter.WriteCheckingTarget(target!);
 
 		try
 		{
 			var report = await service.InspectAsync(target!);
-			ConsoleReportWriter.WriteSuccessPreamble(report);
-			ConsoleReportWriter.WriteResults(report);
-			return Results.Exit(0);
+			return (
+				VersionCheckReplViews.CreateInspection(version, report),
+				VersionCheckReplViews.CreateSummary(report),
+				VersionCheckReplViews.CreateAssemblyRows(report),
+				Results.Success($"Inspection completed. Found {report.Assemblies.Length} assemblies.")
+			);
 		}
 		catch (InvalidOperationException ex)
 		{
-			Colorful.Console.Error.WriteLine(ex.Message, System.Drawing.Color.Red);
-			return Results.Exit(1);
+			return Results.Exit(1, Results.Error("inspection_failed", ex.Message));
 		}
 		catch (Exception ex)
 		{
-			Colorful.Console.Error.WriteLine($"Unable to read uno config: {ex}", System.Drawing.Color.Red);
-			return Results.Exit(255);
+			return Results.Exit(255, Results.Error("inspection_exception", $"Unable to inspect '{target!.SiteUri}': {ex.Message}"));
 		}
 	}
 }
-#endif

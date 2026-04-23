@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net10.0;net9.0</TargetFrameworks>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<RollForward>Major</RollForward>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -17,15 +17,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Colorful.Console" Version="1.2.15" />
-		<PackageReference Include="ConsoleTables" Version="2.4.2" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <ProjectReference Include="..\Uno.Wasm.VersionChecker.Core\Uno.Wasm.VersionChecker.Core.csproj" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+	<ItemGroup>
 		<PackageReference Include="Repl" Version="0.10.0-dev.77" />
 	</ItemGroup>
 

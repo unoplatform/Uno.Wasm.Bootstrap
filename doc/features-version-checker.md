@@ -4,7 +4,7 @@ uid: UnoWasmBootstrap.Features.VersionChecker
 
 # Uno.Wasm.VersionChecker
 
-A command-line tool that inspects a deployed Uno Platform WebAssembly application and extracts version information from its .NET assemblies. It works with applications built on the Uno Bootstrapper, including modern .NET 8+ deployments.
+A Repl-based command-line tool that inspects a deployed Uno Platform WebAssembly application and extracts version information from its .NET assemblies. It works with applications built on the Uno Bootstrapper, including modern .NET 8+ deployments.
 
 ## What it detects
 
@@ -70,7 +70,7 @@ The `https://` scheme is assumed if not specified, so this also works:
 uno-wasm-version myapp.example.com
 ```
 
-On .NET 10, the tool also supports an interactive mode through its Repl host. Running it without a target starts the prompt, and you can use either the direct shorthand or an explicit command:
+The tool runs on .NET 10 and uses Repl as its single command host. Running it without a target starts the interactive prompt, and you can use either the direct shorthand or an explicit command:
 
 ```shell
 uno-wasm-version
@@ -84,29 +84,35 @@ uno-wasm-version
 
 ## Example output
 
+In human mode, Repl renders the inspection as structured sections and tables:
+
 ```console
-Uno Version Checker v3.x.x.
-Checking website at address https://myapp.example.com/.
-Trying to find App configuration...
-Application found.
-Uno configuration url is https://myapp.example.com/package_abc123/uno-config.js.
-Boot configuration extracted from dotnet.7kx2mq.js.
-Starting assembly is MyApp.
-Trying to download 42 files to find assemblies. Downloading them to read metadata...
+Field            Value
+Tool             uno-wasm-version
+ToolVersion      3.x.x
+Target           https://myapp.example.com/
+UnoConfigUrl     https://myapp.example.com/package_abc123/uno-config.js
+BootConfigSource dotnet.7kx2mq.js
+MainAssembly     MyApp
+AssemblyCount    42
 
-42 assemblies successfully downloaded.
- Name                          | Version   | File Version  | Build   | Framework                    | Commit
- MyApp                         | 1.2.0     | 1.2.0.0       | Release | .NETCoreApp,Version=v10.0    | a1b2c3d4...
- System.Private.CoreLib        | 10.0.0    | 10.0.025.7105  | Release | .NETCoreApp,Version=v10.0    |
- Uno.UI                        | 5.6.100   | 255.255.255.255| Release | .NETStandard,Version=v2.0    | e5f6a7b8...
- ...
+Field               Value
+MainAssembly        MyApp
+MainAssemblyVersion 1.2.0
+MainAssemblyBuild   Release
+UnoUiVersion        5.6.100
+RuntimeFramework    .NETCoreApp,Version=v10.0
+RuntimeVersion      10.0.0
+GlobalizationMode   hybrid
+Linker              enabled
+DebugLevel          0
 
-MyApp version is 1.2.0 (Release)
-Uno.UI version is 5.6.100
-Runtime is .NETCoreApp,Version=v10.0 version 10.0.0
-Globalization mode is hybrid
-Linker is enabled
-Debug level is 0
+Name                   Version FileVersion      Build   Framework                 Commit
+MyApp                  1.2.0   1.2.0.0          Release .NETCoreApp,Version=v10.0 a1b2c3d4...
+System.Private.CoreLib 10.0.0  10.0.025.7105   Release .NETCoreApp,Version=v10.0
+Uno.UI                 5.6.100 255.255.255.255 Release .NETStandard,Version=v2.0 e5f6a7b8...
+
+Success: Inspection completed. Found 42 assemblies.
 ```
 
 ## Exit codes
@@ -115,6 +121,5 @@ Debug level is 0
 |---|---|
 | `0` | Success |
 | `1` | No assemblies found or invalid configuration |
-| `100` | No URL argument provided |
 | `250` | Invalid URL |
 | `255` | Unexpected error |
