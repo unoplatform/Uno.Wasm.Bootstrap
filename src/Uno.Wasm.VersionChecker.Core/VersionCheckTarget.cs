@@ -32,6 +32,11 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 
 			siteUri = absolute;
 		}
+		else if (candidate.Contains("://", StringComparison.Ordinal))
+		{
+			error = $"Unable to parse target '{input}'.";
+			return false;
+		}
 		else if (Uri.TryCreate($"https://{candidate}", UriKind.Absolute, out var assumedHttps)
 			&& !string.IsNullOrWhiteSpace(assumedHttps.Host))
 		{
@@ -43,9 +48,17 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 			return false;
 		}
 
-		if (!siteUri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal))
+		try
 		{
-			siteUri = new UriBuilder(siteUri) { Path = $"{siteUri.AbsolutePath.TrimEnd('/')}/" }.Uri;
+			if (!siteUri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal))
+			{
+				siteUri = new UriBuilder(siteUri) { Path = $"{siteUri.AbsolutePath.TrimEnd('/')}/" }.Uri;
+			}
+		}
+		catch (UriFormatException)
+		{
+			error = $"Unable to parse target '{input}'.";
+			return false;
 		}
 
 		target = new VersionCheckTarget(candidate, siteUri);

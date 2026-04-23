@@ -27,14 +27,24 @@ public sealed record VersionCheckReport(
 	bool? LinkerEnabled,
 	int? DebugLevel);
 
-internal sealed record UnoConfig(Uri AssembliesPath, string? MainAssembly, string[]? Assemblies, string? Server, string? DotnetJsFilename);
+internal sealed record UnoConfig(
+	Uri AssembliesPath,
+	string? MainAssembly,
+	ImmutableArray<string> Assemblies,
+	string? Server,
+	string? DotnetJsFilename);
 
-internal sealed record UnoConfigFields(string? ManagePath, string? PackagePath, string? MainAssembly, string[]? Assemblies, string? DotnetJsFilename);
+internal sealed record UnoConfigFields(
+	string? ManagedPath,
+	string? PackagePath,
+	string? MainAssembly,
+	ImmutableArray<string> Assemblies,
+	string? DotnetJsFilename);
 
 internal sealed record DotnetConfig(
 	string? MainAssemblyName,
 	string? GlobalizationMode,
-	string[] Assemblies,
+	ImmutableArray<string> Assemblies,
 	Uri? AssembliesPath,
 	int? DebugLevel,
 	bool? LinkerEnabled,

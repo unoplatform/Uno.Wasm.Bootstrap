@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.VersionChecker;
@@ -9,6 +9,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_ExtractAssembliesFromResources
 {
 	[TestMethod]
+	[Description("Regression guard: verifies array-based resource entries are projected to their file names.")]
 	public void When_ArrayFormat_Then_ExtractsNames()
 	{
 		var json = JsonDocument.Parse("""
@@ -20,15 +21,15 @@ public class Given_ExtractAssembliesFromResources
 		}
 		""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(2, assemblies.Count);
+		Assert.AreEqual(2, assemblies.Length);
 		Assert.AreEqual("System.Runtime.abc123.wasm", assemblies[0]);
 		Assert.AreEqual("MyApp.def456.wasm", assemblies[1]);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies object-based resources are projected to their property names.")]
 	public void When_ObjectFormat_Then_ExtractsKeys()
 	{
 		var json = JsonDocument.Parse("""
@@ -40,26 +41,26 @@ public class Given_ExtractAssembliesFromResources
 		}
 		""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(2, assemblies.Count);
+		Assert.AreEqual(2, assemblies.Length);
 		Assert.AreEqual("System.Runtime.dll", assemblies[0]);
 		Assert.AreEqual("MyApp.dll", assemblies[1]);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies missing resource properties do not produce phantom entries.")]
 	public void When_MissingProperty_Then_ReturnsEmpty()
 	{
 		var json = JsonDocument.Parse("{}");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(0, assemblies.Count);
+		Assert.AreEqual(0, assemblies.Length);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies unnamed array entries are skipped instead of producing empty assembly names.")]
 	public void When_ArrayEntryMissingName_Then_SkipsIt()
 	{
 		var json = JsonDocument.Parse("""
@@ -71,36 +72,36 @@ public class Given_ExtractAssembliesFromResources
 		}
 		""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(1, assemblies.Count);
+		Assert.AreEqual(1, assemblies.Length);
 		Assert.AreEqual("MyApp.def456.wasm", assemblies[0]);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies empty arrays produce no assembly entries.")]
 	public void When_EmptyArray_Then_ReturnsEmpty()
 	{
 		var json = JsonDocument.Parse("""{"assembly": []}""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(0, assemblies.Count);
+		Assert.AreEqual(0, assemblies.Length);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies empty objects produce no assembly entries.")]
 	public void When_EmptyObject_Then_ReturnsEmpty()
 	{
 		var json = JsonDocument.Parse("""{"assembly": {}}""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly").ToArray();
 
-		Assert.AreEqual(0, assemblies.Count);
+		Assert.AreEqual(0, assemblies.Length);
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies callers can concatenate core and app assemblies from separate resource sections.")]
 	public void When_BothCoreAssemblyAndAssembly_Then_ExtractsBoth()
 	{
 		var json = JsonDocument.Parse("""
@@ -114,11 +115,11 @@ public class Given_ExtractAssembliesFromResources
 		}
 		""");
 
-		var assemblies = new List<string>();
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "coreAssembly", assemblies);
-		VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly", assemblies);
+		var assemblies = VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "coreAssembly")
+			.Concat(VersionCheckService.ExtractAssembliesFromResources(json.RootElement, "assembly"))
+			.ToArray();
 
-		Assert.AreEqual(2, assemblies.Count);
+		Assert.AreEqual(2, assemblies.Length);
 		Assert.AreEqual("Core.abc.wasm", assemblies[0]);
 		Assert.AreEqual("App.def.wasm", assemblies[1]);
 	}

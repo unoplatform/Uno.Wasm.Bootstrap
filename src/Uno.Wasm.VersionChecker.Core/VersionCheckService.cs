@@ -1,11 +1,15 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -14,38 +18,46 @@ using HtmlAgilityPack;
 using Mono.Cecil;
 using Uno.Wasm.WebCIL;
 
-[assembly: InternalsVisibleTo("Uno.Wasm.VersionChecker.UnitTests")]
-
 namespace Uno.VersionChecker;
 
-public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
+public sealed class VersionCheckService(HttpClient httpClient)
 {
+	private const int MaxAssemblyDownloadConcurrency = 8;
+	private const int MaxTooManyRequestsRetries = 2;
+	private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
 	private static readonly Regex CommitRegex = new(
 		@"[^\w]([0-9a-f]{40})([^\w]|$)",
-		RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+		RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant,
+		RegexTimeout);
+	private static readonly Regex EmbeddedPackageRegex = new(
+		"""const\s+package\s?=\s?"(?<package>package_\w+)";""",
+		RegexOptions.Compiled | RegexOptions.CultureInvariant,
+		RegexTimeout);
+	private static readonly Regex BootConfigRegex = new(
+		@"/\*json-start\*/([\s\S]*?)/\*json-end\*/",
+		RegexOptions.Compiled | RegexOptions.CultureInvariant,
+		RegexTimeout);
+	private static readonly string[] RuntimeAssemblyNames = ["System.Private.CoreLib", "mscorlib", "netstandard"];
+	private static readonly TimeSpan[] TooManyRequestsBackoff = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
 
 	public async Task<VersionCheckReport> InspectAsync(VersionCheckTarget target, CancellationToken cancellationToken = default)
 	{
 		var doc = await LoadDocumentAsync(target.SiteUri, cancellationToken);
 		var unoConfigUrl = await LocateUnoConfigAsync(doc, target.SiteUri, cancellationToken);
-		UnoConfig? unoConfig = null;
-
-		if (unoConfigUrl is not null)
-		{
-			unoConfig = await GetUnoConfigAsync(unoConfigUrl, target.SiteUri, cancellationToken);
-		}
+		var unoConfig = unoConfigUrl is not null
+			? await GetUnoConfigAsync(unoConfigUrl, target.SiteUri, cancellationToken)
+			: null;
 
 		var dotnetConfig = await GetPreferredDotnetConfigAsync(target.SiteUri, unoConfig, cancellationToken);
 		var reportAssemblies = await ReadAssembliesAsync(target.SiteUri, unoConfig, dotnetConfig, cancellationToken);
 
 		var mainAssemblyName = unoConfig?.MainAssembly ?? dotnetConfig?.MainAssemblyName;
 		var dotnetMainName = Path.GetFileNameWithoutExtension(dotnetConfig?.MainAssemblyName);
-
 		var mainAssembly = reportAssemblies.FirstOrDefault(assembly =>
 			assembly.Name == mainAssemblyName || assembly.Name == dotnetMainName);
 		var unoUiAssembly = reportAssemblies.FirstOrDefault(assembly => assembly.Name == "Uno.UI");
 		var runtimeAssembly = reportAssemblies.FirstOrDefault(assembly =>
-			assembly.Name is "System.Private.CoreLib" or "mscorlib" or "netstandard");
+			assembly.Name is not null && RuntimeAssemblyNames.Contains(assembly.Name, StringComparer.Ordinal));
 
 		return new VersionCheckReport(
 			target,
@@ -66,10 +78,7 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	private async Task<HtmlDocument> LoadDocumentAsync(Uri siteUri, CancellationToken cancellationToken)
 	{
-		using var response = await httpClient.GetAsync(siteUri, cancellationToken);
-		response.EnsureSuccessStatusCode();
-
-		var content = await response.Content.ReadAsStringAsync(cancellationToken);
+		var content = await GetStringAsync(siteUri, cancellationToken);
 		var document = new HtmlDocument();
 		document.LoadHtml(content);
 		return document;
@@ -81,50 +90,49 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 			.SelectNodes("//script")
 			?.Select(scriptElement => scriptElement.GetAttributeValue("src", string.Empty))
 			.Where(src => !string.IsNullOrWhiteSpace(src))
-			.Select(src => new Uri(src, UriKind.RelativeOrAbsolute))
-			.Where(uri => !uri.IsAbsoluteUri)
-			.Select(uri => new Uri(siteUri, uri))
+			.Select(src => Uri.TryCreate(src, UriKind.RelativeOrAbsolute, out var uri) ? uri : null)
+			.Where(uri => uri is { IsAbsoluteUri: false })
+			.Select(uri => new Uri(siteUri, uri!))
 			.ToArray();
 
 		var unoConfigPath = files?
 			.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-config.js", StringComparison.OrdinalIgnoreCase))
 			?? files?.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase));
 
-		if (unoConfigPath is null)
+		if (unoConfigPath is not null)
 		{
-			var embeddedJsUri = new Uri(siteUri, "embedded.js");
-			using var embeddedResponse = await httpClient.GetAsync(embeddedJsUri, cancellationToken);
-			if (embeddedResponse.IsSuccessStatusCode)
-			{
-				var content = await embeddedResponse.Content.ReadAsStringAsync(cancellationToken);
-				if (Regex.Match(content, @"const\spackage\s?=\s?""(?<package>package_\w+)"";") is { Success: true } match)
-				{
-					return new Uri(siteUri, match.Groups["package"].Value + "/uno-config.js");
-				}
-			}
+			return unoConfigPath.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase)
+				? new Uri(unoConfigPath.OriginalString.Replace("uno-bootstrap.js", "uno-config.js", StringComparison.OrdinalIgnoreCase))
+				: unoConfigPath;
+		}
 
+		var embeddedJsUri = new Uri(siteUri, "embedded.js");
+		using var embeddedResponse = await SendAsync(embeddedJsUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+		if (!embeddedResponse.IsSuccessStatusCode)
+		{
 			return null;
 		}
 
-		if (unoConfigPath.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase))
+		var content = await ReadContentAsStringAsync(embeddedResponse.Content, embeddedJsUri, cancellationToken);
+		if (EmbeddedPackageRegex.Match(content) is { Success: true } match)
 		{
-			return new Uri(unoConfigPath.OriginalString.Replace("uno-bootstrap.js", "uno-config.js", StringComparison.OrdinalIgnoreCase));
+			return new Uri(siteUri, match.Groups["package"].Value + "/uno-config.js");
 		}
 
-		return unoConfigPath;
+		return null;
 	}
 
 	private async Task<UnoConfig> GetUnoConfigAsync(Uri uri, Uri siteUri, CancellationToken cancellationToken)
 	{
-		using var response = await httpClient.GetAsync(uri, cancellationToken);
+		using var response = await SendAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 		response.EnsureSuccessStatusCode();
 
-		var content = await response.Content.ReadAsStringAsync(cancellationToken);
+		var content = await ReadContentAsStringAsync(response.Content, uri, cancellationToken);
 		var server = response.Headers.Server?.ToString();
 
 		var fields = ParseUnoConfigFields(content);
-		var assembliesPath = fields.PackagePath is not null && fields.ManagePath is not null
-			? new Uri(new Uri(siteUri, fields.PackagePath + "/"), fields.ManagePath + "/")
+		var assembliesPath = fields.PackagePath is not null && fields.ManagedPath is not null
+			? new Uri(new Uri(siteUri, fields.PackagePath.TrimEnd('/') + "/"), fields.ManagedPath.TrimEnd('/') + "/")
 			: siteUri;
 
 		return new UnoConfig(assembliesPath, fields.MainAssembly, fields.Assemblies, server, fields.DotnetJsFilename);
@@ -132,16 +140,18 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	private async Task<DotnetConfig?> GetPreferredDotnetConfigAsync(Uri siteUri, UnoConfig? unoConfig, CancellationToken cancellationToken)
 	{
-		if (!string.IsNullOrWhiteSpace(unoConfig?.DotnetJsFilename))
+		var managedPath = unoConfig?.AssembliesPath;
+		var configuredFilename = unoConfig?.DotnetJsFilename;
+		if (!string.IsNullOrWhiteSpace(configuredFilename))
 		{
-			var config = await GetDotnetConfigFromDotnetJsAsync(siteUri, unoConfig.DotnetJsFilename!, unoConfig?.AssembliesPath, cancellationToken);
-			if (config is not null)
+			var configuredConfig = await GetDotnetConfigFromDotnetJsAsync(siteUri, configuredFilename, managedPath, cancellationToken);
+			if (configuredConfig is not null)
 			{
-				return config;
+				return configuredConfig;
 			}
 		}
 
-		var defaultConfig = await GetDotnetConfigFromDotnetJsAsync(siteUri, "dotnet.js", unoConfig?.AssembliesPath, cancellationToken);
+		var defaultConfig = await GetDotnetConfigFromDotnetJsAsync(siteUri, "dotnet.js", managedPath, cancellationToken);
 		if (defaultConfig is not null)
 		{
 			return defaultConfig;
@@ -157,12 +167,12 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 		DotnetConfig? dotnetConfig,
 		CancellationToken cancellationToken)
 	{
-		if (unoConfig?.Assemblies is { Length: > 0 })
+		if (unoConfig is { Assemblies.IsDefaultOrEmpty: false })
 		{
 			return await ReadAssembliesAsync(unoConfig.AssembliesPath, unoConfig.Assemblies, cancellationToken);
 		}
 
-		if (dotnetConfig?.AssembliesPath is not null && dotnetConfig.Assemblies is { Length: > 0 })
+		if (dotnetConfig?.AssembliesPath is not null && !dotnetConfig.Assemblies.IsDefaultOrEmpty)
 		{
 			return await ReadAssembliesAsync(dotnetConfig.AssembliesPath, dotnetConfig.Assemblies, cancellationToken);
 		}
@@ -172,15 +182,28 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	private async Task<ImmutableArray<AssemblyVersionInfo>> ReadAssembliesAsync(
 		Uri basePath,
-		IEnumerable<string> assemblies,
+		IReadOnlyList<string> assemblies,
 		CancellationToken cancellationToken)
 	{
-		var tasks = assemblies.Select(a => GetAssemblyDetailsAsync(new Uri(basePath, a), cancellationToken)).ToArray();
+		using var concurrencyGate = new SemaphoreSlim(MaxAssemblyDownloadConcurrency);
+		var tasks = assemblies.Select(async assemblyPath =>
+		{
+			await concurrencyGate.WaitAsync(cancellationToken);
+			try
+			{
+				return await GetAssemblyDetailsAsync(new Uri(basePath, assemblyPath), cancellationToken);
+			}
+			finally
+			{
+				concurrencyGate.Release();
+			}
+		});
+
 		var allAssemblies = await Task.WhenAll(tasks);
 		return allAssemblies
-			.Where(x => x?.Name is not null)
-			.Select(x => x!)
-			.OrderBy(x => x.Name, StringComparer.Ordinal)
+			.Where(static assembly => assembly?.Name is not null)
+			.Select(static assembly => assembly!)
+			.OrderBy(static assembly => assembly.Name, StringComparer.Ordinal)
 			.ToImmutableArray();
 	}
 
@@ -196,14 +219,15 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	private async Task<Uri?> GetFileAsync(Uri dotnetConfig, CancellationToken cancellationToken)
 	{
-		using var response = await httpClient.GetAsync(dotnetConfig, cancellationToken);
+		using var response = await SendAsync(dotnetConfig, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 		if (!response.IsSuccessStatusCode)
 		{
 			return null;
 		}
 
-		var content = await response.Content.ReadAsStringAsync(cancellationToken);
-		return content.StartsWith("{", StringComparison.Ordinal) ? dotnetConfig : null;
+		await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+		var firstMeaningfulByte = await ReadFirstMeaningfulByteAsync(stream, cancellationToken);
+		return firstMeaningfulByte == (byte)'{' ? dotnetConfig : null;
 	}
 
 	private async Task<DotnetConfig?> GetDotnetConfigAsync(Uri? dotnetConfigPath, Uri siteUri, CancellationToken cancellationToken)
@@ -213,23 +237,25 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 			return null;
 		}
 
-		using var response = await httpClient.GetAsync(dotnetConfigPath, cancellationToken);
+		using var response = await SendAsync(dotnetConfigPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 		response.EnsureSuccessStatusCode();
 
-		await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-		using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+		var jsonBytes = await ReadContentAsBytesAsync(response.Content, dotnetConfigPath, cancellationToken);
+		using var json = JsonDocument.Parse(jsonBytes);
 
 		var config = ParseDotnetConfig(json.RootElement);
-		var assembliesPath = new Uri(siteUri, dotnetConfigPath.OriginalString.Contains("_framework", StringComparison.Ordinal) ? "_framework/" : string.Empty);
+		var assembliesPath = new Uri(
+			siteUri,
+			dotnetConfigPath.OriginalString.Contains("_framework", StringComparison.Ordinal) ? "_framework/" : string.Empty);
 		return config with { AssembliesPath = assembliesPath, SourceUrl = dotnetConfigPath.ToString() };
 	}
 
-	internal static void ExtractAssembliesFromResources(JsonElement resources, string propertyName, List<string> assemblies)
+	internal static IEnumerable<string> ExtractAssembliesFromResources(JsonElement resources, string propertyName)
 	{
 		if (!resources.TryGetProperty(propertyName, out var element)
 			|| element.ValueKind == JsonValueKind.Undefined)
 		{
-			return;
+			yield break;
 		}
 
 		if (element.ValueKind == JsonValueKind.Array)
@@ -239,17 +265,20 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 				if (entry.TryGetProperty("name", out var nameProp)
 					&& nameProp.GetString() is { Length: > 0 } name)
 				{
-					assemblies.Add(name);
+					yield return name;
 				}
 			}
+
+			yield break;
 		}
-		else if (element.ValueKind == JsonValueKind.Object)
+
+		if (element.ValueKind == JsonValueKind.Object)
 		{
 			foreach (var entry in element.EnumerateObject())
 			{
 				if (entry.Name is { Length: > 0 })
 				{
-					assemblies.Add(entry.Name);
+					yield return entry.Name;
 				}
 			}
 		}
@@ -257,7 +286,7 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	internal static DotnetConfig? ExtractBootConfigFromScript(string scriptContent)
 	{
-		var match = Regex.Match(scriptContent, @"/\*json-start\*/([\s\S]*?)/\*json-end\*/");
+		var match = BootConfigRegex.Match(scriptContent);
 		if (!match.Success)
 		{
 			return null;
@@ -276,16 +305,16 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 	internal static UnoConfigFields ParseUnoConfigFields(string configContent)
 	{
-		string? managePath = null;
+		string? managedPath = null;
 		string? packagePath = null;
 		string? mainAssembly = null;
-		string[]? assemblies = null;
+		ImmutableArray<string> assemblies = [];
 		string? dotnetJsFilename = null;
 
 		using var reader = new StringReader(configContent);
 		while (reader.ReadLine() is { } line)
 		{
-			var parts = line.Split(['='], 2);
+			var parts = line.Split('=', 2);
 			if (parts.Length != 2)
 			{
 				continue;
@@ -294,37 +323,48 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 			var field = parts[0].Trim().ToLowerInvariant();
 			var value = parts[1].Trim().TrimEnd(';');
 
-			switch (field)
+			try
 			{
-				case "config.uno_remote_managedpath":
-					managePath = JsonSerializer.Deserialize<string>(value);
-					break;
-				case "config.uno_app_base":
-					packagePath = JsonSerializer.Deserialize<string>(value);
-					break;
-				case "config.assemblies_with_size":
-					assemblies = JsonSerializer.Deserialize<Dictionary<string, long>>(value)?.Keys.ToArray();
-					break;
-				case "config.uno_main":
-					mainAssembly = JsonSerializer.Deserialize<string>(value)?.Split(']', 2)[0].TrimStart('[');
-					break;
-				case "config.dotnet_js_filename":
-					dotnetJsFilename = JsonSerializer.Deserialize<string>(value);
-					break;
+				switch (field)
+				{
+					case "config.uno_remote_managedpath":
+						managedPath = JsonSerializer.Deserialize<string>(value);
+						break;
+					case "config.uno_app_base":
+						packagePath = JsonSerializer.Deserialize<string>(value);
+						break;
+					case "config.assemblies_with_size":
+						assemblies = JsonSerializer.Deserialize<Dictionary<string, long>>(value)?.Keys.ToImmutableArray() ?? [];
+						break;
+					case "config.uno_main":
+						mainAssembly = JsonSerializer.Deserialize<string>(value)?.Split(']', 2)[0].TrimStart('[');
+						break;
+					case "config.dotnet_js_filename":
+						dotnetJsFilename = JsonSerializer.Deserialize<string>(value);
+						break;
+				}
+			}
+			catch (JsonException)
+			{
+				continue;
 			}
 
-			if (managePath is not null && packagePath is not null && mainAssembly is not null && assemblies is not null)
+			if (managedPath is not null
+				&& packagePath is not null
+				&& mainAssembly is not null
+				&& !assemblies.IsDefaultOrEmpty
+				&& dotnetJsFilename is not null)
 			{
 				break;
 			}
 		}
 
-		return new UnoConfigFields(managePath, packagePath, mainAssembly, assemblies, dotnetJsFilename);
+		return new UnoConfigFields(managedPath, packagePath, mainAssembly, assemblies, dotnetJsFilename);
 	}
 
-	internal static Uri[] BuildDotnetScriptCandidates(Uri siteUri, Uri? managedPath, string dotnetJsFilename)
+	internal static ImmutableArray<Uri> BuildDotnetScriptCandidates(Uri siteUri, Uri? managedPath, string dotnetJsFilename)
 	{
-		var candidates = new List<Uri>();
+		var candidates = ImmutableArray.CreateBuilder<Uri>(2);
 
 		if (managedPath is not null)
 		{
@@ -335,7 +375,7 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 
 		return candidates
 			.Distinct()
-			.ToArray();
+			.ToImmutableArray();
 	}
 
 	private async Task<DotnetConfig?> GetDotnetConfigFromDotnetJsAsync(
@@ -348,13 +388,13 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 		{
 			try
 			{
-				using var response = await httpClient.GetAsync(dotnetJsUrl, cancellationToken);
+				using var response = await SendAsync(dotnetJsUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 				if (!response.IsSuccessStatusCode)
 				{
 					continue;
 				}
 
-				var content = await response.Content.ReadAsStringAsync(cancellationToken);
+				var content = await ReadContentAsStringAsync(response.Content, dotnetJsUrl, cancellationToken);
 				var config = ExtractBootConfigFromScript(content);
 				if (config is not null)
 				{
@@ -369,9 +409,53 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 			{
 				// Try the next valid bootstrapper location.
 			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				throw;
+			}
 		}
 
 		return null;
+	}
+
+	private async Task<HttpResponseMessage> SendAsync(
+		Uri uri,
+		HttpCompletionOption completionOption,
+		CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; ; attempt++)
+		{
+			using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+			var response = await httpClient.SendAsync(request, completionOption, cancellationToken);
+			if (response.StatusCode != HttpStatusCode.TooManyRequests || attempt >= MaxTooManyRequestsRetries)
+			{
+				return response;
+			}
+
+			var retryDelay = GetRetryDelay(response, attempt);
+			response.Dispose();
+			await Task.Delay(retryDelay, cancellationToken);
+		}
+	}
+
+	private static TimeSpan GetRetryDelay(HttpResponseMessage response, int attempt)
+	{
+		var retryAfter = response.Headers.RetryAfter;
+		if (retryAfter?.Delta is { } delta && delta > TimeSpan.Zero)
+		{
+			return delta;
+		}
+
+		if (retryAfter?.Date is { } retryAt)
+		{
+			var delay = retryAt - DateTimeOffset.UtcNow;
+			if (delay > TimeSpan.Zero)
+			{
+				return delay;
+			}
+		}
+
+		return TooManyRequestsBackoff[Math.Min(attempt, TooManyRequestsBackoff.Length - 1)];
 	}
 
 	private static Uri EnsureTrailingSlash(Uri uri) =>
@@ -394,69 +478,75 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 			? linkProp.GetBoolean()
 			: null;
 
-		var assemblies = new List<string>();
+		var assemblies = ImmutableArray<string>.Empty;
 		if (root.TryGetProperty("resources", out var resources))
 		{
-			ExtractAssembliesFromResources(resources, "coreAssembly", assemblies);
-			ExtractAssembliesFromResources(resources, "assembly", assemblies);
+			assemblies = ExtractAssembliesFromResources(resources, "coreAssembly")
+				.Concat(ExtractAssembliesFromResources(resources, "assembly"))
+				.ToImmutableArray();
 		}
 
-		return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies.ToArray(), null, debugLevel, linkerEnabled, null);
+		return new DotnetConfig(mainAssemblyName, globalizationMode, assemblies, null, debugLevel, linkerEnabled, null);
 	}
 
 	private async Task<AssemblyVersionInfo?> GetAssemblyDetailsAsync(Uri uri, CancellationToken cancellationToken)
 	{
-		using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-		using var response = await httpClient.SendAsync(request, cancellationToken);
+		using var response = await SendAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 		if (!response.IsSuccessStatusCode)
 		{
 			return null;
 		}
 
-		await using var httpStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
 		try
 		{
-			using var stream = new MemoryStream();
-			await httpStream.CopyToAsync(stream, cancellationToken);
-			stream.Position = 0;
-
-			var details = await ReadPeAsync(stream, cancellationToken);
-			stream.Position = 0;
-			details ??= ReadWebcil(stream);
-
-			return details;
+			var assemblyBytes = await ReadContentAsBytesAsync(response.Content, uri, cancellationToken);
+			return await ParseAssemblyMetadataAsync(assemblyBytes);
 		}
-		catch (Exception)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Trace.TraceWarning($"Unable to parse assembly '{uri}': {ex.Message}");
 			return null;
 		}
 	}
 
-	private static AssemblyVersionInfo? ReadWebcil(MemoryStream stream)
+	private static Task<AssemblyVersionInfo?> ParseAssemblyMetadataAsync(byte[] assemblyBytes)
 	{
-		var assemblyBytes = WebcilConverterUtil.ConvertFromWebcil(stream);
-		return ParseAssemblyMetadata(new MemoryStream(assemblyBytes));
-	}
-
-	private static async Task<AssemblyVersionInfo?> ReadPeAsync(MemoryStream stream, CancellationToken cancellationToken)
-	{
-		var header = new byte[2];
-		if (await stream.ReadAsync(header.AsMemory(0, 2), cancellationToken) != 2)
+		if (assemblyBytes.Length < 4)
 		{
-			return null;
+			return Task.FromResult<AssemblyVersionInfo?>(null);
 		}
 
-		if (header[0] != 'M' || header[1] != 'Z')
+		if (IsPortableExecutable(assemblyBytes))
 		{
-			return null;
+			using var peStream = new MemoryStream(assemblyBytes, writable: false);
+			return Task.FromResult(ParseAssemblyMetadata(peStream));
 		}
 
-		stream.Position = 0;
-		return ParseAssemblyMetadata(stream);
+		if (IsWebAssembly(assemblyBytes))
+		{
+			using var webcilStream = new MemoryStream(assemblyBytes, writable: false);
+			var peBytes = WebcilConverterUtil.ConvertFromWebcil(webcilStream);
+			using var peStream = new MemoryStream(peBytes, writable: false);
+			return Task.FromResult(ParseAssemblyMetadata(peStream));
+		}
+
+		return Task.FromResult<AssemblyVersionInfo?>(null);
 	}
 
-	private static AssemblyVersionInfo? ParseAssemblyMetadata(MemoryStream stream)
+	private static bool IsPortableExecutable(byte[] assemblyBytes) =>
+		assemblyBytes[0] == (byte)'M' && assemblyBytes[1] == (byte)'Z';
+
+	private static bool IsWebAssembly(byte[] assemblyBytes) =>
+		assemblyBytes[0] == 0x00
+		&& assemblyBytes[1] == 0x61
+		&& assemblyBytes[2] == 0x73
+		&& assemblyBytes[3] == 0x6D;
+
+	private static AssemblyVersionInfo? ParseAssemblyMetadata(Stream stream)
 	{
 		var assembly = AssemblyDefinition.ReadAssembly(stream);
 		var attributes = assembly.CustomAttributes.ToArray();
@@ -465,14 +555,14 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 		var version = assembly.Name.Version.ToString();
 		var fileVersion = string.Empty;
 		var targetFramework = string.Empty;
-		var commit = default(string);
+		string? commit = null;
 		var configuration = string.Empty;
 
 		foreach (var attribute in attributes)
 		{
 			switch (attribute.AttributeType.Name)
 			{
-				case "AssemblyInformationalVersionAttribute":
+				case nameof(AssemblyInformationalVersionAttribute):
 					var versionStr = attribute.ConstructorArguments[0].Value?.ToString() ?? string.Empty;
 					version = versionStr.Split('+').FirstOrDefault() ?? string.Empty;
 
@@ -481,13 +571,13 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 						commit = match.Groups[1].Value;
 					}
 					break;
-				case "AssemblyFileVersionAttribute":
+				case nameof(AssemblyFileVersionAttribute):
 					fileVersion = attribute.ConstructorArguments[0].Value?.ToString() ?? string.Empty;
 					break;
-				case "TargetFrameworkAttribute":
+				case nameof(TargetFrameworkAttribute):
 					targetFramework = attribute.ConstructorArguments[0].Value?.ToString() ?? string.Empty;
 					break;
-				case "AssemblyConfigurationAttribute":
+				case nameof(AssemblyConfigurationAttribute):
 					configuration = attribute.ConstructorArguments[0].Value?.ToString() ?? string.Empty;
 					break;
 			}
@@ -501,5 +591,84 @@ public sealed class VersionCheckService(HttpClient httpClient) : IDisposable
 		return new AssemblyVersionInfo(name, version, fileVersion, configuration, targetFramework, commit);
 	}
 
-	public void Dispose() => httpClient.Dispose();
+	private async Task<string> GetStringAsync(Uri uri, CancellationToken cancellationToken)
+	{
+		using var response = await SendAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+		response.EnsureSuccessStatusCode();
+		return await ReadContentAsStringAsync(response.Content, uri, cancellationToken);
+	}
+
+	private static async Task<string> ReadContentAsStringAsync(HttpContent content, Uri sourceUri, CancellationToken cancellationToken)
+	{
+		var bytes = await ReadContentAsBytesAsync(content, sourceUri, cancellationToken);
+		return GetEncoding(content).GetString(bytes);
+	}
+
+	private static async Task<byte[]> ReadContentAsBytesAsync(HttpContent content, Uri sourceUri, CancellationToken cancellationToken)
+	{
+		await using var stream = await content.ReadAsStreamAsync(cancellationToken);
+		return await ReadStreamWithLimitAsync(stream, sourceUri, cancellationToken);
+	}
+
+	private static Encoding GetEncoding(HttpContent content)
+	{
+		var charset = content.Headers.ContentType?.CharSet;
+		if (!string.IsNullOrWhiteSpace(charset))
+		{
+			try
+			{
+				return Encoding.GetEncoding(charset);
+			}
+			catch (ArgumentException)
+			{
+			}
+		}
+
+		return Encoding.UTF8;
+	}
+
+	private static async Task<byte[]> ReadStreamWithLimitAsync(Stream stream, Uri sourceUri, CancellationToken cancellationToken)
+	{
+		var buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
+		try
+		{
+			using var memory = new MemoryStream();
+			var totalBytes = 0;
+
+			while (true)
+			{
+				var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+				if (read == 0)
+				{
+					return memory.ToArray();
+				}
+
+				totalBytes += read;
+				if (totalBytes > VersionCheckHttp.MaxResponseBytes)
+				{
+					throw new InvalidOperationException($"Response from '{sourceUri}' exceeded the {VersionCheckHttp.MaxResponseBytes} byte limit.");
+				}
+
+				await memory.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+			}
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer);
+		}
+	}
+
+	private static async Task<byte?> ReadFirstMeaningfulByteAsync(Stream stream, CancellationToken cancellationToken)
+	{
+		var buffer = new byte[1];
+		while (await stream.ReadAsync(buffer.AsMemory(0, 1), cancellationToken) == 1)
+		{
+			if (!char.IsWhiteSpace((char)buffer[0]))
+			{
+				return buffer[0];
+			}
+		}
+
+		return null;
+	}
 }

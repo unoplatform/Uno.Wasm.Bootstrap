@@ -8,6 +8,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_DotnetScriptCandidates
 {
 	[TestMethod]
+	[Description("Regression guard: verifies package-scoped _framework paths are preferred before the site-root fallback.")]
 	public void When_ManagedPathIsPackageBased_Then_PackageCandidateIsTriedFirst()
 	{
 		var siteUri = new Uri("https://sl-dev.unoplatform.net/");
@@ -21,6 +22,7 @@ public class Given_DotnetScriptCandidates
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies candidate generation deduplicates identical managed-path and fallback URLs.")]
 	public void When_ManagedPathMatchesRoot_Then_CandidatesAreDeduplicated()
 	{
 		var siteUri = new Uri("https://example.com/");

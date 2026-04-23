@@ -7,6 +7,7 @@ namespace Uno.Wasm.VersionChecker.UnitTests;
 public class Given_ExtractBootConfigFromScript
 {
 	[TestMethod]
+	[Description("Regression guard: verifies embedded boot-config markers are extracted from dotnet.js payloads.")]
 	public void When_ValidScriptWithMarkers_Then_ExtractsConfig()
 	{
 		var script = """
@@ -24,6 +25,7 @@ public class Given_ExtractBootConfigFromScript
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies unrelated scripts do not accidentally parse as boot configuration.")]
 	public void When_ScriptWithoutMarkers_Then_ReturnsNull()
 	{
 		var script = """
@@ -37,6 +39,7 @@ public class Given_ExtractBootConfigFromScript
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies minimal boot config payloads still return a valid parsed object.")]
 	public void When_MinimalBootConfig_Then_ExtractsMainAssemblyName()
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"MinimalApp"}/*json-end*/""";
@@ -52,6 +55,7 @@ public class Given_ExtractBootConfigFromScript
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies all boot config metadata fields survive parsing.")]
 	public void When_FullBootConfig_Then_ExtractsAllFields()
 	{
 		var script = """
@@ -71,6 +75,7 @@ public class Given_ExtractBootConfigFromScript
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies malformed JSON between markers is ignored safely.")]
 	public void When_MalformedJson_Then_ReturnsNull()
 	{
 		var script = """/*json-start*/{ this is not valid json /*json-end*/""";
@@ -81,6 +86,7 @@ public class Given_ExtractBootConfigFromScript
 	}
 
 	[TestMethod]
+	[Description("Regression guard: verifies dotnet.js extraction does not invent an assemblies path before URL resolution.")]
 	public void When_AssembliesPathNotSet_Then_IsNull()
 	{
 		var script = """/*json-start*/{"mainAssemblyName":"Test"}/*json-end*/""";

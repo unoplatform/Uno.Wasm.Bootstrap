@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Uno.VersionChecker;
@@ -34,7 +35,7 @@ internal static class VersionCheckReplViews
 			},
 			report.DebugLevel);
 
-	public static VersionCheckAssemblyRow[] CreateAssemblyRows(VersionCheckReport report) =>
+	public static ImmutableArray<VersionCheckAssemblyRow> CreateAssemblyRows(VersionCheckReport report) =>
 		report.Assemblies
 			.Select(assembly => new VersionCheckAssemblyRow(
 				assembly.Name,
@@ -43,7 +44,12 @@ internal static class VersionCheckReplViews
 				assembly.Configuration,
 				assembly.TargetFramework,
 				assembly.Commit))
-			.ToArray();
+			.ToImmutableArray();
+
+	public static string FormatSuccessMessage(VersionCheckReport report) =>
+		report.Assemblies.Length == 1
+			? "Inspection completed. Found 1 assembly."
+			: $"Inspection completed. Found {report.Assemblies.Length} assemblies.";
 }
 
 internal sealed record VersionCheckInspectionView(
