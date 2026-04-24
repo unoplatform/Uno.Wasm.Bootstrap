@@ -94,7 +94,19 @@
 		"subresource",
 		"SIMD",
 		"Newtonsoft",
-		"Linq"
+		"Linq",
+		"CoreLib",
+		"dnx",
+		"Dotnet",
+		"hostnames",
+		"HttpClient",
+		"kebab",
+		"MSTest",
+		"Repl",
+		"renderable",
+		"TRX",
+		"userinfo",
+		"WebCIL"
 	],
 	"ignoreWords": [
 		"ADAL",
