@@ -258,6 +258,68 @@ public sealed class Given_VersionCheckService
 		fields.DotnetJsFilename.Should().Be("dotnet.final.js");
 	}
 
+	[TestMethod]
+	[Description("Verifies a modern bootstrapper layout produces a complete report instead of nullable summary fields.")]
+	public async Task When_ModernBootstrapperSiteIsInspected_Then_ReportIsComplete()
+	{
+		const string packageName = "package_8f4e7c1";
+		const string managedPath = "_framework";
+		const string dotnetScriptName = "dotnet.8f4e7c1.js";
+		var unoConfigPath = $"/{packageName}/uno-config.js";
+		var managedBasePath = $"/{packageName}/{managedPath}/";
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text($"""<html><body><script src="{packageName}/uno-bootstrap.js"></script></body></html>"""),
+				var path when path == unoConfigPath => StubHttpMessageHandler.Text($$"""
+					config.uno_app_base = "/{{packageName}}";
+					config.uno_remote_managedpath = "{{managedPath}}";
+					config.dotnet_js_filename = "{{dotnetScriptName}}";
+					"""),
+				var path when path == $"{managedBasePath}{dotnetScriptName}" => StubHttpMessageHandler.Text($$"""
+					/*json-start*/{
+						"mainAssemblyName":"{{VersionCheckerTestAssets.MainAssemblyName}}",
+						"globalizationMode":"invariant",
+						"linkerEnabled":true,
+						"debugLevel":0,
+						"resources":{
+							"coreAssembly":[
+								{"name":"{{VersionCheckerTestAssets.RuntimeAssemblyName}}.dll"}
+							],
+							"assembly":[
+								{"name":"{{VersionCheckerTestAssets.MainAssemblyName}}.dll"},
+								{"name":"System.ValueTuple.wasm"}
+							]
+						}
+					}/*json-end*/
+					"""),
+				var path when path == $"{managedBasePath}{VersionCheckerTestAssets.MainAssemblyName}.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				var path when path == $"{managedBasePath}{VersionCheckerTestAssets.RuntimeAssemblyName}.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.RuntimeAssemblyBytes),
+				var path when path == $"{managedBasePath}System.ValueTuple.wasm" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.WebcilAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be($"https://example.com{unoConfigPath}");
+		report.DotnetConfigUrl.Should().Be($"https://example.com{managedBasePath}{dotnetScriptName}");
+		report.BootConfigSource.Should().Be(dotnetScriptName);
+		report.MainAssemblyName.Should().Be(VersionCheckerTestAssets.MainAssemblyName);
+		report.MainAssembly.Should().NotBeNull();
+		report.MainAssembly!.Version.Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+		report.RuntimeVersion.Should().Be(VersionCheckerTestAssets.RuntimeAssemblyVersion);
+		report.RuntimeFrameworkName.Should().Be(VersionCheckerTestAssets.RuntimeAssemblyFramework);
+		report.GlobalizationMode.Should().Be("invariant");
+		report.LinkerEnabled.Should().BeTrue();
+		report.DebugLevel.Should().Be(0);
+		report.Assemblies.Should().Contain(assembly => assembly.Name == VersionCheckerTestAssets.MainAssemblyName);
+		report.Assemblies.Should().Contain(assembly => assembly.Name == VersionCheckerTestAssets.RuntimeAssemblyName);
+		report.Assemblies.Should().Contain(assembly => assembly.Name == "System.ValueTuple");
+	}
+
 	private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
 	{
 		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
