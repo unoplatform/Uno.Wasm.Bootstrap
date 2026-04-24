@@ -85,18 +85,46 @@ jobs:
   #     .\Validate.ps1
   #   displayName: Build Validation Binaries
 
-  - task: VisualStudioTestPlatformInstaller@1
-
-  - task: VSTest@2
+  - task: PowerShell@2
+    displayName: Run VersionChecker Unit Tests
     inputs:
-      testAssemblyVer2: |
-        **\*UnitTests*.dll
-        !**\ref\**
-        !**\obj\**
-      vstestLocationMethod: version
-      vsTestVersion: latest
+      targetType: inline
+      script: |
+        $results = "$(Agent.TempDirectory)\test-results"
+        New-Item -ItemType Directory -Path $results -Force | Out-Null
+        $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+        $env:TESTINGPLATFORM_TELEMETRY_OPTOUT = "1"
+
+        dotnet build "$(Build.SourcesDirectory)\src\Uno.Wasm.VersionChecker.UnitTests\Uno.Wasm.VersionChecker.UnitTests.csproj" `
+          -c Release `
+          -m:1 `
+          /p:UseSharedCompilation=false `
+          /p:BuildInParallel=false
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "VersionChecker unit test build failed with exit code $LASTEXITCODE."
+          exit $LASTEXITCODE
+        }
+
+        & "$(Build.SourcesDirectory)\src\Uno.Wasm.VersionChecker.UnitTests\bin\Release\net10.0\Uno.Wasm.VersionChecker.UnitTests.exe" `
+          --no-progress `
+          --report-trx `
+          --report-trx-filename Uno.Wasm.VersionChecker.UnitTests.trx `
+          --results-directory $results
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "VersionChecker unit test execution failed with exit code $LASTEXITCODE."
+          exit $LASTEXITCODE
+        }
+
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: VSTest
+      testResultsFiles: '$(Agent.TempDirectory)\test-results\*.trx'
+      searchFolder: '$(Agent.TempDirectory)\test-results'
       testRunTitle: $(Agent.JobName)
-      testSelector: testAssemblies
+      failTaskOnFailedTests: true
 
   - task: PublishBuildArtifacts@1
     condition: always()

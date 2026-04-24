@@ -26,7 +26,7 @@ public static class VersionCheckerReplHost
 				""")
 			.UseDefaultInteractive()
 			.UseCliProfile()
-			.Options(options => options.Parsing.AddRouteConstraint("site", static value => VersionCheckTarget.TryParse(value, out _)));
+			.Options(options => options.Parsing.AddRouteConstraint("site", static value => VersionCheckTarget.TryParseSyntax(value, out _)));
 
 		app.Map(
 			"{target:site}",

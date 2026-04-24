@@ -8,6 +8,12 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 		=> TryParse(input, out target, out _);
 
 	public static bool TryParse(string? input, out VersionCheckTarget? target, out string? error)
+		=> TryParseCore(input, validateNetwork: true, out target, out error);
+
+	public static bool TryParseSyntax(string? input, out VersionCheckTarget? target)
+		=> TryParseCore(input, validateNetwork: false, out target, out _);
+
+	private static bool TryParseCore(string? input, bool validateNetwork, out VersionCheckTarget? target, out string? error)
 	{
 		target = null;
 		error = null;
@@ -62,7 +68,7 @@ public sealed record VersionCheckTarget(string Input, Uri SiteUri)
 				siteUri = new UriBuilder(siteUri) { Path = $"{siteUri.AbsolutePath.TrimEnd('/')}/" }.Uri;
 			}
 
-			if (!VersionCheckNetworkPolicy.IsSafePublicTarget(siteUri, out error))
+			if (validateNetwork && !VersionCheckNetworkPolicy.IsSafePublicTarget(siteUri, out error))
 			{
 				return false;
 			}

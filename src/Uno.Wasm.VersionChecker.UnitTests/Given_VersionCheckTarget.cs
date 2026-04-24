@@ -88,6 +88,17 @@ public class Given_VersionCheckTarget
 	}
 
 	[TestMethod]
+	[Description("Verifies syntax-only parsing accepts private targets so command routing does not perform DNS or network validation.")]
+	public void When_SyntaxOnlyParsingPrivateAddress_Then_TargetIsAccepted()
+	{
+		var result = VersionCheckTarget.TryParseSyntax("http://169.254.169.254/latest/meta-data/", out var target);
+
+		result.Should().BeTrue();
+		target.Should().NotBeNull();
+		target.SiteUri.ToString().Should().Be("http://169.254.169.254/latest/meta-data/");
+	}
+
+	[TestMethod]
 	[Description("Verifies userinfo is stripped from user-facing parse errors.")]
 	public void When_InputContainsUserInfo_Then_ErrorIsSanitized()
 	{

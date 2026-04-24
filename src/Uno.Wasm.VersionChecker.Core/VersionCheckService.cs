@@ -91,9 +91,9 @@ public sealed class VersionCheckService(HttpClient httpClient)
 			.SelectNodes("//script")
 			?.Select(scriptElement => scriptElement.GetAttributeValue("src", string.Empty))
 			.Where(src => !string.IsNullOrWhiteSpace(src))
-			.Select(src => Uri.TryCreate(src, UriKind.RelativeOrAbsolute, out var uri) ? uri : null)
-			.Where(uri => uri is { IsAbsoluteUri: false })
-			.Select(uri => new Uri(siteUri, uri!))
+			.Select(src => TryResolveTrustedScriptUri(siteUri, src))
+			.Where(uri => uri is not null)
+			.Select(uri => uri!)
 			.ToArray();
 
 		var unoConfigPath = files?
@@ -121,6 +121,22 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		}
 
 		return null;
+	}
+
+	private static Uri? TryResolveTrustedScriptUri(Uri siteUri, string src)
+	{
+		try
+		{
+			return VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, src, "script src");
+		}
+		catch (InvalidOperationException)
+		{
+			return null;
+		}
+		catch (UriFormatException)
+		{
+			return null;
+		}
 	}
 
 	private async Task<UnoConfig> GetUnoConfigAsync(Uri uri, Uri siteUri, CancellationToken cancellationToken)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -20,47 +21,27 @@ public sealed class Given_VersionCheckService
 	[Description("Verifies compressed dotnet.js payloads are decompressed when the HTTP client enables automatic decompression.")]
 	public async Task When_DotnetScriptIsGzipCompressed_Then_BootConfigIsExtracted()
 	{
-		await using var server = await TestHttpServer.StartAsync();
-		server.SetResponder(async context =>
+		using var client = new HttpClient(new DecompressingStubHttpMessageHandler(request =>
 		{
-			switch (context.Request.Url?.AbsolutePath)
+			return request.RequestUri?.AbsolutePath switch
 			{
-				case "/":
-					await TestHttpServer.WriteTextAsync(context, """<html><body><script src="pkg/uno-config.js"></script></body></html>""");
-					break;
-				case "/pkg/uno-config.js":
-					await TestHttpServer.WriteTextAsync(context, """
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="pkg/uno-config.js"></script></body></html>"""),
+				"/pkg/uno-config.js" => StubHttpMessageHandler.Text("""
 						config.uno_app_base = "/pkg";
 						config.uno_remote_managedpath = "_framework";
 						config.dotnet_js_filename = "dotnet.abc.js";
-						""");
-					break;
-				case "/pkg/_framework/dotnet.abc.js":
-					await TestHttpServer.WriteGzipTextAsync(context, """
+						"""),
+				"/pkg/_framework/dotnet.abc.js" => StubHttpMessageHandler.GzipText("""
 						/*json-start*/{"mainAssemblyName":"Uno.Wasm.VersionChecker","resources":{"assembly":{"Uno.Wasm.VersionChecker.dll":"sha","System.Private.CoreLib.dll":"sha"}}}/*json-end*/
-						""");
-					break;
-				case "/pkg/_framework/Uno.Wasm.VersionChecker.dll":
-					await TestHttpServer.WriteBytesAsync(context, VersionCheckerTestAssets.MainAssemblyBytes, "application/octet-stream");
-					break;
-				case "/pkg/_framework/System.Private.CoreLib.dll":
-					await TestHttpServer.WriteBytesAsync(context, VersionCheckerTestAssets.RuntimeAssemblyBytes, "application/octet-stream");
-					break;
-				default:
-					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-					context.Response.Close();
-					break;
-			}
-		});
-
-		using var client = new HttpClient(new SocketsHttpHandler
-		{
-			AutomaticDecompression = DecompressionMethods.All,
-			AllowAutoRedirect = false
-		});
+						"""),
+				"/pkg/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				"/pkg/_framework/System.Private.CoreLib.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.RuntimeAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
 		var service = new VersionCheckService(client);
 
-		var report = await service.InspectAsync(new VersionCheckTarget(server.BaseAddress, new Uri(server.BaseAddress)));
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
 
 		report.BootConfigSource.Should().Be("dotnet.abc.js");
 		report.Assemblies.Length.Should().Be(2);
@@ -72,37 +53,25 @@ public sealed class Given_VersionCheckService
 	[Description("Verifies the compressed dotnet.js flow depends on the default client enabling automatic decompression.")]
 	public async Task When_DotnetScriptIsGzipCompressedWithoutAutoDecompression_Then_InspectionFails()
 	{
-		await using var server = await TestHttpServer.StartAsync();
-		server.SetResponder(async context =>
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
 		{
-			switch (context.Request.Url?.AbsolutePath)
+			return request.RequestUri?.AbsolutePath switch
 			{
-				case "/":
-					await TestHttpServer.WriteTextAsync(context, """<html><body><script src="pkg/uno-config.js"></script></body></html>""");
-					break;
-				case "/pkg/uno-config.js":
-					await TestHttpServer.WriteTextAsync(context, """
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="pkg/uno-config.js"></script></body></html>"""),
+				"/pkg/uno-config.js" => StubHttpMessageHandler.Text("""
 						config.uno_app_base = "/pkg";
 						config.uno_remote_managedpath = "_framework";
 						config.dotnet_js_filename = "dotnet.abc.js";
-						""");
-					break;
-				case "/pkg/_framework/dotnet.abc.js":
-					await TestHttpServer.WriteGzipTextAsync(context, """
+						"""),
+				"/pkg/_framework/dotnet.abc.js" => StubHttpMessageHandler.GzipText("""
 						/*json-start*/{"mainAssemblyName":"Uno.Wasm.VersionChecker","resources":{"assembly":{"Uno.Wasm.VersionChecker.dll":"sha"}}}/*json-end*/
-						""");
-					break;
-				default:
-					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-					context.Response.Close();
-					break;
-			}
-		});
-
-		using var client = new HttpClient();
+						"""),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
 		var service = new VersionCheckService(client);
 
-		var act = async () => await service.InspectAsync(new VersionCheckTarget(server.BaseAddress, new Uri(server.BaseAddress)));
+		var act = async () => await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
 
 		await act.Should().ThrowAsync<InvalidOperationException>();
 	}
@@ -161,6 +130,35 @@ public sealed class Given_VersionCheckService
 
 		report.UnoConfigUrl.Should().Be("https://example.com/pkg/uno-config.js");
 		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+	}
+
+	[TestMethod]
+	[Description("Verifies network-path script references cannot pivot uno-config discovery to another origin.")]
+	public async Task When_PageReferencesCrossOriginNetworkPathScript_Then_ScriptIsIgnored()
+	{
+		var requestedHosts = new List<string>();
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			requestedHosts.Add(request.RequestUri?.Host ?? string.Empty);
+			return (request.RequestUri?.Host, request.RequestUri?.AbsolutePath) switch
+			{
+				("example.com", "/") => StubHttpMessageHandler.Text("""<html><body><script src="//attacker.example/uno-config.js"></script><script src="pkg/uno-config.js"></script></body></html>"""),
+				("example.com", "/pkg/uno-config.js") => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/pkg";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				("example.com", "/pkg/_framework/Uno.Wasm.VersionChecker.dll") => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/pkg/uno-config.js");
+		requestedHosts.Should().NotContain("attacker.example");
 	}
 
 	[TestMethod]
@@ -331,99 +329,48 @@ public sealed class Given_VersionCheckService
 		public static HttpResponseMessage Bytes(byte[] content) =>
 			new(HttpStatusCode.OK) { Content = new ByteArrayContent(content) };
 
+		public static HttpResponseMessage GzipText(string content)
+		{
+			using var output = new MemoryStream();
+			using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+			{
+				var bytes = Encoding.UTF8.GetBytes(content);
+				gzip.Write(bytes, 0, bytes.Length);
+			}
+
+			return new(HttpStatusCode.OK)
+			{
+				Content = new ByteArrayContent(output.ToArray())
+				{
+					Headers =
+					{
+						ContentEncoding = { "gzip" },
+						ContentType = new("application/javascript")
+					}
+				}
+			};
+		}
+
 		public static HttpResponseMessage NotFound() =>
 			new(HttpStatusCode.NotFound) { Content = new StringContent("not found", Encoding.UTF8, "text/plain") };
 	}
 
-	private sealed class TestHttpServer : IAsyncDisposable
+	private sealed class DecompressingStubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
 	{
-		private readonly HttpListener _listener;
-		private readonly CancellationTokenSource _stop = new();
-		private Func<HttpListenerContext, Task> _responder = _ => Task.CompletedTask;
-		private readonly Task _loop;
-
-		private TestHttpServer(HttpListener listener)
+		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
-			_listener = listener;
-			_loop = Task.Run(async () =>
+			var response = responder(request);
+			if (!response.Content.Headers.ContentEncoding.Contains("gzip"))
 			{
-				while (!_stop.IsCancellationRequested)
-				{
-					HttpListenerContext context = null!;
-					try
-					{
-						context = await _listener.GetContextAsync();
-						await _responder(context);
-					}
-					catch (ObjectDisposedException) when (_stop.IsCancellationRequested)
-					{
-						break;
-					}
-					catch (HttpListenerException) when (_stop.IsCancellationRequested)
-					{
-						break;
-					}
-					finally
-					{
-						context?.Response.Close();
-					}
-				}
-			});
-		}
+				return response;
+			}
 
-		public string BaseAddress => _listener.Prefixes.Cast<string>().Single();
-
-		public static Task<TestHttpServer> StartAsync()
-		{
-			var port = GetAvailablePort();
-			var listener = new HttpListener();
-			listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-			listener.Start();
-			return Task.FromResult(new TestHttpServer(listener));
-		}
-
-		public void SetResponder(Func<HttpListenerContext, Task> responder) => _responder = responder;
-
-		public async ValueTask DisposeAsync()
-		{
-			_stop.Cancel();
-			_listener.Close();
-			await _loop;
-			_stop.Dispose();
-		}
-
-		public static Task WriteTextAsync(HttpListenerContext context, string content)
-		{
-			context.Response.StatusCode = (int)HttpStatusCode.OK;
-			context.Response.ContentType = "text/plain; charset=utf-8";
-			var bytes = Encoding.UTF8.GetBytes(content);
-			return context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
-		}
-
-		public static Task WriteBytesAsync(HttpListenerContext context, byte[] content, string contentType)
-		{
-			context.Response.StatusCode = (int)HttpStatusCode.OK;
-			context.Response.ContentType = contentType;
-			return context.Response.OutputStream.WriteAsync(content, 0, content.Length);
-		}
-
-		public static async Task WriteGzipTextAsync(HttpListenerContext context, string content)
-		{
-			context.Response.StatusCode = (int)HttpStatusCode.OK;
-			context.Response.ContentType = "application/javascript; charset=utf-8";
-			context.Response.AddHeader("Content-Encoding", "gzip");
-			await using var gzip = new GZipStream(context.Response.OutputStream, CompressionLevel.SmallestSize);
-			var bytes = Encoding.UTF8.GetBytes(content);
-			await gzip.WriteAsync(bytes, 0, bytes.Length);
-		}
-
-		private static int GetAvailablePort()
-		{
-			var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-			listener.Start();
-			var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-			listener.Stop();
-			return port;
+			await using var compressed = await response.Content.ReadAsStreamAsync(cancellationToken);
+			await using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
+			using var decompressed = new MemoryStream();
+			await gzip.CopyToAsync(decompressed, cancellationToken);
+			response.Content = new ByteArrayContent(decompressed.ToArray());
+			return response;
 		}
 	}
 }

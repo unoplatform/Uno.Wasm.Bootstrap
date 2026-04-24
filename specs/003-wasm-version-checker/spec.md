@@ -32,6 +32,7 @@ Because the package is a .NET tool, users may also run it without installing it 
 - `src/Uno.Wasm.VersionChecker` is the Repl host and targets `net10.0`.
 - `VersionCheckerReplHost.CreateApp` wires dependency injection, Repl CLI/interactive profiles, route validation, and the `inspect {target:site}` command.
 - The default route also accepts `{target:site}` so a URL or host can be entered directly.
+- Repl route constraints perform syntax-only target parsing. Full public-network validation is performed by the command handler immediately before inspection.
 - The host returns a tuple of rich objects:
   - `VersionCheckInspectionView`
   - `VersionCheckSummaryView`
@@ -143,29 +144,31 @@ Then inspection fails with a same-origin validation error
 ### Functional Requirements
 
 - **FR-001**: The tool MUST expose an `inspect {target:site}` command and a shorthand `{target:site}` route.
-- **FR-002**: The target parser MUST accept absolute `http://` and `https://` URLs, and hostnames without a scheme by assuming `https://`.
-- **FR-003**: The target parser MUST reject unsupported schemes, malformed URLs, empty input, and targets that resolve to local or private network addresses.
-- **FR-004**: The target parser MUST strip user info from normalized target URIs and from displayed error messages.
-- **FR-005**: The default HTTP client MUST disable automatic redirects.
-- **FR-006**: The default HTTP client MUST enable automatic decompression for supported encodings.
-- **FR-007**: The default HTTP client MUST enforce a 30-second timeout, a 10-second connect timeout, a 64 MiB response limit, and a 5-minute pooled connection lifetime.
-- **FR-008**: The default HTTP client MUST re-check resolved connection endpoints and connect only to public IP addresses.
-- **FR-009**: The service MUST only resolve remote-config-derived paths within the inspected site's scheme and authority.
-- **FR-010**: The service MUST discover `uno-config.js` from direct script references, `uno-bootstrap.js` sibling rewriting, or `embedded.js` package declarations.
-- **FR-011**: The service MUST parse supported `uno-config.js` fields and tolerate malformed JSON values in individual assignments by ignoring the malformed field.
-- **FR-012**: The service MUST prefer a configured `dotnet_js_filename`, then `dotnet.js`, then standalone boot JSON.
-- **FR-013**: The service MUST parse embedded boot JSON from `dotnet*.js` files using `/*json-start*/` and `/*json-end*/` markers.
-- **FR-014**: The service MUST parse standalone `blazor.boot.json` from `_framework/` before the site root.
-- **FR-015**: The service MUST tolerate leading whitespace and a UTF-8 BOM when detecting standalone boot JSON.
-- **FR-016**: The service MUST support .NET boot config resource entries represented as either objects or arrays with `name` fields.
-- **FR-017**: The service MUST parse both PE assemblies and WebCIL/WASM assemblies.
-- **FR-018**: The service MUST return an immutable `VersionCheckReport` containing inspection metadata, summary fields, and assembly metadata.
-- **FR-019**: The Repl host MUST return rich renderable objects instead of manually writing report content to the console.
-- **FR-020**: The Repl host MUST propagate cancellation and return exit code 130 for user-initiated cancellation.
-- **FR-021**: The service MUST retry HTTP 429 responses up to two times and respect `Retry-After` when present.
-- **FR-022**: The service MUST cap concurrent assembly downloads at eight.
-- **FR-023**: The service MUST trace assembly parsing failures and continue with other assemblies.
-- **FR-024**: Inspection MUST fail with a clear error when no assemblies can be found from either Uno config or .NET boot config.
+- **FR-002**: Repl route constraints MUST use syntax-only target parsing and MUST NOT perform DNS resolution or public/private network validation during command parsing.
+- **FR-003**: The target parser MUST accept absolute `http://` and `https://` URLs, and hostnames without a scheme by assuming `https://`.
+- **FR-004**: Full target validation MUST reject unsupported schemes, malformed URLs, empty input, and targets that resolve to local or private network addresses before inspection starts.
+- **FR-005**: The target parser MUST strip user info from normalized target URIs and from displayed error messages.
+- **FR-006**: The default HTTP client MUST disable automatic redirects.
+- **FR-007**: The default HTTP client MUST enable automatic decompression for supported encodings.
+- **FR-008**: The default HTTP client MUST enforce a 30-second timeout, a 10-second connect timeout, a 64 MiB response limit, and a 5-minute pooled connection lifetime.
+- **FR-009**: The default HTTP client MUST re-check resolved connection endpoints and connect only to public IP addresses.
+- **FR-010**: The service MUST only resolve remote-config-derived paths within the inspected site's scheme and authority.
+- **FR-011**: The service MUST only consider HTML script references that resolve within the inspected site's scheme and authority. Cross-origin absolute script URLs and network-path URLs such as `//host/uno-config.js` MUST NOT be fetched.
+- **FR-012**: The service MUST discover `uno-config.js` from trusted direct script references, `uno-bootstrap.js` sibling rewriting, or `embedded.js` package declarations.
+- **FR-013**: The service MUST parse supported `uno-config.js` fields and tolerate malformed JSON values in individual assignments by ignoring the malformed field.
+- **FR-014**: The service MUST prefer a configured `dotnet_js_filename`, then `dotnet.js`, then standalone boot JSON.
+- **FR-015**: The service MUST parse embedded boot JSON from `dotnet*.js` files using `/*json-start*/` and `/*json-end*/` markers.
+- **FR-016**: The service MUST parse standalone `blazor.boot.json` from `_framework/` before the site root.
+- **FR-017**: The service MUST tolerate leading whitespace and a UTF-8 BOM when detecting standalone boot JSON.
+- **FR-018**: The service MUST support .NET boot config resource entries represented as either objects or arrays with `name` fields.
+- **FR-019**: The service MUST parse both PE assemblies and WebCIL/WASM assemblies.
+- **FR-020**: The service MUST return an immutable `VersionCheckReport` containing inspection metadata, summary fields, and assembly metadata.
+- **FR-021**: The Repl host MUST return rich renderable objects instead of manually writing report content to the console.
+- **FR-022**: The Repl host MUST propagate cancellation and return exit code 130 for user-initiated cancellation.
+- **FR-023**: The service MUST retry HTTP 429 responses up to two times and respect `Retry-After` when present.
+- **FR-024**: The service MUST cap concurrent assembly downloads at eight.
+- **FR-025**: The service MUST trace assembly parsing failures and continue with other assemblies.
+- **FR-026**: Inspection MUST fail with a clear error when no assemblies can be found from either Uno config or .NET boot config.
 
 ### Key Entities
 
@@ -195,6 +198,7 @@ Then inspection fails with a same-origin validation error
 - **SC-006**: PE and WebCIL payloads both produce assembly metadata rows.
 - **SC-007**: Repl output is represented as structured objects and can be rendered by Repl without direct console output from the host.
 - **SC-008**: Cancellation returns a cancelled Repl result rather than a partial success or generic exception.
+- **SC-009**: CI builds the `Uno.Wasm.VersionChecker.UnitTests` Microsoft Testing Platform executable and publishes its TRX results.
 
 ## Edge Cases
 
