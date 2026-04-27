@@ -1,15 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSTest.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.8.3" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.8.3" />
+    <PackageReference Include="AwesomeAssertions" Version="9.1.0" />
+    <PackageReference Include="AwesomeAssertions.Analyzers" Version="9.0.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="coverlet.collector" Version="1.3.0" />
   </ItemGroup>
 
