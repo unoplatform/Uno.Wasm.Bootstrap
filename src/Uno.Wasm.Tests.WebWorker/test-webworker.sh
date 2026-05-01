@@ -113,18 +113,20 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
-# Step 3b: Regression check — no orphan StaticWebAssetEndpoint routes.
+# Step 3b: Regression check — no orphan StaticWebAssetEndpoint routes
+# pointing at worker entry-point files without the WasmShellWorkerBasePath.
 #
-# The host integration MUST NOT import the worker manifest's endpoints
-# directly: their Route metadata points to the worker's original
-# (root-relative) paths and would not include WasmShellWorkerBasePath.
-# The host pipeline (DefineStaticWebAssetEndpoints) re-derives them from
-# the re-registered StaticWebAsset items. Restoring the import would
-# leave orphan endpoints whose Route is a "naked" worker filename.
+# When _UnoBuildAndImportWebWorkerAssets imports the worker manifest's
+# endpoints verbatim (the historical bug) those endpoints carry
+# root-relative routes (e.g., "worker.js") that don't include the
+# host's _worker/ prefix. The host pipeline must re-derive endpoints
+# from the re-registered StaticWebAsset items so all worker entries
+# live under _worker/.
 #
-# Asserts there is no endpoint whose Route equals 'worker.js' or starts
-# with 'package_<workerHash>/' without the '_worker/' prefix in
-# staticwebassets.publish.endpoints.json.
+# We only assert on routes that are uniquely produced by WebWorker mode —
+# "worker.js" and "shell-worker-index.html" — because package_<hash>/
+# routes can legitimately collide between host and worker (identical
+# content-hashes when both projects ship overlapping assets).
 # -------------------------------------------------------------------
 echo "Step 3b: Regression check — endpoint manifest has no orphan worker routes..."
 echo "-----------------------------------------"
@@ -141,29 +143,19 @@ if [ ! -f "$ENDPOINTS_JSON" ]; then
 fi
 echo "  Manifest: $ENDPOINTS_JSON"
 
-# Determine worker package hash from the published worker config so we can
-# detect orphans whose Route starts with the worker's package folder but
-# without the _worker/ prefix.
-WORKER_PACKAGE_HASH=""
-if [ -f "$WORKER_CONFIG_JS" ]; then
-    WORKER_PACKAGE_PATH=$(dirname "$WORKER_CONFIG_JS")
-    WORKER_PACKAGE_HASH=$(basename "$WORKER_PACKAGE_PATH")
-fi
-
-ORPHANS=$(python3 - "$ENDPOINTS_JSON" "$WORKER_PACKAGE_HASH" <<'PY'
+ORPHANS=$(python3 - "$ENDPOINTS_JSON" <<'PY'
 import json, sys
 path = sys.argv[1]
-worker_pkg = sys.argv[2]
 with open(path) as f:
     data = json.load(f)
+# Worker-only entry-point files: appearing at the root (without _worker/
+# prefix) is the signature of an orphan endpoint that escaped the import
+# filter in _UnoBuildAndImportWebWorkerAssets.
+WORKER_ONLY_ROUTES = {"worker.js", "shell-worker-index.html"}
 orphans = []
 for ep in data.get("Endpoints", []):
     route = ep.get("Route", "")
-    # Orphan = bare 'worker.js' (without _worker/ prefix), or starts with
-    # the worker's own package_<hash>/ but not under _worker/.
-    if route == "worker.js":
-        orphans.append(route)
-    elif worker_pkg and route.startswith(worker_pkg + "/"):
+    if route in WORKER_ONLY_ROUTES:
         orphans.append(route)
 if orphans:
     for r in orphans[:5]:
@@ -173,7 +165,7 @@ PY
 ) || ORPHAN_FOUND=1
 
 if [ "${ORPHAN_FOUND:-0}" = "1" ]; then
-    echo -e "${RED}FAIL: orphan worker-mapped endpoints found in $ENDPOINTS_JSON:${NC}"
+    echo -e "${RED}FAIL: orphan worker entry-point endpoints found in $ENDPOINTS_JSON:${NC}"
     echo "$ORPHANS" | sed 's/^/  /'
     echo
     echo "  This indicates _UnoBuildAndImportWebWorkerAssets is re-importing"
@@ -182,7 +174,7 @@ if [ "${ORPHAN_FOUND:-0}" = "1" ]; then
     echo "  the re-registered StaticWebAsset items."
     exit 1
 fi
-echo -e "${GREEN}  No orphan worker-mapped endpoints detected${NC}"
+echo -e "${GREEN}  No orphan worker-entry-point endpoints detected${NC}"
 
 echo ""
 
