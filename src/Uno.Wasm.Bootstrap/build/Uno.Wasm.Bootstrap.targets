@@ -682,20 +682,13 @@
 		</MSBuild>
 
 		<!-- Filter to StaticWebAsset items only. The target also returns
-		     StaticWebAssetEndpoint items, but we deliberately drop those:
-		     their Route/AssetFile metadata points to the worker's original
-		     (root-relative) paths and is not aware of $(WasmShellWorkerBasePath).
-		     The host's standard DefineStaticWebAssetEndpoints pipeline (run by
-		     the SDK after ResolveStaticWebAssetsInputs) re-derives correct
-		     endpoints — including compression alternatives — from the
-		     re-registered StaticWebAsset items below, so importing the
-		     worker's stale endpoints would only add orphaned entries pointing
-		     at routes the host no longer serves.
+		     StaticWebAssetEndpoint items; we drop those because their Route
+		     metadata points to the worker's original (root-relative) paths
+		     and is not aware of $(WasmShellWorkerBasePath).
 
-		     We also exclude pre-compressed assets (Content-Encoding trait) because
-		     without the matching endpoints the ApplyCompressionNegotiation task
-		     cannot resolve them. The host's compression pipeline will produce its
-		     own .gz/.br variants with correct endpoint mappings. -->
+		     We also exclude pre-compressed assets (Content-Encoding trait)
+		     because the host's compression pipeline will produce its own
+		     .gz/.br variants with correct endpoint mappings. -->
 		<ItemGroup>
 			<_UnoWorkerManifestAsset Include="@(_UnoWorkerManifestAssetRaw)"
 				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAsset' AND '%(_UnoWorkerManifestAssetRaw.AssetTraitName)' != 'Content-Encoding'" />
@@ -723,7 +716,24 @@
 			</StaticWebAsset>
 		</ItemGroup>
 
-		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) manifest assets from worker under $(WasmShellWorkerBasePath)/. Endpoints will be derived by the host pipeline." />
+		<!-- Generate endpoints for the imported worker assets. The SDK's
+		     DefineStaticWebAssetEndpoints only runs on project-discovered assets
+		     and updated package assets, so externally-added assets need explicit
+		     endpoint generation. Without these endpoints, the compression
+		     pipeline's ApplyCompressionNegotiation task fails because it cannot
+		     find endpoints for the related (uncompressed) asset. -->
+		<DefineStaticWebAssetEndpoints
+			CandidateAssets="@(_UnoWorkerManifestAsset)"
+			ContentTypeMappings="@(StaticWebAssetContentTypeMapping)"
+		>
+			<Output TaskParameter="Endpoints" ItemName="_UnoWorkerEndpoints" />
+		</DefineStaticWebAssetEndpoints>
+
+		<ItemGroup>
+			<StaticWebAssetEndpoint Include="@(_UnoWorkerEndpoints)" />
+		</ItemGroup>
+
+		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) manifest assets and @(_UnoWorkerEndpoints->Count()) endpoints from worker under $(WasmShellWorkerBasePath)/" />
 	</Target>
 
 	<!--
