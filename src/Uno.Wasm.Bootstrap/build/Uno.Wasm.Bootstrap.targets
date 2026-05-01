@@ -690,10 +690,15 @@
 		     endpoints — including compression alternatives — from the
 		     re-registered StaticWebAsset items below, so importing the
 		     worker's stale endpoints would only add orphaned entries pointing
-		     at routes the host no longer serves. -->
+		     at routes the host no longer serves.
+
+		     We also exclude pre-compressed assets (Content-Encoding trait) because
+		     without the matching endpoints the ApplyCompressionNegotiation task
+		     cannot resolve them. The host's compression pipeline will produce its
+		     own .gz/.br variants with correct endpoint mappings. -->
 		<ItemGroup>
 			<_UnoWorkerManifestAsset Include="@(_UnoWorkerManifestAssetRaw)"
-				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAsset'" />
+				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAsset' AND '%(_UnoWorkerManifestAssetRaw.AssetTraitName)' != 'Content-Encoding'" />
 		</ItemGroup>
 
 		<!-- Re-register each worker asset under the host's static web assets,
@@ -702,8 +707,8 @@
 		     Use a distinct SourceId to avoid conflict detection with the host's
 		     own assets. -->
 		<!-- Only clear WasmResource / Culture traits (which trigger Blazor
-		     boot JSON processing). Keep Content-Encoding traits intact as they
-		     are required for compressed alternative asset validation. -->
+		     boot JSON processing). Compressed assets are excluded above so no
+		     Content-Encoding traits should remain at this point. -->
 		<ItemGroup>
 			<StaticWebAsset Include="@(_UnoWorkerManifestAsset)">
 				<SourceId>$(PackageId)._worker</SourceId>
