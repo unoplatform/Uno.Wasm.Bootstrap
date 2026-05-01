@@ -10,10 +10,18 @@ public static partial class Program
 		Console.WriteLine("Host: Starting WebWorker host application.");
 
 		// Create the worker and set up message handling.
-		// The worker files are published under _worker/ by the build system.
+		// The worker is published inside the host's hashed package folder so
+		// the URL is implicitly versioned by the host's content hash:
+		//   <uno_app_base>/<WasmShellWorkerBasePath>/<WasmShellWorkerFileName>
+		// e.g. ./package_<hostHash>/worker/worker.js (the defaults).
+		// Resolving via config.uno_app_base ensures v1 host pages always pair
+		// with the v1 worker on disk (or 404), never silently with a v2 worker
+		// during a rolling deployment.
 		WebAssembly.Runtime.InvokeJS("""
 			(function() {
-				const worker = new Worker('./_worker/worker.js');
+				const appBase = (globalThis.config && globalThis.config.uno_app_base) || '.';
+				const workerUrl = appBase + '/worker/worker.js';
+				const worker = new Worker(workerUrl);
 				const resultsEl = document.getElementById('results')
 					|| (function() {
 						var el = document.createElement('div');

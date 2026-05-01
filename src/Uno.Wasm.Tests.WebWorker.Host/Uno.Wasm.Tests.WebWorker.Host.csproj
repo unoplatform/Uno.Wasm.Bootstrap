@@ -6,10 +6,10 @@
     <IsPackable>false</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <!-- Reference the WebWorker project. Its build output is registered as
-         static web assets under _worker/ via the Uno.Wasm.Bootstrap pipeline. -->
+    <!-- Reference the WebWorker project. Its build output is published under
+         package_<hostHash>/worker/ inside the host's hashed package folder
+         (default WasmShellWorkerBasePath = 'worker'). -->
     <WasmShellWebWorkerProject>..\Uno.Wasm.Tests.WebWorker.App\Uno.Wasm.Tests.WebWorker.App.csproj</WasmShellWebWorkerProject>
-    <WasmShellWorkerBasePath>_worker</WasmShellWorkerBasePath>
   </PropertyGroup>
 
   <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />

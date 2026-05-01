@@ -77,30 +77,51 @@ echo -e "${GREEN}  Host: uno_shell_mode = \"Browser\"${NC}"
 echo ""
 
 # -------------------------------------------------------------------
-# Step 3: Validate worker files under _worker/
+# Step 3: Validate worker files inside the host's package folder.
+# Layout: wwwroot/package_<hostHash>/worker/worker.js (default sub-folder
+# is 'worker'; configurable via WasmShellWorkerBasePath). Placing the
+# worker inside the host's content-hashed folder versions the worker
+# URL by the host's deployment hash.
 # -------------------------------------------------------------------
-echo "Step 3: Validating _worker/ directory..."
+echo "Step 3: Validating worker layout under host's package folder..."
 echo "-----------------------------------------"
 
-WORKER_DIR="$WWWROOT/_worker"
-if [ ! -d "$WORKER_DIR" ]; then
-    echo -e "${RED}FAIL: _worker/ directory not found in $WWWROOT${NC}"
+# Find the host's package folder. Bootstrap names it package_<sha1>.
+HOST_PACKAGE_DIR=$(find "$WWWROOT" -maxdepth 1 -type d -name "package_*" 2>/dev/null | head -1)
+if [ -z "$HOST_PACKAGE_DIR" ]; then
+    echo -e "${RED}FAIL: host package_<hash>/ folder not found in $WWWROOT${NC}"
     exit 1
 fi
-echo -e "${GREEN}  _worker/ directory exists${NC}"
+echo -e "${GREEN}  Host package folder: $(basename "$HOST_PACKAGE_DIR")${NC}"
+
+WORKER_DIR="$HOST_PACKAGE_DIR/worker"
+if [ ! -d "$WORKER_DIR" ]; then
+    echo -e "${RED}FAIL: worker/ sub-folder not found in $HOST_PACKAGE_DIR${NC}"
+    exit 1
+fi
+echo -e "${GREEN}  worker/ sub-folder exists${NC}"
 
 WORKER_JS="$WORKER_DIR/worker.js"
 if [ ! -f "$WORKER_JS" ]; then
-    echo -e "${RED}FAIL: worker.js not found in _worker/${NC}"
+    echo -e "${RED}FAIL: worker.js not found in $WORKER_DIR${NC}"
     exit 1
 fi
-echo -e "${GREEN}  _worker/worker.js found${NC}"
+echo -e "${GREEN}  package_<hostHash>/worker/worker.js found${NC}"
 
 if [ ! -d "$WORKER_DIR/_framework" ]; then
-    echo -e "${RED}FAIL: _framework/ not found in _worker/${NC}"
+    echo -e "${RED}FAIL: _framework/ not found in $WORKER_DIR${NC}"
     exit 1
 fi
-echo -e "${GREEN}  _worker/_framework/ found (separate runtime)${NC}"
+echo -e "${GREEN}  package_<hostHash>/worker/_framework/ found (separate runtime)${NC}"
+
+# A regression of the placement would put the worker at top-level _worker/.
+if [ -d "$WWWROOT/_worker" ]; then
+    echo -e "${RED}FAIL: top-level _worker/ directory exists. The worker must live inside${NC}"
+    echo -e "${RED}      the host's package_<hash>/ folder so the URL is versioned by the${NC}"
+    echo -e "${RED}      host's content hash, not at an unhashed top-level prefix.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}  No top-level _worker/ (worker is properly nested under host hash)${NC}"
 
 # Validate worker's config
 WORKER_CONFIG_JS=$(find "$WORKER_DIR" -maxdepth 2 -name "uno-config.js" 2>/dev/null | head -1)
@@ -113,22 +134,25 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
-# Step 3b: Regression check — no orphan StaticWebAssetEndpoint routes
-# pointing at worker entry-point files without the WasmShellWorkerBasePath.
+# Step 3b: Regression check — endpoint manifest layout.
 #
-# When _UnoBuildAndImportWebWorkerAssets imports the worker manifest's
-# endpoints verbatim (the historical bug) those endpoints carry
-# root-relative routes (e.g., "worker.js") that don't include the
-# host's _worker/ prefix. The host pipeline must re-derive endpoints
-# from the re-registered StaticWebAsset items so all worker entries
-# live under _worker/.
+# Asserts two regression patterns are absent:
 #
-# We only assert on routes that are uniquely produced by WebWorker mode —
-# "worker.js" and "shell-worker-index.html" — because package_<hash>/
-# routes can legitimately collide between host and worker (identical
-# content-hashes when both projects ship overlapping assets).
+#  (a) Worker entry-point routes appearing at the root without the
+#      host's package folder prefix. Signature of importing the worker's
+#      raw manifest endpoints verbatim (Route metadata is root-relative).
+#      Files only WebWorker mode produces: "worker.js" and
+#      "shell-worker-index.html". package_<hash>/ routes can legitimately
+#      collide between host and worker (identical content hashes), so we
+#      can't flag those without false positives.
+#
+#  (b) Worker assets at a top-level "_worker/" prefix (the previous
+#      design before the worker was placed inside the host's hashed
+#      package folder). The worker URL must be versioned by the host's
+#      content hash so v1 host pages never silently pair with a v2 worker
+#      during a rolling deployment.
 # -------------------------------------------------------------------
-echo "Step 3b: Regression check — endpoint manifest has no orphan worker routes..."
+echo "Step 3b: Regression check — endpoint manifest layout..."
 echo "-----------------------------------------"
 
 ENDPOINTS_JSON=$(find "$HOST_DIR/obj/Release" -name "staticwebassets.publish.endpoints.json" 2>/dev/null | head -1)
@@ -148,33 +172,42 @@ import json, sys
 path = sys.argv[1]
 with open(path) as f:
     data = json.load(f)
-# Worker-only entry-point files: appearing at the root (without _worker/
-# prefix) is the signature of an orphan endpoint that escaped the import
-# filter in _UnoBuildAndImportWebWorkerAssets.
+
+# (a) Worker-only entry-point files at root (no host package prefix).
 WORKER_ONLY_ROUTES = {"worker.js", "shell-worker-index.html"}
+
+# (b) Top-level _worker/ prefix (versioned-URL regression).
+TOP_LEVEL_WORKER_PREFIX = "_worker/"
+
 orphans = []
 for ep in data.get("Endpoints", []):
     route = ep.get("Route", "")
     if route in WORKER_ONLY_ROUTES:
-        orphans.append(route)
+        orphans.append(("entry-point at root", route))
+    elif route.startswith(TOP_LEVEL_WORKER_PREFIX):
+        orphans.append(("top-level _worker/ prefix", route))
 if orphans:
-    for r in orphans[:5]:
-        print(r)
+    for kind, r in orphans[:10]:
+        print(f"[{kind}] {r}")
     sys.exit(1)
 PY
 ) || ORPHAN_FOUND=1
 
 if [ "${ORPHAN_FOUND:-0}" = "1" ]; then
-    echo -e "${RED}FAIL: orphan worker entry-point endpoints found in $ENDPOINTS_JSON:${NC}"
+    echo -e "${RED}FAIL: regression detected in $ENDPOINTS_JSON:${NC}"
     echo "$ORPHANS" | sed 's/^/  /'
     echo
-    echo "  This indicates _UnoBuildAndImportWebWorkerAssets is re-importing"
-    echo "  the worker's manifest endpoints (StaticWebAssetEndpoint Include) —"
-    echo "  drop that import; the host pipeline derives correct endpoints from"
-    echo "  the re-registered StaticWebAsset items."
+    echo "  This indicates one of:"
+    echo "    1. _UnoBuildAndImportWebWorkerAssets is re-importing the worker's"
+    echo "       raw manifest endpoints (their Route is root-relative)."
+    echo "    2. Worker assets are no longer being placed under the host's"
+    echo "       package_<hash>/ folder (e.g., a top-level _worker/ regression)."
+    echo
+    echo "  The worker MUST live at package_<hostHash>/<WasmShellWorkerBasePath>/"
+    echo "  so the URL is versioned by the host's content hash."
     exit 1
 fi
-echo -e "${GREEN}  No orphan worker-entry-point endpoints detected${NC}"
+echo -e "${GREEN}  No orphan or unhashed worker routes detected${NC}"
 
 echo ""
 

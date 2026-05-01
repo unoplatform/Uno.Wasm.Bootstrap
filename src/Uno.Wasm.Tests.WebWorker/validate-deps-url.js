@@ -30,18 +30,21 @@ function resolveDependencyUrl(dep, baseUrl) {
     return new URL(specifier, baseUrl).href;
 }
 
-const baseUrl = "http://localhost:8001/_worker/worker.js";
+// The worker is now published inside the host's hashed package folder, so
+// self.location.href in the worker context looks like:
+//   http://<host>/package_<hostHash>/worker/worker.js
+const baseUrl = "http://localhost:8001/package_24816ef2/worker/worker.js";
 
 const cases = [
     {
         name: "relative dep without .js (default for relative baseLookup)",
         dep: "./package_abc/uno-worker-bootstrap",
-        expected: "http://localhost:8001/_worker/package_abc/uno-worker-bootstrap.js",
+        expected: "http://localhost:8001/package_24816ef2/worker/package_abc/uno-worker-bootstrap.js",
     },
     {
         name: "relative dep already ending in .js",
         dep: "./helpers.js",
-        expected: "http://localhost:8001/_worker/helpers.js",
+        expected: "http://localhost:8001/package_24816ef2/worker/helpers.js",
     },
     {
         name: "absolute dep with .js (default for absolute baseLookup)",
@@ -56,7 +59,7 @@ const cases = [
     {
         name: "bare relative dep (no leading ./)",
         dep: "package_abc/foo",
-        expected: "http://localhost:8001/_worker/package_abc/foo.js",
+        expected: "http://localhost:8001/package_24816ef2/worker/package_abc/foo.js",
     },
     {
         name: "fully-qualified URL",
@@ -96,9 +99,13 @@ const naiveCases = [
         contains: ".js.js",
     },
     {
-        name: "naive concat produces double-slash for absolute dep",
+        name: "naive concat produces wrong absolute path resolution",
         dep: "/pkg/foo",
         baseUrl: baseUrl,
+        // Naive concat appends to baseUrl's directory ("…/worker/") + "/pkg/foo.js"
+        // -> "…/worker//pkg/foo.js" (double-slash). new URL() resolves to
+        // "http://localhost:8001/pkg/foo.js" (origin root). The double-slash
+        // proves the naive resolver doesn't understand absolute paths.
         contains: "//pkg/",
     },
 ];

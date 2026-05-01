@@ -199,21 +199,25 @@ The WebWorker project is designed to be consumed by a host app. The host project
 <PropertyGroup>
     <!-- Path to the WebWorker .csproj -->
     <WasmShellWebWorkerProject>..\MyWorker\MyWorker.csproj</WasmShellWebWorkerProject>
-    <!-- Subdirectory under wwwroot/ where worker files are placed (default: _worker) -->
-    <WasmShellWorkerBasePath>_worker</WasmShellWorkerBasePath>
+    <!-- Optional sub-folder under the host's package_<hostHash>/ folder
+         (default: 'worker'). -->
+    <WasmShellWorkerBasePath>worker</WasmShellWorkerBasePath>
 </PropertyGroup>
 ```
 
 During build and publish, the build system automatically:
 
-1. Builds the worker project and registers its assets via the static web assets pipeline
-2. Publishes the worker's `_framework/` directory and copies it into `wwwroot/_worker/`
+1. Builds the worker project and registers its assets as host `Content` items rooted under `<WasmShellWorkerBasePath>` so they flow through Bootstrap's package-folder pipeline
+2. Publishes the worker's `_framework/` directory and copies it into `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/_framework/`
 3. Fixes up the `dotnet.js` fingerprint in the worker's `uno-config.js`
 
-The host then creates a Worker pointing to the worker's base path:
+The worker is placed inside the host's hashed package folder so the worker URL is implicitly versioned by the host's content hash. This prevents v1-host pages from silently pairing with a v2 worker during a rolling deployment — the URL of the worker either resolves to the matching version that's still on disk, or 404s.
+
+The host resolves the worker URL via `config.uno_app_base` (which includes the hash):
 
 ```javascript
-const worker = new Worker('./_worker/worker.js');
+const appBase = (globalThis.config && globalThis.config.uno_app_base) || '.';
+const worker = new Worker(appBase + '/worker/worker.js');
 ```
 
 ### Sharing code via linked files
@@ -236,4 +240,4 @@ This is the recommended approach for scenarios like running the same computation
 | `WasmShellMode` | `browser` | Set to `WebWorker` to enable worker mode |
 | `WasmShellWorkerFileName` | `worker.js` | Name of the generated worker script file |
 | `WasmShellWebWorkerProject` | _(empty)_ | Path to a WebWorker project to publish alongside the host |
-| `WasmShellWorkerBasePath` | `_worker` | Subdirectory for the worker's output in the host's wwwroot |
+| `WasmShellWorkerBasePath` | `worker` | Sub-folder under the host's `package_<hostHash>/` folder. The worker URL is therefore versioned by the host's content hash. |

@@ -15,7 +15,7 @@ A WebWorker project is designed to be consumed by a host Browser-mode project. T
 
 ### P1: Host App Creates Worker and Receives Messages
 
-**User Journey**: A developer creates two projects — a Browser-mode host and a WebWorker-mode worker. The host's `Program.cs` uses `InvokeJS` to create a `Worker` pointing to `_worker/worker.js`. The worker's `Program.cs` runs computations and posts results back via `self.postMessage`. The host receives the messages and updates the UI.
+**User Journey**: A developer creates two projects — a Browser-mode host and a WebWorker-mode worker. The host's `Program.cs` uses `InvokeJS` to create a `Worker` pointing to `<config.uno_app_base>/worker/worker.js` (i.e. inside the host's hashed package folder, so the URL is versioned by the host's content hash). The worker's `Program.cs` runs computations and posts results back via `self.postMessage`. The host receives the messages and updates the UI.
 
 **Priority Justification**: This is the primary use case — offloading computation to a background thread while keeping the UI responsive.
 
@@ -26,13 +26,13 @@ A WebWorker project is designed to be consumed by a host Browser-mode project. T
 ```gherkin
 Given a host Browser-mode project with WasmShellWebWorkerProject set
 When the developer runs dotnet publish on the host
-Then the host's publish output SHALL contain _worker/worker.js
-And _worker/_framework/ SHALL contain the worker's .NET runtime files
+Then the host's publish output SHALL contain package_<hostHash>/worker/worker.js
+And package_<hostHash>/worker/_framework/ SHALL contain the worker's .NET runtime files
 And the host's _framework/ SHALL contain its own .NET runtime files (no conflicts)
-And the worker.js SHALL correctly reference _worker/_framework/ via relative paths
+And the worker.js SHALL correctly reference its own _framework/ via relative paths
 
 Given a published host+worker application served in a browser
-When the host's Program.cs creates a Worker at ./_worker/worker.js
+When the host's Program.cs creates a Worker at <config.uno_app_base>/worker/worker.js
 And the worker's Program.cs calls self.postMessage via InvokeJS
 Then the host SHALL receive the message
 And the #results element SHALL display the worker's message content
@@ -102,13 +102,13 @@ And index.html SHALL reference my-worker.js
 
 ### Host Integration Requirements
 
-**FR-7**: The host project SHALL set `WasmShellWebWorkerProject` to the worker `.csproj` path and `WasmShellWorkerBasePath` (default: `_worker`) to control the output subdirectory.
+**FR-7**: The host project SHALL set `WasmShellWebWorkerProject` to the worker `.csproj` path. `WasmShellWorkerBasePath` (default: `worker`) controls the sub-folder name **inside** the host's hashed package folder (`package_<hostHash>/<WasmShellWorkerBasePath>/`). The worker URL is therefore implicitly versioned by the host's content hash.
 
 **FR-8**: During the host's build, the `_UnoBuildAndImportWebWorkerAssets` target SHALL:
 
 - Build the worker project via `MSBuild` task
 - Read the worker's static web assets via `GetCurrentProjectBuildStaticWebAssetItems`
-- Register manifest assets (worker.js, package_*, etc.) as `StaticWebAsset` items in the host with `BasePath=_worker` and cleared `WasmResource`/`Culture` traits
+- Re-emit each manifest asset (worker.js, package_*, etc.) as a host `Content` item with `Link="<WasmShellWorkerBasePath>\<RelativePath>"`. The Content items flow through Bootstrap's `ShellTask` (`CopyContent` → `AddStaticAsset(DeployMode.Package)` → `GeneratePackageFolder`), which places them on disk at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`. Pre-compressed assets and manifest endpoints from the worker are filtered out — the host's pipeline re-derives both.
 - Register `_framework/` files from the worker's build output via `DefineStaticWebAssets`
 - The standard SDK publish pipeline copies everything to the correct output paths
 
@@ -120,7 +120,7 @@ And index.html SHALL reference my-worker.js
 
 **Host Page** (`index.html`): A minimal HTML page generated alongside the worker script for standalone testing. Creates the worker and displays message events.
 
-**Worker Base Path** (`_worker`): The subdirectory under the host's wwwroot where the worker's complete output (including its own `_framework/`) is placed.
+**Worker Base Path** (`worker`, default): The sub-folder name **inside** the host's hashed package folder (`package_<hostHash>/<WasmShellWorkerBasePath>/`). The worker's complete output (including its own `_framework/`) lives there. Placing the worker inside the host's content-hashed folder versions the worker URL by the host's deployment hash, eliminating the rolling-deployment race where a v1 host page could otherwise pair with a v2 worker served at the same stable URL.
 
 ## Implementation
 
@@ -137,7 +137,7 @@ And index.html SHALL reference my-worker.js
 **`src/Uno.Wasm.Bootstrap/build/Uno.Wasm.Bootstrap.targets`**:
 
 - Added `WasmShellWorkerFileName` property (default: `worker.js`)
-- Added `WasmShellWorkerBasePath` property (default: `_worker`)
+- Added `WasmShellWorkerBasePath` property (default: `worker`) — sub-folder under the host's `package_<hostHash>/` folder
 - Passes `WorkerFileName` to `ShellTask_v0`
 - Hot Reload injection skipped for `WasmShellMode=WebWorker`
 - Added `_UnoBuildAndImportWebWorkerAssets` (build-time) and `_UnoPublishWebWorkerFramework` (publish-time) targets for host integration
@@ -146,7 +146,7 @@ And index.html SHALL reference my-worker.js
 
 **`src/Uno.Wasm.Tests.WebWorker.App/`**: WebWorker-mode sample project. Posts "Hello from .NET WebWorker" message via `InvokeJS`.
 
-**`src/Uno.Wasm.Tests.WebWorker.Host/`**: Browser-mode host project. Sets `WasmShellWebWorkerProject` and `WasmShellWorkerBasePath`. Creates worker at `_worker/worker.js` from `Program.cs`, displays received messages.
+**`src/Uno.Wasm.Tests.WebWorker.Host/`**: Browser-mode host project. Sets `WasmShellWebWorkerProject`. Creates worker at `<config.uno_app_base>/worker/worker.js` from `Program.cs`, displays received messages.
 
 **`src/Uno.Wasm.Tests.WebWorker/`**: Test harness with `test-webworker.sh` (CI script) and `validate-webworker.js` (Puppeteer test).
 
@@ -170,7 +170,7 @@ The `uno-config.js` file uses ES module `export` syntax, which is incompatible w
 
 ### Manifest-Based Host Integration
 
-The host integration uses the SDK's `GetCurrentProjectBuildStaticWebAssetItems` target to read the worker's build manifest, then re-registers the assets in the host's pipeline under `_worker/`. Five approaches were tried before arriving at this:
+The host integration uses the SDK's `GetCurrentProjectBuildStaticWebAssetItems` target to read the worker's build manifest, then re-emits each asset as a host `Content` item rooted under `$(WasmShellWorkerBasePath)`. The Content items flow through Bootstrap's `ShellTask` pipeline and land at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`. Six approaches were tried before arriving at this:
 
 1. `StaticWebAssetBasePath` on worker — `_framework/` conflict in build manifest
 2. `StaticWebAssetProjectMode=Default` — assets not copied during publish
@@ -188,7 +188,9 @@ The .NET runtime checks `globalThis.onmessage` during startup to detect whether 
 
 **SC-1**: Publishing a `WasmShellMode=WebWorker` project SHALL produce `worker.js`, `index.html`, `uno-config.js`, and `_framework/` with the .NET runtime.
 
-**SC-2**: Publishing a host project with `WasmShellWebWorkerProject` set SHALL produce the host's output at `/` and the worker's output at `/_worker/`, each with its own `_framework/`.
+**SC-2**: Publishing a host project with `WasmShellWebWorkerProject` set SHALL produce the host's output at `/` and the worker's output at `/package_<hostHash>/worker/` (default `WasmShellWorkerBasePath`), each with its own `_framework/`.
+
+**SC-3**: The worker's URL SHALL be versioned by the host's content hash. A v1 host page SHALL never receive v2 worker bytes from the same URL during a rolling deployment; either v1's `package_<hostV1>/worker/worker.js` is still on disk and serves v1, or it has been purged and the request 404s.
 
 **SC-3**: The host+worker Puppeteer test SHALL pass: host creates worker, worker initializes .NET runtime, worker posts message, host receives and displays "Hello from .NET WebWorker".
 

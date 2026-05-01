@@ -16,9 +16,13 @@ define(() => {
         "  </div>" +
         "</div>";
 
-    // Start the worker (if available)
+    // Start the worker (if available). Resolved via config.uno_app_base so
+    // the URL is versioned by the host's content hash (the worker lives at
+    // package_<hostHash>/<WasmShellWorkerBasePath>/<WasmShellWorkerFileName>;
+    // defaults to package_<hostHash>/worker/worker.js).
     try {
-        var worker = new Worker('./_worker/worker.js');
+        var appBase = (globalThis.config && globalThis.config.uno_app_base) || '.';
+        var worker = new Worker(appBase + '/worker/worker.js');
         var workerResults = document.getElementById('workerResults');
         var workerReady = false;
 
