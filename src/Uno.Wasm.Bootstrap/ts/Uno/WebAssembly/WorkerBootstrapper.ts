@@ -66,11 +66,21 @@ namespace Uno.WebAssembly.Bootstrap {
 				// Load WasmScripts dependencies (uno_dependencies) before runMain.
 				// The main-app bootstrapper uses require.js, but workers run as
 				// ES modules so we use dynamic import() instead.
+				//
+				// Dependency strings are produced by ShellTask.BuildDependencyPath, which
+				// emits two distinct shapes:
+				//   - relative baseLookup (e.g. "./package_x/"): "filename" (no .js suffix)
+				//   - absolute baseLookup (e.g. "/package_x/"):  "filename.js" (with .js)
+				// Resolve via `new URL(dep, base)` so absolute and relative paths are
+				// normalized correctly (no `host//foo.js` double-slash) and only append
+				// `.js` when it is missing (no `foo.js.js`).
 				if (config.uno_dependencies && config.uno_dependencies.length > 0) {
-					const depBase = (self as any).location.href.substring(0, (self as any).location.href.lastIndexOf('/') + 1);
+					const baseUrl = (self as any).location.href;
 					for (const dep of config.uno_dependencies) {
 						try {
-							await import(depBase + dep + '.js');
+							const specifier = dep.endsWith('.js') ? dep : dep + '.js';
+							const depUrl = new URL(specifier, baseUrl).href;
+							await import(depUrl);
 						} catch (e) {
 							console.warn(`[WorkerBootstrapper] Failed to load dependency ${dep}: ${e}`);
 						}

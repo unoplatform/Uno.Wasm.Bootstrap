@@ -681,17 +681,19 @@
 			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerManifestAssetRaw" />
 		</MSBuild>
 
-		<!-- Filter to StaticWebAsset items only (the target also returns
-		     discovery patterns and endpoints with ResultType metadata). -->
+		<!-- Filter to StaticWebAsset items only. The target also returns
+		     StaticWebAssetEndpoint items, but we deliberately drop those:
+		     their Route/AssetFile metadata points to the worker's original
+		     (root-relative) paths and is not aware of $(WasmShellWorkerBasePath).
+		     The host's standard DefineStaticWebAssetEndpoints pipeline (run by
+		     the SDK after ResolveStaticWebAssetsInputs) re-derives correct
+		     endpoints — including compression alternatives — from the
+		     re-registered StaticWebAsset items below, so importing the
+		     worker's stale endpoints would only add orphaned entries pointing
+		     at routes the host no longer serves. -->
 		<ItemGroup>
 			<_UnoWorkerManifestAsset Include="@(_UnoWorkerManifestAssetRaw)"
 				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAsset'" />
-		</ItemGroup>
-
-		<!-- Also get the endpoints from the manifest output. -->
-		<ItemGroup>
-			<_UnoWorkerManifestEndpoint Include="@(_UnoWorkerManifestAssetRaw)"
-				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAssetEndpoint'" />
 		</ItemGroup>
 
 		<!-- Re-register each worker asset under the host's static web assets,
@@ -716,13 +718,7 @@
 			</StaticWebAsset>
 		</ItemGroup>
 
-		<!-- Register the worker's endpoints too so the compression negotiation
-		     pipeline can find them. -->
-		<ItemGroup>
-			<StaticWebAssetEndpoint Include="@(_UnoWorkerManifestEndpoint)" />
-		</ItemGroup>
-
-		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) manifest assets and @(_UnoWorkerManifestEndpoint->Count()) endpoints from worker under $(WasmShellWorkerBasePath)/" />
+		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) manifest assets from worker under $(WasmShellWorkerBasePath)/. Endpoints will be derived by the host pipeline." />
 	</Target>
 
 	<!--

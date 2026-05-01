@@ -113,6 +113,90 @@ fi
 echo ""
 
 # -------------------------------------------------------------------
+# Step 3b: Regression check — no orphan StaticWebAssetEndpoint routes.
+#
+# The host integration MUST NOT import the worker manifest's endpoints
+# directly: their Route metadata points to the worker's original
+# (root-relative) paths and would not include WasmShellWorkerBasePath.
+# The host pipeline (DefineStaticWebAssetEndpoints) re-derives them from
+# the re-registered StaticWebAsset items. Restoring the import would
+# leave orphan endpoints whose Route is a "naked" worker filename.
+#
+# Asserts there is no endpoint whose Route equals 'worker.js' or starts
+# with 'package_<workerHash>/' without the '_worker/' prefix in
+# staticwebassets.publish.endpoints.json.
+# -------------------------------------------------------------------
+echo "Step 3b: Regression check — endpoint manifest has no orphan worker routes..."
+echo "-----------------------------------------"
+
+ENDPOINTS_JSON=$(find "$HOST_DIR/obj/Release" -name "staticwebassets.publish.endpoints.json" 2>/dev/null | head -1)
+if [ ! -f "$ENDPOINTS_JSON" ]; then
+    # Fallback: build-time manifest (covers `dotnet build` runs without publish).
+    ENDPOINTS_JSON=$(find "$HOST_DIR/obj/Release" -name "staticwebassets.build.endpoints.json" 2>/dev/null | head -1)
+fi
+
+if [ ! -f "$ENDPOINTS_JSON" ]; then
+    echo -e "${RED}FAIL: endpoint manifest not found in $HOST_DIR/obj/Release${NC}"
+    exit 1
+fi
+echo "  Manifest: $ENDPOINTS_JSON"
+
+# Determine worker package hash from the published worker config so we can
+# detect orphans whose Route starts with the worker's package folder but
+# without the _worker/ prefix.
+WORKER_PACKAGE_HASH=""
+if [ -f "$WORKER_CONFIG_JS" ]; then
+    WORKER_PACKAGE_PATH=$(dirname "$WORKER_CONFIG_JS")
+    WORKER_PACKAGE_HASH=$(basename "$WORKER_PACKAGE_PATH")
+fi
+
+ORPHANS=$(python3 - "$ENDPOINTS_JSON" "$WORKER_PACKAGE_HASH" <<'PY'
+import json, sys
+path = sys.argv[1]
+worker_pkg = sys.argv[2]
+with open(path) as f:
+    data = json.load(f)
+orphans = []
+for ep in data.get("Endpoints", []):
+    route = ep.get("Route", "")
+    # Orphan = bare 'worker.js' (without _worker/ prefix), or starts with
+    # the worker's own package_<hash>/ but not under _worker/.
+    if route == "worker.js":
+        orphans.append(route)
+    elif worker_pkg and route.startswith(worker_pkg + "/"):
+        orphans.append(route)
+if orphans:
+    for r in orphans[:5]:
+        print(r)
+    sys.exit(1)
+PY
+) || ORPHAN_FOUND=1
+
+if [ "${ORPHAN_FOUND:-0}" = "1" ]; then
+    echo -e "${RED}FAIL: orphan worker-mapped endpoints found in $ENDPOINTS_JSON:${NC}"
+    echo "$ORPHANS" | sed 's/^/  /'
+    echo
+    echo "  This indicates _UnoBuildAndImportWebWorkerAssets is re-importing"
+    echo "  the worker's manifest endpoints (StaticWebAssetEndpoint Include) —"
+    echo "  drop that import; the host pipeline derives correct endpoints from"
+    echo "  the re-registered StaticWebAsset items."
+    exit 1
+fi
+echo -e "${GREEN}  No orphan worker-mapped endpoints detected${NC}"
+
+echo ""
+
+# -------------------------------------------------------------------
+# Step 3c: Regression check — uno_dependencies URL construction
+# -------------------------------------------------------------------
+echo "Step 3c: Regression check — worker dependency URL resolution..."
+echo "-----------------------------------------"
+
+cd "$SCRIPT_DIR"
+node validate-deps-url.js
+echo ""
+
+# -------------------------------------------------------------------
 # Step 4: Serve and run Puppeteer validation
 # -------------------------------------------------------------------
 echo "Step 4: Runtime validation..."
