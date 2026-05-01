@@ -337,6 +337,18 @@ namespace Uno.Wasm.Bootstrap
 
 			foreach (var (name, source, resource) in q)
 			{
+				// uno-worker-bootstrap.js is the WebWorker entry-point script.
+				// It is consumed via GetManifestResourceStream when generating
+				// shell-worker.js for WebWorker-mode projects, and must never be
+				// added as a regular main-thread dependency: when loaded via a
+				// classic <script> tag it auto-runs WorkerBootstrapper.bootstrap()
+				// on the main thread and tries to fetch uno-config.js from the
+				// page root (404), surfacing a misleading initialization error.
+				if (name == "uno-worker-bootstrap.js")
+				{
+					continue;
+				}
+
 				if (source.Name.Name != Path.GetFileNameWithoutExtension(Assembly))
 				{
 					_dependencies.Add(name);
