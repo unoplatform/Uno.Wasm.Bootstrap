@@ -784,9 +784,14 @@
 		     correct publish output path (the worker's TFM may differ from the host's).
 		     TargetOutputs is always an item list, so capture into an item first and
 		     then extract to a property to avoid brittle direct assignment. -->
+		<!-- RemoveProperties drops global properties that the host inherited from
+		     the command-line (e.g. `dotnet publish -o <path>` sets PublishDir as a
+		     global, which would otherwise leak into the worker's evaluation and
+		     point to the host's output directory). -->
 		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
 				 Targets="_UnoGetTargetFramework"
-				 Properties="Configuration=$(Configuration)">
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
 			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerTfmItems" />
 		</MSBuild>
 
@@ -796,8 +801,15 @@
 
 		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
 				 Targets="Restore;Publish"
-				 Properties="Configuration=$(Configuration);_UnoIsNestedWorkerPublish=true" />
+				 Properties="Configuration=$(Configuration);_UnoIsNestedWorkerPublish=true"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath" />
 
+		<!-- The Microsoft.NET.Sdk.WebAssembly publishes wwwroot/ to
+		     bin/<Config>/<TFM>/publish/wwwroot/ regardless of the transient
+		     $(PublishDir) value (which the SDK rewrites to a RID-prefixed
+		     intermediate path during evaluation). A custom <PublishDir>/
+		     <OutputPath> on the worker is not supported — the existence check
+		     below makes that an explicit error rather than a silent skip. -->
 		<PropertyGroup>
 			<_UnoWorkerPublishWwwroot>$(_UnoWorkerProjectDir)/bin/$(Configuration)/$(_UnoWorkerTargetFramework)/publish/wwwroot/</_UnoWorkerPublishWwwroot>
 
@@ -810,6 +822,10 @@
 			<_UnoWorkerDestRoot>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)/$(WasmShellWorkerBasePath)</_UnoWorkerDestRoot>
 		</PropertyGroup>
 
+		<Error Condition="!Exists('$(_UnoWorkerPublishWwwroot)')"
+			   Code="UNOWA0010"
+			   Text="WebWorker publish output not found at '$(_UnoWorkerPublishWwwroot)'. Either the worker project's publish step did not run, or the worker customizes $(PublishDir)/$(OutputPath) — that scenario is not supported. Verify that '$(WasmShellWebWorkerProject)' is a vanilla Microsoft.NET.Sdk.WebAssembly WebWorker project." />
+
 		<ItemGroup>
 			<_UnoWorkerFrameworkFiles Include="$(_UnoWorkerPublishWwwroot)_framework/**/*" />
 		</ItemGroup>
@@ -818,15 +834,25 @@
 			  DestinationFiles="@(_UnoWorkerFrameworkFiles->'$(_UnoWorkerDestRoot)/_framework/%(RecursiveDir)%(Filename)%(Extension)')" />
 
 		<!-- Fix up the worker's uno-config.js fingerprint to match the published
-		     dotnet.js (the build-time config has the unfingerprinted name). -->
+		     dotnet.js (the build-time config has the unfingerprinted name). The
+		     Exclude narrows the glob to a single fingerprinted dotnet.<hash>.js
+		     in standard SDK output; the count check below catches any drift. -->
 		<ItemGroup>
 			<_UnoWorkerPublishedDotnetJs Include="$(_UnoWorkerDestRoot)/_framework/dotnet.*.js"
 				Exclude="$(_UnoWorkerDestRoot)/_framework/dotnet.native.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.*.js" />
 		</ItemGroup>
 
+		<Error Condition="'@(_UnoWorkerPublishedDotnetJs->Count())' != '1'"
+			   Code="UNOWA0011"
+			   Text="WebWorker fingerprint resolution expected exactly one dotnet.&lt;hash&gt;.js in '$(_UnoWorkerDestRoot)/_framework/' but found @(_UnoWorkerPublishedDotnetJs->Count()): '@(_UnoWorkerPublishedDotnetJs)'. Expanding %25(Filename) into a property would yield a semicolon-separated value and break the uno-config.js rewrite." />
+
 		<PropertyGroup>
 			<_UnoWorkerDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoWorkerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoWorkerDotnetJsFingerprint>
 		</PropertyGroup>
+
+		<Error Condition="'$(_UnoWorkerDotnetJsFingerprint)' == ''"
+			   Code="UNOWA0012"
+			   Text="WebWorker fingerprint resolution failed: '%(_UnoWorkerPublishedDotnetJs.Filename)' did not match 'dotnet.&lt;hash&gt;'. The worker's uno-config.js cannot be rewritten to point at the fingerprinted dotnet.js, which would cause runtime load failures." />
 
 		<ItemGroup>
 			<_UnoWorkerConfigJs Include="$(_UnoWorkerDestRoot)/**/uno-config.js" />
