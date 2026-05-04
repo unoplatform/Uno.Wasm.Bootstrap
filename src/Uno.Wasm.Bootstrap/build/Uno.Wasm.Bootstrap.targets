@@ -835,11 +835,13 @@
 
 		<!-- Fix up the worker's uno-config.js fingerprint to match the published
 		     dotnet.js (the build-time config has the unfingerprinted name). The
-		     Exclude narrows the glob to a single fingerprinted dotnet.<hash>.js
-		     in standard SDK output; the count check below catches any drift. -->
+		     Exclude must cover both fingerprinted (dotnet.native.<hash>.js) and
+		     unfingerprinted (dotnet.native.js) variants — AOT mode publishes the
+		     native/runtime scripts without a fingerprint, so the wildcard Exclude
+		     alone would leak them into the glob and trip the count check below. -->
 		<ItemGroup>
 			<_UnoWorkerPublishedDotnetJs Include="$(_UnoWorkerDestRoot)/_framework/dotnet.*.js"
-				Exclude="$(_UnoWorkerDestRoot)/_framework/dotnet.native.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.*.js" />
+				Exclude="$(_UnoWorkerDestRoot)/_framework/dotnet.native.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.native.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.js" />
 		</ItemGroup>
 
 		<Error Condition="'@(_UnoWorkerPublishedDotnetJs->Count())' != '1'"
