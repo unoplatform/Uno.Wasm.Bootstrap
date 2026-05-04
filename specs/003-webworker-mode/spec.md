@@ -104,15 +104,16 @@ And index.html SHALL reference my-worker.js
 
 **FR-7**: The host project SHALL set `WasmShellWebWorkerProject` to the worker `.csproj` path. `WasmShellWorkerBasePath` (default: `worker`) controls the sub-folder name **inside** the host's hashed package folder (`package_<hostHash>/<WasmShellWorkerBasePath>/`). The worker URL is therefore implicitly versioned by the host's content hash.
 
-**FR-8**: During the host's build, the `_UnoBuildAndImportWebWorkerAssets` target SHALL:
+**FR-8**: During the host's build, the `_UnoBuildAndImportWebWorkerAssets` target (`BeforeTargets="AssignTargetPaths"`) SHALL:
 
-- Build the worker project via `MSBuild` task
-- Read the worker's static web assets via `GetCurrentProjectBuildStaticWebAssetItems`
-- Re-emit each manifest asset (worker.js, package_*, etc.) as a host `Content` item with `Link="<WasmShellWorkerBasePath>\<RelativePath>"`. The Content items flow through Bootstrap's `ShellTask` (`CopyContent` → `AddStaticAsset(DeployMode.Package)` → `GeneratePackageFolder`), which places them on disk at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`. Pre-compressed assets and manifest endpoints from the worker are filtered out — the host's pipeline re-derives both.
-- Register `_framework/` files from the worker's build output via `DefineStaticWebAssets`
-- The standard SDK publish pipeline copies everything to the correct output paths
+- Build the worker project via `MSBuild` task (`Restore;Build;GetCurrentProjectBuildStaticWebAssetItems`)
+- Read the worker's static web assets via `GetCurrentProjectBuildStaticWebAssetItems` and filter to `ResultType=StaticWebAsset` items
+- Strip the SDK's fingerprint placeholder (`#[.{fingerprint}]?`) from each asset's `RelativePath` to produce a clean target path
+- Re-emit each manifest asset (worker.js, package_*, etc.) as a host `Content` item with `Link` and `TargetPath` set to `$(WasmShellWorkerBasePath)\<cleanRelativePath>`, using item batching syntax (`Include="%(_UnoWorkerManifestAsset.Identity)"`) so the Content items carry only Content metadata. The items flow through Bootstrap's `ShellTask` (`CopyContent` → `AddStaticAsset(DeployMode.Package)` → `GeneratePackageFolder`), which places them on disk at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`.
 
-**FR-9**: The host project SHALL NOT use `<ProjectReference>` to the worker project for assembly referencing. The `WasmShellWebWorkerProject` property and the `_UnoBuildAndImportWebWorkerAssets` target handle the integration, bypassing the SDK's static web asset conflict detection by using a distinct `SourceId` and clearing `WasmResource` traits.
+**FR-8a**: During the host's publish, the `_UnoPublishWebWorkerFramework` target (`AfterTargets="Publish"`) SHALL publish the worker project, copy its `_framework/` directory into `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/_framework/`, and fix up the `dotnet.js` fingerprint reference inside the worker's `uno-config.js` so it matches the actual fingerprinted file.
+
+**FR-9**: The host project SHALL NOT use `<ProjectReference>` to the worker project for assembly referencing. The `WasmShellWebWorkerProject` property and the `_UnoBuildAndImportWebWorkerAssets` target handle the integration. The Content-item route bypasses the SDK's static web asset conflict detection entirely — Content is processed by `AssignTargetPaths`, not `DefineStaticWebAssets`, so the worker's assets and the host's assets never collide on `RelativePath`.
 
 ### Key Entities
 
@@ -148,7 +149,7 @@ And index.html SHALL reference my-worker.js
 
 **`src/Uno.Wasm.Tests.WebWorker.Host/`**: Browser-mode host project. Sets `WasmShellWebWorkerProject`. Creates worker at `<config.uno_app_base>/worker/worker.js` from `Program.cs`, displays received messages.
 
-**`src/Uno.Wasm.Tests.WebWorker/`**: Test harness with `test-webworker.sh` (CI script) and `validate-webworker.js` (Puppeteer test).
+**`src/Uno.Wasm.Tests.WebWorker/`**: Test harness with `test-webworker.sh` (CI script), `validate-webworker.js` (Puppeteer end-to-end test), and `validate-deps-url.js` (regression test for the worker's `uno_dependencies` URL resolution against the package-folder `self.location.href`).
 
 **`doc/features-webworker-mode.md`**: User-facing documentation.
 
@@ -168,17 +169,23 @@ The generated worker uses a classic worker (`new Worker(url)`) rather than a mod
 
 The `uno-config.js` file uses ES module `export` syntax, which is incompatible with `importScripts()` in classic workers. The worker script fetches the config via `fetch()`, strips the trailing `export { ... }` statement, rewrites the block-scoped `let config` declaration to `var config` so the identifier survives inside a `new Function(...)` body, and evaluates it via `new Function(configText + '\nreturn config;')`.
 
-### Manifest-Based Host Integration
+### Content-Item Host Integration
 
 The host integration uses the SDK's `GetCurrentProjectBuildStaticWebAssetItems` target to read the worker's build manifest, then re-emits each asset as a host `Content` item rooted under `$(WasmShellWorkerBasePath)`. The Content items flow through Bootstrap's `ShellTask` pipeline and land at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`. Six approaches were tried before arriving at this:
 
 1. `StaticWebAssetBasePath` on worker — `_framework/` conflict in build manifest
 2. `StaticWebAssetProjectMode=Default` — assets not copied during publish
 3. `DefineStaticWebAssets` on raw file glob — `RelativePath` conflict ignoring `BasePath`
-4. Explicit `dotnet publish` + file copy — worked but required `RemoveDir` and shelling out
-5. **Manifest-based** (current): read manifest, re-register with distinct `SourceId`/`BasePath`, clear `WasmResource` traits, glob `_framework/` separately via `DefineStaticWebAssets`
+4. Explicit `dotnet publish` + file copy at build time — worked but required `RemoveDir` and shelling out
+5. Manifest-based StaticWebAsset registration with distinct `SourceId`/`BasePath` — worked, but landed the worker at top-level `_worker/`, leaving its URL un-versioned and exposed to v1-host/v2-worker rolling-deploy skew. Also required cloning compressed alternatives through `ApplyCompressionNegotiation`.
+6. **Content items** (current): re-emit each manifest asset as a `<Content>` item rooted under `$(WasmShellWorkerBasePath)`, run `BeforeTargets="AssignTargetPaths"` so Bootstrap's existing `%PACKAGE%` rewriter places them inside `package_<hostHash>/`. No `StaticWebAsset` registration, no `ApplyCompressionNegotiation` clones, and the worker URL is now versioned by the host's content hash.
 
-The key insight: by using a different `SourceId` and clearing `WasmResource`/`Culture` traits, the worker's assets flow through the host's pipeline without triggering the Blazor SDK's boot JSON generator or conflict detection. The `_framework/` files require a separate `DefineStaticWebAssets` call because they're generated by the SDK's WASM pipeline outside the manifest.
+Two implementation details that are easy to get wrong:
+
+- **Strip the fingerprint placeholder.** Manifest items from the SDK have `RelativePath` values like `worker#[.{fingerprint}]?.js`. That placeholder leaks literally into Content `Link`/`TargetPath` if not stripped. Pre-compute a `CleanRelativePath` metadata via regex (`#\[\.\{fingerprint\}\]\?` → empty).
+- **Use item batching, not item reference.** `Include="%(_UnoWorkerManifestAsset.Identity)"` (batching) creates Content items carrying only the metadata you set explicitly. `Include="@(_UnoWorkerManifestAsset)"` (reference) inherits all source metadata including `ResultType=StaticWebAsset`, which causes downstream targets to filter the items out. (Confirmed via DEBUG instrumentation showing Content count going `0 → 8 → 0` with reference syntax versus `0 → 8 → 8` with batching.)
+
+`_framework/` files are produced by the SDK's WASM publish pipeline (`WasmTriggerPublishApp`) rather than the build manifest, so a small `_UnoPublishWebWorkerFramework` target runs `AfterTargets="Publish"` to publish the worker, copy its `_framework/` into the host's package folder, and fix up the `dotnet.js` fingerprint reference in the worker's `uno-config.js`.
 
 ### `self.onmessage` Never Set Before Runtime Init
 
@@ -192,11 +199,11 @@ The .NET runtime checks `globalThis.onmessage` during startup to detect whether 
 
 **SC-3**: The worker's URL SHALL be versioned by the host's content hash. A v1 host page SHALL never receive v2 worker bytes from the same URL during a rolling deployment; either v1's `package_<hostV1>/worker/worker.js` is still on disk and serves v1, or it has been purged and the request 404s.
 
-**SC-3**: The host+worker Puppeteer test SHALL pass: host creates worker, worker initializes .NET runtime, worker posts message, host receives and displays "Hello from .NET WebWorker".
+**SC-4**: The host+worker Puppeteer test SHALL pass: host creates worker, worker initializes .NET runtime, worker posts message, host receives and displays "Hello from .NET WebWorker".
 
-**SC-4**: The worker SHALL NOT access DOM APIs (`document`, `window`, etc.).
+**SC-5**: The worker SHALL NOT access DOM APIs (`document`, `window`, etc.).
 
-**SC-5**: The linux02 CI job SHALL run the WebWorker test and pass.
+**SC-6**: The linux02 CI job SHALL run the WebWorker test and pass.
 
 ## Out of Scope
 

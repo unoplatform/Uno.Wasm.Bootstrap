@@ -43,11 +43,12 @@ The generated `worker.js`:
 
 ## Using the worker from a host page
 
-In your host HTML page, create the worker and listen for messages:
+In your host HTML page, create the worker and listen for messages. When the worker is integrated via a host Bootstrap project (see [Hosting in another project](#hosting-in-another-project)), it lives inside the host's hashed package folder, so resolve the URL through `globalThis.config.uno_app_base` rather than hard-coding `./worker.js`:
 
 ```html
 <script>
-    const worker = new Worker('./worker.js');
+    const appBase = (globalThis.config && globalThis.config.uno_app_base) || '.';
+    const worker = new Worker(appBase + '/worker/worker.js');
 
     worker.addEventListener('message', function(e) {
         if (e.data.type === 'uno-worker-ready') {
@@ -63,6 +64,10 @@ In your host HTML page, create the worker and listen for messages:
     });
 </script>
 ```
+
+`config.uno_app_base` already includes the host's content hash (`./package_<hostHash>`), so this URL is implicitly versioned by the host's deployment hash — a v1 host page reaches for the v1 worker bytes (or 404s), never the v2 worker.
+
+In the standalone WebWorker-only scenario (no host Bootstrap project consuming the worker), `worker.js` sits at the root of `wwwroot` and the build's auto-generated `index.html` loads it as `new Worker('./worker.js')` — use that pattern only when there is no host integration.
 
 ## Communicating with the worker
 
