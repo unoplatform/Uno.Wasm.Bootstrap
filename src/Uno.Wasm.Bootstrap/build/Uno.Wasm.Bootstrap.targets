@@ -690,6 +690,7 @@
 
 		<PropertyGroup>
 			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
+			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
 		</PropertyGroup>
 
 		<!-- Build the worker project and retrieve its static web assets via the
@@ -697,9 +698,24 @@
 		     mechanism the SDK uses for ProjectReference asset resolution). -->
 		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
 				 Targets="Restore;Build;GetCurrentProjectBuildStaticWebAssetItems"
-				 Properties="Configuration=$(Configuration)">
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
 			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerManifestAssetRaw" />
 		</MSBuild>
+
+		<!-- Resolve the worker's TargetFramework so we can locate its build
+		     wwwroot/_framework/ on disk for the identity-marker step below. -->
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="_UnoGetTargetFramework"
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
+			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerTfmItemsForBuild" />
+		</MSBuild>
+
+		<PropertyGroup>
+			<_UnoWorkerTargetFrameworkForBuild>@(_UnoWorkerTfmItemsForBuild)</_UnoWorkerTargetFrameworkForBuild>
+			<_UnoWorkerBuildBinPath>$(_UnoWorkerProjectDir)/bin/$(Configuration)/$(_UnoWorkerTargetFrameworkForBuild)</_UnoWorkerBuildBinPath>
+		</PropertyGroup>
 
 		<!-- Filter to plain StaticWebAsset items only. We deliberately drop:
 		       - StaticWebAssetEndpoint items (their Route metadata points at
@@ -758,7 +774,82 @@
 			</Content>
 		</ItemGroup>
 
-		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) worker assets as Content under $(WasmShellWorkerBasePath)/ (will land in package_&lt;hostHash&gt;/$(WasmShellWorkerBasePath)/)" />
+		<!--
+			Worker-identity propagation into the host's package hash (rolling-
+			deploy safety, SC-3).
+
+			Without this block, a worker source change that touches only
+			compiled assembly bytes (e.g. editing a string literal in C#) leaves
+			$(WasmShellOutputPackagePath) unchanged because GetCurrentProjectBuildStaticWebAssetItems
+			returns a reduced asset set during the host's first AssignTargetPaths
+			pass (only WasmScripts, no _framework/), so the worker's compiled
+			assemblies never reach StaticWebContent at the moment GeneratePackageFolder
+			runs. The result is two deployments where $(WasmShellOutputPackagePath)
+			is byte-identical (e.g. package_3a4248...) but
+			package_<hostHash>/<workerBasePath>/_framework/<assembly>.<workerFingerprint>.wasm
+			differs — a v1 host page can pair with v2 worker bytes during a
+			rolling deploy.
+
+			Strategy: glob the worker's bin/<Config>/<TFM>/*.dll directly off
+			disk and hash each file's bytes via <GetFileHash>. The worker's
+			compiled DLLs are produced by the Build target (which the MSBuild
+			call above runs via Restore;Build), are deterministic for a given
+			source + SDK, and contain the worker's compiled IL. When the worker
+			source changes, DLL bytes change, GetFileHash output changes, the
+			marker file content changes, and the marker flows through
+			CopyContent -> AddStaticAsset(DeployMode.Package) ->
+			GeneratePackageFolder, propagating the change to hostHash.
+
+			Why hash bin/<TFM>/*.dll rather than wwwroot/_framework/:
+			the SDK populates wwwroot/_framework/ only during publish (or via
+			a later target chain in the build), not during the worker's
+			Restore;Build that we invoke here. bin/<TFM>/*.dll, in contrast,
+			IS populated by Build directly, so it's reliably present when this
+			target runs.
+
+			The marker is a small text file (one DLL hash per line) under the
+			worker base path. It has no runtime effect; its only purpose is to
+			propagate worker identity into the host's hash inputs.
+		-->
+		<!-- Microsoft.NET.Sdk.WebAssembly emits compiled assemblies under
+		     bin/<Config>/<TFM>/browser-wasm/ (the RID-prefixed directory)
+		     during Build. Glob both that location and the base TFM directory
+		     to be tolerant of SDK layout changes. -->
+		<ItemGroup Condition="Exists('$(_UnoWorkerBuildBinPath)')">
+			<_UnoWorkerBuildAssemblies Include="$(_UnoWorkerBuildBinPath)/browser-wasm/*.dll" />
+			<_UnoWorkerBuildAssemblies Include="$(_UnoWorkerBuildBinPath)/*.dll" />
+		</ItemGroup>
+
+		<Error Condition="'@(_UnoWorkerBuildAssemblies->Count())' == '0'"
+			   Code="UNOWA0013"
+			   Text="WebWorker identity propagation failed: no *.dll files found under '$(_UnoWorkerBuildBinPath)' (browser-wasm/ or root) after the worker's Build target completed. Without hashing the worker's compiled assemblies, host package hash cannot reflect worker source changes — a rolling-deploy version-skew hazard. Verify that '$(WasmShellWebWorkerProject)' is a Microsoft.NET.Sdk.WebAssembly project." />
+
+		<GetFileHash Files="@(_UnoWorkerBuildAssemblies)" Algorithm="SHA256">
+			<Output TaskParameter="Items" ItemName="_UnoWorkerHashedAssemblies" />
+		</GetFileHash>
+
+		<PropertyGroup>
+			<_UnoWorkerIdentityFile>$(IntermediateOutputPath)worker-identity.txt</_UnoWorkerIdentityFile>
+		</PropertyGroup>
+
+		<!-- Each line: "<filename> <SHA256>". Sorting by Filename ensures the
+		     marker is byte-stable across builds (file enumeration order from
+		     <ItemGroup> is not guaranteed). -->
+		<WriteLinesToFile File="$(_UnoWorkerIdentityFile)"
+						  Lines="@(_UnoWorkerHashedAssemblies->'%(Filename)%(Extension) %(FileHash)'->Distinct())"
+						  Overwrite="true" />
+
+		<ItemGroup>
+			<FileWrites Include="$(_UnoWorkerIdentityFile)" />
+			<Content Include="$(_UnoWorkerIdentityFile)">
+				<Link>$(WasmShellWorkerBasePath)\.worker-identity</Link>
+				<TargetPath>$(WasmShellWorkerBasePath)\.worker-identity</TargetPath>
+				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</Content>
+		</ItemGroup>
+
+		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) worker assets as Content under $(WasmShellWorkerBasePath)/ (will land in package_&lt;hostHash&gt;/$(WasmShellWorkerBasePath)/). Identity marker hashed @(_UnoWorkerBuildAssemblies->Count()) worker assemblies." />
 	</Target>
 
 	<!--
