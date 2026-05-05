@@ -1,0 +1,215 @@
+# Feature Specification: WebWorker Shell Mode
+
+**Feature Branch**: `dev/jela/webworker`
+**Created**: 2026-03-16
+**Updated**: 2026-03-16
+**Status**: In Progress
+
+## Overview
+
+The Uno.Wasm.Bootstrap supports three shell modes: `Browser` (default HTML page), `Node` (server-side), and `BrowserEmbedded` (embeddable JS script). This feature adds a fourth mode, `WebWorker`, that generates a self-contained worker bootstrap script. The worker runs the .NET runtime in a Web Worker thread, enabling background execution without blocking the main UI thread.
+
+A WebWorker project is designed to be consumed by a host Browser-mode project. The host sets `WasmShellWebWorkerProject` to point to the worker `.csproj`, and the build system publishes the worker and copies its output (including its own `_framework/`) into a subdirectory of the host's wwwroot.
+
+## User Scenarios & Testing
+
+### P1: Host App Creates Worker and Receives Messages
+
+**User Journey**: A developer creates two projects — a Browser-mode host and a WebWorker-mode worker. The host's `Program.cs` uses `InvokeJS` to create a `Worker` pointing to `<config.uno_app_base>/worker/worker.js` (i.e. inside the host's hashed package folder, so the URL is versioned by the host's content hash). The worker's `Program.cs` runs computations and posts results back via `self.postMessage`. The host receives the messages and updates the UI.
+
+**Priority Justification**: This is the primary use case — offloading computation to a background thread while keeping the UI responsive.
+
+**Independent Test Approach**: Publish the host project (which triggers worker publish), serve the output, and verify via Puppeteer that the worker posts a message received by the host.
+
+**Acceptance Scenarios**:
+
+```gherkin
+Given a host Browser-mode project with WasmShellWebWorkerProject set
+When the developer runs dotnet publish on the host
+Then the host's publish output SHALL contain package_<hostHash>/worker/worker.js
+And package_<hostHash>/worker/_framework/ SHALL contain the worker's .NET runtime files
+And the host's _framework/ SHALL contain its own .NET runtime files (no conflicts)
+And the worker.js SHALL correctly reference its own _framework/ via relative paths
+
+Given a published host+worker application served in a browser
+When the host's Program.cs creates a Worker at <config.uno_app_base>/worker/worker.js
+And the worker's Program.cs calls self.postMessage via InvokeJS
+Then the host SHALL receive the message
+And the #results element SHALL display the worker's message content
+```
+
+**Edge Cases**:
+
+- Worker project with no InvokeJS calls — should still initialize and post `uno-worker-ready`
+- Host with multiple workers — each Worker instance gets its own .NET runtime (~23 MB each)
+- Worker that throws during Main — error should propagate to host's `worker.onerror`
+
+### P2: Standalone Worker (No Host)
+
+**User Journey**: A developer uses the `WebWorker` mode without a host project. The build produces `worker.js` and a minimal `index.html` host page for testing. The developer serves the output directly.
+
+**Priority Justification**: Enables rapid worker development and testing without a separate host project.
+
+**Independent Test Approach**: Publish the worker project standalone, serve it, and verify via Puppeteer that the worker initializes.
+
+**Acceptance Scenarios**:
+
+```gherkin
+Given a project with WasmShellMode=WebWorker
+When the developer runs dotnet publish
+Then the output SHALL contain worker.js and index.html
+And index.html SHALL create a Worker pointing to worker.js
+And the worker SHALL initialize the .NET runtime
+And the worker SHALL post { type: 'uno-worker-ready' } on success
+```
+
+### P3+: Custom Worker Filename
+
+**User Journey**: A developer sets `WasmShellWorkerFileName=my-worker.js` to customize the output filename.
+
+**Acceptance Scenarios**:
+
+```gherkin
+Given a project with WasmShellWorkerFileName=my-worker.js
+When published
+Then the output SHALL contain my-worker.js instead of worker.js
+And index.html SHALL reference my-worker.js
+```
+
+## Requirements
+
+### Functional Requirements
+
+**FR-1**: The `ShellMode` enum SHALL include a `WebWorker` value.
+
+**FR-2**: When `WasmShellMode=WebWorker`, the build SHALL generate a `worker.js` (or custom filename) that:
+
+- Loads `uno-config.js` via fetch (stripping ES module export syntax for classic worker compatibility)
+- Sets up `globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper.invokeJS` shim for `[JSImport]` interop
+- Dynamically imports `dotnet.js` from `_framework/`
+- Configures the .NET runtime with environment variables and runtime options
+- Calls `runMain` after runtime initialization
+- Posts `{ type: 'uno-worker-ready' }` on success
+- Does NOT set `self.onmessage` before `dotnet.create()` (critical: runtime checks `globalThis.onmessage` to detect pthread deputies)
+
+**FR-3**: When `WasmShellMode=WebWorker`, the build SHALL also generate a minimal `index.html` host page that creates the worker and displays status/messages.
+
+**FR-4**: When `WasmShellMode=WebWorker`, Hot Reload SHALL be automatically disabled (the `Uno.Wasm.MetadataUpdater` assembly throws `MissingMethodException` in worker context).
+
+**FR-5**: When `WasmShellMode=WebWorker`, the service worker (PWA) SHALL NOT be generated.
+
+**FR-6**: The `WasmShellWorkerFileName` MSBuild property SHALL control the output filename (default: `worker.js`).
+
+### Host Integration Requirements
+
+**FR-7**: The host project SHALL set `WasmShellWebWorkerProject` to the worker `.csproj` path. `WasmShellWorkerBasePath` (default: `worker`) controls the sub-folder name **inside** the host's hashed package folder (`package_<hostHash>/<WasmShellWorkerBasePath>/`). The worker URL is therefore implicitly versioned by the host's content hash.
+
+**FR-8**: During the host's build, the `_UnoBuildAndImportWebWorkerAssets` target (`BeforeTargets="AssignTargetPaths"`) SHALL:
+
+- Build the worker project via `MSBuild` task (`Restore;Build;GetCurrentProjectBuildStaticWebAssetItems`)
+- Read the worker's static web assets via `GetCurrentProjectBuildStaticWebAssetItems` and filter to `ResultType=StaticWebAsset` items
+- Strip the SDK's fingerprint placeholder (`#[.{fingerprint}]?`) from each asset's `RelativePath` to produce a clean target path
+- Re-emit each manifest asset (worker.js, package_*, etc.) as a host `Content` item with `Link` and `TargetPath` set to `$(WasmShellWorkerBasePath)\<cleanRelativePath>`, using item batching syntax (`Include="%(_UnoWorkerManifestAsset.Identity)"`) so the Content items carry only Content metadata. The items flow through Bootstrap's `ShellTask` (`CopyContent` → `AddStaticAsset(DeployMode.Package)` → `GeneratePackageFolder`), which places them on disk at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`.
+
+**FR-8a**: During the host's publish, the `_UnoPublishWebWorkerFramework` target (`AfterTargets="Publish"`) SHALL publish the worker project, copy its `_framework/` directory into `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/_framework/`, and fix up the `dotnet.js` fingerprint reference inside the worker's `uno-config.js` so it matches the actual fingerprinted file.
+
+**FR-9**: The host project SHALL NOT use `<ProjectReference>` to the worker project for assembly referencing. The `WasmShellWebWorkerProject` property and the `_UnoBuildAndImportWebWorkerAssets` target handle the integration. The Content-item route bypasses the SDK's static web asset conflict detection entirely — Content is processed by `AssignTargetPaths`, not `DefineStaticWebAssets`, so the worker's assets and the host's assets never collide on `RelativePath`.
+
+### Key Entities
+
+**Worker Bootstrap Script** (`worker.js`): A self-contained JavaScript file generated by `GenerateWorkerJs()` in `ShellTask.cs` that initializes the .NET runtime in a Web Worker context. Uses relative paths from `self.location` to find `uno-config.js` and `_framework/`.
+
+**Host Page** (`index.html`): A minimal HTML page generated alongside the worker script for standalone testing. Creates the worker and displays message events.
+
+**Worker Base Path** (`worker`, default): The sub-folder name **inside** the host's hashed package folder (`package_<hostHash>/<WasmShellWorkerBasePath>/`). The worker's complete output (including its own `_framework/`) lives there. Placing the worker inside the host's content-hashed folder versions the worker URL by the host's deployment hash, eliminating the rolling-deployment race where a v1 host page could otherwise pair with a v2 worker served at the same stable URL.
+
+## Implementation
+
+### Modified Files
+
+**`src/Uno.Wasm.Bootstrap/ShellMode.cs`**: Added `WebWorker` to the enum.
+
+**`src/Uno.Wasm.Bootstrap/ShellTask.cs`**:
+
+- Added `WorkerFileName` property (default: `worker.js`)
+- Added `GenerateWorkerJs()` method — generates the worker bootstrap script and host page, called from `Execute()` between `GenerateEmbeddedJs()` and `GenerateIndexHtml()`
+- `BuildServiceWorker()` returns early for `WebWorker` mode (no PWA service worker)
+
+**`src/Uno.Wasm.Bootstrap/build/Uno.Wasm.Bootstrap.targets`**:
+
+- Added `WasmShellWorkerFileName` property (default: `worker.js`)
+- Added `WasmShellWorkerBasePath` property (default: `worker`) — sub-folder under the host's `package_<hostHash>/` folder
+- Passes `WorkerFileName` to `ShellTask_v0`
+- Hot Reload injection skipped for `WasmShellMode=WebWorker`
+- Added `_UnoBuildAndImportWebWorkerAssets` (build-time) and `_UnoPublishWebWorkerFramework` (publish-time) targets for host integration
+
+### Created Files
+
+**`src/Uno.Wasm.Tests.WebWorker.App/`**: WebWorker-mode sample project. Posts "Hello from .NET WebWorker" message via `InvokeJS`.
+
+**`src/Uno.Wasm.Tests.WebWorker.Host/`**: Browser-mode host project. Sets `WasmShellWebWorkerProject`. Creates worker at `<config.uno_app_base>/worker/worker.js` from `Program.cs`, displays received messages.
+
+**`src/Uno.Wasm.Tests.WebWorker/`**: Test harness with `test-webworker.sh` (CI script), `validate-webworker.js` (Puppeteer end-to-end test), and `validate-deps-url.js` (regression test for the worker's `uno_dependencies` URL resolution against the package-folder `self.location.href`).
+
+**`doc/features-webworker-mode.md`**: User-facing documentation.
+
+**`build/ci/stage-build-linux-tests.yml`**: WebWorker test added to linux02 CI job.
+
+## Design Decisions
+
+### Worker JS Composed by C# Around a Compiled TypeScript Bootstrapper
+
+The worker bootstrap is composed by `GenerateWorkerJs()` in `ShellTask.cs` (following the `GenerateEmbeddedJs()` pattern). The worker logic itself lives in `ts/Uno/WebAssembly/WorkerBootstrapper.ts` and is compiled to `uno-worker-bootstrap.js` via `tsconfig.worker.json`; `GenerateWorkerJs()` then prefixes it with the per-package `__unoWorkerPackagePath` and emits the result as `worker.js`. This split keeps the worker script self-contained and decoupled from the DOM-heavy `Bootstrapper.ts` while still benefiting from TypeScript type-checking for the runtime logic.
+
+### Classic Worker (Not Module Worker)
+
+The generated worker uses a classic worker (`new Worker(url)`) rather than a module worker (`new Worker(url, { type: 'module' })`). This is required because the Emscripten runtime detects `importScripts` to identify the worker environment.
+
+### Config Loading via fetch+eval
+
+The `uno-config.js` file uses ES module `export` syntax, which is incompatible with `importScripts()` in classic workers. The worker script fetches the config via `fetch()`, strips the trailing `export { ... }` statement, rewrites the block-scoped `let config` declaration to `var config` so the identifier survives inside a `new Function(...)` body, and evaluates it via `new Function(configText + '\nreturn config;')`.
+
+### Content-Item Host Integration
+
+The host integration uses the SDK's `GetCurrentProjectBuildStaticWebAssetItems` target to read the worker's build manifest, then re-emits each asset as a host `Content` item rooted under `$(WasmShellWorkerBasePath)`. The Content items flow through Bootstrap's `ShellTask` pipeline and land at `wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...`. Six approaches were tried before arriving at this:
+
+1. `StaticWebAssetBasePath` on worker — `_framework/` conflict in build manifest
+2. `StaticWebAssetProjectMode=Default` — assets not copied during publish
+3. `DefineStaticWebAssets` on raw file glob — `RelativePath` conflict ignoring `BasePath`
+4. Explicit `dotnet publish` + file copy at build time — worked but required `RemoveDir` and shelling out
+5. Manifest-based StaticWebAsset registration with distinct `SourceId`/`BasePath` — worked, but landed the worker at top-level `_worker/`, leaving its URL un-versioned and exposed to v1-host/v2-worker rolling-deploy skew. Also required cloning compressed alternatives through `ApplyCompressionNegotiation`.
+6. **Content items** (current): re-emit each manifest asset as a `<Content>` item rooted under `$(WasmShellWorkerBasePath)`, run `BeforeTargets="AssignTargetPaths"` so Bootstrap's existing `%PACKAGE%` rewriter places them inside `package_<hostHash>/`. No `StaticWebAsset` registration, no `ApplyCompressionNegotiation` clones, and the worker URL is now versioned by the host's content hash.
+
+Two implementation details that are easy to get wrong:
+
+- **Strip the fingerprint placeholder.** Manifest items from the SDK have `RelativePath` values like `worker#[.{fingerprint}]?.js`. That placeholder leaks literally into Content `Link`/`TargetPath` if not stripped. Pre-compute a `CleanRelativePath` metadata via regex (`#\[\.\{fingerprint\}\]\?` → empty).
+- **Use item batching, not item reference.** `Include="%(_UnoWorkerManifestAsset.Identity)"` (batching) creates Content items carrying only the metadata you set explicitly. `Include="@(_UnoWorkerManifestAsset)"` (reference) inherits all source metadata including `ResultType=StaticWebAsset`, which causes downstream targets to filter the items out. (Confirmed via DEBUG instrumentation showing Content count going `0 → 8 → 0` with reference syntax versus `0 → 8 → 8` with batching.)
+
+`_framework/` files are produced by the SDK's WASM publish pipeline (`WasmTriggerPublishApp`) rather than the build manifest, so a small `_UnoPublishWebWorkerFramework` target runs `AfterTargets="Publish"` to publish the worker, copy its `_framework/` into the host's package folder, and fix up the `dotnet.js` fingerprint reference in the worker's `uno-config.js`.
+
+### `self.onmessage` Never Set Before Runtime Init
+
+The .NET runtime checks `globalThis.onmessage` during startup to detect whether it's running as a pthread deputy worker. If set, the runtime skips asset promise resolution and hangs. The worker script uses `self.addEventListener("message", ...)` only after `dotnet.create()` completes but **before** `runMain`. The `uno-worker-ready` message is likewise posted before `runMain` — this is intentional because `runMain` may be long-running (e.g., a worker service that blocks on incoming messages) and must not delay the readiness signal or profiler handler registration.
+
+## Success Criteria
+
+**SC-1**: Publishing a `WasmShellMode=WebWorker` project SHALL produce `worker.js`, `index.html`, `uno-config.js`, and `_framework/` with the .NET runtime.
+
+**SC-2**: Publishing a host project with `WasmShellWebWorkerProject` set SHALL produce the host's output at `/` and the worker's output at `/package_<hostHash>/worker/` (default `WasmShellWorkerBasePath`), each with its own `_framework/`.
+
+**SC-3**: The worker's URL SHALL be versioned by the host's content hash. A v1 host page SHALL never receive v2 worker bytes from the same URL during a rolling deployment; either v1's `package_<hostV1>/worker/worker.js` is still on disk and serves v1, or it has been purged and the request 404s.
+
+**SC-4**: The host+worker Puppeteer test SHALL pass: host creates worker, worker initializes .NET runtime, worker posts message, host receives and displays "Hello from .NET WebWorker".
+
+**SC-5**: The worker SHALL NOT access DOM APIs (`document`, `window`, etc.).
+
+**SC-6**: The linux02 CI job SHALL run the WebWorker test and pass.
+
+## Out of Scope
+
+- WebAssembly.Module reuse between host and worker (see `WorkerFork.ts` in specs/003-worker-fork/)
+- Bidirectional structured messaging API (beyond raw `postMessage`)
+- Worker pool management
+- Shared memory / `SharedArrayBuffer` integration
+- Dev-server hot reload for worker code changes
+- AOT compilation in the worker during host publish (worker uses build output; AOT requires separate publish)

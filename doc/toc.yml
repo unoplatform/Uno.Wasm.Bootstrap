@@ -34,6 +34,8 @@ items:
       href: features-pre-compression.md
     - name: Embedded mode
       href: features-embedded.mode.md
+    - name: WebWorker mode
+      href: features-webworker-mode.md
     - name: Native Linker Optimization
       href: features-linker-opts.md
     - name: Memory troubleshooting

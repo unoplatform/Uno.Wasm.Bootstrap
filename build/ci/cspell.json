@@ -106,7 +106,10 @@
 		"renderable",
 		"TRX",
 		"userinfo",
-		"WebCIL"
+		"WebCIL",
+		"wwwroot",
+		"webworker",
+		"pthread"
 	],
 	"ignoreWords": [
 		"ADAL",

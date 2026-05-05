@@ -15,6 +15,17 @@
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
+		<WasmShellWorkerFileName Condition="'$(WasmShellWorkerFileName)'==''">worker.js</WasmShellWorkerFileName>
+
+		<!--
+			Sub-folder name used inside the host's package_<hostHash>/ folder to hold
+			the imported worker assets. The worker URL is therefore implicitly
+			versioned by the host's content hash (e.g.
+			package_<hostHash>/worker/worker.js), which prevents v1-host ↔ v2-worker
+			pairing during rolling deployments. Host code resolves the worker URL via
+			'config.uno_app_base + "/" + WasmShellWorkerBasePath + "/" + WasmShellWorkerFileName'.
+		-->
+		<WasmShellWorkerBasePath Condition="'$(WasmShellWorkerBasePath)'==''">worker</WasmShellWorkerBasePath>
 
 		<BlazorWebAssemblyJiterpreter Condition=" $(NETCoreSdkVersion.Contains('rc.1')) ">false</BlazorWebAssemblyJiterpreter>
 
@@ -134,12 +145,19 @@
 					   CopyToOutputDirectory="Always"
 					   PostProcessAssembly="true" />
 			<TrimmerRootAssembly Include="Uno.Wasm.LogProfiler" />
+			<!--
+				Native compatibility shim for .NET 10+: provides mono_profiler_flush_log()
+				which was removed from Mono's libmono-profiler-log.a. The shim forwards
+				to proflog_trigger_heapshot() which drains the writer/dumper queues
+				(the only way to flush profiler data in WASM single-threaded mode).
+			-->
+			<NativeFileReference Include="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))profiler_flush_wasm.c" />
 		</ItemGroup>
 	</Target>
 
 	<Target Name="_UnoInjectHotReloadSupport"
 			BeforeTargets="ResolveRuntimePackAssets"
-			Condition=" '$(Optimize)' != 'true' ">
+			Condition=" '$(Optimize)' != 'true' AND '$([System.String]::Copy($(WasmShellMode)).ToLowerInvariant())' != 'webworker' ">
 		<ItemGroup>
 			<Reference Include="Uno.Wasm.MetadataUpdater"
 					   HintPath="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'support'))Uno.Wasm.MetadataUpdater.dll"
@@ -432,7 +450,8 @@
 			Optimize="$(Optimize)"
 			WasmBuildNative="$(WasmBuildNative)"
 			WasmShellMode="$(WasmShellMode)"
-			WebAppBasePath="$(WasmShellWebAppBasePath)">
+			WebAppBasePath="$(WasmShellWebAppBasePath)"
+			WorkerFileName="$(WasmShellWorkerFileName)">
 			<Output TaskParameter="StaticWebContent" ItemName="_UnoStaticWebContent" />
 			<Output TaskParameter="PackageAssetsFolder" PropertyName="WasmShellOutputPackagePath" />
 		</ShellTask_v0>
@@ -632,6 +651,319 @@
 		<Error Code="UNOWA0001"
 				Condition="'$(_UnoRequiresWasmTools)' == 'true' and '$(WasmNativeWorkloadAvailable)' != 'true'"
 				Text="Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'." />
+	</Target>
+
+	<!-- Helper target to expose this project's TargetFramework to callers via MSBuild task. -->
+	<Target Name="_UnoGetTargetFramework" Returns="$(TargetFramework)" />
+
+	<!--
+		WebWorker project integration via build manifest.
+
+		The host project sets WasmShellWebWorkerProject to the worker .csproj path.
+		This target builds the worker, reads its build manifest, and re-emits each
+		worker asset as a host Content item under '$(WasmShellWorkerBasePath)\<asset>'.
+
+		The Content items flow through the standard ShellTask pipeline
+		(CopyContent -> AddStaticAsset(DeployMode.Package) -> GeneratePackageFolder),
+		landing on disk at 'wwwroot/package_<hostHash>/<WasmShellWorkerBasePath>/...'.
+
+		Placing the worker inside the host's hashed package folder is intentional:
+		the worker URL becomes versioned by the host's content hash, so a v1 host
+		page never silently pairs with a v2 worker during a rolling deployment
+		(it either resolves a v1 worker that's still on disk, or a 404 — never
+		v2 worker bytes served at the same URL).
+
+		Host code resolves the worker URL via:
+		  config.uno_app_base + '/' + WasmShellWorkerBasePath + '/' + WasmShellWorkerFileName
+
+		Usage in the host project:
+		  <PropertyGroup>
+		    <WasmShellWebWorkerProject>..\MyWorker\MyWorker.csproj</WasmShellWebWorkerProject>
+		    <WasmShellWorkerBasePath>worker</WasmShellWorkerBasePath>
+		  </PropertyGroup>
+
+		WasmShellWorkerBasePath is optional and defaults to 'worker'.
+	-->
+	<Target Name="_UnoBuildAndImportWebWorkerAssets"
+			BeforeTargets="AssignTargetPaths"
+			Condition="'$(WasmShellWebWorkerProject)' != ''">
+
+		<PropertyGroup>
+			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
+			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
+		</PropertyGroup>
+
+		<!-- Build the worker project and retrieve its static web assets via the
+		     SDK's GetCurrentProjectBuildStaticWebAssetItems target (the same
+		     mechanism the SDK uses for ProjectReference asset resolution). -->
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="Restore;Build;GetCurrentProjectBuildStaticWebAssetItems"
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
+			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerManifestAssetRaw" />
+		</MSBuild>
+
+		<!-- Resolve the worker's TargetFramework so we can locate its build
+		     wwwroot/_framework/ on disk for the identity-marker step below. -->
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="_UnoGetTargetFramework"
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
+			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerTfmItemsForBuild" />
+		</MSBuild>
+
+		<PropertyGroup>
+			<_UnoWorkerTargetFrameworkForBuild>@(_UnoWorkerTfmItemsForBuild)</_UnoWorkerTargetFrameworkForBuild>
+			<_UnoWorkerBuildBinPath>$(_UnoWorkerProjectDir)/bin/$(Configuration)/$(_UnoWorkerTargetFrameworkForBuild)</_UnoWorkerBuildBinPath>
+		</PropertyGroup>
+
+		<!-- Filter to plain StaticWebAsset items only. We deliberately drop:
+		       - StaticWebAssetEndpoint items (their Route metadata points at
+		         the worker's original root-relative paths and would be
+		         orphaned once we re-route the asset under the host's package
+		         folder; the host's standard DefineStaticWebAssetEndpoints
+		         pipeline re-derives the correct endpoints downstream).
+		       - Pre-compressed assets (Content-Encoding trait). The host's
+		         compression pipeline produces its own .gz/.br variants with
+		         correctly-mapped endpoints; importing the worker's would
+		         leave compressed assets without resolvable counterparts. -->
+		<ItemGroup>
+			<_UnoWorkerManifestAsset Include="@(_UnoWorkerManifestAssetRaw)"
+				Condition="'%(_UnoWorkerManifestAssetRaw.ResultType)' == 'StaticWebAsset' AND '%(_UnoWorkerManifestAssetRaw.AssetTraitName)' != 'Content-Encoding'" />
+		</ItemGroup>
+
+		<!-- Pre-compute a clean RelativePath for each manifest item by stripping
+		     the SDK's optional fingerprint placeholder (`#[.{fingerprint}]?`).
+		     The placeholder is substituted by the SDK's static-web-asset
+		     pipeline when it emits routes, but we're routing the file through
+		     ShellTask -> AddStaticAsset which copies the literal Link path
+		     to disk; leaving the placeholder in produces files like
+		     'worker#[.{fingerprint}]?.js' on disk. -->
+		<ItemGroup>
+			<_UnoWorkerManifestAsset>
+				<CleanRelativePath>$([System.Text.RegularExpressions.Regex]::Replace('%(RelativePath)', '#\[\.\{fingerprint\}\]\?', ''))</CleanRelativePath>
+			</_UnoWorkerManifestAsset>
+		</ItemGroup>
+
+		<!-- Re-emit each worker asset as a host Content item rooted under
+		     $(WasmShellWorkerBasePath). Items are included by-reference so all
+		     manifest metadata (notably CleanRelativePath) is inherited.
+		     AssignTargetPaths picks these up after this target runs, then
+		     GenerateUnoWasmAssets/ShellTask routes them through CopyContent ->
+		     AddStaticAsset(DeployMode.Package) -> GeneratePackageFolder, which
+		     places them on disk at
+		     wwwroot/package_<hostHash>/$(WasmShellWorkerBasePath)/<CleanRelativePath>.
+
+		     We deliberately bypass the SDK's '_content/<projectName>/' library
+		     convention (which would otherwise also publish the worker assets at
+		     a top-level URL) by registering them as host-owned Content items
+		     rather than referencing the worker as a library project. -->
+		<!-- Use item batching (`%(_UnoWorkerManifestAsset.Identity)` in Include)
+		     so each Content item is created with ONLY the metadata we set
+		     explicitly. Including by reference (`Include="@(...)"`) inherits
+		     all source metadata — including `ResultType="StaticWebAsset"` —
+		     which downstream SDK targets use to filter Content items out of
+		     the standard pipeline, dropping the items before AssignTargetPaths. -->
+		<ItemGroup>
+			<Content Include="%(_UnoWorkerManifestAsset.Identity)"
+					 Condition="'%(_UnoWorkerManifestAsset.Identity)' != '' AND '%(_UnoWorkerManifestAsset.CleanRelativePath)' != ''">
+				<Link>$(WasmShellWorkerBasePath)\%(_UnoWorkerManifestAsset.CleanRelativePath)</Link>
+				<TargetPath>$(WasmShellWorkerBasePath)\%(_UnoWorkerManifestAsset.CleanRelativePath)</TargetPath>
+				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</Content>
+		</ItemGroup>
+
+		<!--
+			Worker-identity propagation into the host's package hash (rolling-
+			deploy safety, SC-3).
+
+			Without this block, a worker source change that touches only
+			compiled assembly bytes (e.g. editing a string literal in C#) leaves
+			$(WasmShellOutputPackagePath) unchanged because GetCurrentProjectBuildStaticWebAssetItems
+			returns a reduced asset set during the host's first AssignTargetPaths
+			pass (only WasmScripts, no _framework/), so the worker's compiled
+			assemblies never reach StaticWebContent at the moment GeneratePackageFolder
+			runs. The result is two deployments where $(WasmShellOutputPackagePath)
+			is byte-identical (e.g. package_3a4248...) but
+			package_<hostHash>/<workerBasePath>/_framework/<assembly>.<workerFingerprint>.wasm
+			differs — a v1 host page can pair with v2 worker bytes during a
+			rolling deploy.
+
+			Strategy: glob the worker's bin/<Config>/<TFM>/*.dll directly off
+			disk and hash each file's bytes via <GetFileHash>. The worker's
+			compiled DLLs are produced by the Build target (which the MSBuild
+			call above runs via Restore;Build), are deterministic for a given
+			source + SDK, and contain the worker's compiled IL. When the worker
+			source changes, DLL bytes change, GetFileHash output changes, the
+			marker file content changes, and the marker flows through
+			CopyContent -> AddStaticAsset(DeployMode.Package) ->
+			GeneratePackageFolder, propagating the change to hostHash.
+
+			Why hash bin/<TFM>/*.dll rather than wwwroot/_framework/:
+			the SDK populates wwwroot/_framework/ only during publish (or via
+			a later target chain in the build), not during the worker's
+			Restore;Build that we invoke here. bin/<TFM>/*.dll, in contrast,
+			IS populated by Build directly, so it's reliably present when this
+			target runs.
+
+			The marker is a small text file (one DLL hash per line) under the
+			worker base path. It has no runtime effect; its only purpose is to
+			propagate worker identity into the host's hash inputs.
+		-->
+		<!-- Microsoft.NET.Sdk.WebAssembly emits compiled assemblies under
+		     bin/<Config>/<TFM>/browser-wasm/ (the RID-prefixed directory)
+		     during Build. Glob both that location and the base TFM directory
+		     to be tolerant of SDK layout changes. -->
+		<ItemGroup Condition="Exists('$(_UnoWorkerBuildBinPath)')">
+			<_UnoWorkerBuildAssemblies Include="$(_UnoWorkerBuildBinPath)/browser-wasm/*.dll" />
+			<_UnoWorkerBuildAssemblies Include="$(_UnoWorkerBuildBinPath)/*.dll" />
+		</ItemGroup>
+
+		<Error Condition="'@(_UnoWorkerBuildAssemblies->Count())' == '0'"
+			   Code="UNOWA0013"
+			   Text="WebWorker identity propagation failed: no *.dll files found under '$(_UnoWorkerBuildBinPath)' (browser-wasm/ or root) after the worker's Build target completed. Without hashing the worker's compiled assemblies, host package hash cannot reflect worker source changes — a rolling-deploy version-skew hazard. Verify that '$(WasmShellWebWorkerProject)' is a Microsoft.NET.Sdk.WebAssembly project." />
+
+		<GetFileHash Files="@(_UnoWorkerBuildAssemblies)" Algorithm="SHA256">
+			<Output TaskParameter="Items" ItemName="_UnoWorkerHashedAssemblies" />
+		</GetFileHash>
+
+		<PropertyGroup>
+			<_UnoWorkerIdentityFile>$(IntermediateOutputPath)worker-identity.txt</_UnoWorkerIdentityFile>
+		</PropertyGroup>
+
+		<!-- Each line: "<filename> <SHA256>". Sorting by Filename ensures the
+		     marker is byte-stable across builds (file enumeration order from
+		     <ItemGroup> is not guaranteed). -->
+		<WriteLinesToFile File="$(_UnoWorkerIdentityFile)"
+						  Lines="@(_UnoWorkerHashedAssemblies->'%(Filename)%(Extension) %(FileHash)'->Distinct())"
+						  Overwrite="true" />
+
+		<ItemGroup>
+			<FileWrites Include="$(_UnoWorkerIdentityFile)" />
+			<Content Include="$(_UnoWorkerIdentityFile)">
+				<Link>$(WasmShellWorkerBasePath)\.worker-identity</Link>
+				<TargetPath>$(WasmShellWorkerBasePath)\.worker-identity</TargetPath>
+				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</Content>
+		</ItemGroup>
+
+		<Message Importance="high" Text="WebWorker: Registered @(_UnoWorkerManifestAsset->Count()) worker assets as Content under $(WasmShellWorkerBasePath)/ (will land in package_&lt;hostHash&gt;/$(WasmShellWorkerBasePath)/). Identity marker hashed @(_UnoWorkerBuildAssemblies->Count()) worker assemblies." />
+	</Target>
+
+	<!--
+		The worker's _framework/ files (dotnet.js, assemblies, ICU data) are only
+		generated during publish (via WasmTriggerPublishApp). They don't exist in
+		the build manifest or build output. This target publishes the worker and
+		copies only the _framework/ directory into the host's publish output.
+		Non-framework files (worker.js, package_*, etc.) are already handled by
+		the _UnoBuildAndImportWebWorkerAssets target via static web assets.
+	-->
+	<Target Name="_UnoPublishWebWorkerFramework"
+			AfterTargets="Publish"
+			Condition="'$(WasmShellWebWorkerProject)' != '' AND '$(_UnoIsNestedWorkerPublish)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoWorkerProjectFullPath>$([System.IO.Path]::GetFullPath('$(WasmShellWebWorkerProject)'))</_UnoWorkerProjectFullPath>
+			<_UnoWorkerProjectDir>$([System.IO.Path]::GetDirectoryName('$(_UnoWorkerProjectFullPath)'))</_UnoWorkerProjectDir>
+		</PropertyGroup>
+
+		<Message Importance="high" Text="Publishing WebWorker _framework/: $(_UnoWorkerProjectFullPath)" />
+
+		<!-- Query the worker project's TargetFramework so we can compute the
+		     correct publish output path (the worker's TFM may differ from the host's).
+		     TargetOutputs is always an item list, so capture into an item first and
+		     then extract to a property to avoid brittle direct assignment. -->
+		<!-- RemoveProperties drops global properties that the host inherited from
+		     the command-line (e.g. `dotnet publish -o <path>` sets PublishDir as a
+		     global, which would otherwise leak into the worker's evaluation and
+		     point to the host's output directory). -->
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="_UnoGetTargetFramework"
+				 Properties="Configuration=$(Configuration)"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath">
+			<Output TaskParameter="TargetOutputs" ItemName="_UnoWorkerTfmItems" />
+		</MSBuild>
+
+		<PropertyGroup>
+			<_UnoWorkerTargetFramework>@(_UnoWorkerTfmItems)</_UnoWorkerTargetFramework>
+		</PropertyGroup>
+
+		<MSBuild Projects="$(_UnoWorkerProjectFullPath)"
+				 Targets="Restore;Publish"
+				 Properties="Configuration=$(Configuration);_UnoIsNestedWorkerPublish=true"
+				 RemoveProperties="PublishDir;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath" />
+
+		<!-- The Microsoft.NET.Sdk.WebAssembly publishes wwwroot/ to
+		     bin/<Config>/<TFM>/publish/wwwroot/ regardless of the transient
+		     $(PublishDir) value (which the SDK rewrites to a RID-prefixed
+		     intermediate path during evaluation). A custom <PublishDir>/
+		     <OutputPath> on the worker is not supported — the existence check
+		     below makes that an explicit error rather than a silent skip. -->
+		<PropertyGroup>
+			<_UnoWorkerPublishWwwroot>$(_UnoWorkerProjectDir)/bin/$(Configuration)/$(_UnoWorkerTargetFramework)/publish/wwwroot/</_UnoWorkerPublishWwwroot>
+
+			<!-- Destination root inside the host's published wwwroot. The
+			     worker is placed under the host's hashed package folder
+			     (computed during the host's build by ShellTask and exposed
+			     via $(WasmShellOutputPackagePath)) so the worker URL is
+			     implicitly versioned by the host's content hash. The
+			     $(WasmShellWorkerBasePath) sub-folder lives inside that. -->
+			<_UnoWorkerDestRoot>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)/$(WasmShellWorkerBasePath)</_UnoWorkerDestRoot>
+		</PropertyGroup>
+
+		<Error Condition="!Exists('$(_UnoWorkerPublishWwwroot)')"
+			   Code="UNOWA0010"
+			   Text="WebWorker publish output not found at '$(_UnoWorkerPublishWwwroot)'. Either the worker project's publish step did not run, or the worker customizes $(PublishDir)/$(OutputPath) — that scenario is not supported. Verify that '$(WasmShellWebWorkerProject)' is a vanilla Microsoft.NET.Sdk.WebAssembly WebWorker project." />
+
+		<ItemGroup>
+			<_UnoWorkerFrameworkFiles Include="$(_UnoWorkerPublishWwwroot)_framework/**/*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(_UnoWorkerFrameworkFiles)"
+			  DestinationFiles="@(_UnoWorkerFrameworkFiles->'$(_UnoWorkerDestRoot)/_framework/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+		<!-- Fix up the worker's uno-config.js fingerprint to match the published
+		     dotnet.js (the build-time config has the unfingerprinted name). The
+		     Exclude must cover both fingerprinted (dotnet.native.<hash>.js) and
+		     unfingerprinted (dotnet.native.js) variants — AOT mode publishes the
+		     native/runtime scripts without a fingerprint, so the wildcard Exclude
+		     alone would leak them into the glob and trip the count check below. -->
+		<ItemGroup>
+			<_UnoWorkerPublishedDotnetJs Include="$(_UnoWorkerDestRoot)/_framework/dotnet.*.js"
+				Exclude="$(_UnoWorkerDestRoot)/_framework/dotnet.native.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.*.js;$(_UnoWorkerDestRoot)/_framework/dotnet.native.js;$(_UnoWorkerDestRoot)/_framework/dotnet.runtime.js" />
+		</ItemGroup>
+
+		<Error Condition="'@(_UnoWorkerPublishedDotnetJs->Count())' != '1'"
+			   Code="UNOWA0011"
+			   Text="WebWorker fingerprint resolution expected exactly one dotnet.&lt;hash&gt;.js in '$(_UnoWorkerDestRoot)/_framework/' but found @(_UnoWorkerPublishedDotnetJs->Count()): '@(_UnoWorkerPublishedDotnetJs)'. Expanding %25(Filename) into a property would yield a semicolon-separated value and break the uno-config.js rewrite." />
+
+		<PropertyGroup>
+			<_UnoWorkerDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoWorkerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoWorkerDotnetJsFingerprint>
+		</PropertyGroup>
+
+		<Error Condition="'$(_UnoWorkerDotnetJsFingerprint)' == ''"
+			   Code="UNOWA0012"
+			   Text="WebWorker fingerprint resolution failed: '%(_UnoWorkerPublishedDotnetJs.Filename)' did not match 'dotnet.&lt;hash&gt;'. The worker's uno-config.js cannot be rewritten to point at the fingerprinted dotnet.js, which would cause runtime load failures." />
+
+		<ItemGroup>
+			<_UnoWorkerConfigJs Include="$(_UnoWorkerDestRoot)/**/uno-config.js" />
+		</ItemGroup>
+
+		<WriteLinesToFile
+			File="%(_UnoWorkerConfigJs.Identity)"
+			Lines="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('%(_UnoWorkerConfigJs.Identity)')), 'config\.dotnet_js_filename = &quot;dotnet(\.[^&quot;]+)?\.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoWorkerDotnetJsFingerprint).js&quot;')), '_framework/dotnet(\.[^&quot;]+)?\.js', '_framework/dotnet.$(_UnoWorkerDotnetJsFingerprint).js'))"
+			Overwrite="true"
+			Condition="'$(_UnoWorkerDotnetJsFingerprint)' != '' AND '@(_UnoWorkerConfigJs)' != ''" />
+
+		<!-- Delete stale compressed versions of uno-config.js -->
+		<ItemGroup>
+			<_UnoWorkerStaleCompressed Include="@(_UnoWorkerConfigJs->'%(Identity).gz');@(_UnoWorkerConfigJs->'%(Identity).br')" />
+		</ItemGroup>
+		<Delete Files="@(_UnoWorkerStaleCompressed)" Condition="'@(_UnoWorkerStaleCompressed)' != ''" />
+
+		<Message Importance="high" Text="WebWorker: Copied @(_UnoWorkerFrameworkFiles->Count()) _framework/ files to $(WasmShellOutputPackagePath)/$(WasmShellWorkerBasePath)/_framework/ (dotnet.js fingerprint: $(_UnoWorkerDotnetJsFingerprint))" />
 	</Target>
 
 </Project>

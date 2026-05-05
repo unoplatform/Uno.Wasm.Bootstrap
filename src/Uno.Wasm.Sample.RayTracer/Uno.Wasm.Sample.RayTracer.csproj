@@ -18,6 +18,11 @@
 		<WasmAotProfilePath>$(MSBuildThisFileDirectory)aot.profile</WasmAotProfilePath>
 		<!-- <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile> -->
 		<WasmShellVfsFrameworkAssemblyLoad>true</WasmShellVfsFrameworkAssemblyLoad>
+
+		<!-- WebWorker integration: the worker is published inside the host's
+		     hashed package folder at package_<hostHash>/worker/ (default
+		     WasmShellWorkerBasePath = 'worker'). -->
+		<WasmShellWebWorkerProject>..\Uno.Wasm.Sample.RayTracer.Worker\Uno.Wasm.Sample.RayTracer.Worker.csproj</WasmShellWebWorkerProject>
 	</PropertyGroup>
 
 	<Import Project="..\Uno.Wasm.Sample.RayTracer.Shared\Uno.Wasm.Sample.RayTracer.Shared.projitems" Label="Shared" />

@@ -1,0 +1,9 @@
+{
+  "name": "uno-wasm-tests-webworker",
+  "version": "0.0.0",
+  "description": "WebWorker mode validation",
+  "main": "validate-webworker.js",
+  "dependencies": {
+    "puppeteer": "^24.9.0"
+  }
+}
