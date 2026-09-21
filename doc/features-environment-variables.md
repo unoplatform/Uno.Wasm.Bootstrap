@@ -31,7 +31,7 @@ The bootstrapper provides a set of environment variables that reflect the config
 - `UNO_BOOTSTRAP_MONO_RUNTIME_FEATURES`, which provides a list of comma separated feature enabled in the runtime (e.g. `threads`)
 - `UNO_BOOTSTRAP_MONO_PROFILED_AOT`, which specifies if the package was built using a PG-AOT profile.
 - `UNO_BOOTSTRAP_APP_BASE`, which specifies the location of the app content from the base. Useful to reach assets deployed using the `UnoDeploy="Package"` mode.
-- `UNO_BOOTSTRAP_WEBAPP_BASE_PATH`, which specifies the base location of the webapp. This parameter is used in the context of deep-linking (through the `WasmShellWebAppBasePath` property). This property must contain a trailing `/` and its default is `./`.
+- `UNO_BOOTSTRAP_WEBAPP_BASE_PATH`, which specifies the base location of the webapp. This parameter is used in the context of deep-linking (through the `WasmShellWebAppBasePath` property). The value is normalized to a site path with a leading and a trailing `/` (`app`, `/app` and `app/` all become `/app/`); a value starting with `.` stays relative. Its default is `./`.
 - `UNO_BOOTSTRAP_EMSCRIPTEN_MAXIMUM_MEMORY`, which optionally specifies the maximum memory available to the WebAssembly module.
 - `UNO_BOOTSTRAP_MAX_THREADS`, which provides the maximum number of threads that can be created.
 

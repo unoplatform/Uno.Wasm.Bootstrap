@@ -19,7 +19,7 @@ If so, consider a navigation [system](xref:Overview.Navigation) that allows mapp
 
 This feature is enabled by default in new projects generated from the `unoapp` template with version 4.9 or later.
 
-Certain cases may require disabling this feature, such as when the application is hosted in a subdirectory of the host. This can be done by removing the `WasmShellWebAppBasePath` property from the `.csproj` file.
+When the application is hosted in a subdirectory of the host, set the property to that subdirectory instead, for example `/app/` for `https://example.com/app/`. The value is normalized to a site path with a leading and a trailing `/`, so `app`, `/app` and `app/` are equivalent. A value starting with `.` is kept as a document-relative path, which disables deep-linking.
 
 For project created from older template, add the following parameter to your project file to enable deep-linking:
 
