@@ -66,7 +66,7 @@ jobs:
       SignPackageName: "Uno.Wasm.Bootstrap"
       SignPackageDescription: "Uno.Wasm.Bootstrap"
       ArtifactDirectory: $(build.artifactstagingdirectory)
-      condition: and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')), not(eq(variables['VaultSignClientSecret'], '')), not(eq(variables['VaultSignClientId'], '')))
+    condition: and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')), not(eq(variables['VaultSignClientSecret'], '')), not(eq(variables['VaultSignClientId'], '')))
 
   - task: PublishBuildArtifacts@1
     condition: always()
