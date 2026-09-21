@@ -24,3 +24,6 @@ These properties are supported in the manifest:
 - `lightThemeBackgroundColor` (optional) to change the light theme background color
 - `darkThemeBackgroundColor` (optional)to change the dark theme background color
 - `splashScreenColor` to change the background color regardless of the theme. When set to `transparent`, `lightThemeBackgroundColor` and `darkThemeBackgroundColor` will be used, otherwise the default browser background color will be used.
+
+# Templates
+If you started with the Uno-templates, a file called splash_screen.svg is already present in the Assets-folder. You have to remove it in order to get the adjustments made to the AppManifest.js-file to apply.
