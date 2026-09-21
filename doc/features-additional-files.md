@@ -6,6 +6,8 @@ uid: UnoWasmBootstrap.Features.AdditionalFiles
 
 The msbuild property `WasmShellIndexHtmlPath` can be used to specify the path of a project-specific `index.html` file.
 
+References in that file to files deployed to the package folder, such as `./require.js` or `./uno-bootstrap.js`, are rewritten at build time to point into the `package_<hash>/` folder under `WasmShellWebAppBasePath`. Any other reference, such as `/favicon.ico`, `/api/status` or an external URL, is left as written.
+
 This file should contain the following markers, for the runtime to initialize properly:
 
 - `$(ADDITIONAL_CSS)`
