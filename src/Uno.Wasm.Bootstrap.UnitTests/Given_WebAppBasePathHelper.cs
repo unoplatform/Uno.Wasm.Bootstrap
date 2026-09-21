@@ -43,5 +43,15 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		{
 			Assert.AreEqual(expected, WebAppBasePathHelper.Normalize(input));
 		}
+
+		[TestMethod]
+		[DataRow("./package_x/", "\"./package_x/AppManifest\"")]
+		[DataRow("/package_x/", "\"/package_x/AppManifest.js\"")]
+		[DataRow("/app/package_x/", "\"/app/package_x/AppManifest.js\"")]
+		[DataRow("https://cdn.example.com/app/package_x/", "\"https://cdn.example.com/app/package_x/AppManifest.js\"")]
+		public void When_BuildDependencyPath_Then_SitePathsAndUrlsKeepTheExtension(string baseLookup, string expected)
+		{
+			Assert.AreEqual(expected, WebAppBasePathHelper.BuildDependencyPath("WasmScripts/AppManifest.js", baseLookup));
+		}
 	}
 }

@@ -551,9 +551,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		static string BuildDependencyPath(string dep, string baseLookup)
-			=> baseLookup.StartsWith("/")
-				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
-				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
+			=> WebAppBasePathHelper.BuildDependencyPath(dep, baseLookup);
 
 		private void GenerateConfig()
 		{

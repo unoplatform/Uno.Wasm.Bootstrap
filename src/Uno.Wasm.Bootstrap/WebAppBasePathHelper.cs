@@ -15,6 +15,8 @@
 //
 // ******************************************************************
 
+using System.IO;
+
 namespace Uno.Wasm.Bootstrap
 {
 	internal static class WebAppBasePathHelper
@@ -56,5 +58,15 @@ namespace Uno.Wasm.Bootstrap
 
 			return path;
 		}
+
+		/// <summary>
+		/// Builds the quoted entry of <c>config.uno_dependencies</c> for a script. A site
+		/// path or a URL base is emitted as a plain script URL; a relative base is emitted
+		/// as a require.js module id, which must not carry the extension.
+		/// </summary>
+		internal static string BuildDependencyPath(string dep, string baseLookup)
+			=> baseLookup.StartsWith("/") || baseLookup.Contains("://")
+				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
+				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
 	}
 }
