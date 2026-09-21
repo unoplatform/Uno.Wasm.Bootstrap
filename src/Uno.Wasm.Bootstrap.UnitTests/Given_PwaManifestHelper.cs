@@ -48,6 +48,28 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		public void When_ManifestDefinesOnlyScope_Then_OnlyStartUrlIsDefaulted()
+		{
+			var manifest = JObject.Parse("""{ "scope": "/portal/" }""");
+
+			PwaManifestHelper.ApplyDefaults(manifest, "/app/");
+
+			Assert.AreEqual("/app/", manifest["start_url"]?.Value<string>());
+			Assert.AreEqual("/portal/", manifest["scope"]?.Value<string>());
+		}
+
+		[TestMethod]
+		public void When_BasePathHasNoTrailingSlash_Then_SlashIsAdded()
+		{
+			var manifest = JObject.Parse("""{ "name": "App" }""");
+
+			PwaManifestHelper.ApplyDefaults(manifest, "/app");
+
+			Assert.AreEqual("/app/", manifest["start_url"]?.Value<string>());
+			Assert.AreEqual("/app/", manifest["scope"]?.Value<string>());
+		}
+
+		[TestMethod]
 		public void When_ManifestDefinesOnlyStartUrl_Then_OnlyScopeIsDefaulted()
 		{
 			var manifest = JObject.Parse("""{ "start_url": "/index.html" }""");

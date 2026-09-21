@@ -28,6 +28,12 @@ namespace Uno.Wasm.Bootstrap
 		/// </summary>
 		internal static void ApplyDefaults(JObject manifest, string webAppBasePath)
 		{
+			// Both members are URL prefixes, so the base path must end with a separator
+			if (!webAppBasePath.EndsWith("/"))
+			{
+				webAppBasePath += "/";
+			}
+
 			if (manifest["start_url"] is null)
 			{
 				manifest["start_url"] = webAppBasePath;
