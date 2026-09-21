@@ -727,6 +727,8 @@ namespace Uno.Wasm.Bootstrap
 			{
 				var manifestDocument = JObject.Parse(File.ReadAllText(PWAManifestFile));
 
+				PwaManifestHelper.ApplyDefaults(manifestDocument, WebAppBasePath);
+
 				extraBuilder.AppendLine($"<link rel=\"manifest\" href=\"$(WEB_MANIFEST)\" />");
 
 				extraBuilder.AppendLine($"<meta name=\"mobile-web-app-capable\" content=\"yes\">");
