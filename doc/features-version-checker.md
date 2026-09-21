@@ -91,7 +91,7 @@ Field            Value
 Tool             uno-wasm-version
 ToolVersion      3.x.x
 Target           https://myapp.example.com/
-UnoConfigUrl     https://myapp.example.com/package_abc123/uno-config.js
+UnoConfigUrl     https://myapp.example.com/uno-config.js
 BootConfigSource dotnet.7kx2mq.js
 MainAssembly     MyApp
 AssemblyCount    42
