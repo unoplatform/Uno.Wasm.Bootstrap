@@ -157,6 +157,27 @@ fi
 
 echo -e "${GREEN}✓ No stale compressed uno-config.js files found${NC}"
 
+# Test 4c: Verify uno-config.js lives outside the hashed package folder
+echo ""
+echo "📁 Test 4c: Check uno-config.js location"
+echo "----------------------------------------"
+# The publish-time fingerprint update rewrites uno-config.js after the package_<hash>
+# folder name is computed. A file inside an immutable-cached folder must never change,
+# so the config has to live next to index.html where hosts always revalidate it.
+if [ ! -f "$PUBLISH_DIR/wwwroot/uno-config.js" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js is not at the wwwroot root${NC}"
+    echo "Found at: $PUBLISH_CONFIG"
+    exit 1
+fi
+
+if find "$PUBLISH_DIR/wwwroot" -path "*/package_*/uno-config.js" -not -path "*/worker/*" | grep -q .; then
+    echo -e "${RED}❌ FAIL: uno-config.js is also present inside a package_* folder${NC}"
+    find "$PUBLISH_DIR/wwwroot" -path "*/package_*/uno-config.js"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ uno-config.js lives at the wwwroot root${NC}"
+
 # Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true must skip fingerprint targets)
 echo ""
 echo "🔄 Test 5: Nested publish scenario (WasmBuildingForNestedPublish=true)"

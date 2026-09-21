@@ -97,14 +97,26 @@ public sealed class VersionCheckService(HttpClient httpClient)
 			.ToArray();
 
 		var unoConfigPath = files?
-			.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-config.js", StringComparison.OrdinalIgnoreCase))
-			?? files?.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase));
+			.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-config.js", StringComparison.OrdinalIgnoreCase));
 
 		if (unoConfigPath is not null)
 		{
-			return unoConfigPath.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase)
-				? new Uri(unoConfigPath.OriginalString.Replace("uno-bootstrap.js", "uno-config.js", StringComparison.OrdinalIgnoreCase))
-				: unoConfigPath;
+			return unoConfigPath;
+		}
+
+		var bootstrapPath = files?
+			.FirstOrDefault(uri => uri.GetLeftPart(UriPartial.Path).EndsWith("uno-bootstrap.js", StringComparison.OrdinalIgnoreCase));
+
+		if (bootstrapPath is not null)
+		{
+			// The bootstrapper lives in the hashed package folder and the config next to the
+			// page that loads it, one folder up. Older layouts kept the config next to the bootstrapper.
+			return await FirstReachableAsync(
+				[
+					VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, bootstrapPath, "../uno-config.js", "uno-bootstrap.js"),
+					VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, bootstrapPath, "uno-config.js", "uno-bootstrap.js"),
+				],
+				cancellationToken);
 		}
 
 		var embeddedJsUri = new Uri(siteUri, "embedded.js");
@@ -117,10 +129,33 @@ public sealed class VersionCheckService(HttpClient httpClient)
 		var content = await ReadContentAsStringAsync(embeddedResponse.Content, embeddedJsUri, cancellationToken);
 		if (EmbeddedPackageRegex.Match(content) is { Success: true } match)
 		{
-			return VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, match.Groups["package"].Value + "/uno-config.js", "embedded.js");
+			return await FirstReachableAsync(
+				[
+					VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, "uno-config.js", "embedded.js"),
+					VersionCheckNetworkPolicy.ResolveTrustedUri(siteUri, siteUri, match.Groups["package"].Value + "/uno-config.js", "embedded.js"),
+				],
+				cancellationToken);
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Returns the first candidate that answers with a success status, or the last one so that
+	/// the caller reports the failure against a concrete URL.
+	/// </summary>
+	private async Task<Uri> FirstReachableAsync(IReadOnlyList<Uri> candidates, CancellationToken cancellationToken)
+	{
+		foreach (var candidate in candidates.Take(candidates.Count - 1))
+		{
+			using var response = await SendAsync(candidate, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+			if (response.IsSuccessStatusCode)
+			{
+				return candidate;
+			}
+		}
+
+		return candidates[candidates.Count - 1];
 	}
 
 	private static Uri? TryResolveTrustedScriptUri(Uri siteUri, string src)

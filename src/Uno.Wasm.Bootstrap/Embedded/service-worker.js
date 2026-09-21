@@ -1,4 +1,4 @@
-﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)$(REMOTE_BASE_PATH)/uno-config.js";
+﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)uno-config.js";
 
 const MAX_CACHE_CONCURRENCY = 10;
 

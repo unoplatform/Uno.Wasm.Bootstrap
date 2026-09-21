@@ -84,7 +84,7 @@ And index.html SHALL reference my-worker.js
 
 **FR-2**: When `WasmShellMode=WebWorker`, the build SHALL generate a `worker.js` (or custom filename) that:
 
-- Loads `uno-config.js` via fetch (stripping ES module export syntax for classic worker compatibility)
+- Loads `uno-config.js` from its own folder via fetch (stripping ES module export syntax for classic worker compatibility)
 - Sets up `globalThis.Uno.WebAssembly.Bootstrap.Bootstrapper.invokeJS` shim for `[JSImport]` interop
 - Dynamically imports `dotnet.js` from `_framework/`
 - Configures the .NET runtime with environment variables and runtime options

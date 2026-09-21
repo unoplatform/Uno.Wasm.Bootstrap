@@ -567,9 +567,8 @@
 		<!-- Extract fingerprint from actual filename -->
 		<PropertyGroup>
 			<_UnoActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoActualDotnetJsFingerprint>
-			<_UnoPublishConfigJsPath Condition="'$(_UnoActualPublishDir)' != ''">$(_UnoActualPublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
-			<!-- Fallback without package path -->
-			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
+			<!-- uno-config.js lives next to index.html, outside the hashed package folder -->
+			<_UnoPublishConfigJsPath Condition="'$(_UnoActualPublishDir)' != ''">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
 		</PropertyGroup>
 
 		<Warning Text="[Uno] Could not find dotnet.js file in publish output at: $(_UnoActualPublishDir)wwwroot/_framework/"

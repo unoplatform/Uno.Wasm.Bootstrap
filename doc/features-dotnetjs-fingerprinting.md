@@ -16,6 +16,10 @@ Fingerprinting is enabled by default. To disable it, add the following to your `
 
 The .NET SDK [`WasmFingerprintDotnetJs`](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly) property is also supported.
 
+## Where the configuration lives
+
+`uno-config.js` is written to the root of `wwwroot`, next to `index.html`, rather than inside the `package_<hash>/` folder. The fingerprint produced by `dotnet publish` differs from the one known at build time, so the file is rewritten after the package hash has been computed. A file inside a folder that hosts cache as immutable must never change, so the configuration is kept with the root files, which hosts always revalidate. See [Publishing the build results](deploy-and-publish.md#caching-the-published-output) for the cache policy each folder expects.
+
 ## Diagnostics
 
 The following build errors may be emitted if validation fails after the publish-time update:

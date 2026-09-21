@@ -318,6 +318,61 @@ public sealed class Given_VersionCheckService
 		report.Assemblies.Should().Contain(assembly => assembly.Name == "System.ValueTuple");
 	}
 
+	[TestMethod]
+	[Description("Verifies uno-config.js is resolved next to the page when the bootstrapper lives in the hashed package folder.")]
+	public async Task When_PageReferencesUnoBootstrapInPackageFolder_Then_RootUnoConfigIsLoaded()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="package_hash/uno-bootstrap.js"></script></body></html>"""),
+				"/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/uno-config.js");
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+	}
+
+	[TestMethod]
+	[Description("Verifies the embedded.js fallback resolves a root uno-config.js before the package folder copy.")]
+	public async Task When_EmbeddedJsAndRootUnoConfig_Then_RootUnoConfigIsLoaded()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="embedded.js"></script></body></html>"""),
+				"/embedded.js" => StubHttpMessageHandler.Text("""const package = "package_hash";"""),
+				"/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/uno-config.js");
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+	}
+
 	private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
 	{
 		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
