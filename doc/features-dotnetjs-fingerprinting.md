@@ -18,6 +18,10 @@ The .NET SDK [`WasmFingerprintDotnetJs`](https://learn.microsoft.com/en-us/aspne
 
 When publishing into a directory that wasn't cleaned, `_framework` can contain `dotnet.*.js` files from earlier publishes. The bootstrapper reads the project's `<TargetName>.staticwebassets.endpoints.json`, which every publish rewrites, to find the current one. Manifests left behind by other projects published to the same directory are only used when the project's own manifest doesn't map `dotnet.js`.
 
+## Where the configuration lives
+
+`uno-config.js` is written to the root of `wwwroot`, next to `index.html`, rather than inside the `package_<hash>/` folder. The fingerprint produced by `dotnet publish` differs from the one known at build time, so the file is rewritten after the package hash has been computed. A file inside a folder that hosts cache as immutable must never change, so the configuration is kept with the root files, which hosts always revalidate. See [Publishing the build results](deploy-and-publish.md#caching-the-published-output) for the cache policy each folder expects.
+
 ## Diagnostics
 
 The following diagnostics may be emitted by the publish-time update:

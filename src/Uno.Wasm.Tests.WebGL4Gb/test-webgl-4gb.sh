@@ -64,8 +64,8 @@ assert_patched() {
 }
 
 find_uno_config() {
-    # $1 = wwwroot root; echoes the app's uno-config.js (the package_<hash> one, not a worker copy).
-    find "$1" -path '*/package_*/uno-config.js' ! -path '*/worker/*' 2>/dev/null | head -1
+    # $1 = wwwroot root; echoes the app's uno-config.js (the one next to index.html, not a worker copy).
+    find "$1" -maxdepth 1 -name 'uno-config.js' 2>/dev/null | head -1
 }
 
 assert_maxmem_env() {

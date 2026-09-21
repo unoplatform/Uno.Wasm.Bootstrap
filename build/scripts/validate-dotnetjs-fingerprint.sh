@@ -11,7 +11,7 @@ fi
 
 echo "Validating dotnet.js fingerprint in: $PUBLISH_PATH"
 
-# Find the host's uno-config.js (it lives directly under package_<hostHash>/).
+# Find the host's uno-config.js (it lives next to index.html, outside the hashed package folder).
 # Exclude the worker's copy: when WasmShellWebWorkerProject is used, the worker
 # publishes to package_<hostHash>/<WasmShellWorkerBasePath>/package_<workerHash>/
 # uno-config.js. Filtering by `*/worker/*` skips that nested copy regardless of

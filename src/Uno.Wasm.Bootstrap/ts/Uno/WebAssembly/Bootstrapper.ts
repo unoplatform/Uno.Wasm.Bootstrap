@@ -106,8 +106,9 @@ namespace Uno.WebAssembly.Bootstrap {
 					});
 				}
 
+				// uno-config.js is next to index.html, one level above the hashed package folder
 				//@ts-ignore
-				var config = await import('./uno-config.js');
+				var config = await import('../uno-config.js');
 
 				if (document && (document as any).uno_app_base_override) {
 					config.config.uno_app_base = (document as any).uno_app_base_override;
