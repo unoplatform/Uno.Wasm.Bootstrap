@@ -696,11 +696,18 @@ namespace Uno.Wasm.Bootstrap
 
 			// Compatibility after the change from mono.js to dotnet.js
 			html = html.Replace("mono.js\"", "dotnet.js\"");
-			if (WebAppBasePath != "./")
-			{
-				html = html.Replace($"\"{WebAppBasePath}", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
-			}
-			html = html.Replace($"\"./", $"\"{WebAppBasePath}{PackageAssetsFolder}/");
+
+			// Only references to files that were deployed to the package folder are relocated,
+			// so absolute references to other resources on the site are left alone.
+			var packagePrefix = $"wwwroot/{PackageAssetsFolder}/";
+			var packageFiles = new HashSet<string>(
+				StaticWebContent
+					.Select(f => f.GetMetadata("Link").Replace("\\", "/"))
+					.Where(l => l.StartsWith(packagePrefix, StringComparison.OrdinalIgnoreCase))
+					.Select(l => l.Substring(packagePrefix.Length)),
+				StringComparer.OrdinalIgnoreCase);
+
+			html = IndexHtmlHelper.RelocatePackageReferences(html, WebAppBasePath, PackageAssetsFolder, packageFiles);
 
 			html = html.Replace("$(WEB_MANIFEST)", $"{WebAppBasePath}{Path.GetFileName(PWAManifestFile)}");
 
@@ -734,10 +741,16 @@ namespace Uno.Wasm.Bootstrap
 
 				extraBuilder.AppendLine($"<meta name=\"mobile-web-app-capable\" content=\"yes\">");
 
+				// Icons are deployed to the package folder; the manifest is at the root
+				string RelocateIconSource(string source) => source.StartsWith("./")
+					? $"{PackageAssetsFolder}/" + source.Substring(2)
+					: $"{PackageAssetsFolder}/" + source;
+
 				if (manifestDocument["icons"] is JArray array
-					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img)
+					&& array.Where(v => v["sizes"]?.Value<string>() == "1024x1024").FirstOrDefault() is JToken img
+					&& img["src"]?.Value<string>() is string appleIconSource)
 				{
-					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{img["src"]}\" />");
+					extraBuilder.AppendLine($"<link rel=\"apple-touch-icon\" href=\"{WebAppBasePath}{RelocateIconSource(appleIconSource)}\" />");
 				}
 
 				if (manifestDocument["theme_color"]?.Value<string>() is string color)
@@ -758,8 +771,8 @@ namespace Uno.Wasm.Bootstrap
 
 						icon["src"] = originalSource switch
 						{
-							string s when s.StartsWith("./") => $"{WebAppBasePath}{PackageAssetsFolder}/" + s.Substring(2),
-							string s => $"{PackageAssetsFolder}/" + s,
+							string s when s.StartsWith("./") => $"{WebAppBasePath}{RelocateIconSource(s)}",
+							string s => RelocateIconSource(s),
 							_ => originalSource
 						};
 					}
