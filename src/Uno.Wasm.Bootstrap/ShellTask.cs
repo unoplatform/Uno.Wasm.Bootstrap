@@ -231,6 +231,9 @@ namespace Uno.Wasm.Bootstrap
 		{
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 
+			// Every generated reference concatenates the base path directly
+			WebAppBasePath = WebAppBasePathHelper.Normalize(WebAppBasePath);
+
 			_runtimeExecutionMode
 				= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
 
