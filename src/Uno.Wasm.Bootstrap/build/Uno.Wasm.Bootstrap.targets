@@ -325,6 +325,7 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
@@ -332,6 +333,7 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile	="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoNativeAssetsTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -560,15 +562,17 @@
 			<_UnoActualPublishDir Condition="'$(_UnoActualPublishDir)' == '' AND Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/publish/')">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/publish/'))</_UnoActualPublishDir>
 		</PropertyGroup>
 
-		<!-- Find the actual dotnet.js file in the publish _framework directory -->
-		<ItemGroup>
-			<_UnoPublishedDotnetJs Include="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.*.js"
-				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.js" />
-		</ItemGroup>
+		<!--
+			Find the dotnet.js of this publish. A publish directory that wasn't cleaned can hold
+			dotnet.*.js files from earlier publishes, so the task reads the SDK's endpoints manifest
+			rather than globbing.
+		-->
+		<ResolvePublishedDotnetJsTask_v0 PublishDirectory="$(_UnoActualPublishDir)"
+										 Condition="'$(_UnoActualPublishDir)' != ''">
+			<Output TaskParameter="Fingerprint" PropertyName="_UnoActualDotnetJsFingerprint" />
+		</ResolvePublishedDotnetJsTask_v0>
 
-		<!-- Extract fingerprint from actual filename -->
 		<PropertyGroup>
-			<_UnoActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoActualDotnetJsFingerprint>
 			<_UnoPublishConfigJsPath Condition="'$(_UnoActualPublishDir)' != ''">$(_UnoActualPublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPublishConfigJsPath>
 			<!-- Fallback without package path -->
 			<_UnoPublishConfigJsPath Condition="'$(_UnoPublishConfigJsPath)' == '' OR !Exists('$(_UnoPublishConfigJsPath)')">$(_UnoActualPublishDir)wwwroot/uno-config.js</_UnoPublishConfigJsPath>
