@@ -97,7 +97,10 @@ namespace Uno.WebAssembly.Bootstrap {
 				Bootstrapper.ENVIRONMENT_IS_SHELL = !Bootstrapper.ENVIRONMENT_IS_WEB && !Bootstrapper.ENVIRONMENT_IS_NODE && !Bootstrapper.ENVIRONMENT_IS_WORKER;
 
 				let bootstrapper: Bootstrapper = null;
-				let DOMContentLoaded = false;
+
+				// uno-bootstrap.js can be imported after the document finished parsing (by a custom
+				// host page, or when retried), in which case DOMContentLoaded has already fired.
+				let DOMContentLoaded = typeof document === 'object' && document.readyState !== 'loading';
 
 				if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
 					globalThis.document.addEventListener("DOMContentLoaded", () => {
