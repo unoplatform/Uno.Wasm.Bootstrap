@@ -245,6 +245,40 @@ fi
 
 echo -e "${GREEN}✓ Publish config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
 
+# Test 8: Publish with WasmFingerprintAssets=false
+# The SDK then emits plain dotnet.js, dotnet.native.js and dotnet.runtime.js, which
+# must not be mistaken for a fingerprinted dotnet.<hash>.js.
+echo ""
+echo "🚫 Test 8: Publish with WasmFingerprintAssets=false"
+echo "----------------------------------------"
+rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
+PUBLISH_DIR_NOASSETFP="$PROJECT_DIR/bin/Release/net10.0/publish"
+dotnet publish "$PROJECT_FILE" --configuration Release -p:WasmFingerprintAssets=false
+
+PUBLISH_CONFIG_NOASSETFP=$(find "$PUBLISH_DIR_NOASSETFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+
+if [ ! -f "$PUBLISH_CONFIG_NOASSETFP" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js not found in publish output${NC}"
+    echo "Searched in: $PUBLISH_DIR_NOASSETFP/wwwroot"
+    exit 1
+fi
+
+NOASSETFP_DOTNET_JS=$(sed -n 's/.*dotnet_js_filename = "\([^"]*\)".*/\1/p' "$PUBLISH_CONFIG_NOASSETFP" | head -1)
+
+if [ "$NOASSETFP_DOTNET_JS" != "dotnet.js" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js references '$NOASSETFP_DOTNET_JS' instead of dotnet.js with WasmFingerprintAssets=false${NC}"
+    ls -la "$PUBLISH_DIR_NOASSETFP/wwwroot/_framework/" | grep dotnet
+    exit 1
+fi
+
+if [ ! -f "$PUBLISH_DIR_NOASSETFP/wwwroot/_framework/dotnet.js" ]; then
+    echo -e "${RED}❌ FAIL: dotnet.js not found in publish output${NC}"
+    ls -la "$PUBLISH_DIR_NOASSETFP/wwwroot/_framework/" | grep dotnet
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Publish config references the unfingerprinted dotnet.js${NC}"
+
 # Summary
 echo ""
 echo "========================================="
