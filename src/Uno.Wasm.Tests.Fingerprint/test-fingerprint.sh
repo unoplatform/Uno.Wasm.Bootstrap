@@ -334,6 +334,35 @@ fi
 
 echo -e "${GREEN}✓ uno-config.js references the dotnet.js of the latest publish ($REPUBLISH_DOTNET_JS) among $REPUBLISH_CANDIDATES candidates${NC}"
 
+# Test 10: Preload links for the startup chain point at files of this publish
+echo ""
+echo "🔗 Test 10: Preload links in index.html"
+echo "----------------------------------------"
+PRELOAD_INDEX="$PUBLISH_DIR_REPUBLISH/wwwroot/index.html"
+PRELOAD_HREFS=$(sed -n '/<!-- uno-preload-links -->/,/<!-- \/uno-preload-links -->/p' "$PRELOAD_INDEX" | sed -n 's/.*href="\([^"]*\)".*/\1/p')
+
+if ! echo "$PRELOAD_HREFS" | grep -q "_framework/$REPUBLISH_DOTNET_JS"; then
+    echo -e "${RED}❌ FAIL: No preload link for $REPUBLISH_DOTNET_JS${NC}"
+    sed -n '/<head>/,/<\/head>/p' "$PRELOAD_INDEX"
+    exit 1
+fi
+
+if ! echo "$PRELOAD_HREFS" | grep -q "uno-config\.js"; then
+    echo -e "${RED}❌ FAIL: No preload link for uno-config.js${NC}"
+    sed -n '/<head>/,/<\/head>/p' "$PRELOAD_INDEX"
+    exit 1
+fi
+
+for HREF in $PRELOAD_HREFS; do
+    FILE="$PUBLISH_DIR_REPUBLISH/wwwroot/$(echo "$HREF" | sed 's|^\./||; s|^/||; s|?.*$||')"
+    if [ ! -f "$FILE" ]; then
+        echo -e "${RED}❌ FAIL: Preload link $HREF points to a missing file${NC}"
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}✓ $(echo "$PRELOAD_HREFS" | wc -l | tr -d ' ') preload links, all pointing at published files${NC}"
+
 # Summary
 echo ""
 echo "========================================="
