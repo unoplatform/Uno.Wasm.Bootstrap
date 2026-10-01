@@ -1,0 +1,10 @@
+{
+  "name": "uno-wasm-tests-resilient-loading",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Boots a published app through a server that fails the first request of every boot resource",
+  "main": "app.js",
+  "dependencies": {
+    "puppeteer": "^14.1.2"
+  }
+}
