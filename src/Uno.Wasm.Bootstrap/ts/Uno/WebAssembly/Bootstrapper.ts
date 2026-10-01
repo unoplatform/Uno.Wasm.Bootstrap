@@ -2,6 +2,7 @@
 /// <reference path="EmscriptenMemoryProfilerSupport.ts"/>
 /// <reference path="HotReloadSupport.ts"/>
 /// <reference path="UnoConfig.ts"/>
+/// <reference path="ResourceLoader.ts"/>
 
 namespace Uno.WebAssembly.Bootstrap {
 
@@ -110,8 +111,9 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 
 				// uno-config.js is next to index.html, one level above the hashed package folder
-				//@ts-ignore
-				var config = await import('../uno-config.js');
+				var config = (await ResourceLoader.importModule('../uno-config.js')).module;
+
+				ResourceLoader.configure(config.config.environmentVariables);
 
 				if (document && (document as any).uno_app_base_override) {
 					config.config.uno_app_base = (document as any).uno_app_base_override;
@@ -123,8 +125,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					bootstrapper.preInit();
 				}
 
-				//@ts-ignore
-				var m = await import(`../_framework/${config.config.dotnet_js_filename}`);
+				var m = (await ResourceLoader.importModule(`../_framework/${config.config.dotnet_js_filename}`)).module;
 
 				// When the log profiler is enabled, wrap Emscripten's Module.out to
 			// suppress "log-profiler not called (0x...)" printf spam from Mono's
@@ -151,7 +152,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			m.dotnet
 				.withModuleConfig(moduleConfig)
 					.withRuntimeOptions(config.config.uno_runtime_options)
-					.withConfig({ loadAllSatelliteResources: config.config.uno_load_all_satellite_resources });
+					.withConfig({ loadAllSatelliteResources: config.config.uno_load_all_satellite_resources })
+					.withResourceLoader((type: WebAssemblyBootResourceType, name: string, defaultUri: string, integrity: string) =>
+						ResourceLoader.loadBootResource(type, name, defaultUri, integrity));
 
 				const dotnetRuntime = await m.default(
 					(context: DotnetPublicAPI) => {
@@ -401,6 +404,20 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			// Initialize progress tracking with best-guess estimation
 			this.initializeProgressEstimation();
+
+			// The runtime awaits this before it imports its JS modules
+			return ResourceLoader.preloadModules(
+				Bootstrapper.getRuntimeModuleNames(config).map(name => `../_framework/${name}`));
+		}
+
+		private static getRuntimeModuleNames(config: MonoConfig): string[] {
+			const resources = config.resources as any;
+			const names = (entries: any): string[] =>
+				!entries ? []
+					: Array.isArray(entries) ? entries.map((e: any) => e.name) // .NET 10+
+						: Object.keys(entries);
+
+			return [...names(resources?.jsModuleRuntime), ...names(resources?.jsModuleNative)];
 		}
 
 		/**
@@ -873,7 +890,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				for (var i = 0; i < this._unoConfig.uno_dependencies.length; i++) {
 					if (this._unoConfig.uno_dependencies[i].endsWith('AppManifest')
 						|| this._unoConfig.uno_dependencies[i].endsWith('AppManifest.js')) {
-						require([this._unoConfig.uno_dependencies[i]], function () {
+						ResourceLoader.require([this._unoConfig.uno_dependencies[i]], function () {
 							manifest = (<any>window)["UnoAppManifest"];
 							configLoader();
 						});
@@ -956,7 +973,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					throw `Require.js has not been loaded yet. If you have customized your index.html file, make sure that <script src="./require.js"></script> does not contain the defer directive.`;
 				}
 
-				require(modules, callback);
+				ResourceLoader.require(modules, callback);
 			}
 		}
 
