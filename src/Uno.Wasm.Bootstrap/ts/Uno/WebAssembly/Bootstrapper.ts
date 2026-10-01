@@ -52,6 +52,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private static readonly STALL_THRESHOLD_MS = 1000;        // 1 second before considering stalled
 		private static readonly FINAL_RESERVE_PERCENTAGE = 0.95;  // Reserve 5% for completion
 		private static readonly ASSEMBLY_DEPENDENCY_MULTIPLIER = 1.5; // Assemblies trigger more loads
+		private static readonly PWA_REGISTRATION_DELAY_MS = 3000;
 
 		static ENVIRONMENT_IS_WEB: boolean;
 		static ENVIRONMENT_IS_WORKER: boolean;
@@ -611,7 +612,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 				this._runMain(this._unoConfig.uno_main, []);
 
-				this.initializePWA();
+				this.scheduleInitializePWA();
 
 			} catch (e) {
 				console.error(e);
@@ -1026,6 +1027,27 @@ namespace Uno.WebAssembly.Bootstrap {
 			link.click();
 		}
 
+		/**
+		 * Registers the service worker once the app is up: its install downloads the boot files again (mostly
+		 * from the HTTP cache) and then the offline files, which would otherwise compete with the first render.
+		 */
+		private scheduleInitializePWA() {
+			if (typeof window !== "object" || !this._unoConfig.enable_pwa) {
+				return;
+			}
+
+			const register = () => setTimeout(() => {
+				const idle = (<any>globalThis).requestIdleCallback ?? ((callback: Function) => setTimeout(callback, 0));
+				idle(() => this.initializePWA(), { timeout: 5000 });
+			}, Bootstrapper.PWA_REGISTRATION_DELAY_MS);
+
+			if (document.readyState === "complete") {
+				register();
+			} else {
+				window.addEventListener("load", register, { once: true });
+			}
+		}
+
 		private initializePWA() {
 
 			if (typeof window === 'object' /* ENVIRONMENT_IS_WEB */) {
@@ -1048,6 +1070,9 @@ namespace Uno.WebAssembly.Bootstrap {
 								console.debug('Service Worker Registered');
 							});
 					}
+
+					// Lets the worker cache the remaining offline files, or resume when a previous visit was cut short
+					navigator.serviceWorker.ready.then(registration => registration.active?.postMessage("uno-precache"));
 				}
 			}
 		}
