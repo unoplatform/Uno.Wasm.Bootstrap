@@ -38,7 +38,29 @@ namespace Uno.WebAssembly.Bootstrap {
 				return suffix ? defaultUri + suffix : undefined;
 			}
 
-			return ResourceLoader.fetchVerified(defaultUri, integrity);
+			return type === "dotnetwasm"
+				? ResourceLoader.fetchWasm(defaultUri, integrity)
+				: ResourceLoader.fetchVerified(defaultUri, integrity).then(r => r.response);
+		}
+
+		/**
+		 * The browser only reuses compiled WebAssembly (its code cache) for a response fetched from a URL, not one
+		 * built from a buffer. Once the download succeeded, the file is in the HTTP cache: fetch it again from there.
+		 */
+		private static async fetchWasm(url: string, integrity: string): Promise<Response> {
+			const { response, cacheable } = await ResourceLoader.fetchVerified(url, integrity);
+			if (cacheable) {
+				try {
+					const cached = await fetch(url, { cache: "force-cache", credentials: "same-origin", integrity: integrity || undefined });
+					if (cached.ok) {
+						return cached;
+					}
+				} catch {
+					// Fall back to the downloaded copy
+				}
+			}
+
+			return response;
 		}
 
 		/**
@@ -90,12 +112,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			load();
 		}
 
-		private static async fetchVerified(url: string, integrity: string): Promise<Response> {
+		private static async fetchVerified(url: string, integrity: string): Promise<{ response: Response, cacheable: boolean }> {
 			for (let attempt = 0; ; attempt++) {
 				try {
-					const { body, contentType } = await ResourceLoader.download(url, attempt === 0 ? "default" : "reload");
+					const { body, contentType, cacheable } = await ResourceLoader.download(url, attempt === 0 ? "default" : "reload");
 					await ResourceLoader.verify(body, integrity);
-					return new Response(body, { status: 200, headers: { "content-type": contentType } });
+					return { response: new Response(body, { status: 200, headers: { "content-type": contentType } }), cacheable };
 				} catch (e) {
 					if (e instanceof HttpError && !e.isTransient) {
 						throw e;
@@ -105,7 +127,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
-		private static async download(url: string, cache: RequestCache): Promise<{ body: Uint8Array, contentType: string }> {
+		private static async download(url: string, cache: RequestCache): Promise<{ body: Uint8Array, contentType: string, cacheable: boolean }> {
 			const controller = new AbortController();
 			let timer = setTimeout(() => controller.abort(), ResourceLoader.headersTimeoutMs);
 			const resetIdleTimer = () => {
@@ -143,7 +165,11 @@ namespace Uno.WebAssembly.Bootstrap {
 					offset += chunk.length;
 				}
 
-				return { body, contentType: response.headers.get("content-type") ?? "application/octet-stream" };
+				return {
+					body,
+					contentType: response.headers.get("content-type") ?? "application/octet-stream",
+					cacheable: !/no-store/i.test(response.headers.get("cache-control") ?? ""),
+				};
 			} finally {
 				clearTimeout(timer);
 			}
