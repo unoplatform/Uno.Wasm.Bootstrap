@@ -32,6 +32,8 @@ items:
       href: features-idbfs.md
     - name: Pre-compression
       href: features-pre-compression.md
+    - name: Resilient loading
+      href: features-resilient-loading.md
     - name: Embedded mode
       href: features-embedded.mode.md
     - name: WebWorker mode
