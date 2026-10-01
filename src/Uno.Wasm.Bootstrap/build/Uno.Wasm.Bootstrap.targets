@@ -327,6 +327,7 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UpdateUnoConfigVersionTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
@@ -336,6 +337,7 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UpdateUnoConfigVersionTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -620,6 +622,13 @@
 		<UpdateUnoConfigVersionTask_v0 ConfigFile="$(_UnoPublishConfigJsPath)"
 									   ReferencingFiles="$(_UnoActualPublishDir)wwwroot/index.html;$(_UnoActualPublishDir)wwwroot/service-worker.js"
 									   Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
+
+		<!-- Let the browser fetch the startup chain in parallel instead of one round-trip at a time -->
+		<GeneratePreloadLinksTask_v0 IndexHtml="$(_UnoActualPublishDir)wwwroot/index.html"
+									 FrameworkDirectory="$(_UnoActualPublishDir)wwwroot/_framework"
+									 ConfigFile="$(_UnoPublishConfigJsPath)"
+									 DotnetJsFingerprint="$(_UnoActualDotnetJsFingerprint)"
+									 Condition="'$(WasmShellGeneratePreloadLinks)' != 'false' AND '$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
 		<!-- Validate that the updated uno-config.js references the correct fingerprint -->
 		<PropertyGroup Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')">
