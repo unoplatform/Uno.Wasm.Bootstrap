@@ -3,6 +3,7 @@
 /// <reference path="HotReloadSupport.ts"/>
 /// <reference path="UnoConfig.ts"/>
 /// <reference path="ResourceLoader.ts"/>
+/// <reference path="LoaderView.ts"/>
 
 namespace Uno.WebAssembly.Bootstrap {
 
@@ -32,6 +33,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		private bodyObserver: MutationObserver;
 		private loader: HTMLElement;
 		private progress: HTMLProgressElement;
+		private _loaderView?: LoaderView;
+
+		private static _instance?: Bootstrapper;
 
 		private _isUsingCommonJS: boolean;
 		private _currentBrowserIsChrome: boolean;
@@ -62,6 +66,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		constructor(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._unoConfig = unoConfig;
+			Bootstrapper._instance = this;
 
 			this._webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
@@ -172,6 +177,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				bootstrapper.setupExports(dotnetRuntime);
 			}
 			catch (e) {
+				Bootstrapper._instance?._loaderView?.setPhase("failed");
 				throw `.NET runtime initialization failed (${e})`
 			}
 		}
@@ -292,6 +298,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private RuntimeReady() {
+			// Downloads are done, the app is initializing
+			this._loaderView?.setPhase("starting");
+
 			this.configureGlobal();
 			this.setupRequire();
 
@@ -614,7 +623,23 @@ namespace Uno.WebAssembly.Bootstrap {
 		public preInit() {
 			this.body = document.getElementById("uno-body");
 
+			// Stylesheets are loaded as media="print" so that one stalling can't block this script (see ShellTask)
+			document.querySelectorAll<HTMLLinkElement>("link[data-uno-stylesheet]").forEach(link => link.media = "all");
+
 			this.initProgress();
+		}
+
+		/**
+		 * Fades the loader out, then removes it. Meant for the app to call once its first frame is shown,
+		 * instead of removing the .uno-loader element itself.
+		 */
+		public static dismissLoader() {
+			const bootstrapper = Bootstrapper._instance;
+			if (bootstrapper?._loaderView) {
+				bootstrapper._loaderView.leave();
+			} else {
+				document.querySelector(".uno-loader")?.remove();
+			}
 		}
 
 		private async mainInit(): Promise<void> {
@@ -648,7 +673,15 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 			// Remove loader node if observer will not handle it
 			if (!this.bodyObserver && this.loader && this.loader.parentNode) {
-				this.loader.parentNode.removeChild(this.loader);
+				this.removeLoader();
+			}
+		}
+
+		private removeLoader() {
+			if (this._loaderView) {
+				this._loaderView.leave();
+			} else {
+				this.loader.remove();
 			}
 		}
 
@@ -712,7 +745,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
-			this.progress.max = 100;
+			if (this.progress) {
+				this.progress.max = 100;
+			}
 			const now = Date.now();
 
 			// Record progress in history for velocity calculation
@@ -809,7 +844,10 @@ namespace Uno.WebAssembly.Bootstrap {
 				Math.min(scaledProgress, this._currentTargetProgress)
 			);
 
-			this.progress.value = newValue;
+			if (this.progress) {
+				this.progress.value = newValue;
+			}
+			this._loaderView?.setProgress(newValue);
 			this._lastReportedValue = newValue;
 			this._lastProgressTimestamp = now;
 
@@ -826,14 +864,18 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (this.loader) {
 				this.loader.id = "loading";
 				const progress = this.loader.querySelector("progress");
-				(<any>progress).value = ""; // indeterminate
+				if (progress) {
+					(<any>progress).value = ""; // indeterminate
+				}
 				this.progress = progress;
+
+				this._loaderView = new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "percent");
 
 				this.bodyObserver = new MutationObserver(() => {
 					if (!this.loader.classList.contains("uno-keep-loader")) {
 						// This version of Uno Platform cannot remove
 						// bootstrapper's loader, so we must do it.
-						this.loader.remove();
+						this.removeLoader();
 					}
 
 					if (this.bodyObserver) {
@@ -895,7 +937,8 @@ namespace Uno.WebAssembly.Bootstrap {
 
 					if (chosenSrc) {
 						img.setAttribute("src", chosenSrc);
-					} else {
+					} else if (!img.getAttribute("src")) {
+						// Only when index.html doesn't set its own logo
 						img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
 					}
 				}

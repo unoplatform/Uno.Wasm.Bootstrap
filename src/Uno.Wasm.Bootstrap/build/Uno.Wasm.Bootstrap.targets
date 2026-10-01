@@ -440,6 +440,7 @@
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			PWAPrecacheExclude="$(WasmShellPWAPrecacheExclude)"
+			LoaderProgressFormat="$(WasmShellLoaderProgressFormat)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
