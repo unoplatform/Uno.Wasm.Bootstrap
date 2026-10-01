@@ -14,6 +14,36 @@ dotnet publish
 
 The app will be located in the `bin/Release/net10.0/publish/wwwroot` folder. More information about `dotnet publish` can be [found in the Microsoft docs](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish).
 
+Publish into an empty folder: files left over from an earlier publish are deployed along with the new ones.
+
+## Caching
+
+Most published files can be cached by browsers and CDNs as immutable, because their URL changes when their content does:
+
+- `package_<hash>/**`: the hash covers the package's static files. `uno-config.js`, which changes with every build, is loaded as `uno-config.js?v=<content hash>`.
+- `_framework/*.<fingerprint>.*`: fingerprinted by the .NET SDK, unless `WasmFingerprintAssets` is `false`, in which case `_framework` must be revalidated like the entry points below.
+
+The entry points must be revalidated on every load (for example `Cache-Control: no-cache`), since they carry the URLs of everything else:
+
+- `index.html` (and any route falling back to it)
+- `service-worker.js`
+- `staticwebapp.config.json`, `web.config` and other files at the root
+
+For example, for Azure Static Web Apps:
+
+```json
+{
+  "routes": [
+    { "route": "/package_*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "route": "/_framework/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "route": "/*", "headers": { "cache-control": "no-cache" } }
+  ]
+}
+```
+
+> [!NOTE]
+> Before `uno-config.js` was versioned, caching `package_*` as immutable made returning visitors load the previous deployment's `uno-config.js`, and fail with a 404 on its `dotnet.js` once that file was removed.
+
 ## Localization publishing
 
 By default, the .NET runtime does not load all resource assemblies, but if you want to load all resources regardless of the user's culture, you can add the following to your project file:

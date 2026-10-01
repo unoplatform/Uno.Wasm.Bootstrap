@@ -178,7 +178,8 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
                     // Logging to track network failures
                     console.debug(`[ServiceWorker] Network fetch failed, falling back to cache for: ${requestClone.url}`);
 
-                    const cachedResponse = await caches.match(event.request);
+                    // uno-config.js is requested with a ?v= version but precached without one
+                    const cachedResponse = await caches.match(event.request, { ignoreSearch: true });
                     if (cachedResponse) {
                         return cachedResponse;
                     }

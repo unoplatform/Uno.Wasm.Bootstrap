@@ -167,6 +167,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateWorkerJs();
 				GenerateIndexHtml();
 				GenerateConfig();
+				ApplyConfigVersion();
 				RemoveDuplicateAssets();
 			}
 			finally
@@ -666,6 +667,29 @@ namespace Uno.Wasm.Bootstrap
 					});
 
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
+			}
+		}
+
+		/// <summary>
+		/// Stamps the config version into index.html and service-worker.js. See <see cref="UnoConfigVersion"/>.
+		/// </summary>
+		private void ApplyConfigVersion()
+		{
+			var configPath = Path.Combine(_intermediateAssetsPath, "uno-config.js");
+			if (!File.Exists(configPath))
+			{
+				return;
+			}
+
+			var version = UnoConfigVersion.Compute(File.ReadAllBytes(configPath));
+
+			foreach (var name in new[] { "index.html", "service-worker.js" })
+			{
+				var path = Path.Combine(_intermediateAssetsPath, name);
+				if (File.Exists(path))
+				{
+					File.WriteAllText(path, UnoConfigVersion.Apply(File.ReadAllText(path), version), _utf8Encoding);
+				}
 			}
 		}
 
