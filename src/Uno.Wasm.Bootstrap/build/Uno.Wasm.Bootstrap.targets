@@ -326,6 +326,7 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UpdateUnoConfigVersionTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
@@ -334,6 +335,7 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.UpdateUnoConfigVersionTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -533,6 +535,11 @@
 			Path="$(_UnoConfigJsPath)"
 			Content="$([System.IO.File]::ReadAllText('$(_UnoConfigJsPath)').Replace('config.dotnet_js_filename = &quot;dotnet.js&quot;', 'config.dotnet_js_filename = &quot;dotnet.$(_UnoDotnetJsFingerprint).js&quot;').Replace('_framework/dotnet.js', '_framework/dotnet.$(_UnoDotnetJsFingerprint).js'))"
 			Condition="'$(_UnoDotnetJsFingerprint)' != '' AND Exists('$(_UnoConfigJsPath)')" />
+
+		<!-- uno-config.js changed: refresh the version index.html and the service worker load it with -->
+		<UpdateUnoConfigVersionTask_v0 ConfigFile="$(_UnoConfigJsPath)"
+									   ReferencingFiles="$(IntermediateOutputPath)unowwwrootassets/index.html;$(IntermediateOutputPath)unowwwrootassets/service-worker.js"
+									   Condition="'$(_UnoDotnetJsFingerprint)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
 
 	<!--
@@ -608,6 +615,11 @@
 
 		<Delete Files="@(_UnoStaleCompressedConfigJs)"
 				Condition="'@(_UnoStaleCompressedConfigJs)' != ''" />
+
+		<!-- uno-config.js changed: refresh the version index.html and the service worker load it with -->
+		<UpdateUnoConfigVersionTask_v0 ConfigFile="$(_UnoPublishConfigJsPath)"
+									   ReferencingFiles="$(_UnoActualPublishDir)wwwroot/index.html;$(_UnoActualPublishDir)wwwroot/service-worker.js"
+									   Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
 		<!-- Validate that the updated uno-config.js references the correct fingerprint -->
 		<PropertyGroup Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')">
