@@ -1,178 +1,347 @@
-﻿.uno-loader {
-    background-color: var(--light-theme-bg-color, #F3F3F3);
-    z-index: 5000;
+/*
+    Loader shown while the app downloads and starts. When no Content-Security-Policy is configured, this file is
+    inlined in index.html so the loader paints with the HTML response.
+
+    Animations only use transform and opacity: they run on the compositor and keep moving while the main thread
+    is busy compiling WebAssembly.
+*/
+
+:root {
+    color-scheme: light dark;
+}
+
+html, body {
+    background-color: #F3F3F3;
 }
 
 @media (prefers-color-scheme: dark) {
-    .uno-loader {
-        background-color: var(--dark-theme-bg-color, #202020);
+    html, body {
+        background-color: #202020;
     }
 }
 
 .uno-loader {
-    /* Main container of the loader */
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    --uno-loader-bg: var(--light-theme-bg-color, #F3F3F3);
+    --uno-loader-fg: #1A1A1A;
+    --uno-loader-fg-secondary: #5D5D5D;
+    --uno-loader-accent: var(--accent-color, #0067C0);
+    --uno-loader-on-accent: #FFFFFF;
+    --uno-loader-track: rgba(0, 0, 0, 0.09);
+    --uno-loader-warning: #9D5D00;
+    --uno-loader-error: #C42B1C;
+    --uno-loader-duration: 1.6s;
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--uno-loader-bg);
+    color: var(--uno-loader-fg);
+    font: 14px/20px "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    transition: opacity 250ms cubic-bezier(0, 0, 0, 1);
 }
 
-    .uno-loader .logo {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-width: min(90%, 620px);
-        max-height: min(90%, 300px);
-        width: auto;
-        height: auto;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: 620px 300px;
-        pointer-events: none;
+@media (prefers-color-scheme: dark) {
+    .uno-loader {
+        --uno-loader-bg: var(--dark-theme-bg-color, #202020);
+        --uno-loader-fg: #FFFFFF;
+        --uno-loader-fg-secondary: #C5C5C5;
+        --uno-loader-accent: var(--dark-theme-accent-color, var(--accent-color, #60CDFF));
+        --uno-loader-on-accent: #000000;
+        --uno-loader-track: rgba(255, 255, 255, 0.14);
+        --uno-loader-warning: #FCE100;
+        --uno-loader-error: #FF99A4;
+    }
+}
+
+/* Waiting on the network reads calmer than downloading */
+.uno-loader[data-state='retry'],
+.uno-loader[data-state='offline'] {
+    --uno-loader-duration: 3.6s;
+}
+
+.uno-loader.uno-leaving {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.uno-loader .logo {
+    max-width: min(90%, 620px);
+    max-height: min(40%, 300px);
+    margin-bottom: 32px;
+    pointer-events: none;
+    transition: transform 250ms cubic-bezier(0, 0, 0, 1), opacity 250ms;
+    animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
+}
+
+.uno-loader img[src=''] {
+    visibility: hidden;
+}
+
+.uno-loader.uno-leaving .logo {
+    transform: scale(1.2);
+    opacity: 0;
+}
+
+/* Progress bar: the native <progress> stays for accessibility and compatibility, the fill is drawn with scaleX */
+.uno-loader .bar {
+    position: relative;
+    width: 240px;
+    max-width: 60vw;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    background-color: var(--uno-loader-track);
+    transition: opacity 333ms;
+}
+
+.uno-loader .bar progress {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.uno-loader .bar .fill,
+.uno-loader .bar .sweep {
+    position: absolute;
+    inset: 0;
+}
+
+.uno-loader .fill {
+    background-color: var(--uno-loader-accent);
+    transform-origin: 0 0;
+    transform: scaleX(var(--uno-loader-progress, 0));
+    transition: transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 333ms;
+}
+
+.uno-loader .fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    animation: uno-loader-shine var(--uno-loader-duration) ease-in-out infinite;
+}
+
+/* Indeterminate segment, while connecting and while the runtime starts after the downloads */
+.uno-loader .sweep {
+    right: auto;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--uno-loader-accent), transparent);
+    opacity: 0;
+    transition: opacity 333ms;
+    animation: uno-loader-sweep var(--uno-loader-duration) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.uno-loader[data-phase='connect'] .sweep,
+.uno-loader[data-phase='starting'] .sweep {
+    opacity: 1;
+}
+
+.uno-loader[data-phase='starting'] .fill {
+    opacity: 0.3;
+}
+
+.uno-loader[data-state='retry'] .bar,
+.uno-loader[data-state='offline'] .bar {
+    opacity: 0.55;
+}
+
+.uno-loader[loading-position='top'] .bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+}
+
+/* Text, revealed after a moment so loads served from the cache don't flash it */
+.uno-loader .info {
+    width: min(320px, 86vw);
+    margin-top: 16px;
+    text-align: center;
+    animation: uno-loader-fade-in 333ms cubic-bezier(0, 0, 0, 1) 600ms backwards;
+}
+
+.uno-loader.uno-leaving .info {
+    opacity: 0;
+    transition: opacity 120ms;
+}
+
+.uno-loader .status {
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.uno-loader .meta,
+.uno-loader .hint {
+    min-height: 16px;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--uno-loader-fg-secondary);
+}
+
+.uno-loader .meta {
+    font-variant-numeric: tabular-nums;
+}
+
+.uno-loader .hint {
+    min-height: 32px;
+}
+
+.uno-loader[data-state='failed'] .bar,
+.uno-loader[data-state='failed'] .meta {
+    visibility: hidden;
+}
+
+.uno-loader .info .alert {
+    display: none;
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    font: 700 10px/12px system-ui, sans-serif;
+    text-align: center;
+}
+
+.uno-loader .info .alert::after {
+    content: "!";
+}
+
+.uno-loader[loading-alert='warning'] .info .alert,
+.uno-loader[loading-alert='error'] .info .alert {
+    display: block;
+}
+
+.uno-loader[loading-alert='warning'] .info .alert {
+    color: var(--uno-loader-warning);
+}
+
+.uno-loader[loading-alert='error'] .info .alert {
+    color: var(--uno-loader-error);
+}
+
+.uno-loader[loading-alert='error'] .info .alert::after {
+    content: "\00d7";
+    font-size: 13px;
+}
+
+.uno-loader .reload {
+    display: none;
+    height: 32px;
+    margin-top: 12px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 4px;
+    background-color: var(--uno-loader-accent);
+    color: var(--uno-loader-on-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.uno-loader .reload:hover {
+    filter: brightness(1.1);
+}
+
+.uno-loader .reload:active {
+    filter: brightness(0.9);
+}
+
+.uno-loader .reload:focus-visible {
+    outline: 2px solid var(--uno-loader-fg);
+    outline-offset: 2px;
+}
+
+.uno-loader[data-state='failed'] .reload {
+    display: inline-block;
+}
+
+/* Markup of index.html files customized before the .bar/.info structure: a progress bar at the bottom */
+.uno-loader > progress {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: calc(100% - 16px);
+    height: 4px;
+    border: none;
+    border-radius: 2px;
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--uno-loader-track);
+}
+
+.uno-loader > progress::-webkit-progress-bar {
+    background-color: transparent;
+}
+
+.uno-loader > progress::-webkit-progress-value {
+    background-color: var(--uno-loader-accent);
+    transition: width 300ms ease-out;
+}
+
+.uno-loader > progress::-moz-progress-bar {
+    background-color: var(--uno-loader-accent);
+}
+
+.uno-loader[loading-position='top'] > progress {
+    top: 8px;
+    bottom: auto;
+}
+
+.uno-loader > .alert {
+    display: none;
+}
+
+@keyframes uno-loader-shine {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+@keyframes uno-loader-sweep {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+@keyframes uno-loader-enter {
+    from { opacity: 0.6; transform: scale(0.94); }
+}
+
+@keyframes uno-loader-breathe {
+    50% { scale: 1.04; }
+}
+
+@keyframes uno-loader-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .uno-loader,
+    .uno-loader * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+@media (forced-colors: active) {
+    .uno-loader .bar {
+        border: 1px solid CanvasText;
     }
 
-    .uno-loader progress {
-        /* Reset the default appearance */
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        /* Get rid of default border in Firefox. */
-        border: none;
-        /* Dimensions */
-        width: calc(100% - 16px);
-        height: 4px;
-        position: absolute;
-        /* Position */
-        bottom: 8px;
-        left: 8px;
-        right: 8px;
-        /* Styling */
-        border-radius: 2px;
-        overflow: hidden;
+    .uno-loader .fill {
+        background-color: Highlight;
     }
-
-    .uno-loader img[src=''] {
-        visibility: collapse;
-    }
-
-    .uno-loader progress::-moz-progress-bar {
-        /* Firefox */
-        background-color: var(--accent-color, #159bff);
-        border-radius: 2px;
-        /* Smooth animation between progress updates */
-        transition: width 300ms ease-out;
-    }
-
-    .uno-loader progress::-webkit-progress-value {
-        /* Chrome & Safari */
-        background-color: var(--accent-color, #159bff);
-        border-radius: 2px;
-        /* Smooth animation between progress updates */
-        transition: width 300ms ease-out;
-    }
-
-    .uno-loader[loading-position='top'] progress {
-        bottom: auto;
-        top: 8px;
-        color: var(--accent-color, #159bff);
-    }
-
-    @media (prefers-color-scheme: dark) {
-        .uno-loader progress::-moz-progress-bar {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 2px;
-            /* Smooth animation between progress updates */
-            transition: width 300ms ease-out;
-        }
-
-        .uno-loader progress::-webkit-progress-value {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 2px;
-            /* Smooth animation between progress updates */
-            transition: width 300ms ease-out;
-        }
-
-        .uno-loader[loading-position='top'] progress {
-            color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-        }
-    }
-
-    .uno-loader[loading-position='top'] .alert {
-        bottom: auto;
-        top: 10px;
-    }
-
-    .uno-loader[loading-alert] .alert {
-        /* Position */
-        display: block;
-        position: absolute;
-        bottom: 10px;
-        height: 32px;
-        font-weight: normal;
-        font-size: 14px;
-        font-family: monospace;
-        color: var(--accent-color, #f85977);
-        width: 32px;
-        background: whitesmoke;
-        border-radius: 50%;
-        transition: all 400ms ease;
-        transform-origin: 50% 50%;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
-        @media (prefers-color-scheme: dark) {
-            .uno-loader[loading-alert] .alert {
-                color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
-            }
-        }
-
-        .uno-loader[loading-alert] .alert:after {
-            text-align: center;
-            display: block;
-            width: 100%;
-            position: absolute;
-            top: 0;
-        }
-
-    .uno-loader[loading-alert='none'] .alert {
-        display: none;
-    }
-
-    .uno-loader[loading-alert='error'] .alert:after {
-        animation-name: pulse;
-        animation-duration: 2500ms;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
-    }
-
-    .uno-loader[loading-alert='warning'] .alert:after,
-    .uno-loader[loading-alert='error'] .alert:after {
-        top: 2px;
-        font-size: 26px;
-        content: '\26A0';
-    }
-
-    .uno-loader[loading-alert='warning'] .alert:after {
-        color: DarkGoldenRod;
-    }
-
-    .uno-loader[loading-alert='error'] .alert:after {
-        color: DarkRed;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(0.85);
-        }
-
-        50% {
-            transform: scale(1.15);
-        }
-
-        100% {
-            transform: scale(0.85);
-        }
-    }
+}

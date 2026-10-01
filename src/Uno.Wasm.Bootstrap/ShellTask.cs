@@ -103,6 +103,8 @@ namespace Uno.Wasm.Bootstrap
 		/// Semicolon-separated globs of offline files the service worker doesn't precache; they are still cached when the app uses them.
 		/// </summary>
 		public string PWAPrecacheExclude { get; set; } = "";
+		/// <summary>What the loader shows next to its progress bar: <c>percent</c> (default) or <c>size</c>, the megabytes downloaded.</summary>
+		public string LoaderProgressFormat { get; set; } = "";
 
 		public bool Optimize { get; set; }
 
@@ -601,6 +603,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_pwa_precache_exclude = {JsStringHelper.ToJsStringArray(PWAPrecacheExclude)};");
+				config.AppendLine($"config.uno_loader_progress_format = \"{(string.Equals(LoaderProgressFormat, "size", StringComparison.OrdinalIgnoreCase) ? "size" : "percent")}\";");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
@@ -691,8 +694,7 @@ namespace Uno.Wasm.Bootstrap
 			using var reader = new StreamReader(IndexHtmlPath);
 			var html = reader.ReadToEnd();
 
-			var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{s}\" />"));
-			html = html.Replace("$(ADDITIONAL_CSS)", styles);
+			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(GetStyleMarkup)));
 
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);
@@ -730,6 +732,31 @@ namespace Uno.Wasm.Bootstrap
 			StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
 
 			Log.LogMessage($"HTML {indexHtmlOutputPath}");
+		}
+
+		/// <summary>
+		/// The loader's stylesheet is inlined so it paints with the HTML response, unless a Content-Security-Policy is
+		/// set (it would likely block inline styles). Other stylesheets load as media="print" and are switched to "all"
+		/// by the bootstrapper: a parser-inserted stylesheet that stalls would otherwise block the module scripts.
+		/// </summary>
+		private string GetStyleMarkup(string style)
+		{
+			if (Path.GetFileName(style) == "uno-bootstrap.css")
+			{
+				var source = StaticWebContent
+					.FirstOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
+					?.ItemSpec;
+
+				if (string.IsNullOrEmpty(CSPConfiguration) && source is not null && File.Exists(source))
+				{
+					return $"<style id=\"uno-bootstrap-css\">\r\n{File.ReadAllText(source)}\r\n</style>";
+				}
+
+				// The loader must be styled before it paints
+				return $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{style}\" />";
+			}
+
+			return $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{style}\" media=\"print\" data-uno-stylesheet />";
 		}
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
