@@ -72,6 +72,16 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		public void When_Dictionary_Shaped_Resources_Then_Wasm_Is_Preloaded()
+		{
+			var dotnetJs = "/*json-start*/{\"resources\":{\"wasmNative\":{\"dotnet.native.wasm\":\"sha256-abc\"}}}/*json-end*/";
+
+			var block = PreloadLinks.Generate(dotnetJs, "dotnet.js", "let config = {};", "./_framework/", "./package_1/uno-config.js");
+
+			StringAssert.Contains(block, "<link rel=\"preload\" href=\"./_framework/dotnet.native.wasm\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\" />");
+		}
+
+		[TestMethod]
 		public void When_Apply_Then_Inserted_Before_Head_End()
 		{
 			var html = PreloadLinks.Apply("<html><head><title>a</title></head><body></body></html>", "<!-- uno-preload-links -->\nX\n<!-- /uno-preload-links -->\n");
