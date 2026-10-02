@@ -14,8 +14,12 @@ async function watchLoader(page) {
 		window.__loaderLog = [];
 		const record = () => {
 			const loader = document.querySelector(".uno-loader");
+			const text = selector => {
+				const element = loader.querySelector(selector);
+				return (element && element.textContent) || "";
+			};
 			const entry = loader
-				? `${loader.dataset.phase}|${loader.dataset.state || ""}|${loader.querySelector(".label")?.textContent || ""}|${loader.querySelector(".meta")?.textContent || ""}`
+				? `${loader.dataset.phase}|${loader.dataset.state || ""}|${text(".label")}|${text(".meta")}`
 				: "removed";
 			if (window.__loaderLog[window.__loaderLog.length - 1] !== entry) {
 				window.__loaderLog.push(entry);
@@ -42,7 +46,10 @@ function check(condition, message) {
 
 	ok = check(await page.$("style#uno-bootstrap-css") !== null, "loader stylesheet is inlined") && ok;
 
-	await page.waitForFunction(() => document.querySelector("#results")?.textContent, { timeout: 60000 });
+	await page.waitForFunction(() => {
+		const results = document.querySelector("#results");
+		return results && results.textContent;
+	}, { timeout: 60000 });
 	await page.waitForFunction(() => !document.querySelector(".uno-loader"), { timeout: 10000 }).catch(() => { });
 	let log = await page.evaluate(() => window.__loaderLog);
 	console.log(log.join("\n"));
@@ -56,7 +63,10 @@ function check(condition, message) {
 	await setMode("failwasm");
 	page = await browser.newPage();
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-	const failed = await page.waitForFunction(() => document.querySelector(".uno-loader")?.dataset.state === "failed", { timeout: 90000 }).then(() => true, () => false);
+	const failed = await page.waitForFunction(() => {
+		const loader = document.querySelector(".uno-loader");
+		return !!loader && loader.dataset.state === "failed";
+	}, { timeout: 90000 }).then(() => true, () => false);
 	ok = check(failed, "failed state when the runtime can't load") && ok;
 	ok = check(await page.$eval(".uno-loader .reload", b => getComputedStyle(b).display !== "none").catch(() => false), "reload button shown") && ok;
 
