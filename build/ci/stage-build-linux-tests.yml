@@ -124,6 +124,12 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  ## Follows the loader through a normal and a failed start of the Raytracer
+  - bash: |
+      bash $(build.sourcesdirectory)/src/Uno.Wasm.Tests.Loader/run-test.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Loader test
+
   ## Threads Interp validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads
