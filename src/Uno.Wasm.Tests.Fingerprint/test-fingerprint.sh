@@ -279,6 +279,40 @@ fi
 
 echo -e "${GREEN}✓ Publish config references the unfingerprinted dotnet.js${NC}"
 
+# Test 9: Publish twice into the same directory
+# The second publish leaves the first dotnet.<hash>.js behind; uno-config.js must
+# reference the one the SDK's endpoints manifest maps to _framework/dotnet.js.
+echo ""
+echo "♻️  Test 9: Republish into a directory that wasn't cleaned"
+echo "----------------------------------------"
+rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
+PUBLISH_DIR_REPUBLISH="$PROJECT_DIR/bin/Release/net10.0/publish"
+# Different assembly versions change the boot config, hence the dotnet.js fingerprint.
+# The versions are picked so that the stale fingerprint is not always the newest or last-sorted one.
+for VERSION in 2.0.0 1.0.0 3.0.0 1.0.0; do
+    dotnet publish "$PROJECT_FILE" --configuration Release -p:Version=$VERSION > /dev/null
+done
+
+REPUBLISH_CANDIDATES=$(ls "$PUBLISH_DIR_REPUBLISH/wwwroot/_framework/" | grep -cE '^dotnet\.[a-z0-9]+\.js$' || true)
+if [ "$REPUBLISH_CANDIDATES" -lt 2 ]; then
+    echo -e "${RED}❌ FAIL: Expected several dotnet.*.js files after republishing, found $REPUBLISH_CANDIDATES${NC}"
+    ls -la "$PUBLISH_DIR_REPUBLISH/wwwroot/_framework/" | grep dotnet
+    exit 1
+fi
+
+ENDPOINTS_FILE=$(find "$PUBLISH_DIR_REPUBLISH" -maxdepth 1 -name "*.staticwebassets.endpoints.json" | head -1)
+EXPECTED_DOTNET_JS=$(grep -o '"Route":"_framework/dotnet.js","AssetFile":"_framework/dotnet\.[a-z0-9]*\.js"' "$ENDPOINTS_FILE" | sed -n 's/.*"AssetFile":"_framework\/\(dotnet\.[a-z0-9]*\.js\)"/\1/p' | head -1)
+REPUBLISH_CONFIG=$(find "$PUBLISH_DIR_REPUBLISH/wwwroot" -name "uno-config.js" | head -1)
+REPUBLISH_DOTNET_JS=$(sed -n 's/.*dotnet_js_filename = "\([^"]*\)".*/\1/p' "$REPUBLISH_CONFIG" | head -1)
+
+if [ -z "$EXPECTED_DOTNET_JS" ] || [ "$REPUBLISH_DOTNET_JS" != "$EXPECTED_DOTNET_JS" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js references '$REPUBLISH_DOTNET_JS', the endpoints manifest maps dotnet.js to '$EXPECTED_DOTNET_JS'${NC}"
+    ls -la "$PUBLISH_DIR_REPUBLISH/wwwroot/_framework/" | grep dotnet
+    exit 1
+fi
+
+echo -e "${GREEN}✓ uno-config.js references the dotnet.js of the latest publish ($REPUBLISH_DOTNET_JS) among $REPUBLISH_CANDIDATES candidates${NC}"
+
 # Summary
 echo ""
 echo "========================================="
