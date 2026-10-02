@@ -62,13 +62,9 @@ public static class PreloadLinks
 
 			// The runtime fetches dotnet.native.wasm in cors mode. No integrity attribute: Chrome ignores it on
 			// fetch preloads and logs a warning (crbug.com/981419).
-			foreach (var wasm in resources["wasmNative"] as JArray ?? new JArray())
+			foreach (var name in Names(resources["wasmNative"]))
 			{
-				var name = wasm.Value<string>("name");
-				if (name is not null)
-				{
-					links.Add($"<link rel=\"preload\" href=\"{Attribute(frameworkUrl + name)}\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\" />");
-				}
+				links.Add($"<link rel=\"preload\" href=\"{Attribute(frameworkUrl + name)}\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\" />");
 			}
 		}
 
