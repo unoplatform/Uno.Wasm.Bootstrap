@@ -51,7 +51,8 @@ http.createServer((req, res) => {
 	} else {
 		fileName = urlPath === "/" ? "/index.html" : urlPath;
 		const file = path.join(root, fileName);
-		if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+		const relative = path.relative(root, file);
+		if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
 			res.statusCode = 404;
 			return res.end();
 		}
