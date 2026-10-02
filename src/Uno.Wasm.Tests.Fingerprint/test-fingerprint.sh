@@ -313,6 +313,50 @@ fi
 
 echo -e "${GREEN}✓ uno-config.js references the dotnet.js of the latest publish ($REPUBLISH_DOTNET_JS) among $REPUBLISH_CANDIDATES candidates${NC}"
 
+# Test 10: uno-config.js is loaded with a version derived from its final content
+# package_<hash> is cached as immutable but uno-config.js changes with every build,
+# so index.html (and the service worker) must reference it through a ?v=<version>.
+echo ""
+echo "🔖 Test 10: uno-config.js version in index.html and service-worker.js"
+echo "----------------------------------------"
+config_version() { sha256sum "$1" | cut -c1-12; }
+check_config_version() {
+    local wwwroot="$1"
+    local config
+    config=$(find "$wwwroot" -name "uno-config.js" | head -1)
+    local expected
+    expected=$(config_version "$config")
+
+    if ! grep -q "uno-bootstrap.js?v=$expected\"" "$wwwroot/index.html"; then
+        echo -e "${RED}❌ FAIL: index.html does not load uno-bootstrap.js?v=$expected${NC}" >&2
+        grep "uno-bootstrap" "$wwwroot/index.html" >&2
+        exit 1
+    fi
+    if [ -f "$wwwroot/service-worker.js" ] && ! grep -q "uno-config.js?v=$expected\"" "$wwwroot/service-worker.js"; then
+        echo -e "${RED}❌ FAIL: service-worker.js does not import uno-config.js?v=$expected${NC}" >&2
+        grep "uno-config" "$wwwroot/service-worker.js" >&2
+        exit 1
+    fi
+    for f in index.html service-worker.js; do
+        if command -v brotli > /dev/null && [ -f "$wwwroot/$f.br" ] && ! cmp -s <(brotli -dc "$wwwroot/$f.br" 2>/dev/null) "$wwwroot/$f"; then
+            echo -e "${RED}❌ FAIL: $f.br is stale${NC}" >&2
+            exit 1
+        fi
+    done
+    echo "$expected"
+}
+
+VERSION_A=$(check_config_version "$PUBLISH_DIR_REPUBLISH/wwwroot")
+dotnet publish "$PROJECT_FILE" --configuration Release -p:Version=4.0.0 > /dev/null
+VERSION_B=$(check_config_version "$PUBLISH_DIR_REPUBLISH/wwwroot")
+
+if [ "$VERSION_A" = "$VERSION_B" ]; then
+    echo -e "${RED}❌ FAIL: uno-config.js version did not change after the config changed ($VERSION_A)${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ index.html and service-worker.js load uno-config.js by content version ($VERSION_A -> $VERSION_B)${NC}"
+
 # Summary
 echo ""
 echo "========================================="

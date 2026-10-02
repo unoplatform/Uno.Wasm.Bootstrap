@@ -106,8 +106,10 @@ namespace Uno.WebAssembly.Bootstrap {
 					});
 				}
 
+				const configVersion = Bootstrapper.getConfigVersion();
+
 				//@ts-ignore
-				var config = await import('./uno-config.js');
+				var config = await import(configVersion ? `./uno-config.js?v=${configVersion}` : './uno-config.js');
 
 				if (document && (document as any).uno_app_base_override) {
 					config.config.uno_app_base = (document as any).uno_app_base_override;
@@ -166,6 +168,26 @@ namespace Uno.WebAssembly.Bootstrap {
 			catch (e) {
 				throw `.NET runtime initialization failed (${e})`
 			}
+		}
+
+		/**
+		 * index.html loads uno-bootstrap.js?v=<uno-config.js version>. Forwarding it to the config import gives
+		 * each deployment's config its own URL, since package_<hash> is cached as immutable but the config changes.
+		 * (import.meta is not available: this file is compiled as a script.)
+		 */
+		private static getConfigVersion(): string | null {
+			if (typeof document !== "object") {
+				return null;
+			}
+
+			// BrowserEmbedded: embedded.js imports uno-bootstrap.js dynamically, there is no <script> element
+			const embeddedUrl = (document as any).uno_bootstrap_url;
+			if (embeddedUrl) {
+				return new URL(embeddedUrl, document.baseURI).searchParams.get("v");
+			}
+
+			const script = document.querySelector<HTMLScriptElement>('script[type="module"][src*="uno-bootstrap.js"]');
+			return script ? new URL(script.src).searchParams.get("v") : null;
 		}
 
 		private setupExports(dotnetRuntime: any) {

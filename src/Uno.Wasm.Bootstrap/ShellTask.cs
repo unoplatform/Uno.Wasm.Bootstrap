@@ -167,6 +167,7 @@ namespace Uno.Wasm.Bootstrap
 				GenerateWorkerJs();
 				GenerateIndexHtml();
 				GenerateConfig();
+				ApplyConfigVersion();
 				RemoveDuplicateAssets();
 			}
 			finally
@@ -669,6 +670,35 @@ namespace Uno.Wasm.Bootstrap
 			}
 		}
 
+		/// <summary>
+		/// Stamps the config version into index.html and service-worker.js. See <see cref="UnoConfigVersion"/>.
+		/// </summary>
+		private void ApplyConfigVersion()
+		{
+			var configPath = Path.Combine(_intermediateAssetsPath, "uno-config.js");
+			if (!File.Exists(configPath))
+			{
+				return;
+			}
+
+			var version = UnoConfigVersion.Compute(File.ReadAllBytes(configPath));
+
+			var files = new[]
+			{
+				Path.Combine(_intermediateAssetsPath, "index.html"),
+				Path.Combine(_intermediateAssetsPath, "service-worker.js"),
+				Path.Combine(IntermediateOutputPath, "shell-embedded.js"),
+			};
+
+			foreach (var path in files)
+			{
+				if (File.Exists(path))
+				{
+					File.WriteAllText(path, UnoConfigVersion.Apply(File.ReadAllText(path), version), _utf8Encoding);
+				}
+			}
+		}
+
 		private void GenerateIndexHtml()
 		{
 			if (_shellMode != ShellMode.Browser)
@@ -847,7 +877,9 @@ namespace Uno.Wasm.Bootstrap
 					await loadScript("require");
 
 					// Launch the bootstrapper
-					await import(absolutePath + "/uno-bootstrap.js");
+					// The version stamped on this URL is forwarded to the uno-config.js import
+					document.uno_bootstrap_url = absolutePath + "/uno-bootstrap.js";
+					await import(document.uno_bootstrap_url);
 
 					// Yield to the browser to render the splash screen
 					await new Promise(r => setTimeout(r, 0));
