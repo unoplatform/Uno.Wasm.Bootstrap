@@ -44,6 +44,18 @@ For example, for Azure Static Web Apps:
 > [!NOTE]
 > Before `uno-config.js` was versioned, caching `package_*` as immutable made returning visitors load the previous deployment's `uno-config.js`, and fail with a 404 on its `dotnet.js` once that file was removed.
 
+## Preload links
+
+Publishing adds `<link rel="preload">` and `<link rel="modulepreload">` hints to `index.html` for the files of the startup chain: `uno-config.js`, `dotnet.js`, the .NET runtime's JavaScript modules, `dotnet.native.wasm` and the `require.js` dependencies. Without them, the browser discovers these files one round-trip at a time. The hints are inserted before `</head>`, between `<!-- uno-preload-links -->` markers.
+
+To disable them:
+
+```xml
+<PropertyGroup>
+    <WasmShellGeneratePreloadLinks>false</WasmShellGeneratePreloadLinks>
+</PropertyGroup>
+```
+
 ## Localization publishing
 
 By default, the .NET runtime does not load all resource assemblies, but if you want to load all resources regardless of the user's culture, you can add the following to your project file:
