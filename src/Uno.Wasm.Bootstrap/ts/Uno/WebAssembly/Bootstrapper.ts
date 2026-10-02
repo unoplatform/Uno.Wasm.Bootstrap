@@ -180,6 +180,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				return null;
 			}
 
+			// BrowserEmbedded: embedded.js imports uno-bootstrap.js dynamically, there is no <script> element
+			const embeddedUrl = (document as any).uno_bootstrap_url;
+			if (embeddedUrl) {
+				return new URL(embeddedUrl, document.baseURI).searchParams.get("v");
+			}
+
 			const script = document.querySelector<HTMLScriptElement>('script[type="module"][src*="uno-bootstrap.js"]');
 			return script ? new URL(script.src).searchParams.get("v") : null;
 		}
