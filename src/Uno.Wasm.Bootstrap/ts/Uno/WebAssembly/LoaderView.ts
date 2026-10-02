@@ -105,7 +105,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				this._phase === "failed" ? "failed"
 					: !online ? "offline"
 						: this._phase === "download" && elapsed - this._lastRetryAt < LoaderView.RETRY_VISIBLE_MS ? "retry"
-							: this._phase === "download" && elapsed > LoaderView.SLOW_AFTER_MS ? "slow"
+							: (this._phase === "download" || this._phase === "connect") && elapsed > LoaderView.SLOW_AFTER_MS ? "slow"
 								: "ok";
 
 			this.setAttribute("data-phase", this._phase);
@@ -118,8 +118,13 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			const progress = this.loader.querySelector("progress");
 			if (progress) {
-				progress.max = 100;
-				progress.value = shown;
+				// No value means indeterminate, matching the visual sweep outside the download phase
+				if (this._phase === "download") {
+					progress.max = 100;
+					progress.value = shown;
+				} else {
+					progress.removeAttribute("value");
+				}
 			}
 
 			let label = { connect: "Getting ready…", download: "Downloading app", starting: "Starting…", failed: "We couldn't load the app" }[this._phase];

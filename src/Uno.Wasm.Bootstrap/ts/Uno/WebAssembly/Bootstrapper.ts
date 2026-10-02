@@ -656,12 +656,20 @@ namespace Uno.WebAssembly.Bootstrap {
 					await this._logProfiler.postInitializeLogProfiler();
 				}
 
-				this._runMain(this._unoConfig.uno_main, []);
+				// Not awaited: it settles when Main exits, which must not delay dismissing the loader
+				this._runMain(this._unoConfig.uno_main, []).catch(e => {
+					console.error(e);
+					this._loaderView?.setPhase("failed");
+				});
 
 				this.scheduleInitializePWA();
 
 			} catch (e) {
 				console.error(e);
+				if (this._loaderView) {
+					this._loaderView.setPhase("failed");
+					return;
+				}
 			}
 
 			this.cleanupInit();
