@@ -132,7 +132,8 @@ async function putInCache(request, response) {
 }
 
 /** Immutable files: the cached copy is always right, so the network is only used on a miss. */
-async function cacheFirst(request) {
+async function cacheFirst(event) {
+    const request = event.request;
     const cached = await caches.match(request, { ignoreSearch: true });
     if (cached) {
         return cached;
@@ -140,17 +141,18 @@ async function cacheFirst(request) {
 
     const response = await fetch(request);
     if (response.ok) {
-        putInCache(request, response.clone());
+        event.waitUntil(putInCache(request, response.clone()));
     }
     return response;
 }
 
 /** Everything else: fresh from the network when it answers in time, else from the cache. */
-async function networkFirst(request) {
+async function networkFirst(event) {
+    const request = event.request;
     try {
         const response = await fetchWithTimeout(request.clone(), NETWORK_TIMEOUT_MS);
         if (response.ok && request.method === "GET") {
-            putInCache(request, response.clone());
+            event.waitUntil(putInCache(request, response.clone()));
         }
         return response;
     } catch (err) {
@@ -228,7 +230,7 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
             return;
         }
 
-        event.respondWith(isImmutable(url) ? cacheFirst(event.request) : networkFirst(event.request));
+        event.respondWith(isImmutable(url) ? cacheFirst(event) : networkFirst(event));
     });
 }
 else {
