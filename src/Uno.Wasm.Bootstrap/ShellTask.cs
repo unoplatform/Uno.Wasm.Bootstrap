@@ -683,9 +683,15 @@ namespace Uno.Wasm.Bootstrap
 
 			var version = UnoConfigVersion.Compute(File.ReadAllBytes(configPath));
 
-			foreach (var name in new[] { "index.html", "service-worker.js" })
+			var files = new[]
 			{
-				var path = Path.Combine(_intermediateAssetsPath, name);
+				Path.Combine(_intermediateAssetsPath, "index.html"),
+				Path.Combine(_intermediateAssetsPath, "service-worker.js"),
+				Path.Combine(IntermediateOutputPath, "shell-embedded.js"),
+			};
+
+			foreach (var path in files)
+			{
 				if (File.Exists(path))
 				{
 					File.WriteAllText(path, UnoConfigVersion.Apply(File.ReadAllText(path), version), _utf8Encoding);
@@ -871,7 +877,9 @@ namespace Uno.Wasm.Bootstrap
 					await loadScript("require");
 
 					// Launch the bootstrapper
-					await import(absolutePath + "/uno-bootstrap.js");
+					// The version stamped on this URL is forwarded to the uno-config.js import
+					document.uno_bootstrap_url = absolutePath + "/uno-bootstrap.js";
+					await import(document.uno_bootstrap_url);
 
 					// Yield to the browser to render the splash screen
 					await new Promise(r => setTimeout(r, 0));

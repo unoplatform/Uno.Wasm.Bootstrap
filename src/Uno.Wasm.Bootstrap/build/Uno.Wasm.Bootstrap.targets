@@ -538,7 +538,7 @@
 
 		<!-- uno-config.js changed: refresh the version index.html and the service worker load it with -->
 		<UpdateUnoConfigVersionTask_v0 ConfigFile="$(_UnoConfigJsPath)"
-									   ReferencingFiles="$(IntermediateOutputPath)unowwwrootassets/index.html;$(IntermediateOutputPath)unowwwrootassets/service-worker.js"
+									   ReferencingFiles="$(IntermediateOutputPath)unowwwrootassets/index.html;$(IntermediateOutputPath)unowwwrootassets/service-worker.js;$(IntermediateOutputPath)shell-embedded.js"
 									   Condition="'$(_UnoDotnetJsFingerprint)' != '' AND Exists('$(_UnoConfigJsPath)')" />
 	</Target>
 
@@ -618,7 +618,7 @@
 
 		<!-- uno-config.js changed: refresh the version index.html and the service worker load it with -->
 		<UpdateUnoConfigVersionTask_v0 ConfigFile="$(_UnoPublishConfigJsPath)"
-									   ReferencingFiles="$(_UnoActualPublishDir)wwwroot/index.html;$(_UnoActualPublishDir)wwwroot/service-worker.js"
+									   ReferencingFiles="$(_UnoActualPublishDir)wwwroot/index.html;$(_UnoActualPublishDir)wwwroot/service-worker.js;$(_UnoActualPublishDir)wwwroot/embedded.js"
 									   Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
 		<!-- Validate that the updated uno-config.js references the correct fingerprint -->
