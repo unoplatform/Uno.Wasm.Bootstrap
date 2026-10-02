@@ -15,7 +15,10 @@ async function load(browser, url) {
 	await page.goto(url, { waitUntil: "domcontentloaded" });
 
 	try {
-		await page.waitForFunction(() => document.querySelector("#results")?.textContent, { timeout: timeoutMs, polling: 500 });
+		await page.waitForFunction(() => {
+			const results = document.querySelector("#results");
+			return results && results.textContent;
+		}, { timeout: timeoutMs, polling: 500 });
 	} catch (e) {
 		console.log(`FAIL: ${url} did not start within ${timeoutMs / 1000}s`);
 		return false;
