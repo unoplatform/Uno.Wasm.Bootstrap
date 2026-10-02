@@ -45,19 +45,24 @@ public class ResolvePublishedDotnetJsTask_v0 : Microsoft.Build.Utilities.Task
 			.GetFiles(frameworkDirectory, "dotnet.*.js")
 			.Select(f => new DotnetJsResolver.Candidate(Path.GetFileName(f), File.GetLastWriteTimeUtc(f)));
 
-		// One manifest per published web project; with a hosted server there may be several, any one mapping dotnet.js wins.
-		string? endpointsJson = null;
-		foreach (var manifest in Directory.GetFiles(PublishDirectory, "*.staticwebassets.endpoints.json"))
-		{
-			var json = File.ReadAllText(manifest);
-			if (DotnetJsResolver.GetFingerprintFromEndpointsManifest(json) is not null)
-			{
-				endpointsJson = json;
-				break;
-			}
-		}
+		// One manifest per published web project; with a hosted server there may be several.
+		var manifests = Directory
+			.GetFiles(PublishDirectory, "*.staticwebassets.endpoints.json")
+			.Select(File.ReadAllText)
+			.ToList();
 
-		Fingerprint = DotnetJsResolver.Resolve(endpointsJson, candidates, out var source, out var stale) ?? "";
+		Fingerprint = DotnetJsResolver.Resolve(manifests, candidates, out var source, out var stale) ?? "";
+
+		if (source == DotnetJsResolver.Source.ManifestAssetMissing)
+		{
+			Log.LogError(
+				subcategory: null,
+				errorCode: "UNOWASM004",
+				helpKeyword: null,
+				file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+				message: $"[Uno] The endpoints manifest maps _framework/dotnet.js to a file that is missing from {frameworkDirectory}; the publish is incomplete. Clean the publish directory and publish again.");
+			return false;
+		}
 
 		if (source == DotnetJsResolver.Source.NewestCandidate)
 		{

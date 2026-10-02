@@ -54,6 +54,7 @@ public static class DotnetJsResolver
 		EndpointsManifest,
 		SingleCandidate,
 		NewestCandidate,
+		ManifestAssetMissing,
 	}
 
 	/// <summary>Returns the fingerprint of a <c>dotnet.&lt;fingerprint&gt;.js</c> file name, or null.</summary>
@@ -95,23 +96,35 @@ public static class DotnetJsResolver
 	}
 
 	/// <summary>
-	/// Picks the current fingerprint. <paramref name="staleCandidates"/> lists the other fingerprinted
+	/// Picks the current fingerprint from the endpoints manifests (one per published web project). A manifest
+	/// mapping that matches a candidate wins; a mapping whose file is absent means the publish is incomplete
+	/// (<see cref="Source.ManifestAssetMissing"/>) and never falls back to a possibly stale candidate.
+	/// <paramref name="staleCandidates"/> lists the other fingerprinted
 	/// <c>dotnet.*.js</c> files found next to it, which are left over from earlier publishes.
 	/// </summary>
-	public static string? Resolve(string? endpointsJson, IEnumerable<Candidate> files, out Source source, out IReadOnlyList<string> staleCandidates)
+	public static string? Resolve(IEnumerable<string> endpointsJsons, IEnumerable<Candidate> files, out Source source, out IReadOnlyList<string> staleCandidates)
 	{
 		var candidates = files
 			.Where(f => GetFingerprint(f.FileName) is not null)
 			.OrderByDescending(f => f.LastWriteTimeUtc)
 			.ToList();
 
-		var fromManifest = endpointsJson is null ? null : GetFingerprintFromEndpointsManifest(endpointsJson);
+		var mapped = endpointsJsons
+			.Select(GetFingerprintFromEndpointsManifest)
+			.OfType<string>()
+			.ToList();
 
 		string? fingerprint;
-		if (fromManifest is not null && candidates.Any(c => GetFingerprint(c.FileName) == fromManifest))
+		var matched = mapped.FirstOrDefault(m => candidates.Any(c => GetFingerprint(c.FileName) == m));
+		if (matched is not null)
 		{
-			fingerprint = fromManifest;
+			fingerprint = matched;
 			source = Source.EndpointsManifest;
+		}
+		else if (mapped.Count > 0)
+		{
+			fingerprint = null;
+			source = Source.ManifestAssetMissing;
 		}
 		else if (candidates.Count == 1)
 		{
