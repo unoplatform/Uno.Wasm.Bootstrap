@@ -28,7 +28,7 @@ http.createServer((req, res) => {
 	setTimeout(() => {
 		const fileName = urlPath.endsWith("/") ? urlPath + "index.html" : urlPath;
 		const file = path.join(root, fileName);
-		if ((isNativeWasm && mode === "failwasm") || !file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+		if ((isNativeWasm && mode === "failwasm") || path.relative(root, file).startsWith("..") || path.isAbsolute(path.relative(root, file)) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
 			res.statusCode = 404;
 			return res.end();
 		}
