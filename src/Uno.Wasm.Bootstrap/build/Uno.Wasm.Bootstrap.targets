@@ -623,13 +623,6 @@
 									   ReferencingFiles="$(_UnoActualPublishDir)wwwroot/index.html;$(_UnoActualPublishDir)wwwroot/service-worker.js"
 									   Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
 
-		<!-- Let the browser fetch the startup chain in parallel instead of one round-trip at a time -->
-		<GeneratePreloadLinksTask_v0 IndexHtml="$(_UnoActualPublishDir)wwwroot/index.html"
-									 FrameworkDirectory="$(_UnoActualPublishDir)wwwroot/_framework"
-									 ConfigFile="$(_UnoPublishConfigJsPath)"
-									 DotnetJsFingerprint="$(_UnoActualDotnetJsFingerprint)"
-									 Condition="'$(WasmShellGeneratePreloadLinks)' != 'false' AND '$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')" />
-
 		<!-- Validate that the updated uno-config.js references the correct fingerprint -->
 		<PropertyGroup Condition="'$(_UnoActualDotnetJsFingerprint)' != '' AND Exists('$(_UnoPublishConfigJsPath)')">
 			<_UnoConfigContent>$([System.IO.File]::ReadAllText('$(_UnoPublishConfigJsPath)'))</_UnoConfigContent>
@@ -653,6 +646,37 @@
 		<Message Importance="normal"
 				 Text="Updated uno-config.js with dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
+	</Target>
+
+	<!--
+		Add preload hints for the startup chain to the published index.html.
+		Independent of dotnet.js fingerprinting: without it the task is given an empty fingerprint and reads plain dotnet.js.
+		Runs after the fingerprint target so it sees the final uno-config.js, and again after the nested AOT publish.
+	-->
+	<Target Name="_UnoGeneratePreloadLinksPublishOutput"
+			AfterTargets="_UnoUpdateDotnetJsFingerprintPublishOutput;Publish;WasmTriggerPublishApp"
+			Condition="'$(WasmShellGeneratePreloadLinks)' != 'false' AND '$(WasmBuildingForNestedPublish)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoPreloadPublishDir Condition="'$(PublishDir)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(PublishDir)'))</_UnoPreloadPublishDir>
+			<_UnoPreloadPublishDir Condition="'$(_UnoPreloadPublishDir)' == '' OR !Exists('$(_UnoPreloadPublishDir)')">$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_UnoPreloadPublishDir>
+		</PropertyGroup>
+
+		<ResolvePublishedDotnetJsTask_v0 PublishDirectory="$(_UnoPreloadPublishDir)"
+										 Condition="'$(PublishDir)' != '' AND Exists('$(_UnoPreloadPublishDir)')">
+			<Output TaskParameter="Fingerprint" PropertyName="_UnoPreloadDotnetJsFingerprint" />
+		</ResolvePublishedDotnetJsTask_v0>
+
+		<PropertyGroup>
+			<_UnoPreloadConfigJsPath>$(_UnoPreloadPublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPreloadConfigJsPath>
+			<_UnoPreloadConfigJsPath Condition="!Exists('$(_UnoPreloadConfigJsPath)')">$(_UnoPreloadPublishDir)wwwroot/uno-config.js</_UnoPreloadConfigJsPath>
+		</PropertyGroup>
+
+		<GeneratePreloadLinksTask_v0 IndexHtml="$(_UnoPreloadPublishDir)wwwroot/index.html"
+									 FrameworkDirectory="$(_UnoPreloadPublishDir)wwwroot/_framework"
+									 ConfigFile="$(_UnoPreloadConfigJsPath)"
+									 DotnetJsFingerprint="$(_UnoPreloadDotnetJsFingerprint)"
+									 Condition="'$(PublishDir)' != '' AND Exists('$(_UnoPreloadConfigJsPath)')" />
 	</Target>
 
 	<!--
