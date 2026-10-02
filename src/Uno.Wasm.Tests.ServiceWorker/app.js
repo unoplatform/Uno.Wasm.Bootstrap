@@ -89,11 +89,42 @@ async function waitForStart(page, label) {
 		console.log(ok ? "OK: precache honors WasmShellPWAPrecacheExclude" : "FAIL: unexpected precache contents");
 	}
 
+	// An excluded file is cached when the app uses it, then served offline
+	if (ok) {
+		const target = await page.evaluate(async () => {
+			const config = await import(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src.replace(/uno-bootstrap\.js.*$/, "uno-config.js"));
+			const cached = new Set();
+			for (const name of await caches.keys()) {
+				(await (await caches.open(name)).keys()).forEach(r => cached.add(new URL(r.url).pathname));
+			}
+			return config.config.offline_files.map(f => new URL(f, location.href).pathname).find(p => p.includes("/pwa-images/") && !cached.has(p));
+		});
+
+		ok = !!target;
+		if (ok) {
+			const fetchTarget = () => page.evaluate(async p => (await fetch(p)).ok, target);
+			const isCached = () => page.evaluate(async p => !!(await caches.match(p)), target);
+
+			ok = await fetchTarget();
+			for (let i = 0; i < 20 && ok && !(await isCached()); i++) {
+				await new Promise(r => setTimeout(r, 250));
+			}
+			ok = ok && await isCached();
+
+			await setMode("offline");
+			ok = ok && await fetchTarget().catch(() => false);
+			await setMode("normal");
+		}
+		console.log(ok ? `OK: excluded file ${target} cached on use and served offline` : `FAIL: excluded file ${target} not cached on use`);
+	}
+
 	for (const mode of ["offline", "flaky"]) {
 		if (!ok) {
 			break;
 		}
 		await setMode(mode);
+		// A failed navigation must not leave the previous document's results to be mistaken for a reload
+		await page.evaluate(() => { document.querySelector("#results").textContent = ""; });
 		await page.goto(baseUrl, { waitUntil: "domcontentloaded" }).catch(e => console.log(`navigation: ${e.message}`));
 		ok = await waitForStart(page, `${mode} reload`);
 	}
