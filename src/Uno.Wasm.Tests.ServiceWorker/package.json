@@ -1,0 +1,10 @@
+{
+  "name": "uno-wasm-tests-service-worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reloads a published app offline and on a flaky network after its service worker is installed",
+  "main": "app.js",
+  "dependencies": {
+    "puppeteer": "^24.9.0"
+  }
+}

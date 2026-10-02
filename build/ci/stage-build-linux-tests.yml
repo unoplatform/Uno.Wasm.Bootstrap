@@ -124,6 +124,17 @@ jobs:
     env:
       BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
 
+  ## Reloads the Raytracer offline and on a flaky network once its service worker is installed
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: Use Node 18.x (Puppeteer requirement)
+
+  - bash: |
+      bash $(build.sourcesdirectory)/src/Uno.Wasm.Tests.ServiceWorker/run-test.sh \
+        "$(build.sourcesdirectory)/src/Uno.Wasm.Sample.RayTracer/bin/Release/net10.0/publish/wwwroot"
+    displayName: Service worker offline test
+
   ## Threads Interp validation
   - bash: |
       cd $(build.sourcesdirectory)/src/Uno.Wasm.Threads

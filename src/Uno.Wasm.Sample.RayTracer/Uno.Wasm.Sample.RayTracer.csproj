@@ -9,6 +9,8 @@
 		<MonoRuntimeDebuggerEnabled Condition="'$(Configuration)'=='Debug'">true</MonoRuntimeDebuggerEnabled>
 		<DefineConstants>$(DefineConstants);__WASM__;UWP</DefineConstants>
 		<WasmPWAManifestFile>app.webmanifest</WasmPWAManifestFile>
+		<!-- Exercised by Uno.Wasm.Tests.ServiceWorker: cached on use only -->
+		<WasmShellPWAPrecacheExclude>pwa-images/**</WasmShellPWAPrecacheExclude>
 		<!--<WasmShellEnableEmccProfiling>true</WasmShellEnableEmccProfiling>-->
 		<WasmShellPrintAOTSkippedMethods>true</WasmShellPrintAOTSkippedMethods>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
