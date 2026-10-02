@@ -39,6 +39,15 @@ async function load(browser, url) {
 	}).on("error", reject));
 	console.log(`Injected ${Object.keys(log.faults).length} faults over ${log.requests} requests`);
 
+	// A publish layout change must not silently turn this into a happy-path test
+	const modes = new Set(Object.values(log.faults));
+	const missing = ["reset", "stall", "503"].filter(m => !modes.has(m));
+	if (missing.length) {
+		console.log(`FAIL: no fault injected for: ${missing.join(", ")}`);
+		await browser.close();
+		process.exit(1);
+	}
+
 	// uno-bootstrap.js imported after DOMContentLoaded
 	const late = await load(browser, `${baseUrl}late.html`);
 
