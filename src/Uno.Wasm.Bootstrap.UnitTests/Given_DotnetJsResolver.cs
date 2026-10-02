@@ -61,11 +61,11 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 			=> Assert.IsNull(DotnetJsResolver.GetFingerprintFromEndpointsManifest("{\"Version\":1,\"Endpoints\":[]}"));
 
 		[TestMethod]
-		public void When_Stale_Files_Are_Newer_Then_Manifest_Wins()
+		public void When_Stale_Files_Are_Newer_Than_Manifest_Wins()
 		{
 			// A revert: the current file was skipped by an incremental copy and kept its old timestamp.
 			var fingerprint = DotnetJsResolver.Resolve(
-				Manifest("current000"),
+				[Manifest("current000")],
 				[File("dotnet.current000.js", 0), File("dotnet.stale00000.js", 10), File("dotnet.native.js", 20)],
 				out var source,
 				out var stale);
@@ -76,18 +76,31 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
-		public void When_Manifest_Points_To_Missing_File_Then_It_Is_Ignored()
+		public void When_Manifest_Points_To_Missing_File_Then_Publish_Is_Incomplete()
 		{
-			var fingerprint = DotnetJsResolver.Resolve(Manifest("missing000"), [File("dotnet.only000000.js", 0)], out var source, out _);
+			var fingerprint = DotnetJsResolver.Resolve([Manifest("missing000")], [File("dotnet.stale00000.js", 0)], out var source, out _);
 
-			Assert.AreEqual("only000000", fingerprint);
-			Assert.AreEqual(DotnetJsResolver.Source.SingleCandidate, source);
+			Assert.IsNull(fingerprint);
+			Assert.AreEqual(DotnetJsResolver.Source.ManifestAssetMissing, source);
+		}
+
+		[TestMethod]
+		public void When_First_Manifest_Is_Unrelated_Then_Matching_Later_Manifest_Wins()
+		{
+			var fingerprint = DotnetJsResolver.Resolve(
+				[Manifest("other00000"), Manifest("current000")],
+				[File("dotnet.current000.js", 0), File("dotnet.stale00000.js", 10)],
+				out var source,
+				out _);
+
+			Assert.AreEqual("current000", fingerprint);
+			Assert.AreEqual(DotnetJsResolver.Source.EndpointsManifest, source);
 		}
 
 		[TestMethod]
 		public void When_No_Manifest_And_Several_Candidates_Then_Newest_Is_Reported()
 		{
-			var fingerprint = DotnetJsResolver.Resolve(null, [File("dotnet.older00000.js", 0), File("dotnet.newer00000.js", 5)], out var source, out var stale);
+			var fingerprint = DotnetJsResolver.Resolve([], [File("dotnet.older00000.js", 0), File("dotnet.newer00000.js", 5)], out var source, out var stale);
 
 			Assert.AreEqual("newer00000", fingerprint);
 			Assert.AreEqual(DotnetJsResolver.Source.NewestCandidate, source);
@@ -98,7 +111,7 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		public void When_Only_Unfingerprinted_Files()
 		{
 			// WasmFingerprintAssets=false: nothing to resolve.
-			var fingerprint = DotnetJsResolver.Resolve(null, [File("dotnet.js", 0), File("dotnet.native.js", 0), File("dotnet.runtime.js", 0)], out var source, out var stale);
+			var fingerprint = DotnetJsResolver.Resolve([], [File("dotnet.js", 0), File("dotnet.native.js", 0), File("dotnet.runtime.js", 0)], out var source, out var stale);
 
 			Assert.IsNull(fingerprint);
 			Assert.AreEqual(DotnetJsResolver.Source.None, source);
