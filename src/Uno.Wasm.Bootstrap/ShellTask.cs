@@ -104,7 +104,7 @@ namespace Uno.Wasm.Bootstrap
 		/// </summary>
 		public string PWAPrecacheExclude { get; set; } = "";
 
-		/// <summary>What the loader shows below its progress bar: <c>percent</c> (default), <c>size</c> (the megabytes downloaded) or <c>none</c>.</summary>
+		/// <summary>What the loader shows below its progress bar: <c>none</c> (default), <c>percent</c> or <c>size</c> (the megabytes downloaded).</summary>
 		public string LoaderProgressFormat { get; set; } = "";
 
 		/// <summary>Whether the loader names each phase ("Downloading app"…) and hints at a slow connection. Problems are always described.</summary>
@@ -704,7 +704,7 @@ namespace Uno.Wasm.Bootstrap
 			// The loader's layout depends on these, so they must be right before the bootstrapper runs
 			html = html
 				.Replace("data-status-text=\"off\"", $"data-status-text=\"{(LoaderStatusText ? "on" : "off")}\"")
-				.Replace("data-progress-format=\"percent\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"");
+				.Replace("data-progress-format=\"none\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"");
 
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);
@@ -772,9 +772,9 @@ namespace Uno.Wasm.Bootstrap
 
 		private string GetLoaderProgressFormat() => LoaderProgressFormat.ToLowerInvariant() switch
 		{
+			"percent" => "percent",
 			"size" => "size",
-			"none" => "none",
-			_ => "percent",
+			_ => "none",
 		};
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
