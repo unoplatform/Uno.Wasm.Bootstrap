@@ -16,7 +16,7 @@ Fingerprinting is enabled by default, unless `WasmFingerprintAssets` is set to `
 
 The .NET SDK [`WasmFingerprintDotnetJs`](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly) property is also supported.
 
-When publishing into a directory that wasn't cleaned, `_framework` can contain `dotnet.*.js` files from earlier publishes. The bootstrapper reads the SDK's `*.staticwebassets.endpoints.json`, which every publish rewrites, to find the current one.
+When publishing into a directory that wasn't cleaned, `_framework` can contain `dotnet.*.js` files from earlier publishes. The bootstrapper reads the project's `<TargetName>.staticwebassets.endpoints.json`, which every publish rewrites, to find the current one. Manifests left behind by other projects published to the same directory are only used when the project's own manifest doesn't map `dotnet.js`.
 
 ## Diagnostics
 
@@ -27,3 +27,5 @@ The following diagnostics may be emitted by the publish-time update:
 | UNOWASM001 | Error: `uno-config.js` does not contain a fingerprinted `dotnet.js` reference after the update. |
 | UNOWASM002 | Error: the fingerprint in `uno-config.js` does not match any `dotnet.*.js` file on disk. |
 | UNOWASM003 | Warning: several `dotnet.*.js` files were found and no endpoints manifest tells which one is current; the newest is used. Clean the publish directory before publishing. |
+| UNOWASM004 | Error: the endpoints manifest maps `_framework/dotnet.js` to a file that is missing from the publish output, so the publish is incomplete. Clean the publish directory and publish again. |
+| UNOWASM005 | Warning: an endpoints manifest in the publish directory is not valid JSON (for example, left truncated by an interrupted publish) and is ignored. Clean the publish directory and publish again. |
