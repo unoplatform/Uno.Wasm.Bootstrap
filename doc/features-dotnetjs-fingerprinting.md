@@ -6,7 +6,7 @@ uid: UnoWasmBootstrap.Features.DotnetJsFingerprinting
 
 The bootstrapper automatically fingerprints the `dotnet.js` file produced by the .NET SDK, rewriting references in `uno-config.js` to use the fingerprinted filename (e.g., `dotnet.abc123.js` instead of `dotnet.js`). This improves cache busting behavior so that browsers fetch the correct version of the runtime after an app update.
 
-Fingerprinting is enabled by default. To disable it, add the following to your `.csproj`:
+Fingerprinting is enabled by default, unless `WasmFingerprintAssets` is set to `false` (the .NET SDK then emits an unfingerprinted `dotnet.js`). To disable it explicitly, add the following to your `.csproj`:
 
 ```xml
 <PropertyGroup>

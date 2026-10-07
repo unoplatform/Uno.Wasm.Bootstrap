@@ -31,7 +31,9 @@
 
 		<!-- Enable fingerprinting of dotnet.js for better cache busting behavior.
 		     Since we control the loading through uno-bootstrap.js, we use the fingerprinted version by default.
-		     Users can disable this by setting WasmShellEnableDotnetJsFingerprinting to false. -->
+		     Users can disable this by setting WasmShellEnableDotnetJsFingerprinting to false.
+		     The SDK does not fingerprint dotnet.js when WasmFingerprintAssets is false, so follow it. -->
+		<WasmShellEnableDotnetJsFingerprinting Condition="'$(WasmShellEnableDotnetJsFingerprinting)' == '' AND '$(WasmFingerprintAssets)' == 'false'">false</WasmShellEnableDotnetJsFingerprinting>
 		<WasmShellEnableDotnetJsFingerprinting Condition="'$(WasmShellEnableDotnetJsFingerprinting)' == ''">true</WasmShellEnableDotnetJsFingerprinting>
 		<WasmFingerprintDotnetJs>$(WasmShellEnableDotnetJsFingerprinting)</WasmFingerprintDotnetJs>
 
@@ -561,7 +563,7 @@
 		<!-- Find the actual dotnet.js file in the publish _framework directory -->
 		<ItemGroup>
 			<_UnoPublishedDotnetJs Include="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.*.js"
-				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js" />
+				Exclude="$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.*.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.native.js;$(_UnoActualPublishDir)wwwroot/_framework/dotnet.runtime.js" />
 		</ItemGroup>
 
 		<!-- Extract fingerprint from actual filename -->
