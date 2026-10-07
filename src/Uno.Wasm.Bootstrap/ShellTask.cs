@@ -701,6 +701,11 @@ namespace Uno.Wasm.Bootstrap
 
 			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(GetStyleMarkup)));
 
+			// The loader's layout depends on these, so they must be right before the bootstrapper runs
+			html = html
+				.Replace("data-status-text=\"off\"", $"data-status-text=\"{(LoaderStatusText ? "on" : "off")}\"")
+				.Replace("data-progress-format=\"percent\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"");
+
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);
 			GenerateCSPMeta(extraBuilder);

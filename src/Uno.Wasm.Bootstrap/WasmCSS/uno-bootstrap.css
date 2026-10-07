@@ -274,6 +274,40 @@ html, body {
     display: inline-block;
 }
 
+/*
+    Without status text (the default), only the progress value takes space, close to the bar, so the group is
+    shorter and sits lower. Problem text and the Reload button overflow below it: they never move the logo and bar.
+*/
+.uno-loader:not([data-status-text='on']) .info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 16px;
+    margin-top: 8px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-progress-format='none'] .info {
+    height: 0;
+}
+
+.uno-loader:not([data-status-text='on'])[data-progress-format='none'] .meta {
+    display: none;
+}
+
+.uno-loader:not([data-status-text='on']) .meta {
+    order: -1;
+    margin-top: 0;
+}
+
+.uno-loader:not([data-status-text='on']) .status {
+    margin-top: 12px;
+}
+
+.uno-loader:not([data-status-text='on']) .reload {
+    position: static;
+    flex: none;
+}
+
 /* Markup of index.html files customized before the .bar/.info structure: a progress bar at the bottom */
 .uno-loader > progress {
     position: absolute;
