@@ -181,6 +181,7 @@ html, body {
 
 /* Text, revealed after a moment so loads served from the cache don't flash it */
 .uno-loader .info {
+    position: relative;
     width: min(320px, 86vw);
     margin-top: 16px;
     text-align: center;
@@ -247,10 +248,16 @@ html, body {
     --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCAxQzExLjg2NiAxIDE1IDQuMTM0MDEgMTUgOEMxNSAxMS44NjYgMTEuODY2IDE1IDggMTVDNC4xMzQwMSAxNSAxIDExLjg2NiAxIDhDMSA0LjEzNDAxIDQuMTM0MDEgMSA4IDFaTTggMTBDNy41ODU3OSAxMCA3LjI1IDEwLjMzNTggNy4yNSAxMC43NUM3LjI1IDExLjE2NDIgNy41ODU3OSAxMS41IDggMTEuNUM4LjQxNDIxIDExLjUgOC43NSAxMS4xNjQyIDguNzUgMTAuNzVDOC43NSAxMC4zMzU4IDguNDE0MjEgMTAgOCAxMFpNOCA0LjVDNy43MjM4NiA0LjUgNy41IDQuNzIzODYgNy41IDVWOC41TDcuNTA3ODEgOC41ODk4NEM3LjU1MDE1IDguODIzMDkgNy43NTQ1NCA5IDggOUM4LjI3NjE0IDkgOC41IDguNzc2MTQgOC41IDguNVY1TDguNDkyMTkgNC45MTAxNkM4LjQ0OTg1IDQuNjc2OTEgOC4yNDU0NiA0LjUgOCA0LjVaIiBmaWxsPSIjMDAwIi8+PC9zdmc+");
 }
 
+/* Out of the flow, below the text: showing it must not move the logo and bar */
 .uno-loader .reload {
     display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: fit-content;
     height: 32px;
-    margin-top: 12px;
+    margin: 12px auto 0;
     padding: 0 16px;
     border: 0;
     border-radius: 4px;
