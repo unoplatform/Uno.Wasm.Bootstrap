@@ -29,18 +29,27 @@ These properties are supported in the manifest:
 
 ## Loading progress
 
-Below the logo, the loader shows a progress bar and what is happening:
+Below the logo, the loader shows a progress bar with the download progress as a percentage. The bar sweeps while the app connects and again while it starts after the downloads.
 
-- **Getting ready**, then **Downloading app** with the progress as a percentage, then **Starting…** while the app initializes after the downloads.
-- When the download takes long, when the browser goes offline, or when downloads are being retried, a short explanation is shown.
-- If the app fails to start, the loader says so and offers a **Reload** button.
+By default a normal load shows no other text, so there is nothing to translate. Problems are always described:
+
+- **Connection interrupted** while downloads are being retried, and **Device offline** when the browser loses its connection.
+- **Could not load app** with a **Reload** button if the app fails to start.
+
+These MSBuild properties change what is shown:
+
+| Property | Values | Default |
+|---|---|---|
+| `WasmShellLoaderStatusText` | `true` names each phase (**Getting ready…**, **Downloading app**, **Starting…**) and adds a hint when the connection is slow. | `false` |
+| `WasmShellLoaderProgressFormat` | `percent`, `size` (the megabytes downloaded) or `none`. | `percent` |
 
 The loader fades out when the bootstrapper dismisses it. Apps that remove the loader themselves should call `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()` instead: removing the `.uno-loader` element directly hides it at once, without the transition.
 
-To show the amount of data downloaded instead of a percentage:
+For example, to name the phases and show the amount of data downloaded instead of a percentage:
 
 ```xml
 <PropertyGroup>
+    <WasmShellLoaderStatusText>true</WasmShellLoaderStatusText>
     <WasmShellLoaderProgressFormat>size</WasmShellLoaderProgressFormat>
 </PropertyGroup>
 ```
