@@ -21,5 +21,5 @@ When the .NET SDK fingerprints framework assets, the published runtime is `_fram
 
 ## Validation
 
-- Unit tests in `Given_DotnetJsResolver` cover: stale files newer than the current one, a mapped-but-missing file, an unrelated first manifest followed by a matching one, a base path in the route, no manifest, and unfingerprinted files.
+- Unit tests in `Given_DotnetJsResolver` cover: stale files newer than the current one, a mapped-but-missing file, an unrelated first manifest followed by a matching one, a base path in the route, no manifest, and files without a fingerprint.
 - `src/Uno.Wasm.Tests.Fingerprint/test-fingerprint.sh` republishes into a dirty directory.
