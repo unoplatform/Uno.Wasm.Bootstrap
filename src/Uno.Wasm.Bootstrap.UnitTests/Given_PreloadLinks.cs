@@ -34,14 +34,14 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 			"let config = {};\nconfig.uno_dependencies = [\"./package_1/helpers.js\", \"./package_1/AppManifest\"];\nexport { config };";
 
 		private static string Generate()
-			=> PreloadLinks.Generate(DotnetJs, "dotnet.dddddddddd.js", UnoConfig, "./_framework/", "./package_1/uno-config.js?v=123");
+			=> PreloadLinks.Generate(DotnetJs, "dotnet.dddddddddd.js", UnoConfig, "./_framework/", "./package_1/uno-config.js");
 
 		[TestMethod]
 		public void When_Generate_Then_Modules_Are_Modulepreloaded()
 		{
 			var block = Generate();
 
-			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./package_1/uno-config.js?v=123\" />");
+			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./package_1/uno-config.js\" />");
 			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./_framework/dotnet.dddddddddd.js\" />");
 			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./_framework/dotnet.runtime.rrrrrrrrrr.js\" />");
 			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./_framework/dotnet.native.nnnnnnnnnn.js\" />");
@@ -97,5 +97,13 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 
 			Assert.AreEqual("<head>" + PreloadLinks.StartMarker + "\nnew\n" + PreloadLinks.EndMarker + "\n</head>", twice);
 		}
+
+		[TestMethod]
+		public void When_Config_Next_To_Index_Then_Root_Url()
+			=> Assert.AreEqual("/app/uno-config.js", PreloadLinks.GetConfigUrl("/app/package_1/", configNextToIndex: true));
+
+		[TestMethod]
+		public void When_Config_In_Package_Then_Package_Url()
+			=> Assert.AreEqual("./package_1/uno-config.js", PreloadLinks.GetConfigUrl("./package_1/", configNextToIndex: false));
 	}
 }
