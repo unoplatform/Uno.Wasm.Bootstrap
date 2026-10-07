@@ -29,9 +29,7 @@ These properties are supported in the manifest:
 
 ## Loading progress
 
-Below the logo, the loader shows a progress bar with the download progress as a percentage. The bar sweeps while the app connects and again while it starts after the downloads.
-
-By default a normal load shows no other text, so there is nothing to translate. Problems are always described:
+By default the loader shows only the logo and a progress bar. The bar fills as the app downloads, and sweeps while the app connects and again while it starts after the downloads. A normal load shows no text, so there is nothing to translate. Problems are always described:
 
 - **Connection interrupted** while downloads are being retried, and **Device offline** when the browser loses its connection.
 - **Could not load app** with a **Reload** button if the app fails to start.
@@ -41,11 +39,11 @@ These MSBuild properties change what is shown:
 | Property | Values | Default |
 |---|---|---|
 | `WasmShellLoaderStatusText` | `true` names each phase (**Getting ready…**, **Downloading app**, **Starting…**) and adds a hint when the connection is slow. | `false` |
-| `WasmShellLoaderProgressFormat` | `percent`, `size` (the megabytes downloaded) or `none`. | `percent` |
+| `WasmShellLoaderProgressFormat` | `percent` or `size` (the megabytes downloaded) shows the progress below the bar; `none` hides it. | `none` |
 
 The loader fades out when the bootstrapper dismisses it. Apps that remove the loader themselves should call `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()` instead: removing the `.uno-loader` element directly hides it at once, without the transition.
 
-For example, to name the phases and show the amount of data downloaded instead of a percentage:
+For example, to name the phases and show the amount of data downloaded:
 
 ```xml
 <PropertyGroup>
@@ -62,7 +60,7 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
 
 ```html
 <div class="uno-loader" loading-position="bottom" loading-alert="none"
-     data-status-text="off" data-progress-format="percent" data-phase="connect">
+     data-status-text="off" data-progress-format="none" data-phase="connect">
     <img class="logo" src="" alt="" />
     <div class="bar">
         <progress max="100" aria-label="Loading"></progress>
