@@ -20,14 +20,16 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 - `ok`: normal.
 - `slow`: more than 15 seconds spent in `connect` or `download`.
-- `retry`: the resource loader retried or stalled a download recently.
+- `retry`: the resource loader retried or stalled a download in the last 8 seconds, during `connect` or `download`.
 - `offline`: `navigator.onLine` is `false`.
 - `failed`: see phases.
 
 ## Requirements
 
 - The native `<progress>` element is the accessible representation: it has a value only during `download`, and no value (indeterminate) in every other phase.
-- A failure thrown during runtime initialization, during `mainInit`, or by the promise returned from `runMain` moves the loader to `failed` and keeps it visible.
+- A failure thrown during runtime initialization (including before the loader view exists, such as a failed `uno-config.js` import), during `mainInit`, or by the promise returned from `runMain` moves the loader to `failed` and keeps it visible. A loader that was leaving, or was already removed by the app, is brought back.
+- The failed copy does not assume a network cause: "Could not load app" / "Reload the page to try again."
+- Leaving the loader unregisters its network listeners, interval and `PerformanceObserver`.
 - The `runMain` promise is not awaited, so the loader is still dismissed as before when `Main` stays running.
 - The progress label is configurable through `uno_loader_progress_format` (`percent` or `size`).
 - Apps that provide their own `.uno-loader` markup without the new elements keep working.
@@ -40,4 +42,10 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ## Validation
 
-`src/Uno.Wasm.Tests.Loader` drives a published sample through a normal start and a failed start (`failwasm` mode), asserting the phases and states above. It serves files only from inside the published root.
+`src/Uno.Wasm.Tests.Loader` drives a published sample through three runs. It serves files only from inside the published root.
+
+- Normal start: `download` with a percentage, then `starting`, then removal.
+- Slow start (`slow` mode, the native wasm held for 20 s): `slow` with its hint, then `offline` with the warning icon while the browser is offline, then back to `slow`.
+- Failed start (`failwasm` mode): `failed` with its label and the Reload button.
+
+`retry` is not covered: it needs the resource loader's retry counters, which this repository does not provide yet.
