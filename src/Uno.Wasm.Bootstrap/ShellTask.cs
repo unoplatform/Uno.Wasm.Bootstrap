@@ -110,6 +110,9 @@ namespace Uno.Wasm.Bootstrap
 		/// <summary>Whether the loader names each phase ("Downloading app"…) and hints at a slow connection. Problems are always described.</summary>
 		public bool LoaderStatusText { get; set; }
 
+		/// <summary>Whether the loader's logo gently scales up and down while loading.</summary>
+		public bool LoaderLogoAnimation { get; set; } = true;
+
 		public bool Optimize { get; set; }
 
 		public bool EnableTracing { get; set; }
@@ -609,6 +612,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_pwa_precache_exclude = {JsStringHelper.ToJsStringArray(PWAPrecacheExclude)};");
 				config.AppendLine($"config.uno_loader_progress_format = \"{GetLoaderProgressFormat()}\";");
 				config.AppendLine($"config.uno_loader_status_text = {LoaderStatusText.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_loader_logo_animation = {LoaderLogoAnimation.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
@@ -704,7 +708,8 @@ namespace Uno.Wasm.Bootstrap
 			// The loader's layout depends on these, so they must be right before the bootstrapper runs
 			html = html
 				.Replace("data-status-text=\"off\"", $"data-status-text=\"{(LoaderStatusText ? "on" : "off")}\"")
-				.Replace("data-progress-format=\"none\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"");
+				.Replace("data-progress-format=\"none\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"")
+				.Replace("data-logo-animation=\"on\"", $"data-logo-animation=\"{(LoaderLogoAnimation ? "on" : "off")}\"");
 
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);

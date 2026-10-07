@@ -4,6 +4,20 @@ namespace Uno.WebAssembly.Bootstrap {
 
 	export type LoaderProgressFormat = "percent" | "size" | "none";
 
+	export interface LoaderOptions {
+		/** The progress value below the bar; none by default, leaving just the logo and the bar. */
+		format: LoaderProgressFormat;
+
+		/**
+		 * Names each phase and hints at a slow connection. Off by default, so a normal load shows no words to
+		 * translate; retries, offline and failures are always described.
+		 */
+		statusText: boolean;
+
+		/** The logo's breathing animation; on by default. */
+		logoAnimation: boolean;
+	}
+
 	/**
 	 * Drives the .uno-loader markup: the progress bar, the phase and network state text, and the exit transition.
 	 * Styling lives in uno-bootstrap.css; the elements this uses are optional, so customized loaders keep working.
@@ -25,19 +39,21 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _observer?: PerformanceObserver;
 		private readonly _onNetworkChange = () => this.render();
 
-		/**
-		 * @param format The progress value below the bar; none by default, leaving just the logo and the bar.
-		 * @param statusText Names each phase and hints at a slow connection. Off by default, so a normal load shows
-		 * no words to translate; retries, offline and failures are always described.
-		 */
-		constructor(private readonly loader: HTMLElement, private readonly format: LoaderProgressFormat, private readonly statusText = false) {
+		private readonly format: LoaderProgressFormat;
+		private readonly statusText: boolean;
+
+		constructor(private readonly loader: HTMLElement, options: LoaderOptions) {
+			this.format = options.format;
+			this.statusText = options.statusText;
+
 			this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
 
-			// Normally already set in index.html; styles the compact layout used without status text
-			this.setAttribute("data-status-text", statusText ? "on" : "off");
-			this.setAttribute("data-progress-format", format);
+			// Normally already set in index.html, so the first paint is right
+			this.setAttribute("data-status-text", options.statusText ? "on" : "off");
+			this.setAttribute("data-progress-format", options.format);
+			this.setAttribute("data-logo-animation", options.logoAnimation ? "on" : "off");
 
-			if (format === "size" && typeof PerformanceObserver === "function") {
+			if (options.format === "size" && typeof PerformanceObserver === "function") {
 				// Transfer sizes of the files fetched so far, without needing the total
 				try {
 					this._observer = new PerformanceObserver(list => {

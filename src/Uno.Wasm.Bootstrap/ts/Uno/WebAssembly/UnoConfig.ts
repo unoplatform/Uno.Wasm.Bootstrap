@@ -46,5 +46,7 @@
 		uno_loader_progress_format?: LoaderProgressFormat;
 
 		uno_loader_status_text?: boolean;
+
+		uno_loader_logo_animation?: boolean;
 	}
 }

@@ -640,8 +640,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			const loader = document.querySelector<HTMLElement>(".uno-loader");
 			if (loader) {
 				// Keep the layout index.html was built with, so the logo and bar don't move
-				const format = <LoaderProgressFormat>loader.getAttribute("data-progress-format") ?? "none";
-				const view = new LoaderView(loader, format, loader.getAttribute("data-status-text") === "on");
+				const view = new LoaderView(loader, {
+					format: <LoaderProgressFormat>loader.getAttribute("data-progress-format") ?? "none",
+					statusText: loader.getAttribute("data-status-text") === "on",
+					logoAnimation: loader.getAttribute("data-logo-animation") !== "off",
+				});
 				view.setPhase("failed");
 				if (bootstrapper) {
 					bootstrapper._loaderView = view;
@@ -898,7 +901,11 @@ namespace Uno.WebAssembly.Bootstrap {
 				this.progress = progress;
 
 				// Already set when startup failed before this point
-				this._loaderView ??= new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "none", this._unoConfig.uno_loader_status_text ?? false);
+				this._loaderView ??= new LoaderView(this.loader, {
+					format: this._unoConfig.uno_loader_progress_format ?? "none",
+					statusText: this._unoConfig.uno_loader_status_text ?? false,
+					logoAnimation: this._unoConfig.uno_loader_logo_animation ?? true,
+				});
 
 				this.bodyObserver = new MutationObserver(() => {
 					if (!this.loader.classList.contains("uno-keep-loader")) {
