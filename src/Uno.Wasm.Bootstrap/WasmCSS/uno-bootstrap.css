@@ -82,6 +82,11 @@ html, body {
     animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
 }
 
+/* WasmShellLoaderLogoAnimation=false: the logo still enters and leaves, but doesn't breathe */
+.uno-loader[data-logo-animation='off'] .logo {
+    animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards;
+}
+
 .uno-loader img[src=''] {
     visibility: hidden;
 }
