@@ -33,7 +33,8 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - The `runMain` promise is not awaited, so the loader is still dismissed as before when `Main` stays running.
 - The progress label is configurable through `uno_loader_progress_format` (`percent`, `size` or `none`; MSBuild `WasmShellLoaderProgressFormat`).
 - Phase labels and the slow hint are shown only when `uno_loader_status_text` is `true` (MSBuild `WasmShellLoaderStatusText`, default `false`), so a normal load has no text to translate. The `retry`, `offline` and `failed` states always show their label and hint.
-- Showing or hiding text never moves the logo or the bar: the status, meta and hint lines keep their height, and the Reload button sits outside the layout.
+- Showing or hiding text never moves the logo or the bar. With status text on, the status, meta and hint lines keep their height and the Reload button sits outside the layout. With it off, only the progress value takes space (8 px below the bar, none with format `none`), so the group is shorter and centred lower; problem text and the Reload button overflow below it.
+- `data-status-text` and `data-progress-format` are written into `index.html` at build time, so the first paint already has the right layout.
 - Apps that provide their own `.uno-loader` markup without the new elements keep working.
 
 ## Edge cases
