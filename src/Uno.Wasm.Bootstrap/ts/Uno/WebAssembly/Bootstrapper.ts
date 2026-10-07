@@ -896,7 +896,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				this.progress = progress;
 
 				// Already set when startup failed before this point
-				this._loaderView ??= new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "percent");
+				this._loaderView ??= new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "percent", this._unoConfig.uno_loader_status_text ?? false);
 
 				this.bodyObserver = new MutationObserver(() => {
 					if (!this.loader.classList.contains("uno-keep-loader")) {

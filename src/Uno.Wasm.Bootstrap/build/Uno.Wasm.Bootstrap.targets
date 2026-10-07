@@ -441,6 +441,7 @@
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			PWAPrecacheExclude="$(WasmShellPWAPrecacheExclude)"
 			LoaderProgressFormat="$(WasmShellLoaderProgressFormat)"
+			LoaderStatusText="$(WasmShellLoaderStatusText)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
