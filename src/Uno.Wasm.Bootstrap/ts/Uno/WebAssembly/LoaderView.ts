@@ -127,7 +127,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			}
 
-			let label = { connect: "Getting ready…", download: "Downloading app", starting: "Starting…", failed: "We couldn't load the app" }[this._phase];
+			let label = { connect: "Getting ready…", download: "Downloading app", starting: "Starting…", failed: "Could not load app" }[this._phase];
 			let hint = "";
 			let meta = "";
 
@@ -138,15 +138,15 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			if (state === "slow") {
-				hint = "Your connection looks slow. This can take a minute.";
+				hint = "Connection looks slow. This can take a minute.";
 			} else if (state === "retry") {
 				label = "Connection interrupted";
 				hint = "Retrying. Files already downloaded are kept.";
 			} else if (state === "offline") {
-				label = "You're offline";
-				hint = "Loading continues when you're back online.";
+				label = "Device offline";
+				hint = "Loading continues once the connection is back.";
 			} else if (state === "failed") {
-				hint = "Check your connection, then reload.";
+				hint = "Reload the page to try again.";
 			}
 
 			this.setText(".label", label);
