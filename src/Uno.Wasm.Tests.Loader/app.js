@@ -1,4 +1,4 @@
-// Follows the loader through a normal start and a failed one.
+// Follows the loader through a normal start, a slow one that goes offline, and a failed one.
 // usage: node app.js <base url>   (expects the RayTracer sample, which fills #results)
 const puppeteer = require("puppeteer");
 const http = require("http");
@@ -59,6 +59,23 @@ function check(condition, message) {
 	ok = check(log[log.length - 1] === "removed", "loader removed once the app runs") && ok;
 	await page.close();
 
+	// Slow start, then offline and back
+	await setMode("slow");
+	page = await browser.newPage();
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	const loaderIs = (state, label) => page.waitForFunction((state, label) => {
+		const loader = document.querySelector(".uno-loader");
+		return !!loader && loader.dataset.state === state && (!label || loader.querySelector(".label").textContent === label);
+	}, { timeout: 30000 }, state, label).then(() => true, () => false);
+	ok = check(await loaderIs("slow"), "slow state after 15 s") && ok;
+	ok = check(await page.$eval(".uno-loader .hint", h => h.textContent).catch(() => "") === "Connection looks slow. This can take a minute.", "slow hint shown") && ok;
+	await page.setOfflineMode(true);
+	ok = check(await loaderIs("offline", "Device offline"), "offline state when the connection drops") && ok;
+	ok = check(await page.$eval(".uno-loader", l => l.getAttribute("loading-alert")).catch(() => "") === "warning", "offline shows the warning icon") && ok;
+	await page.setOfflineMode(false);
+	ok = check(await loaderIs("slow"), "back to slow once online") && ok;
+	await page.close();
+
 	// Failed start
 	await setMode("failwasm");
 	page = await browser.newPage();
@@ -68,6 +85,7 @@ function check(condition, message) {
 		return !!loader && loader.dataset.state === "failed";
 	}, { timeout: 90000 }).then(() => true, () => false);
 	ok = check(failed, "failed state when the runtime can't load") && ok;
+	ok = check(await page.$eval(".uno-loader .label", l => l.textContent).catch(() => "") === "Could not load app", "failed label") && ok;
 	ok = check(await page.$eval(".uno-loader .reload", b => getComputedStyle(b).display !== "none").catch(() => false), "reload button shown") && ok;
 
 	await setMode("normal");

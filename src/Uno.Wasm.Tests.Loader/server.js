@@ -1,7 +1,8 @@
-// Serves a published app, slowly enough for the loader to be observed: GET /__mode/normal | failwasm
+// Serves a published app, slowly enough for the loader to be observed: GET /__mode/normal | failwasm | slow
 // usage: node server.js <wwwroot> <port>
 //
-// Responses are delayed by 150 ms, and dotnet.native.*.wasm by 2 s. In failwasm mode, dotnet.native.*.wasm is a 404.
+// Responses are delayed by 150 ms, and dotnet.native.*.wasm by 2 s (20 s in slow mode, past the loader's 15 s slow
+// threshold). In failwasm mode, dotnet.native.*.wasm is a 404.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -40,5 +41,5 @@ http.createServer((req, res) => {
 			"cache-control": "no-store",
 		});
 		res.end(body);
-	}, isNativeWasm ? 2000 : 150);
+	}, isNativeWasm ? (mode === "slow" ? 20000 : 2000) : 150);
 }).listen(port, () => console.log(`server on http://localhost:${port}/ serving ${root}`));
