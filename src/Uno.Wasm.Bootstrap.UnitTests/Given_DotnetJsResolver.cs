@@ -61,6 +61,61 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 			=> Assert.IsNull(DotnetJsResolver.GetFingerprintFromEndpointsManifest("{\"Version\":1,\"Endpoints\":[]}"));
 
 		[TestMethod]
+		[DataRow("{\"Endpoints\":[")]
+		[DataRow("[]")]
+		[DataRow("")]
+		public void When_Manifest_Is_Malformed_Then_It_Is_Unreadable(string json)
+		{
+			Assert.IsFalse(DotnetJsResolver.TryReadEndpointsManifest(json, out var fingerprint));
+			Assert.IsNull(fingerprint);
+			Assert.IsNull(DotnetJsResolver.GetFingerprintFromEndpointsManifest(json));
+		}
+
+		[TestMethod]
+		public void When_Project_Manifest_Maps_Dotnet_Js_Then_Other_Manifests_Are_Ignored()
+		{
+			// A renamed project leaves its old manifest (and dotnet.js) behind
+			var manifests = DotnetJsResolver.SelectManifests(
+				Manifest("current000"),
+				[new(Manifest("stale00000"), _t0.AddMinutes(10))]);
+
+			CollectionAssert.AreEqual(new[] { Manifest("current000") }, manifests.ToArray());
+		}
+
+		[TestMethod]
+		public void When_Project_Manifest_Is_Missing_Then_Others_Newest_First()
+		{
+			var manifests = DotnetJsResolver.SelectManifests(
+				null,
+				[new(Manifest("older00000"), _t0), new(Manifest("newer00000"), _t0.AddMinutes(5))]);
+
+			CollectionAssert.AreEqual(new[] { Manifest("newer00000"), Manifest("older00000") }, manifests.ToArray());
+		}
+
+		[TestMethod]
+		public void When_Project_Manifest_Has_No_Dotnet_Js_Route_Then_Others_Are_Used()
+		{
+			var manifests = DotnetJsResolver.SelectManifests(
+				"{\"Version\":1,\"Endpoints\":[]}",
+				[new(Manifest("client0000"), _t0)]);
+
+			CollectionAssert.AreEqual(new[] { Manifest("client0000") }, manifests.ToArray());
+		}
+
+		[TestMethod]
+		public void When_Project_Manifest_Points_To_Missing_File_Then_Stale_Manifest_Is_Not_Used()
+		{
+			var fingerprint = DotnetJsResolver.Resolve(
+				DotnetJsResolver.SelectManifests(Manifest("missing000"), [new(Manifest("stale00000"), _t0)]),
+				[File("dotnet.stale00000.js", 0)],
+				out var source,
+				out _);
+
+			Assert.IsNull(fingerprint);
+			Assert.AreEqual(DotnetJsResolver.Source.ManifestAssetMissing, source);
+		}
+
+		[TestMethod]
 		public void When_Stale_Files_Are_Newer_Than_Manifest_Wins()
 		{
 			// A revert: the current file was skipped by an incremental copy and kept its old timestamp.
