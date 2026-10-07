@@ -103,8 +103,12 @@ namespace Uno.Wasm.Bootstrap
 		/// Semicolon-separated globs of offline files the service worker doesn't precache; they are still cached when the app uses them.
 		/// </summary>
 		public string PWAPrecacheExclude { get; set; } = "";
-		/// <summary>What the loader shows next to its progress bar: <c>percent</c> (default) or <c>size</c>, the megabytes downloaded.</summary>
+
+		/// <summary>What the loader shows below its progress bar: <c>percent</c> (default), <c>size</c> (the megabytes downloaded) or <c>none</c>.</summary>
 		public string LoaderProgressFormat { get; set; } = "";
+
+		/// <summary>Whether the loader names each phase ("Downloading app"…) and hints at a slow connection. Problems are always described.</summary>
+		public bool LoaderStatusText { get; set; }
 
 		public bool Optimize { get; set; }
 
@@ -603,7 +607,8 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_pwa_precache_exclude = {JsStringHelper.ToJsStringArray(PWAPrecacheExclude)};");
-				config.AppendLine($"config.uno_loader_progress_format = \"{(string.Equals(LoaderProgressFormat, "size", StringComparison.OrdinalIgnoreCase) ? "size" : "percent")}\";");
+				config.AppendLine($"config.uno_loader_progress_format = \"{GetLoaderProgressFormat()}\";");
+				config.AppendLine($"config.uno_loader_status_text = {LoaderStatusText.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
@@ -759,6 +764,13 @@ namespace Uno.Wasm.Bootstrap
 
 			return $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{style}\" media=\"print\" data-uno-stylesheet />";
 		}
+
+		private string GetLoaderProgressFormat() => LoaderProgressFormat.ToLowerInvariant() switch
+		{
+			"size" => "size",
+			"none" => "none",
+			_ => "percent",
+		};
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
 		{

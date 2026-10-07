@@ -2,6 +2,8 @@ namespace Uno.WebAssembly.Bootstrap {
 
 	export type LoaderPhase = "connect" | "download" | "starting" | "failed";
 
+	export type LoaderProgressFormat = "percent" | "size" | "none";
+
 	/**
 	 * Drives the .uno-loader markup: the progress bar, the phase and network state text, and the exit transition.
 	 * Styling lives in uno-bootstrap.css; the elements this uses are optional, so customized loaders keep working.
@@ -23,7 +25,11 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _observer?: PerformanceObserver;
 		private readonly _onNetworkChange = () => this.render();
 
-		constructor(private readonly loader: HTMLElement, private readonly format: "percent" | "size") {
+		/**
+		 * @param statusText Names each phase and hints at a slow connection. Off by default, so a normal load shows
+		 * no words to translate; retries, offline and failures are always described.
+		 */
+		constructor(private readonly loader: HTMLElement, private readonly format: LoaderProgressFormat, private readonly statusText = false) {
 			this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
 
 			if (format === "size" && typeof PerformanceObserver === "function") {
@@ -154,17 +160,19 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 			}
 
-			let label = { connect: "Getting ready…", download: "Downloading app", starting: "Starting…", failed: "Could not load app" }[this._phase];
+			let label = this._phase === "failed" ? "Could not load app"
+				: this.statusText ? { connect: "Getting ready…", download: "Downloading app", starting: "Starting…" }[this._phase]
+					: "";
 			let hint = "";
 			let meta = "";
 
-			if (this._phase === "download") {
+			if (this._phase === "download" && this.format !== "none") {
 				meta = this.format === "size"
 					? (this._downloadedBytes > 0 ? `${(this._downloadedBytes / 1048576).toFixed(1)} MB` : "")
 					: `${Math.round(this._progress)}%`;
 			}
 
-			if (state === "slow") {
+			if (state === "slow" && this.statusText) {
 				hint = "Connection looks slow. This can take a minute.";
 			} else if (state === "retry") {
 				label = "Connection interrupted";

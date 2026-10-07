@@ -43,6 +43,8 @@
 
 		uno_vfs_framework_assembly_load_cleanup?: boolean;
 
-		uno_loader_progress_format?: "percent" | "size";
+		uno_loader_progress_format?: LoaderProgressFormat;
+
+		uno_loader_status_text?: boolean;
 	}
 }
