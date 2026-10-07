@@ -26,6 +26,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private readonly _onNetworkChange = () => this.render();
 
 		/**
+		 * @param format The progress value below the bar; none by default, leaving just the logo and the bar.
 		 * @param statusText Names each phase and hints at a slow connection. Off by default, so a normal load shows
 		 * no words to translate; retries, offline and failures are always described.
 		 */
