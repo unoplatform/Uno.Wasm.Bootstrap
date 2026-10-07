@@ -54,7 +54,8 @@ function check(condition, message) {
 	let log = await page.evaluate(() => window.__loaderLog);
 	console.log(log.join("\n"));
 
-	ok = check(log.some(e => /^download\|ok\|Downloading app\|\d+%$/.test(e)), "download phase shows a percentage") && ok;
+	ok = check(log.some(e => /^download\|ok\|\|\d+%$/.test(e)), "download phase shows a percentage and no label") && ok;
+	ok = check(!log.some(e => /\|(Getting ready…|Downloading app|Starting…)\|/.test(e)), "no phase labels by default") && ok;
 	ok = check(log.some(e => e.startsWith("starting|")), "starting phase after the downloads") && ok;
 	ok = check(log[log.length - 1] === "removed", "loader removed once the app runs") && ok;
 	await page.close();
@@ -68,7 +69,7 @@ function check(condition, message) {
 		return !!loader && loader.dataset.state === state && (!label || loader.querySelector(".label").textContent === label);
 	}, { timeout: 30000 }, state, label).then(() => true, () => false);
 	ok = check(await loaderIs("slow"), "slow state after 15 s") && ok;
-	ok = check(await page.$eval(".uno-loader .hint", h => h.textContent).catch(() => "") === "Connection looks slow. This can take a minute.", "slow hint shown") && ok;
+	ok = check(await page.$eval(".uno-loader .hint", h => h.textContent).catch(() => null) === "", "no slow hint by default") && ok;
 	await page.setOfflineMode(true);
 	ok = check(await loaderIs("offline", "Device offline"), "offline state when the connection drops") && ok;
 	ok = check(await page.$eval(".uno-loader", l => l.getAttribute("loading-alert")).catch(() => "") === "warning", "offline shows the warning icon") && ok;
