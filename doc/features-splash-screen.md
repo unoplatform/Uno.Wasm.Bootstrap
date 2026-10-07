@@ -61,7 +61,8 @@ When no Content-Security-Policy is configured (`WasmShellCSPConfiguration`), the
 The loader uses this markup, all of which is optional apart from the `.uno-loader` element:
 
 ```html
-<div class="uno-loader" loading-position="bottom" loading-alert="none" data-phase="connect">
+<div class="uno-loader" loading-position="bottom" loading-alert="none"
+     data-status-text="off" data-progress-format="percent" data-phase="connect">
     <img class="logo" src="" alt="" />
     <div class="bar">
         <progress max="100" aria-label="Loading"></progress>
@@ -79,5 +80,7 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
     </div>
 </div>
 ```
+
+`data-status-text` and `data-progress-format` are filled in from the MSBuild properties above, so the loader is laid out correctly before the bootstrapper starts; without them it is updated once the bootstrapper runs.
 
 `index.html` files using the earlier markup, with the `progress` element directly inside `.uno-loader`, keep a progress bar at the bottom of the page.
