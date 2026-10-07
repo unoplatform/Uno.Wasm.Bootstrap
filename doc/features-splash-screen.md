@@ -35,7 +35,7 @@ Below the logo, the loader shows a progress bar and what is happening:
 - When the download takes long, when the browser goes offline, or when downloads are being retried, a short explanation is shown.
 - If the app fails to start, the loader says so and offers a **Reload** button.
 
-The loader fades out when the app removes it. Apps that remove the loader themselves can call `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()` to get the same transition.
+The loader fades out when the bootstrapper dismisses it. Apps that remove the loader themselves should call `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()` instead: removing the `.uno-loader` element directly hides it at once, without the transition.
 
 To show the amount of data downloaded instead of a percentage:
 
