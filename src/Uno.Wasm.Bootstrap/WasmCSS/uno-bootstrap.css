@@ -26,9 +26,9 @@ html, body {
     --uno-loader-fg-secondary: #5D5D5D;
     --uno-loader-accent: var(--accent-color, #0067C0);
     --uno-loader-on-accent: #FFFFFF;
-    --uno-loader-track: rgba(0, 0, 0, 0.09);
-    --uno-loader-warning: #9D5D00;
-    --uno-loader-error: #C42B1C;
+    /* Strong stroke, as WinUI's ProgressBar track: 3:1 against the background */
+    --uno-loader-track: rgba(0, 0, 0, 0.4458);
+    --uno-loader-shine: rgba(255, 255, 255, 0.5);
     --uno-loader-duration: 1.6s;
     position: fixed;
     inset: 0;
@@ -50,9 +50,16 @@ html, body {
         --uno-loader-fg-secondary: #C5C5C5;
         --uno-loader-accent: var(--dark-theme-accent-color, var(--accent-color, #60CDFF));
         --uno-loader-on-accent: #000000;
-        --uno-loader-track: rgba(255, 255, 255, 0.14);
-        --uno-loader-warning: #FCE100;
-        --uno-loader-error: #FF99A4;
+        --uno-loader-track: rgba(255, 255, 255, 0.5442);
+    }
+}
+
+/* White barely shows on the light dark-theme accent: use a tint of the accent */
+@supports (color: color-mix(in srgb, red, white)) {
+    @media (prefers-color-scheme: dark) {
+        .uno-loader {
+            --uno-loader-shine: color-mix(in srgb, var(--uno-loader-accent) 25%, white);
+        }
     }
 }
 
@@ -69,8 +76,8 @@ html, body {
 
 .uno-loader .logo {
     max-width: min(90%, 620px);
-    max-height: min(40%, 300px);
-    margin-bottom: 32px;
+    max-height: min(30%, 300px);
+    margin-bottom: clamp(32px, 8vh, 96px);
     pointer-events: none;
     transition: transform 250ms cubic-bezier(0, 0, 0, 1), opacity 250ms;
     animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
@@ -93,8 +100,18 @@ html, body {
     height: 4px;
     border-radius: 2px;
     overflow: hidden;
-    background-color: var(--uno-loader-track);
     transition: opacity 333ms;
+}
+
+/* 1px track under the 4px fill: the fill stands out by its weight, the track still meets 3:1 */
+.uno-loader .bar::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% - 0.5px);
+    height: 1px;
+    background-color: var(--uno-loader-track);
 }
 
 .uno-loader .bar progress {
@@ -117,6 +134,7 @@ html, body {
     background-color: var(--uno-loader-accent);
     transform-origin: 0 0;
     transform: scaleX(var(--uno-loader-progress, 0));
+    overflow: hidden;
     transition: transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 333ms;
 }
 
@@ -124,7 +142,7 @@ html, body {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, var(--uno-loader-shine), transparent);
     animation: uno-loader-shine var(--uno-loader-duration) ease-in-out infinite;
 }
 
@@ -207,17 +225,12 @@ html, body {
 
 .uno-loader .info .alert {
     display: none;
+    flex: none;
     width: 16px;
     height: 16px;
-    box-sizing: border-box;
-    border: 2px solid currentColor;
-    border-radius: 50%;
-    font: 700 10px/12px system-ui, sans-serif;
-    text-align: center;
-}
-
-.uno-loader .info .alert::after {
-    content: "!";
+    background-color: currentColor;
+    -webkit-mask: var(--uno-loader-icon) center / contain no-repeat;
+    mask: var(--uno-loader-icon) center / contain no-repeat;
 }
 
 .uno-loader[loading-alert='warning'] .info .alert,
@@ -225,17 +238,13 @@ html, body {
     display: block;
 }
 
+/* Fluent System Icons (MIT): Warning and Error Circle, 16 filled */
 .uno-loader[loading-alert='warning'] .info .alert {
-    color: var(--uno-loader-warning);
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNS44MjAzMyAyLjI3NTM2QzYuNzc1ODkgMC41NzQ5NzkgOS4yMjQzNCAwLjU3NDc4MiAxMC4xNzk3IDIuMjc1MzZMMTQuNjc1OCAxMC4yNzkzQzE1LjYxMTggMTEuOTQ1NiAxNC40MDczIDE0LjAwMzYgMTIuNDk2MSAxNC4wMDM5SDMuNTAyOTRDMS41OTE3NyAxNC4wMDM2IDAuMzg4MTMzIDExLjk0NTYgMS4zMjQyMiAxMC4yNzkzTDUuODIwMzMgMi4yNzUzNlpNOC4wMDAwMyA5LjQ5OTk4QzcuNTg1ODkgOS40OTk5OCA3LjI1MDE1IDkuODM1ODggNy4yNTAwMiAxMC4yNUM3LjI1MDAyIDEwLjY2NDIgNy41ODU4MSAxMSA4LjAwMDAzIDExQzguNDE0MDMgMTAuOTk5NyA4Ljc1MDAzIDEwLjY2NCA4Ljc1MDAzIDEwLjI1QzguNzQ5OSA5LjgzNjAzIDguNDEzOTUgOS41MDAyMyA4LjAwMDAzIDkuNDk5OThaTTguMDAwMDMgNC45OTk5N0M3LjcyMzk2IDQuOTk5OTcgNy41MDAxNSA1LjIyMzk0IDcuNTAwMDIgNS40OTk5N1Y3Ljk5OTk4QzcuNTAwMDIgOC4yNzYxMiA3LjcyMzg4IDguNDk5OTggOC4wMDAwMyA4LjQ5OTk4QzguMjc1OTYgOC40OTk3MyA4LjUwMDAzIDguMjc1OTcgOC41MDAwMyA3Ljk5OTk4VjUuNDk5OTdDOC40OTk5IDUuMjI0MDkgOC4yNzU4OCA1LjAwMDIyIDguMDAwMDMgNC45OTk5N1oiIGZpbGw9IiMwMDAiLz48L3N2Zz4=");
 }
 
 .uno-loader[loading-alert='error'] .info .alert {
-    color: var(--uno-loader-error);
-}
-
-.uno-loader[loading-alert='error'] .info .alert::after {
-    content: "\00d7";
-    font-size: 13px;
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCAxQzExLjg2NiAxIDE1IDQuMTM0MDEgMTUgOEMxNSAxMS44NjYgMTEuODY2IDE1IDggMTVDNC4xMzQwMSAxNSAxIDExLjg2NiAxIDhDMSA0LjEzNDAxIDQuMTM0MDEgMSA4IDFaTTggMTBDNy41ODU3OSAxMCA3LjI1IDEwLjMzNTggNy4yNSAxMC43NUM3LjI1IDExLjE2NDIgNy41ODU3OSAxMS41IDggMTEuNUM4LjQxNDIxIDExLjUgOC43NSAxMS4xNjQyIDguNzUgMTAuNzVDOC43NSAxMC4zMzU4IDguNDE0MjEgMTAgOCAxMFpNOCA0LjVDNy43MjM4NiA0LjUgNy41IDQuNzIzODYgNy41IDVWOC41TDcuNTA3ODEgOC41ODk4NEM3LjU1MDE1IDguODIzMDkgNy43NTQ1NCA5IDggOUM4LjI3NjE0IDkgOC41IDguNzc2MTQgOC41IDguNVY1TDguNDkyMTkgNC45MTAxNkM4LjQ0OTg1IDQuNjc2OTEgOC4yNDU0NiA0LjUgOCA0LjVaIiBmaWxsPSIjMDAwIi8+PC9zdmc+");
 }
 
 .uno-loader .reload {
@@ -343,5 +352,10 @@ html, body {
 
     .uno-loader .fill {
         background-color: Highlight;
+    }
+
+    .uno-loader .info .alert {
+        forced-color-adjust: none;
+        background-color: CanvasText;
     }
 }
