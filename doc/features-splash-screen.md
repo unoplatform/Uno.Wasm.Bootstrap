@@ -40,6 +40,7 @@ These MSBuild properties change what is shown:
 |---|---|---|
 | `WasmShellLoaderStatusText` | `true` names each phase (**Getting ready…**, **Downloading app**, **Starting…**) and adds a hint when the connection is slow. | `false` |
 | `WasmShellLoaderProgressFormat` | `percent` or `size` (the megabytes downloaded) shows the progress below the bar; `none` hides it. | `none` |
+| `WasmShellLoaderLogoAnimation` | `false` keeps the logo still instead of gently scaling it up and down. It still fades in and out. | `true` |
 
 The loader fades out when the bootstrapper dismisses it. Apps that remove the loader themselves should call `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()` instead: removing the `.uno-loader` element directly hides it at once, without the transition.
 
@@ -60,7 +61,7 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
 
 ```html
 <div class="uno-loader" loading-position="bottom" loading-alert="none"
-     data-status-text="off" data-progress-format="none" data-phase="connect">
+     data-status-text="off" data-progress-format="none" data-logo-animation="on" data-phase="connect">
     <img class="logo" src="" alt="" />
     <div class="bar">
         <progress max="100" aria-label="Loading"></progress>
@@ -79,6 +80,6 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
 </div>
 ```
 
-`data-status-text` and `data-progress-format` are filled in from the MSBuild properties above, so the loader is laid out correctly before the bootstrapper starts; without them it is updated once the bootstrapper runs.
+`data-status-text`, `data-progress-format` and `data-logo-animation` are filled in from the MSBuild properties above, so the loader is laid out correctly before the bootstrapper starts; without them it is updated once the bootstrapper runs.
 
 `index.html` files using the earlier markup, with the `progress` element directly inside `.uno-loader`, keep a progress bar at the bottom of the page.
