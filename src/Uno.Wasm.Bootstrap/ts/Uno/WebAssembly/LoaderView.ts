@@ -18,7 +18,10 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _retriesSeen = 0;
 		private _lastRetryAt = -Infinity;
 		private _timer: any;
+		private _removeTimer: any;
 		private _leaving = false;
+		private _observer?: PerformanceObserver;
+		private readonly _onNetworkChange = () => this.render();
 
 		constructor(private readonly loader: HTMLElement, private readonly format: "percent" | "size") {
 			this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
@@ -26,22 +29,30 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (format === "size" && typeof PerformanceObserver === "function") {
 				// Transfer sizes of the files fetched so far, without needing the total
 				try {
-					new PerformanceObserver(list => {
+					this._observer = new PerformanceObserver(list => {
 						for (const entry of list.getEntries() as PerformanceResourceTiming[]) {
 							this._downloadedBytes += entry.encodedBodySize || entry.transferSize || 0;
 						}
-					}).observe({ type: "resource", buffered: true });
+					});
+					this._observer.observe({ type: "resource", buffered: true });
 				} catch {
 					// Unsupported entry type: the meta line stays empty
 				}
 			}
 
-			globalThis.addEventListener("online", () => this.render());
-			globalThis.addEventListener("offline", () => this.render());
+			globalThis.addEventListener("online", this._onNetworkChange);
+			globalThis.addEventListener("offline", this._onNetworkChange);
 
 			// States depending on time (slow, retrying) need re-evaluating between updates
 			this._timer = setInterval(() => this.render(), 500);
 			this.render();
+		}
+
+		private stopListening() {
+			clearInterval(this._timer);
+			globalThis.removeEventListener("online", this._onNetworkChange);
+			globalThis.removeEventListener("offline", this._onNetworkChange);
+			this._observer?.disconnect();
 		}
 
 		public get phase() {
@@ -49,10 +60,26 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		public setPhase(phase: LoaderPhase) {
-			if (this._phase !== "failed") {
-				this._phase = phase;
-				this.render();
+			if (this._phase === "failed") {
+				return;
 			}
+
+			this._phase = phase;
+
+			if (phase === "failed") {
+				// The app failed after the loader started leaving, or after the app removed it: bring it back
+				if (this._leaving) {
+					clearTimeout(this._removeTimer);
+					this._leaving = false;
+					this.loader.classList.remove("uno-leaving");
+				}
+
+				if (!this.loader.isConnected) {
+					document.body.appendChild(this.loader);
+				}
+			}
+
+			this.render();
 		}
 
 		/** Progress percentage, 0 to 100. Never goes backwards: the estimated total grows as downloads are discovered. */
@@ -72,7 +99,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this._leaving = true;
-			clearInterval(this._timer);
+			this.stopListening();
 
 			const remove = () => this.loader.parentNode?.removeChild(this.loader);
 			const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -82,7 +109,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this.loader.classList.add("uno-leaving");
-			setTimeout(remove, LoaderView.LEAVE_DURATION_MS);
+			this._removeTimer = setTimeout(remove, LoaderView.LEAVE_DURATION_MS);
 		}
 
 		private render() {
@@ -104,7 +131,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			const state =
 				this._phase === "failed" ? "failed"
 					: !online ? "offline"
-						: this._phase === "download" && elapsed - this._lastRetryAt < LoaderView.RETRY_VISIBLE_MS ? "retry"
+						: (this._phase === "download" || this._phase === "connect") && elapsed - this._lastRetryAt < LoaderView.RETRY_VISIBLE_MS ? "retry"
 							: (this._phase === "download" || this._phase === "connect") && elapsed > LoaderView.SLOW_AFTER_MS ? "slow"
 								: "ok";
 

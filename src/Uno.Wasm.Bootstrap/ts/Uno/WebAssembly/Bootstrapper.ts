@@ -177,7 +177,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				bootstrapper.setupExports(dotnetRuntime);
 			}
 			catch (e) {
-				Bootstrapper._instance?._loaderView?.setPhase("failed");
+				Bootstrapper.showFailure();
 				throw `.NET runtime initialization failed (${e})`
 			}
 		}
@@ -629,6 +629,24 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.initProgress();
 		}
 
+		/** Shows the failed state, also when the failure happened before the loader view was set up. */
+		private static showFailure() {
+			const bootstrapper = Bootstrapper._instance;
+			if (bootstrapper?._loaderView) {
+				bootstrapper._loaderView.setPhase("failed");
+				return;
+			}
+
+			const loader = document.querySelector<HTMLElement>(".uno-loader");
+			if (loader) {
+				const view = new LoaderView(loader, "percent");
+				view.setPhase("failed");
+				if (bootstrapper) {
+					bootstrapper._loaderView = view;
+				}
+			}
+		}
+
 		/**
 		 * Fades the loader out, then removes it. Meant for the app to call once its first frame is shown,
 		 * instead of removing the .uno-loader element itself.
@@ -877,7 +895,8 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 				this.progress = progress;
 
-				this._loaderView = new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "percent");
+				// Already set when startup failed before this point
+				this._loaderView ??= new LoaderView(this.loader, this._unoConfig.uno_loader_progress_format ?? "percent");
 
 				this.bodyObserver = new MutationObserver(() => {
 					if (!this.loader.classList.contains("uno-keep-loader")) {
