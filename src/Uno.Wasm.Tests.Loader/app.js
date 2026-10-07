@@ -46,11 +46,14 @@ function check(condition, message) {
 
 	ok = check(await page.$("style#uno-bootstrap-css") !== null, "loader stylesheet is inlined") && ok;
 
-	// Without status text, the percentage sits right under the bar and nothing else takes space
+	// By default it's just the logo and the bar: the text block below takes no space
 	await page.waitForFunction(() => document.querySelector(".uno-loader")?.dataset.phase === "download", { timeout: 30000 }).catch(() => { });
-	const gap = await page.$eval(".uno-loader", loader =>
-		loader.querySelector(".meta").getBoundingClientRect().top - loader.querySelector(".bar").getBoundingClientRect().bottom).catch(() => Infinity);
-	ok = check(gap <= 16, `percentage close to the bar (${gap}px)`) && ok;
+	// Layout offsets, not client rects: the text block's fade-in animates a transform
+	const below = await page.$eval(".uno-loader", loader => {
+		const bar = loader.querySelector(".bar"), info = loader.querySelector(".info");
+		return info.offsetTop + info.offsetHeight - (bar.offsetTop + bar.offsetHeight);
+	}).catch(() => Infinity);
+	ok = check(below === 0, `nothing takes space below the bar (${below}px)`) && ok;
 
 	await page.waitForFunction(() => {
 		const results = document.querySelector("#results");
@@ -60,7 +63,7 @@ function check(condition, message) {
 	let log = await page.evaluate(() => window.__loaderLog);
 	console.log(log.join("\n"));
 
-	ok = check(log.some(e => /^download\|ok\|\|\d+%$/.test(e)), "download phase shows a percentage and no label") && ok;
+	ok = check(log.some(e => e === "download|ok||"), "download phase shows no text") && ok;
 	ok = check(!log.some(e => /\|(Getting ready…|Downloading app|Starting…)\|/.test(e)), "no phase labels by default") && ok;
 	ok = check(log.some(e => e.startsWith("starting|")), "starting phase after the downloads") && ok;
 	ok = check(log[log.length - 1] === "removed", "loader removed once the app runs") && ok;
