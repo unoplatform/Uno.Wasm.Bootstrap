@@ -42,8 +42,16 @@ public static class PreloadLinks
 	private static readonly Regex _dependencies = new(@"config\.uno_dependencies\s*=\s*(\[[^\]]*\])", RegexOptions.CultureInvariant);
 	private static readonly Regex _existingBlock = new(Regex.Escape(StartMarker) + @"[\s\S]*?" + Regex.Escape(EndMarker) + @"\r?\n?", RegexOptions.CultureInvariant);
 
+	/// <summary>Strips the <c>package_&lt;hash&gt;/</c> folder from its URL, e.g. <c>./package_1/</c> becomes <c>./</c>.</summary>
+	public static string GetAppUrl(string packageUrl)
+		=> Regex.Replace(packageUrl, @"package_[^/]+/$", "");
+
+	/// <summary>URL of uno-config.js, which lives either next to index.html or in the package folder.</summary>
+	public static string GetConfigUrl(string packageUrl, bool configNextToIndex)
+		=> (configNextToIndex ? GetAppUrl(packageUrl) : packageUrl) + "uno-config.js";
+
 	/// <param name="frameworkUrl">URL prefix of <c>_framework/</c> as seen from index.html, e.g. <c>./_framework/</c>.</param>
-	/// <param name="configUrl">The uno-config.js URL exactly as uno-bootstrap.js imports it, version included.</param>
+	/// <param name="configUrl">The uno-config.js URL exactly as uno-bootstrap.js imports it.</param>
 	public static string Generate(string dotnetJsContent, string dotnetJsFileName, string unoConfigContent, string frameworkUrl, string configUrl)
 	{
 		var links = new List<string>

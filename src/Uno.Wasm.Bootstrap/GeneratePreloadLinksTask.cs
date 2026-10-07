@@ -15,6 +15,7 @@
 //
 // ******************************************************************
 
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,9 +28,9 @@ namespace Uno.Wasm.Bootstrap;
 /// </summary>
 public class GeneratePreloadLinksTask_v0 : Microsoft.Build.Utilities.Task
 {
-	// URLs are derived from the bootstrapper's own script tag, so they follow the base path and the config version
+	// URLs are derived from the bootstrapper's own script tag, so they follow the base path
 	private static readonly Regex _bootstrapScript = new(
-		@"src=""(?<dir>[^""]*?)uno-bootstrap\.js(?<version>\?v=[A-Za-z0-9]+)?""",
+		@"src=""(?<dir>[^""]*?)uno-bootstrap\.js""",
 		RegexOptions.CultureInvariant);
 
 	[Required]
@@ -63,14 +64,17 @@ public class GeneratePreloadLinksTask_v0 : Microsoft.Build.Utilities.Task
 		}
 
 		var packageUrl = script.Groups["dir"].Value;
-		var frameworkUrl = Regex.Replace(packageUrl, @"package_[^/]+/$", "") + "_framework/";
+		var configNextToIndex = string.Equals(
+			Path.GetDirectoryName(Path.GetFullPath(ConfigFile)),
+			Path.GetDirectoryName(Path.GetFullPath(IndexHtml)),
+			StringComparison.OrdinalIgnoreCase);
 
 		var block = PreloadLinks.Generate(
 			File.ReadAllText(dotnetJsPath),
 			dotnetJsFileName,
 			File.ReadAllText(ConfigFile),
-			frameworkUrl,
-			packageUrl + "uno-config.js" + script.Groups["version"].Value);
+			PreloadLinks.GetAppUrl(packageUrl) + "_framework/",
+			PreloadLinks.GetConfigUrl(packageUrl, configNextToIndex));
 
 		File.WriteAllText(IndexHtml, PreloadLinks.Apply(html, block), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
