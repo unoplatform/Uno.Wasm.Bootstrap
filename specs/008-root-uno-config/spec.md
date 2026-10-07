@@ -18,7 +18,7 @@ Two mechanisms make `uno-config.js` change independently of the package hash:
 1. `ShellTask.GeneratePackageFolder()` hashes the `StaticWebContent` items, and `GenerateConfig()` writes `uno-config.js` afterwards. The file is never an input to the hash.
 2. `_UnoUpdateDotnetJsFingerprintPublishOutput` rewrites the `dotnet.<fingerprint>.js` reference inside the published `uno-config.js`, because the fingerprint produced by publish differs from the one known at build time.
 
-With the file inside `package_<hash>/`, a publish that only changes C# or XAML keeps the folder name and changes the file. Hosts that cache `package_*` as immutable, which both shipped hosting configurations do, then serve the previous `uno-config.js` to returning visitors. The stale file points at a `dotnet.<old>.js` that no longer exists or at the previous runtime, so the app fails to boot or runs the previous build until the package hash happens to change.
+With the file inside `package_<hash>/`, a publish that only changes C# or XAML keeps the folder name and changes the file. Hosts that cache `package_*` as immutable, as the Uno Platform template's `staticwebapp.config.json` does, then serve the previous `uno-config.js` to returning visitors. The stale file points at a `dotnet.<old>.js` that no longer exists or at the previous runtime, so the app fails to boot or runs the previous build until the package hash happens to change.
 
 ## Functional Requirements
 
@@ -40,7 +40,7 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 
 - Re-computing the package hash after the publish-time fingerprint update. Renaming the folder would require rewriting every reference baked into `index.html`, `embedded.js`, and the service worker.
 - Changing how the WebWorker `_framework/` folder is published into the host's package folder. That copy happens after the host hash is computed as well and is tracked separately.
-- Changing the shipped hosting configurations. They already treat root files as always-revalidate and `package_*` as immutable, which is the policy this layout relies on.
+- Changing the shipped hosting configurations. They live in the Uno Platform templates: `staticwebapp.config.json` caches the root files for an hour (`must-revalidate, max-age=3600`) and `web.config` sets no cache policy. Both need an explicit always-revalidate policy for the root files for this layout to be fully effective; the documentation describes the expected policy.
 
 ## Edge Cases
 
@@ -48,7 +48,7 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 - **Embedded mode**: `embedded.js` sets `<base>` to the package folder and imports `package_x/uno-bootstrap.js`; dynamic `import()` resolves relative to the module URL, not the document base, so the config is still found next to `embedded.js`.
 - **Custom `index.html`**: the template only references `./uno-bootstrap.js`; pages that referenced `./uno-config.js` directly must be updated to the root path.
 - **Pre-compressed siblings**: the publish-time update still deletes `uno-config.js.gz` and `uno-config.js.br` after rewriting the file.
-- **Hosts that cache root files**: a host that caches `uno-config.js` aggressively reintroduces the problem. The root policy of the shipped configurations is always-revalidate.
+- **Hosts that cache root files**: a host that caches `uno-config.js` reintroduces the problem until the cached copy expires, and `index.html` and `uno-config.js` can then come from different deployments. Without an explicit `Cache-Control` header, browsers apply heuristic caching and some CDNs cache `.js` files by extension. The documentation asks for `no-cache` on the root files.
 
 ## Validation
 
