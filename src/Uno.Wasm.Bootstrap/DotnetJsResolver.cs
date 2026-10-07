@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Uno.Wasm.Bootstrap;
@@ -68,16 +69,46 @@ public static class DotnetJsResolver
 			: null;
 	}
 
+	public readonly struct ManifestFile
+	{
+		public ManifestFile(string json, DateTime lastWriteTimeUtc)
+		{
+			Json = json;
+			LastWriteTimeUtc = lastWriteTimeUtc;
+		}
+
+		public string Json { get; }
+		public DateTime LastWriteTimeUtc { get; }
+	}
+
 	/// <summary>
 	/// Reads the <c>_framework/dotnet.js</c> route of an endpoints manifest and returns the fingerprint of the
-	/// file it serves, or null when the manifest has no such route or it isn't fingerprinted.
+	/// file it serves, or null when the manifest has no such route, it isn't fingerprinted, or it can't be read.
 	/// </summary>
 	public static string? GetFingerprintFromEndpointsManifest(string endpointsJson)
+		=> TryReadEndpointsManifest(endpointsJson, out var fingerprint) ? fingerprint : null;
+
+	/// <summary>
+	/// Like <see cref="GetFingerprintFromEndpointsManifest"/>, but returns false when the manifest isn't a JSON object,
+	/// for example when it was left truncated by an interrupted publish.
+	/// </summary>
+	public static bool TryReadEndpointsManifest(string endpointsJson, out string? fingerprint)
 	{
-		var endpoints = JObject.Parse(endpointsJson)["Endpoints"] as JArray;
-		if (endpoints is null)
+		fingerprint = null;
+
+		JObject manifest;
+		try
 		{
-			return null;
+			manifest = JObject.Parse(endpointsJson);
+		}
+		catch (JsonReaderException)
+		{
+			return false;
+		}
+
+		if (manifest["Endpoints"] is not JArray endpoints)
+		{
+			return true;
 		}
 
 		foreach (var endpoint in endpoints.OfType<JObject>())
@@ -88,11 +119,30 @@ public static class DotnetJsResolver
 			if ((route == "_framework/dotnet.js" || route.EndsWith("/_framework/dotnet.js", StringComparison.Ordinal))
 				&& assetFile.EndsWith(".js", StringComparison.Ordinal))
 			{
-				return GetFingerprint(assetFile.Substring(assetFile.LastIndexOf('/') + 1));
+				fingerprint = GetFingerprint(assetFile.Substring(assetFile.LastIndexOf('/') + 1));
+				return true;
 			}
 		}
 
-		return null;
+		return true;
+	}
+
+	/// <summary>
+	/// Picks the manifests to resolve from. The project's own manifest is authoritative when it maps
+	/// <c>dotnet.js</c>, so leftovers from other projects published to the same folder can't win. Otherwise
+	/// (a hosted server, or no own manifest) the other manifests are used, newest first.
+	/// </summary>
+	public static IReadOnlyList<string> SelectManifests(string? projectManifestJson, IEnumerable<ManifestFile> otherManifests)
+	{
+		if (projectManifestJson is not null && GetFingerprintFromEndpointsManifest(projectManifestJson) is not null)
+		{
+			return [projectManifestJson];
+		}
+
+		return otherManifests
+			.OrderByDescending(m => m.LastWriteTimeUtc)
+			.Select(m => m.Json)
+			.ToList();
 	}
 
 	/// <summary>

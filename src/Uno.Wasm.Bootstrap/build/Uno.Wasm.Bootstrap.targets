@@ -568,6 +568,7 @@
 			rather than globbing.
 		-->
 		<ResolvePublishedDotnetJsTask_v0 PublishDirectory="$(_UnoActualPublishDir)"
+										 EndpointsManifest="$(TargetName).staticwebassets.endpoints.json"
 										 Condition="'$(_UnoActualPublishDir)' != ''">
 			<Output TaskParameter="Fingerprint" PropertyName="_UnoActualDotnetJsFingerprint" />
 		</ResolvePublishedDotnetJsTask_v0>

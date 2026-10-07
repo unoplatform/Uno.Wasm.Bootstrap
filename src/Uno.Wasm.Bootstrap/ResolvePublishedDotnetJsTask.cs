@@ -15,6 +15,8 @@
 //
 // ******************************************************************
 
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
@@ -29,6 +31,9 @@ public class ResolvePublishedDotnetJsTask_v0 : Microsoft.Build.Utilities.Task
 	/// <summary>The publish directory (the one containing <c>wwwroot</c>).</summary>
 	[Required]
 	public string PublishDirectory { get; set; } = "";
+
+	/// <summary>File name of this project's endpoints manifest, e.g. <c>App.staticwebassets.endpoints.json</c>.</summary>
+	public string EndpointsManifest { get; set; } = "";
 
 	[Output]
 	public string Fingerprint { get; set; } = "";
@@ -46,10 +51,33 @@ public class ResolvePublishedDotnetJsTask_v0 : Microsoft.Build.Utilities.Task
 			.Select(f => new DotnetJsResolver.Candidate(Path.GetFileName(f), File.GetLastWriteTimeUtc(f)));
 
 		// One manifest per published web project; with a hosted server there may be several.
-		var manifests = Directory
-			.GetFiles(PublishDirectory, "*.staticwebassets.endpoints.json")
-			.Select(File.ReadAllText)
-			.ToList();
+		string? projectManifest = null;
+		var otherManifests = new List<DotnetJsResolver.ManifestFile>();
+		foreach (var path in Directory.GetFiles(PublishDirectory, "*.staticwebassets.endpoints.json"))
+		{
+			var json = File.ReadAllText(path);
+			if (!DotnetJsResolver.TryReadEndpointsManifest(json, out _))
+			{
+				Log.LogWarning(
+					subcategory: null,
+					warningCode: "UNOWASM005",
+					helpKeyword: null,
+					file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+					message: $"[Uno] Ignoring the endpoints manifest {path}, which is not valid JSON. Clean the publish directory and publish again.");
+				continue;
+			}
+
+			if (string.Equals(Path.GetFileName(path), Path.GetFileName(EndpointsManifest), StringComparison.OrdinalIgnoreCase))
+			{
+				projectManifest = json;
+			}
+			else
+			{
+				otherManifests.Add(new(json, File.GetLastWriteTimeUtc(path)));
+			}
+		}
+
+		var manifests = DotnetJsResolver.SelectManifests(projectManifest, otherManifests);
 
 		Fingerprint = DotnetJsResolver.Resolve(manifests, candidates, out var source, out var stale) ?? "";
 
