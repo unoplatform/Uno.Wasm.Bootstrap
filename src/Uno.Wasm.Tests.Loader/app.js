@@ -54,6 +54,7 @@ function check(condition, message) {
 		return info.offsetTop + info.offsetHeight - (bar.offsetTop + bar.offsetHeight);
 	}).catch(() => Infinity);
 	ok = check(below === 0, `nothing takes space below the bar (${below}px)`) && ok;
+	ok = check(await page.$eval(".uno-loader .logo", l => getComputedStyle(l).animationName.includes("uno-loader-breathe")).catch(() => false), "logo breathes by default") && ok;
 
 	await page.waitForFunction(() => {
 		const results = document.querySelector("#results");
