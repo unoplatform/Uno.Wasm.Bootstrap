@@ -32,6 +32,10 @@ namespace Uno.WebAssembly.Bootstrap {
 		constructor(private readonly loader: HTMLElement, private readonly format: LoaderProgressFormat, private readonly statusText = false) {
 			this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
 
+			// Normally already set in index.html; styles the compact layout used without status text
+			this.setAttribute("data-status-text", statusText ? "on" : "off");
+			this.setAttribute("data-progress-format", format);
+
 			if (format === "size" && typeof PerformanceObserver === "function") {
 				// Transfer sizes of the files fetched so far, without needing the total
 				try {
