@@ -10,11 +10,11 @@ Publishing adds `<link rel="preload">` and `<link rel="modulepreload">` hints to
 
 - The hints are inserted before `</head>`, between `<!-- uno-preload-links -->` and `<!-- /uno-preload-links -->`.
 - Covered files:
-  - `modulepreload`: `uno-config.js` (version query included), `dotnet.js`, `jsModuleRuntime` and `jsModuleNative` modules.
+  - `modulepreload`: `uno-config.js`, `dotnet.js`, `jsModuleRuntime` and `jsModuleNative` modules.
   - `preload as="fetch" type="application/wasm" crossorigin="anonymous"`: `wasmNative` files, matching the runtime's cors-mode fetch. No `integrity` attribute: Chrome ignores it on fetch preloads and warns.
   - `preload as="script"`: the `config.uno_dependencies` entries loaded by `require.js`.
 - Supported resource shapes in the boot config embedded in `dotnet.js`: array of `{ name }` (.NET 10+) and the legacy dictionary keyed by file name, for every resource group.
-- URLs are derived from the `uno-bootstrap.js` script tag in `index.html`, so they follow the base path and the `uno-config.js` version.
+- URLs are derived from the `uno-bootstrap.js` script tag in `index.html`, so they follow the base path. The `uno-config.js` URL follows where the file was published: next to `index.html` when it is there, otherwise in the `package_<hash>` folder.
 - `dotnet.js` is `dotnet.<fingerprint>.js` when fingerprinted, plain `dotnet.js` otherwise. Generation does not depend on fingerprinting.
 
 ## Opt-out
