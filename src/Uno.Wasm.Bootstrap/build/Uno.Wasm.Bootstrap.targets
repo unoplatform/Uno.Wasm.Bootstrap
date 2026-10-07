@@ -651,6 +651,7 @@
 		</PropertyGroup>
 
 		<ResolvePublishedDotnetJsTask_v0 PublishDirectory="$(_UnoPreloadPublishDir)"
+										 EndpointsManifest="$(TargetName).staticwebassets.endpoints.json"
 										 Condition="'$(PublishDir)' != '' AND Exists('$(_UnoPreloadPublishDir)')">
 			<Output TaskParameter="Fingerprint" PropertyName="_UnoPreloadDotnetJsFingerprint" />
 		</ResolvePublishedDotnetJsTask_v0>
