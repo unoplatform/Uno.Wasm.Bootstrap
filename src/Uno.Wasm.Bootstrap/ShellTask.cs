@@ -743,8 +743,9 @@ namespace Uno.Wasm.Bootstrap
 		{
 			if (Path.GetFileName(style) == "uno-bootstrap.css")
 			{
+				// Last match: app WasmCSS is added after the framework's, so it overrides it
 				var source = StaticWebContent
-					.FirstOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
+					.LastOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
 					?.ItemSpec;
 
 				if (string.IsNullOrEmpty(CSPConfiguration) && source is not null && File.Exists(source))
