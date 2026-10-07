@@ -87,6 +87,16 @@ function check(condition, message) {
 	ok = check(failed, "failed state when the runtime can't load") && ok;
 	ok = check(await page.$eval(".uno-loader .label", l => l.textContent).catch(() => "") === "Could not load app", "failed label") && ok;
 	ok = check(await page.$eval(".uno-loader .reload", b => getComputedStyle(b).display !== "none").catch(() => false), "reload button shown") && ok;
+	// Showing the Reload button must not move the logo and bar
+	const barShift = await page.$eval(".uno-loader", loader => {
+		const top = () => loader.querySelector(".bar").getBoundingClientRect().top;
+		const withReload = top();
+		loader.setAttribute("data-state", "ok");
+		const withoutReload = top();
+		loader.setAttribute("data-state", "failed");
+		return Math.abs(withReload - withoutReload);
+	}).catch(() => Infinity);
+	ok = check(barShift < 1, `bar stays in place when Reload appears (moved ${barShift}px)`) && ok;
 
 	await setMode("normal");
 	await browser.close();
