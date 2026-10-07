@@ -26,8 +26,7 @@ html, body {
     --uno-loader-fg-secondary: #5D5D5D;
     --uno-loader-accent: var(--accent-color, #0067C0);
     --uno-loader-on-accent: #FFFFFF;
-    /* Strong stroke, as WinUI's ProgressBar track: 3:1 against the background */
-    --uno-loader-track: rgba(0, 0, 0, 0.4458);
+    --uno-loader-track: rgba(0, 0, 0, 0.16);
     --uno-loader-shine: rgba(255, 255, 255, 0.5);
     --uno-loader-duration: 1.6s;
     position: fixed;
@@ -50,7 +49,7 @@ html, body {
         --uno-loader-fg-secondary: #C5C5C5;
         --uno-loader-accent: var(--dark-theme-accent-color, var(--accent-color, #60CDFF));
         --uno-loader-on-accent: #000000;
-        --uno-loader-track: rgba(255, 255, 255, 0.5442);
+        --uno-loader-track: rgba(255, 255, 255, 0.22);
     }
 }
 
@@ -100,18 +99,8 @@ html, body {
     height: 4px;
     border-radius: 2px;
     overflow: hidden;
-    transition: opacity 333ms;
-}
-
-/* 1px track under the 4px fill: the fill stands out by its weight, the track still meets 3:1 */
-.uno-loader .bar::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(50% - 0.5px);
-    height: 1px;
     background-color: var(--uno-loader-track);
+    transition: opacity 333ms;
 }
 
 .uno-loader .bar progress {
