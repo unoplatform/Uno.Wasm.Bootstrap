@@ -31,6 +31,8 @@ This specification normalizes the value once, when the build task reads its prop
 
 **FR-6**: Every consumer of the base path (index.html rewrite, `uno-config.js`, service worker, PWA content, environment variables) SHALL observe the normalized value.
 
+**FR-7**: Each `config.uno_dependencies` entry SHALL be emitted as a full script URL that keeps its file extension when the base is a site path (starts with `/`) or an absolute URL (contains `://`). For a relative base, the entry SHALL be emitted as a require.js module id without the extension.
+
 ## Non-Goals
 
 - Validating that an absolute URL base path is usable. Cross-origin hosting has other constraints, such as service worker registration, that are outside the scope of normalization.
@@ -44,5 +46,5 @@ This specification normalizes the value once, when the build task reads its prop
 
 ## Validation
 
-- `src/Uno.Wasm.Bootstrap.UnitTests/Given_WebAppBasePathHelper.cs` covers every rule above.
+- `src/Uno.Wasm.Bootstrap.UnitTests/Given_WebAppBasePathHelper.cs` covers every normalization rule above, and the dependency entry shape for `./`, `/`, `/app/` and an `https://` base.
 - Building a sample with `-p:WasmShellWebAppBasePath=app` produces `index.html`, `uno-config.js` and `service-worker.js` references identical to a build with `/app/`.
