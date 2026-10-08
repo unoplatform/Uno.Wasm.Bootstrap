@@ -144,8 +144,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private static async loadConfig(basePath: string): Promise<UnoConfig> {
-			const packagePath = (<any>self).__unoWorkerPackagePath || '';
-			const configUrl = basePath + packagePath + 'uno-config.js';
+			const configUrl = basePath + 'uno-config.js';
 
 			const configResponse = await fetch(configUrl);
 			if (!configResponse.ok) {

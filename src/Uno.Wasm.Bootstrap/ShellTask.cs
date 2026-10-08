@@ -577,7 +577,7 @@ namespace Uno.Wasm.Bootstrap
 					.Select(f => f.GetMetadata("Link")
 						.Replace("\\", "/")
 						.Replace("wwwroot/", ""))
-					.Concat([$"{PackageAssetsFolder}/uno-config.js", $"_framework/{dotnetJsFileName}", "."]);
+					.Concat(["uno-config.js", $"_framework/{dotnetJsFileName}", "."]);
 
 				var offlineFiles = enablePWA ? string.Join(", ", sanitizedOfflineFiles.Select(f => $"\"{WebAppBasePath}{f}\"")) : "";
 
@@ -662,7 +662,9 @@ namespace Uno.Wasm.Bootstrap
 					{
 						["CopyToOutputDirectory"] = "PreserveNewest",
 						["ContentRoot"] = _intermediateAssetsPath,
-						["Link"] = $"wwwroot/{PackageAssetsFolder}/" + Path.GetFileName(unoConfigJsPath),
+						// The config is rewritten after the package hash is computed (the dotnet.js
+						// fingerprint changes at publish), so it must not live in the hashed folder.
+						["Link"] = "wwwroot/" + Path.GetFileName(unoConfigJsPath),
 					});
 
 				StaticWebContent = StaticWebContent.Concat([indexMetadata]).ToArray();
@@ -900,9 +902,6 @@ namespace Uno.Wasm.Bootstrap
 
 			using var w = new StreamWriter(scriptPath, append: false, _utf8Encoding);
 
-			// Set the package path before the bootstrapper runs, so it can find uno-config.js.
-			w.WriteLine($"self.__unoWorkerPackagePath = '{PackageAssetsFolder}/';");
-
 			// Read the compiled TypeScript worker bootstrapper from the embedded resource.
 			// The resource name varies by build configuration, so we search for it by suffix.
 			var resourceName = GetType().Assembly.GetManifestResourceNames()
@@ -984,7 +983,6 @@ namespace Uno.Wasm.Bootstrap
 		private string TouchServiceWorker(string workerBody)
 		{
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
-			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 
 			return workerBody;

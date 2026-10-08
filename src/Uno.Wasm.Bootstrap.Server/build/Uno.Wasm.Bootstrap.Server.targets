@@ -76,14 +76,21 @@
 			<_UnoServerActualDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('%(_UnoServerPublishedDotnetJs.Filename)', '^dotnet\.([a-z0-9]+)$').Groups[1].Value)</_UnoServerActualDotnetJsFingerprint>
 		</PropertyGroup>
 
-		<!-- Find uno-config.js (it could be in a package_* subdirectory) -->
-		<ItemGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''">
-			<_UnoServerConfigJs Include="$(_UnoServerActualPublishDir)wwwroot/**/uno-config.js" />
+		<!--
+			The host's uno-config.js is next to index.html. Apps built with an older bootstrapper keep it in
+			package_*/, where only the direct child is the host's: WebWorker copies are nested deeper.
+		-->
+		<ItemGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' != '' AND !Exists('$(_UnoServerActualPublishDir)wwwroot/uno-config.js')">
+			<_UnoServerConfigJs Include="$(_UnoServerActualPublishDir)wwwroot/package_*/uno-config.js" />
 		</ItemGroup>
 
-		<PropertyGroup Condition="'@(_UnoServerConfigJs)' != ''">
-			<_UnoServerConfigJsPath>@(_UnoServerConfigJs)</_UnoServerConfigJsPath>
+		<PropertyGroup Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''">
+			<_UnoServerConfigJsPath Condition="Exists('$(_UnoServerActualPublishDir)wwwroot/uno-config.js')">$(_UnoServerActualPublishDir)wwwroot/uno-config.js</_UnoServerConfigJsPath>
+			<_UnoServerConfigJsPath Condition="'$(_UnoServerConfigJsPath)' == '' AND '@(_UnoServerConfigJs->Count())' == '1'">@(_UnoServerConfigJs)</_UnoServerConfigJsPath>
 		</PropertyGroup>
+
+		<Warning Text="[Uno.Server] Found several uno-config.js files in $(_UnoServerActualPublishDir)wwwroot/package_*/ and none at the root, so none was updated with the dotnet.js fingerprint. Clean the publish directory and publish again."
+				 Condition="'$(_UnoServerConfigJsPath)' == '' AND '@(_UnoServerConfigJs->Count())' &gt; '1'" />
 
 		<Message Importance="low"
 				 Text="[Uno.Server] Found dotnet.js fingerprint: $(_UnoServerActualDotnetJsFingerprint) at $(_UnoServerActualPublishDir)wwwroot/_framework/"

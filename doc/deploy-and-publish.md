@@ -14,6 +14,33 @@ dotnet publish
 
 The app will be located in the `bin/Release/net10.0/publish/wwwroot` folder. More information about `dotnet publish` can be [found in the Microsoft docs](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish).
 
+## Caching the published output
+
+The published `wwwroot` is laid out so that a host can apply two cache policies by path:
+
+| Path | Content | Policy |
+|------|---------|--------|
+| `package_<hash>/` | Application assets, scripts and styles. The folder name is a hash of its content. | Cache forever (`public, max-age=31536000, immutable`) |
+| `_framework/` | The .NET runtime and assemblies, fingerprinted by the .NET SDK. | Cache forever, unless `WasmFingerprintAssets` is `false`: always revalidate |
+| Everything else at the root (`index.html`, `uno-config.js`, `service-worker.js`, the PWA manifest) | Entry points that change on every publish without changing name. | Always revalidate (`no-cache`) |
+
+`uno-config.js` is deliberately kept at the root: it is rewritten during publish with the fingerprinted `dotnet.js` name, so it cannot live inside the hashed folder.
+
+For example, for Azure Static Web Apps (`staticwebapp.config.json`):
+
+```json
+{
+  "routes": [
+    { "route": "/package_*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "route": "/_framework/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "route": "/*", "headers": { "cache-control": "no-cache" } }
+  ]
+}
+```
+
+> [!IMPORTANT]
+> Send an explicit `Cache-Control` header for the root files. Without one, browsers apply heuristic caching, and some CDNs cache `.js` files by extension, which can serve a previous deployment's `uno-config.js` with the current `index.html`. A `max-age` on the root files (rather than `no-cache`) allows the same mismatch until it expires.
+
 ## Localization publishing
 
 By default, the .NET runtime does not load all resource assemblies, but if you want to load all resources regardless of the user's culture, you can add the following to your project file:

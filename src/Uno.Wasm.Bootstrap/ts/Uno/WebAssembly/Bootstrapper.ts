@@ -106,8 +106,9 @@ namespace Uno.WebAssembly.Bootstrap {
 					});
 				}
 
+				// uno-config.js is next to index.html, one level above the hashed package folder
 				//@ts-ignore
-				var config = await import('./uno-config.js');
+				var config = await import('../uno-config.js');
 
 				if (document && (document as any).uno_app_base_override) {
 					config.config.uno_app_base = (document as any).uno_app_base_override;
@@ -1042,7 +1043,9 @@ namespace Uno.WebAssembly.Bootstrap {
 							.register(
 								`${_webAppBasePath}service-worker.js`, {
 								scope: _webAppBasePath,
-								type: 'module'
+								type: 'module',
+								// The worker imports the root uno-config.js, whose URL doesn't change between deployments
+								updateViaCache: 'none'
 							})
 							.then(function () {
 								console.debug('Service Worker Registered');

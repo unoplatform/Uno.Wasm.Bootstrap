@@ -53,8 +53,8 @@ The service resolves the app boot metadata in this order:
 
 1. Load the target HTML document.
 2. Prefer script references to `uno-config.js`.
-3. Rewrite script references to `uno-bootstrap.js` to the sibling `uno-config.js`.
-4. If no script reference is found, probe `embedded.js` and resolve `const package = "package_..."` to `package_.../uno-config.js`.
+3. For script references to `uno-bootstrap.js`, probe `uno-config.js` one folder above the bootstrapper (the current layout, where the bootstrapper lives in the hashed package folder and the configuration next to the page), then next to it (older layouts).
+4. If no script reference is found, probe `embedded.js` and resolve `const package = "package_..."` to the root `uno-config.js`, then to `package_.../uno-config.js`.
 5. Parse supported `uno-config.js` fields:
    - `config.uno_app_base`
    - `config.uno_remote_managedpath`
@@ -113,10 +113,10 @@ And the tool returns assembly rows for every successfully parsed managed assembl
 
 ```gherkin
 Given a target page references package_x/uno-bootstrap.js
-And package_x/uno-config.js declares uno_app_base, uno_remote_managedpath, and dotnet_js_filename
+And uno-config.js next to the page declares uno_app_base, uno_remote_managedpath, and dotnet_js_filename
 And dotnet.<hash>.js contains embedded boot JSON
 When the tool inspects the site
-Then the report resolves package_x/uno-config.js
+Then the report resolves uno-config.js next to the page
 And the report resolves package_x/_framework/dotnet.<hash>.js
 And the report has non-null main assembly and runtime version fields
 ```

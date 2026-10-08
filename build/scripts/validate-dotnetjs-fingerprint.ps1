@@ -8,8 +8,8 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "Validating dotnet.js fingerprint in: $PublishPath"
 
-# Find uno-config.js (it could be in a package_* subdirectory)
-$unoConfig = Get-ChildItem -Path $PublishPath -Recurse -Filter "uno-config.js" | Select-Object -First 1
+# uno-config.js lives next to index.html, outside the hashed package folder
+$unoConfig = Get-Item -Path (Join-Path $PublishPath "uno-config.js") -ErrorAction SilentlyContinue
 
 if (-not $unoConfig) {
     Write-Host "ERROR: uno-config.js not found in $PublishPath"

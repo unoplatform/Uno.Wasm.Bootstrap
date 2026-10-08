@@ -62,7 +62,7 @@
 
 		<PropertyGroup>
 			<_appOutput>$(PublishDir)wwwroot/$(WasmShellOutputPackagePath)</_appOutput>
-			<_unoConfigJsContent>$([System.IO.File]::ReadAllText('$(_appOutput)/uno-config.js'))</_unoConfigJsContent>
+			<_unoConfigJsContent>$([System.IO.File]::ReadAllText('$(PublishDir)wwwroot/uno-config.js'))</_unoConfigJsContent>
 			<_frameworkPath>$(PublishDir)wwwroot/_framework</_frameworkPath>
 			<!-- Extract the fingerprint from uno-config.js to verify the file exists -->
 			<_configDotnetJsFingerprint>$([System.Text.RegularExpressions.Regex]::Match('$(_unoConfigJsContent)', 'dotnet\.([a-z0-9]+)\.js').Groups[1].Value)</_configDotnetJsFingerprint>

@@ -106,6 +106,60 @@ public sealed class Given_VersionCheckService
 	}
 
 	[TestMethod]
+	[Description("Verifies a single-page-app fallback that answers the root uno-config.js probe with index.html doesn't hide the package folder config.")]
+	public async Task When_SpaFallbackAnswersRootProbe_Then_PackageUnoConfigIsLoaded()
+	{
+		const string page = """<html><body><script src="package_hash/uno-bootstrap.js"></script></body></html>""";
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/package_hash/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.Text(page)
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/package_hash/uno-config.js");
+		(report.MainAssembly?.Name).Should().Be(VersionCheckerTestAssets.MainAssemblyName);
+	}
+
+	[TestMethod]
+	[Description("Verifies a network failure on the root uno-config.js probe falls back to the package folder config.")]
+	public async Task When_RootProbeFails_Then_PackageUnoConfigIsLoaded()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="package_hash/uno-bootstrap.js"></script></body></html>"""),
+				"/uno-config.js" => throw new HttpRequestException("Connection reset"),
+				"/package_hash/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/package_hash/uno-config.js");
+	}
+
+	[TestMethod]
 	[Description("Verifies uno-bootstrap.js links are rewritten to uno-config.js before config parsing.")]
 	public async Task When_PageReferencesUnoBootstrap_Then_UnoConfigIsLoaded()
 	{
@@ -316,6 +370,61 @@ public sealed class Given_VersionCheckService
 		report.Assemblies.Should().Contain(assembly => assembly.Name == VersionCheckerTestAssets.MainAssemblyName);
 		report.Assemblies.Should().Contain(assembly => assembly.Name == VersionCheckerTestAssets.RuntimeAssemblyName);
 		report.Assemblies.Should().Contain(assembly => assembly.Name == "System.ValueTuple");
+	}
+
+	[TestMethod]
+	[Description("Verifies uno-config.js is resolved next to the page when the bootstrapper lives in the hashed package folder.")]
+	public async Task When_PageReferencesUnoBootstrapInPackageFolder_Then_RootUnoConfigIsLoaded()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="package_hash/uno-bootstrap.js"></script></body></html>"""),
+				"/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/uno-config.js");
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
+	}
+
+	[TestMethod]
+	[Description("Verifies the embedded.js fallback resolves a root uno-config.js before the package folder copy.")]
+	public async Task When_EmbeddedJsAndRootUnoConfig_Then_RootUnoConfigIsLoaded()
+	{
+		using var client = new HttpClient(new StubHttpMessageHandler(request =>
+		{
+			return request.RequestUri?.AbsolutePath switch
+			{
+				"/" => StubHttpMessageHandler.Text("""<html><body><script src="embedded.js"></script></body></html>"""),
+				"/embedded.js" => StubHttpMessageHandler.Text("""const package = "package_hash";"""),
+				"/uno-config.js" => StubHttpMessageHandler.Text("""
+					config.uno_app_base = "/package_hash";
+					config.uno_remote_managedpath = "_framework";
+					config.uno_main = "[Uno.Wasm.VersionChecker] Uno.VersionChecker.Program";
+					config.assemblies_with_size = {"Uno.Wasm.VersionChecker.dll":1};
+					"""),
+				"/package_hash/_framework/Uno.Wasm.VersionChecker.dll" => StubHttpMessageHandler.Bytes(VersionCheckerTestAssets.MainAssemblyBytes),
+				_ => StubHttpMessageHandler.NotFound()
+			};
+		}));
+		var service = new VersionCheckService(client);
+
+		var report = await service.InspectAsync(new VersionCheckTarget("https://example.com", new Uri("https://example.com/")));
+
+		report.UnoConfigUrl.Should().Be("https://example.com/uno-config.js");
+		(report.MainAssembly?.Version).Should().Be(VersionCheckerTestAssets.MainAssemblyVersion);
 	}
 
 	private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
