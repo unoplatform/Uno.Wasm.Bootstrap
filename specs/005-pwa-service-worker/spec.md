@@ -11,7 +11,7 @@ When a PWA manifest is set, the bootstrapper registers a service worker (`src/Un
 
 ### Cache strategies
 
-- **Immutable files** are served cache-first, and fetched from the network only on a miss. Immutable means everything under the `package_<hash>` folder except `uno-config.js`, and the fingerprinted `_framework` files (`name.<10 chars>.ext`).
+- **Immutable files** are served cache-first, and fetched from the network only on a miss. Immutable means everything under the `package_<hash>` folder and the fingerprinted `_framework` files (`name.<10 chars>.ext`).
 - **Everything else** (`index.html`, `uno-config.js`, ...) is served network-first. The network gets 4 seconds to answer, including reading the whole body. On failure, timeout or a truncated body, the cached copy is used (ignoring the query string); if there is none, the request is retried `UNO_BOOTSTRAP_FETCH_RETRIES` times (default 1) with exponential backoff, then answered with a `503`.
 - Only same-origin `GET` requests are handled. Successful responses are cached as the app uses them. Those cache writes are kept alive with `event.waitUntil`, so the worker isn't stopped before they complete.
 - When `UNO_BOOTSTRAP_DEBUGGER_ENABLED` is `True`, the worker never caches anything.

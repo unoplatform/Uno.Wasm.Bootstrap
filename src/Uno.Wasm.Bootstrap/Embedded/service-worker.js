@@ -22,17 +22,14 @@ function trace(message) {
 }
 
 /**
- * URLs whose content never changes: the package folder is named after a hash of its content
- * (uno-config.js aside, which is not immutable), and the .NET SDK fingerprints _framework files.
+ * URLs whose content never changes: the package folder is named after a hash of its content,
+ * and the .NET SDK fingerprints _framework files.
  */
 function isImmutable(url) {
     const path = url.pathname;
 
-    if (path.startsWith(PACKAGE_ROOT)) {
-        return !path.endsWith("/uno-config.js");
-    }
-
-    return path.startsWith(`${APP_ROOT}_framework/`) && /\.[a-z0-9]{10}\.[a-z]+$/.test(path);
+    return path.startsWith(PACKAGE_ROOT)
+        || (path.startsWith(`${APP_ROOT}_framework/`) && /\.[a-z0-9]{10}\.[a-z]+$/.test(path));
 }
 
 function globToRegExp(glob) {
@@ -159,7 +156,7 @@ async function networkFirst(event) {
         trace(`Network failed or timed out, falling back to the cache for ${request.url}`);
     }
 
-    // uno-config.js is requested with a ?v= version but precached without one
+    // Retried requests carry a cache-busting query, precached ones don't
     const cached = await caches.match(request, { ignoreSearch: true });
     if (cached) {
         return cached;
@@ -189,7 +186,7 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
     // so most come from the HTTP cache.
     self.addEventListener('install', event => {
         event.waitUntil((async () => {
-            const bootFiles = [WEBAPP_PATH, `${PACKAGE_ROOT}uno-config.js`, `${WEBAPP_PATH}_framework/${unoConfig.dotnet_js_filename}`]
+            const bootFiles = [WEBAPP_PATH, `${WEBAPP_PATH}uno-config.js`, `${WEBAPP_PATH}_framework/${unoConfig.dotnet_js_filename}`]
                 .concat(unoConfig.offline_files.filter(f => pathOf(f).startsWith(PACKAGE_ROOT) && /\.(js|css)$/.test(f)));
 
             try {
