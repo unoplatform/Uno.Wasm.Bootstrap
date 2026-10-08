@@ -100,6 +100,17 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		public void When_Dictionary_Values_Have_Names_Then_The_Name_Is_Preloaded()
+		{
+			var dotnetJs = "/*json-start*/{\"resources\":{\"jsModuleRuntime\":{\"dotnet.runtime.js\":{\"name\":\"dotnet.runtime.rrrrrrrrrr.js\"}}}}/*json-end*/";
+
+			var block = PreloadLinks.Generate(dotnetJs, "dotnet.js", "let config = {};", "./_framework/", "./package_1/uno-config.js");
+
+			StringAssert.Contains(block, "<link rel=\"modulepreload\" href=\"./_framework/dotnet.runtime.rrrrrrrrrr.js\" />");
+			Assert.IsFalse(block.Contains("dotnet.runtime.js\""));
+		}
+
+		[TestMethod]
 		public void When_Dictionary_Shaped_Resources_Then_Wasm_Is_Preloaded()
 		{
 			var dotnetJs = "/*json-start*/{\"resources\":{\"wasmNative\":{\"dotnet.native.wasm\":\"sha256-abc\"}}}/*json-end*/";
