@@ -1043,7 +1043,9 @@ namespace Uno.WebAssembly.Bootstrap {
 							.register(
 								`${_webAppBasePath}service-worker.js`, {
 								scope: _webAppBasePath,
-								type: 'module'
+								type: 'module',
+								// The worker imports the root uno-config.js, whose URL doesn't change between deployments
+								updateViaCache: 'none'
 							})
 							.then(function () {
 								console.debug('Service Worker Registered');
