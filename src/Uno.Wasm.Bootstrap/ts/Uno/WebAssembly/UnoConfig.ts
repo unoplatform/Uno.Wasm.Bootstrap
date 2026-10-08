@@ -1,5 +1,8 @@
 ﻿namespace Uno.WebAssembly.Bootstrap {
 
+	// Lives here rather than in LoaderView.ts: the worker bundle compiles this file without the loader
+	export type LoaderProgressFormat = "percent" | "size" | "none";
+
 	export interface UnoConfig {
 		uno_remote_managedpath: string;
 
