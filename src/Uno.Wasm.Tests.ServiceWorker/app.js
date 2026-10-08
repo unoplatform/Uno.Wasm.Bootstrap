@@ -118,6 +118,17 @@ async function waitForStart(page, label) {
 		console.log(ok ? `OK: excluded file ${target} cached on use and served offline` : `FAIL: excluded file ${target} not cached on use`);
 	}
 
+	// Requests that aren't app files are left to the browser: never cut off by the timeout, never cached
+	if (ok) {
+		const result = await page.evaluate(async () => {
+			const response = await fetch("/__api/slow?user=1");
+			return { status: response.status, body: await response.text(), cached: !!(await caches.match("/__api/slow", { ignoreSearch: true })) };
+		});
+
+		ok = result.status === 200 && result.body.includes('"query":"?user=1"') && !result.cached;
+		console.log(ok ? "OK: a slow non-app request passed through uncached" : `FAIL: non-app request ${JSON.stringify(result)}`);
+	}
+
 	for (const mode of ["offline", "flaky"]) {
 		if (!ok) {
 			break;

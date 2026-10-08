@@ -31,6 +31,13 @@ http.createServer((req, res) => {
 		return req.socket.destroy();
 	}
 
+	// Not an app file: answers slower than the service worker's network timeout
+	if (urlPath === "/__api/slow") {
+		res.writeHead(200, { "content-type": "application/json" });
+		res.write('{"part":1,');
+		return setTimeout(() => res.end('"query":' + JSON.stringify(new URL(req.url, "http://localhost").search) + "}"), 5000);
+	}
+
 	const fileName = urlPath.endsWith("/") ? urlPath + "index.html" : urlPath;
 	const file = path.join(root, fileName);
 	if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
