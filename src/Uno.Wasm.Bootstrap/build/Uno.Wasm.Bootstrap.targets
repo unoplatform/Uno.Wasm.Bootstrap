@@ -326,6 +326,7 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
@@ -334,6 +335,7 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.WriteFileVerbatimTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -632,6 +634,38 @@
 		<Message Importance="normal"
 				 Text="Updated uno-config.js with dotnet.js fingerprint: $(_UnoActualDotnetJsFingerprint)"
 				 Condition="'$(_UnoActualDotnetJsFingerprint)' != ''" />
+	</Target>
+
+	<!--
+		Add preload hints for the startup chain to the published index.html.
+		Independent of dotnet.js fingerprinting: without it the task is given an empty fingerprint and reads plain dotnet.js.
+		Runs after the fingerprint target so it sees the final uno-config.js, and again after the nested AOT publish.
+	-->
+	<Target Name="_UnoGeneratePreloadLinksPublishOutput"
+			AfterTargets="_UnoUpdateDotnetJsFingerprintPublishOutput;Publish;WasmTriggerPublishApp"
+			Condition="'$(WasmShellGeneratePreloadLinks)' != 'false' AND '$(WasmBuildingForNestedPublish)' != 'true'">
+
+		<PropertyGroup>
+			<_UnoPreloadPublishDir Condition="'$(PublishDir)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(PublishDir)'))</_UnoPreloadPublishDir>
+			<_UnoPreloadPublishDir Condition="'$(_UnoPreloadPublishDir)' == '' OR !Exists('$(_UnoPreloadPublishDir)')">$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_UnoPreloadPublishDir>
+		</PropertyGroup>
+
+		<ResolvePublishedDotnetJsTask_v0 PublishDirectory="$(_UnoPreloadPublishDir)"
+										 EndpointsManifest="$(TargetName).staticwebassets.endpoints.json"
+										 Condition="'$(PublishDir)' != '' AND Exists('$(_UnoPreloadPublishDir)')">
+			<Output TaskParameter="Fingerprint" PropertyName="_UnoPreloadDotnetJsFingerprint" />
+		</ResolvePublishedDotnetJsTask_v0>
+
+		<PropertyGroup>
+			<_UnoPreloadConfigJsPath>$(_UnoPreloadPublishDir)wwwroot/$(WasmShellOutputPackagePath)/uno-config.js</_UnoPreloadConfigJsPath>
+			<_UnoPreloadConfigJsPath Condition="!Exists('$(_UnoPreloadConfigJsPath)')">$(_UnoPreloadPublishDir)wwwroot/uno-config.js</_UnoPreloadConfigJsPath>
+		</PropertyGroup>
+
+		<GeneratePreloadLinksTask_v0 IndexHtml="$(_UnoPreloadPublishDir)wwwroot/index.html"
+									 FrameworkDirectory="$(_UnoPreloadPublishDir)wwwroot/_framework"
+									 ConfigFile="$(_UnoPreloadConfigJsPath)"
+									 DotnetJsFingerprint="$(_UnoPreloadDotnetJsFingerprint)"
+									 Condition="'$(PublishDir)' != '' AND Exists('$(_UnoPreloadConfigJsPath)')" />
 	</Target>
 
 	<!--
