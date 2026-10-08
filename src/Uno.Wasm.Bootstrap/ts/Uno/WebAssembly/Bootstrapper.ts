@@ -415,7 +415,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			const names = (entries: any): string[] =>
 				!entries ? []
 					: Array.isArray(entries) ? entries.map((e: any) => e.name) // .NET 10+
-						: Object.keys(entries);
+						: Object.keys(entries).map(key => entries[key]?.name ?? key);
 
 			return [...names(resources?.jsModuleRuntime), ...names(resources?.jsModuleNative)];
 		}

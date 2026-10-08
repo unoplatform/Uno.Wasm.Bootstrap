@@ -18,16 +18,15 @@ namespace Uno.WebAssembly.Bootstrap {
 		// Query suffix of the runtime JS modules that had to be imported from a retry URL, by file name
 		private static _moduleRetrySuffixes: { [name: string]: string } = {};
 
-		/** Reads optional overrides: UNO_BOOTSTRAP_FETCH_HEADERS_TIMEOUT_MS, _IDLE_TIMEOUT_MS and _MAX_ATTEMPTS. */
 		public static configure(environmentVariables: { [key: string]: string }) {
 			const read = (name: string, fallback: number) => {
-				const value = parseInt(environmentVariables?.[`UNO_BOOTSTRAP_FETCH_${name}`]);
+				const value = parseInt(environmentVariables?.[name]);
 				return isNaN(value) || value <= 0 ? fallback : value;
 			};
 
-			ResourceLoader.headersTimeoutMs = read("HEADERS_TIMEOUT_MS", ResourceLoader.headersTimeoutMs);
-			ResourceLoader.idleTimeoutMs = read("IDLE_TIMEOUT_MS", ResourceLoader.idleTimeoutMs);
-			ResourceLoader.maxAttempts = read("MAX_ATTEMPTS", ResourceLoader.maxAttempts);
+			ResourceLoader.headersTimeoutMs = read("UNO_BOOTSTRAP_FETCH_HEADERS_TIMEOUT_MS", ResourceLoader.headersTimeoutMs);
+			ResourceLoader.idleTimeoutMs = read("UNO_BOOTSTRAP_FETCH_IDLE_TIMEOUT_MS", ResourceLoader.idleTimeoutMs);
+			ResourceLoader.maxAttempts = read("UNO_BOOTSTRAP_FETCH_MAX_ATTEMPTS", ResourceLoader.maxAttempts);
 		}
 
 		/** The .NET runtime's resource loader hook (`withResourceLoader`). */
@@ -46,12 +45,14 @@ namespace Uno.WebAssembly.Bootstrap {
 		/**
 		 * The browser only reuses compiled WebAssembly (its code cache) for a response fetched from a URL, not one
 		 * built from a buffer. Once the download succeeded, the file is in the HTTP cache: fetch it again from there.
+		 * The lookup never goes to the network, so it can't stall; on a miss the downloaded copy is used.
 		 */
 		private static async fetchWasm(url: string, integrity: string): Promise<Response> {
 			const { response, cacheable } = await ResourceLoader.fetchVerified(url, integrity);
 			if (cacheable) {
 				try {
-					const cached = await fetch(url, { cache: "force-cache", credentials: "same-origin", integrity: integrity || undefined });
+					// only-if-cached requires same-origin mode, so a cross-origin URL throws and falls back
+					const cached = await fetch(url, { cache: "only-if-cached", mode: "same-origin", credentials: "same-origin", integrity: integrity || undefined });
 					if (cached.ok) {
 						return cached;
 					}
@@ -107,7 +108,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			let attempt = 0;
 			const load = () => require(modules, callback, (err: RequireError) => {
 				(err.requireModules ?? modules).forEach(m => requirejs.undef(m));
-				ResourceLoader.beforeRetry(attempt++, modules.join(", "), err).then(load, e => console.error(e));
+				// After the last attempt, report the error the way require.js does without an errback
+				ResourceLoader.beforeRetry(attempt++, modules.join(", "), err).then(load, e => requirejs.onError(e));
 			});
 			load();
 		}
@@ -115,7 +117,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private static async fetchVerified(url: string, integrity: string): Promise<{ response: Response, cacheable: boolean }> {
 			for (let attempt = 0; ; attempt++) {
 				try {
-					const { body, contentType, cacheable } = await ResourceLoader.download(url, attempt === 0 ? "default" : "reload");
+					const { body, contentType, cacheable } = await ResourceLoader.download(url, attempt === 0 ? "default" : "reload", integrity);
 					await ResourceLoader.verify(body, integrity);
 					return { response: new Response(body, { status: 200, headers: { "content-type": contentType } }), cacheable };
 				} catch (e) {
@@ -127,7 +129,7 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 		}
 
-		private static async download(url: string, cache: RequestCache): Promise<{ body: Uint8Array, contentType: string, cacheable: boolean }> {
+		private static async download(url: string, cache: RequestCache, integrity: string): Promise<{ body: Uint8Array, contentType: string, cacheable: boolean }> {
 			const controller = new AbortController();
 			let timer = setTimeout(() => controller.abort(), ResourceLoader.headersTimeoutMs);
 			const resetIdleTimer = () => {
@@ -137,10 +139,20 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			try {
 				// integrity is checked by verify(): with fetch({ integrity }) no bytes are exposed until the
-				// whole body is in, so a stalled download could not be detected.
-				const response = await fetch(url, { signal: controller.signal, cache, credentials: "same-origin" });
+				// whole body is in, so a stalled download could not be detected. Without crypto.subtle (insecure
+				// contexts) the browser has to check it, and only the headers timeout applies.
+				const nativeIntegrity = integrity && !ResourceLoader.canVerify(integrity) ? integrity : undefined;
+				const response = await fetch(url, { signal: controller.signal, cache, credentials: "same-origin", integrity: nativeIntegrity });
 				if (!response.ok) {
 					throw new HttpError(response.status, url);
+				}
+
+				const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+				const cacheable = !/no-store/i.test(response.headers.get("cache-control") ?? "");
+
+				if (nativeIntegrity) {
+					clearTimeout(timer);
+					return { body: new Uint8Array(await response.arrayBuffer()), contentType, cacheable };
 				}
 
 				resetIdleTimer();
@@ -165,21 +177,24 @@ namespace Uno.WebAssembly.Bootstrap {
 					offset += chunk.length;
 				}
 
-				return {
-					body,
-					contentType: response.headers.get("content-type") ?? "application/octet-stream",
-					cacheable: !/no-store/i.test(response.headers.get("cache-control") ?? ""),
-				};
+				return { body, contentType, cacheable };
 			} finally {
 				clearTimeout(timer);
 			}
 		}
 
+		private static readonly _subtleNames: { [key: string]: string } = { sha256: "SHA-256", sha384: "SHA-384", sha512: "SHA-512" };
+
+		// crypto.subtle is only available in secure contexts
+		private static canVerify(integrity: string) {
+			return !!globalThis.crypto?.subtle && !!ResourceLoader._subtleNames[integrity.split("-", 1)[0]];
+		}
+
 		private static async verify(body: Uint8Array, integrity: string) {
 			const [algorithm, expected] = integrity?.split("-", 2) ?? [];
-			const subtleName = ({ sha256: "SHA-256", sha384: "SHA-384", sha512: "SHA-512" } as { [key: string]: string })[algorithm];
+			const subtleName = ResourceLoader._subtleNames[algorithm];
 
-			// crypto.subtle is only available in secure contexts
+			// Otherwise the browser checked it during the download
 			if (!subtleName || !expected || !globalThis.crypto?.subtle) {
 				return;
 			}
