@@ -11,15 +11,11 @@ fi
 
 echo "Validating dotnet.js fingerprint in: $PUBLISH_PATH"
 
-# Find the host's uno-config.js (it lives next to index.html, outside the hashed package folder).
-# Exclude the worker's copy: when WasmShellWebWorkerProject is used, the worker
-# publishes to package_<hostHash>/<WasmShellWorkerBasePath>/package_<workerHash>/
-# uno-config.js. Filtering by `*/worker/*` skips that nested copy regardless of
-# the worker base path's actual name (default: 'worker'); legacy '_worker' paths
-# are also excluded for backward compatibility.
-UNO_CONFIG=$(find "$PUBLISH_PATH" -name "uno-config.js" -type f -not -path '*/_worker/*' -not -path '*/worker/*' | head -1)
+# The host's uno-config.js lives next to index.html, outside the hashed package folder.
+# Only that file is checked, so a stale copy under package_* can't satisfy the validation.
+UNO_CONFIG="$PUBLISH_PATH/uno-config.js"
 
-if [ -z "$UNO_CONFIG" ]; then
+if [ ! -f "$UNO_CONFIG" ]; then
     echo "ERROR: uno-config.js not found in $PUBLISH_PATH"
     exit 1
 fi
