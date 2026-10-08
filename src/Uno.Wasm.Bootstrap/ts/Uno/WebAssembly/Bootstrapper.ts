@@ -702,8 +702,8 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (this.progress) {
 				this.progress.value = this.progress.max;
 			}
-			// Remove loader node if observer will not handle it
-			if (!this.bodyObserver && this.loader && this.loader.parentNode) {
+			// Remove loader node if observer will not handle it, unless the app keeps it until its first frame
+			if (!this.bodyObserver && this.loader && this.loader.parentNode && !this.loader.classList.contains("uno-keep-loader")) {
 				this.removeLoader();
 			}
 		}
