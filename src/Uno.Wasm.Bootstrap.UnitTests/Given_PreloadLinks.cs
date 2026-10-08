@@ -72,6 +72,34 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		public void When_Malformed_Boot_Config_Then_Only_Entry_Modules()
+		{
+			var block = PreloadLinks.Generate("/*json-start*/{\"resources\":/*json-end*/", "dotnet.js", UnoConfig, "./_framework/", "./package_1/uno-config.js");
+
+			StringAssert.Contains(block, "href=\"./_framework/dotnet.js\"");
+			StringAssert.Contains(block, "href=\"./package_1/helpers.js\"");
+			Assert.IsFalse(block.Contains(".wasm"));
+		}
+
+		[TestMethod]
+		public void When_Malformed_Dependencies_Then_No_Script_Preloads()
+		{
+			var block = PreloadLinks.Generate(DotnetJs, "dotnet.js", "config.uno_dependencies = [\"a.js\" \"b.js\"];", "./_framework/", "./package_1/uno-config.js");
+
+			StringAssert.Contains(block, "dotnet.native.wwwwwwwwww.wasm");
+			Assert.IsFalse(block.Contains("as=\"script\""));
+		}
+
+		[TestMethod]
+		public void When_Null_Dependency_Then_Skipped()
+		{
+			var block = PreloadLinks.Generate(DotnetJs, "dotnet.js", "config.uno_dependencies = [null, \"./a\"];", "./_framework/", "./package_1/uno-config.js");
+
+			StringAssert.Contains(block, "<link rel=\"preload\" href=\"./a.js\" as=\"script\" />");
+			Assert.IsFalse(block.Contains("null"));
+		}
+
+		[TestMethod]
 		public void When_Dictionary_Shaped_Resources_Then_Wasm_Is_Preloaded()
 		{
 			var dotnetJs = "/*json-start*/{\"resources\":{\"wasmNative\":{\"dotnet.native.wasm\":\"sha256-abc\"}}}/*json-end*/";
