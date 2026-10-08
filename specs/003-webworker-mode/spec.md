@@ -159,7 +159,7 @@ And index.html SHALL reference my-worker.js
 
 ### Worker JS Composed by C# Around a Compiled TypeScript Bootstrapper
 
-The worker bootstrap is composed by `GenerateWorkerJs()` in `ShellTask.cs` (following the `GenerateEmbeddedJs()` pattern). The worker logic itself lives in `ts/Uno/WebAssembly/WorkerBootstrapper.ts` and is compiled to `uno-worker-bootstrap.js` via `tsconfig.worker.json`; `GenerateWorkerJs()` then prefixes it with the per-package `__unoWorkerPackagePath` and emits the result as `worker.js`. This split keeps the worker script self-contained and decoupled from the DOM-heavy `Bootstrapper.ts` while still benefiting from TypeScript type-checking for the runtime logic.
+The worker bootstrap is composed by `GenerateWorkerJs()` in `ShellTask.cs` (following the `GenerateEmbeddedJs()` pattern). The worker logic itself lives in `ts/Uno/WebAssembly/WorkerBootstrapper.ts` and is compiled to `uno-worker-bootstrap.js` via `tsconfig.worker.json`; `GenerateWorkerJs()` then emits it as `worker.js`. No per-package prefix is needed: the worker fetches `uno-config.js` from its own folder. This split keeps the worker script self-contained and decoupled from the DOM-heavy `Bootstrapper.ts` while still benefiting from TypeScript type-checking for the runtime logic.
 
 ### Classic Worker (Not Module Worker)
 

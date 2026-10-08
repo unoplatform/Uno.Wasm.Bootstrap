@@ -34,6 +34,8 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 
 **FR-6**: The version checker SHALL resolve the configuration of a page that references `<package>/uno-bootstrap.js` by probing `uno-config.js` one folder above the bootstrapper first, then next to it for older layouts. The `embedded.js` fallback SHALL probe the site root before `<package>/uno-config.js`.
 
+**FR-6a**: The `Uno.Wasm.Bootstrap.Server` publish-time fingerprint update SHALL update `wwwroot/uno-config.js`. When that file is absent (an app built with an older bootstrapper), it SHALL fall back to `wwwroot/package_*/uno-config.js`, never to the WebWorker copies nested deeper.
+
 **FR-7**: `config.uno_app_base`, the `UNO_BOOTSTRAP_APP_BASE` environment variable, and every other package-relative path in the configuration SHALL be unchanged.
 
 ## Non-Goals
@@ -54,5 +56,5 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 
 - `src/Uno.Wasm.Tests.Fingerprint/test-fingerprint.sh` asserts that the published `uno-config.js` is at the `wwwroot` root and absent from every `package_*` folder.
 - `src/Uno.Wasm.VersionChecker.UnitTests/Given_VersionCheckService.cs` covers the root layout for both the `uno-bootstrap.js` and the `embedded.js` discovery paths, alongside the existing sibling-layout tests.
-- CI validation scripts (`validate-boot-config.sh`, `validate-dotnetjs-fingerprint.sh`, `test-webgl-4gb.sh`, `test-webworker.sh`) locate the configuration at the root.
+- CI validation scripts (`validate-boot-config.sh`, `validate-dotnetjs-fingerprint.sh`, `test-webgl-4gb.sh`, `test-webworker.sh`) locate the configuration at the root. The two `validate-*` scripts check only the root file, so a stale copy under `package_*` cannot pass them.
 - Manual: publish, load the app, change only managed code, publish again, reload with the package folder cached as immutable. The app boots the new build.
