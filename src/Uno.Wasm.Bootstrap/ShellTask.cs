@@ -725,7 +725,7 @@ namespace Uno.Wasm.Bootstrap
 			// Under a Content-Security-Policy the inline style attribute could be blocked: the bootstrapper applies the manifest instead
 			if (!customLoader && string.IsNullOrEmpty(CSPConfiguration) && _appManifestPath is not null && File.Exists(_appManifestPath))
 			{
-				html = LoaderMarkup.BakeAppManifest(html, LoaderMarkup.ParseAppManifest(File.ReadAllText(_appManifestPath)));
+				html = LoaderMarkup.BakeAppManifest(html, LoaderMarkup.ParseAppManifest(File.ReadAllText(_appManifestPath)), $"{WebAppBasePath}{PackageAssetsFolder}/");
 			}
 
 			// The loader's layout depends on these, so they must be right before the bootstrapper runs
