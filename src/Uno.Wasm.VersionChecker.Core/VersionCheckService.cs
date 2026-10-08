@@ -141,17 +141,28 @@ public sealed class VersionCheckService(HttpClient httpClient)
 	}
 
 	/// <summary>
-	/// Returns the first candidate that answers with a success status, or the last one so that
+	/// Returns the first candidate that serves an Uno config, or the last one so that
 	/// the caller reports the failure against a concrete URL.
 	/// </summary>
+	/// <remarks>
+	/// A success status isn't enough: single-page-app hosts answer unknown paths with index.html.
+	/// </remarks>
 	private async Task<Uri> FirstReachableAsync(IReadOnlyList<Uri> candidates, CancellationToken cancellationToken)
 	{
 		foreach (var candidate in candidates.Take(candidates.Count - 1))
 		{
-			using var response = await SendAsync(candidate, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-			if (response.IsSuccessStatusCode)
+			try
 			{
-				return candidate;
+				using var response = await SendAsync(candidate, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+				if (response.IsSuccessStatusCode
+					&& (await ReadContentAsStringAsync(response.Content, candidate, cancellationToken)).Contains("config.uno_", StringComparison.Ordinal))
+				{
+					return candidate;
+				}
+			}
+			catch (HttpRequestException)
+			{
+				// Try the next location
 			}
 		}
 
