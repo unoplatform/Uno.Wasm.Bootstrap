@@ -6,6 +6,7 @@
 // keep: index.html marks the loader uno-keep-loader as soon as it's set up, like Uno Platform does, so the test can
 // remove it the way Uno Platform does on its first frame.
 // custom: index.html has an app-provided loader (data-uno-loader="custom") with its own styles instead of the built-in one.
+// csp: index.html is sent with a Content-Security-Policy header that blocks inline styles.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -42,7 +43,7 @@ function rewriteIndexHtml(html) {
 	}
 	if (mode === "custom") {
 		return html
-			.replace(/<style id="uno-bootstrap-css">[\s\S]*?<\/style>/, "")
+			.replace(/<style id="uno-bootstrap-css"[^>]*>[\s\S]*?<\/style>/, "")
 			.replace("</head>", customLoaderStyle + "</head>")
 			.replace(/<div id="uno-body"[\s\S]*?<noscript>/, customLoader);
 	}
@@ -73,6 +74,7 @@ http.createServer((req, res) => {
 			"content-type": types[path.extname(fileName)] || "application/octet-stream",
 			"content-length": body.length,
 			"cache-control": "no-store",
+			...(mode === "csp" && path.extname(fileName) === ".html" ? { "content-security-policy": "style-src 'self'" } : {}),
 		});
 		res.end(body);
 	}, isNativeWasm ? (mode === "slow" ? 20000 : 2000) : 150);

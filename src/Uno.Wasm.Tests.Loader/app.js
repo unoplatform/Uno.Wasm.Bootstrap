@@ -79,7 +79,20 @@ function check(condition, message) {
 	ok = check(!log.some(e => /\|(Getting ready…|Downloading app|Starting…)\|/.test(e)), "no phase labels by default") && ok;
 	ok = check(log.some(e => e.startsWith("starting|")), "starting phase after the downloads") && ok;
 	ok = check(log[log.length - 1] === "removed", "loader removed once the app runs") && ok;
+	ok = check(await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor) === "rgba(0, 0, 0, 0)", "the page background is left to the app once the loader is gone") && ok;
 	await page.close();
+
+	// A policy sent by the server blocks the inlined stylesheet and the baked style attributes: the bootstrapper loads
+	// the stylesheet as a file and applies the manifest itself
+	await setMode("csp");
+	page = await browser.newPage();
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	await page.waitForFunction(() => getComputedStyle(document.querySelector(".uno-loader")).position === "fixed", { timeout: 30000 }).catch(() => { });
+	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).position).catch(() => "") === "fixed", "loader styled under a server-sent Content-Security-Policy") && ok;
+	await page.waitForFunction(() => getComputedStyle(document.querySelector(".uno-loader")).backgroundColor === "rgb(253, 246, 227)", { timeout: 30000 }).catch(() => { });
+	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).backgroundColor).catch(() => "") === "rgb(253, 246, 227)", "and gets the manifest colors") && ok;
+	await page.close();
+	await setMode("normal");
 
 	// Dark theme background from the manifest
 	page = await browser.newPage();
