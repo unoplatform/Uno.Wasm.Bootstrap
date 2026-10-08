@@ -2,8 +2,6 @@ namespace Uno.WebAssembly.Bootstrap {
 
 	export type LoaderPhase = "connect" | "download" | "starting" | "failed";
 
-	export type LoaderProgressFormat = "percent" | "size" | "none";
-
 	export interface LoaderOptions {
 		/** The progress value below the bar; none by default, leaving just the logo and the bar. */
 		format: LoaderProgressFormat;
