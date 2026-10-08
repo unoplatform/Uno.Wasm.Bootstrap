@@ -712,12 +712,10 @@ namespace Uno.Wasm.Bootstrap
 			var customLoader = LoaderMarkup.IsCustomLoader(html);
 			if (LoaderMarkup.UsesLegacyMarkup(html))
 			{
-				Log.LogWarning(
-					subcategory: null,
-					warningCode: "UNOWA0014",
-					helpKeyword: null,
-					file: IndexHtmlPath, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
-					message: "The loader markup in this index.html predates the current loader, so it only gets a basic look. Copy the loader from the bootstrapper's index.html template to get the new one, or mark your own loader with data-uno-loader=\"custom\".");
+				// Not a warning: the app still works, and builds treating warnings as errors must not break
+				Log.LogMessage(
+					MessageImportance.High,
+					"UNOWA0014: The loader markup in this index.html predates the current loader, so it only gets a basic look. Copy the loader from the bootstrapper's index.html template to get the new one, or mark your own loader with data-uno-loader=\"custom\".");
 			}
 
 			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(style => GetStyleMarkup(style, customLoader))));

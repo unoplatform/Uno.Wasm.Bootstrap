@@ -104,7 +104,7 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
 
 `data-status-text`, `data-progress-format` and `data-logo-animation` are filled in from the MSBuild properties above, so the loader is laid out correctly before the bootstrapper starts; without them it is updated once the bootstrapper runs.
 
-`index.html` files using the earlier markup, with the `progress` element directly inside `.uno-loader`, keep a progress bar at the bottom of the page, and the build reports warning `UNOWA0014`. Copy the loader from the markup above to get the current one, or mark your own loader as custom.
+`index.html` files using the earlier markup, with the `progress` element directly inside `.uno-loader`, keep a progress bar at the bottom of the page, and the build reports `UNOWA0014` as a message. Copy the loader from the markup above to get the current one, or mark your own loader as custom.
 
 ## Replacing the loader
 
