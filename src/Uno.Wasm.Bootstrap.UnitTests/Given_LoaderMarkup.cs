@@ -112,6 +112,15 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 			=> StringAssert.Contains(LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenImage", "Assets/Splash.png")), "src=\"./Assets/Splash.png\"");
 
 		[TestMethod]
+		public void When_Image_Is_Local_Then_Under_The_Given_Package_Url()
+		{
+			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenImage", "Assets/Splash.png", "splashScreenImageDark", "Assets/Dark.png"), "/app/package_1/");
+
+			StringAssert.Contains(html, "src=\"/app/package_1/Assets/Splash.png\"");
+			StringAssert.Contains(html, "srcset=\"/app/package_1/Assets/Dark.png\"");
+		}
+
+		[TestMethod]
 		public void When_Image_Is_Absolute_Url_Then_Kept()
 			=> StringAssert.Contains(LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenImage", "https://cdn.example.com/s.png")), "src=\"https://cdn.example.com/s.png\"");
 
