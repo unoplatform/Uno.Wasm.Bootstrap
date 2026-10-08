@@ -5,7 +5,7 @@ const WEBAPP_PATH = '$(REMOTE_WEBAPP_PATH)';
 
 // Absolute paths, as WEBAPP_PATH may be relative (./); the worker sits at the root of the app
 const APP_ROOT = new URL(WEBAPP_PATH, self.location).pathname;
-const PACKAGE_ROOT = new URL(`${WEBAPP_PATH}$(REMOTE_BASE_PATH)/`, self.location).pathname;
+const PACKAGE_ROOT = new URL(`${unoConfig.uno_app_base}/`, self.location).pathname;
 const pathOf = file => new URL(file, self.location).pathname;
 
 // Network-first requests fall back to the cache after this long
