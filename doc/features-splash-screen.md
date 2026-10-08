@@ -26,10 +26,12 @@ With the Uno.Sdk, `Uno.Resizetizer` generates this file from the splash screen p
     <UnoSplashScreenBackgroundColor>#FFFFFF</UnoSplashScreenBackgroundColor>
     <UnoSplashScreenDarkBackgroundColor>#202020</UnoSplashScreenDarkBackgroundColor>
     <UnoSplashScreenDarkFile>Assets\Splash\splash_screen_dark.svg</UnoSplashScreenDarkFile>
+    <UnoSplashScreenAccentColor>#0F6CBD</UnoSplashScreenAccentColor>
+    <UnoSplashScreenDarkAccentColor>#479EF5</UnoSplashScreenDarkAccentColor>
 </PropertyGroup>
 ```
 
-These become `lightThemeBackgroundColor`, `darkThemeBackgroundColor` and `splashScreenImageDark` below. They need versions of the Uno.Sdk and `Uno.Resizetizer` that support them.
+These become `lightThemeBackgroundColor`, `darkThemeBackgroundColor`, `splashScreenImageDark`, `accentColor` and `darkThemeAccentColor` below. Without accent colors, the progress bar uses the WinUI defaults. They need versions of the Uno.Sdk and `Uno.Resizetizer` that support them.
 
 These properties are supported in the manifest:
 
