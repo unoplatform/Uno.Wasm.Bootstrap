@@ -5,6 +5,8 @@
 // and a 503. Retries succeed. Entry points loaded by index.html itself (index.html, require.js,
 // uno-bootstrap.js, stylesheets) are not faulted: nothing can retry them.
 // /late.html is index.html with uno-bootstrap.js imported after the load event.
+// With the stale=1 cookie, /uno-config.js (without a query) names another package, as a copy cached from an earlier
+// deployment would.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -57,6 +59,10 @@ http.createServer((req, res) => {
 			return res.end();
 		}
 		body = fs.readFileSync(file);
+
+		if (urlPath === "/uno-config.js" && !new URL(req.url, "http://localhost").search && /(^|;\s*)stale=1/.test(req.headers.cookie || "")) {
+			body = Buffer.from(body.toString("utf8").replace(/package_[0-9a-f]+/g, "package_0000000000000000000000000000000000000000"));
+		}
 	}
 
 	let fault = null;
