@@ -26,15 +26,15 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 
 **FR-2**: The main bootstrapper (`uno-bootstrap.js`, deployed inside `package_<hash>/`) SHALL import the configuration from `../uno-config.js`, relative to its own module URL, so that the resolution is correct when the application is hosted from a site root, from a sub-folder, or through `embedded.js`.
 
-**FR-3**: The service worker SHALL import the configuration from `$(REMOTE_WEBAPP_PATH)uno-config.js`, and the offline file list SHALL reference `uno-config.js` at the web app base path.
+**FR-3**: The service worker SHALL import the configuration from `$(REMOTE_WEBAPP_PATH)uno-config.js`, and the offline file list SHALL reference `uno-config.js` at the web app base path. The bootstrapper SHALL register the service worker with `updateViaCache: 'none'`, so an updated worker never imports a previous deployment's `uno-config.js` from the HTTP cache.
 
 **FR-4**: In WebWorker shell mode, `worker.js` SHALL fetch `uno-config.js` from its own folder. The `__unoWorkerPackagePath` global is no longer emitted.
 
 **FR-5**: `_UnoUpdateDotnetJsFingerprintPublishOutput` SHALL update `wwwroot/uno-config.js` in the publish output. The former lookup under `$(WasmShellOutputPackagePath)` is removed.
 
-**FR-6**: The version checker SHALL resolve the configuration of a page that references `<package>/uno-bootstrap.js` by probing `uno-config.js` one folder above the bootstrapper first, then next to it for older layouts. The `embedded.js` fallback SHALL probe the site root before `<package>/uno-config.js`.
+**FR-6**: The version checker SHALL resolve the configuration of a page that references `<package>/uno-bootstrap.js` by probing `uno-config.js` one folder above the bootstrapper first, then next to it for older layouts. The `embedded.js` fallback SHALL probe the site root before `<package>/uno-config.js`. A probe only matches when the response contains an Uno configuration (`config.uno_`), because single-page-app hosts answer unknown paths with `index.html`; a network failure on a probe moves on to the next candidate.
 
-**FR-6a**: The `Uno.Wasm.Bootstrap.Server` publish-time fingerprint update SHALL update `wwwroot/uno-config.js`. When that file is absent (an app built with an older bootstrapper), it SHALL fall back to `wwwroot/package_*/uno-config.js`, never to the WebWorker copies nested deeper.
+**FR-6a**: The `Uno.Wasm.Bootstrap.Server` publish-time fingerprint update SHALL update `wwwroot/uno-config.js`. When that file is absent (an app built with an older bootstrapper), it SHALL fall back to `wwwroot/package_*/uno-config.js`, never to the WebWorker copies nested deeper. When several `package_*/uno-config.js` match, none is updated and a warning asks to clean the publish directory.
 
 **FR-7**: `config.uno_app_base`, the `UNO_BOOTSTRAP_APP_BASE` environment variable, and every other package-relative path in the configuration SHALL be unchanged.
 
