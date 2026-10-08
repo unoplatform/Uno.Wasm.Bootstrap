@@ -231,6 +231,9 @@ namespace Uno.Wasm.Bootstrap
 		{
 			ParseEnumProperty(nameof(WasmShellMode), WasmShellMode, out _shellMode);
 
+			// Every generated reference concatenates the base path directly
+			WebAppBasePath = WebAppBasePathHelper.Normalize(WebAppBasePath);
+
 			_runtimeExecutionMode
 				= WasmBuildNative && RunAOTCompilation ? RuntimeExecutionMode.InterpreterAndAOT : RuntimeExecutionMode.Interpreter;
 
@@ -548,9 +551,7 @@ namespace Uno.Wasm.Bootstrap
 		}
 
 		static string BuildDependencyPath(string dep, string baseLookup)
-			=> baseLookup.StartsWith("/")
-				? $"\"{baseLookup}{Path.GetFileName(dep)}\""
-				: $"\"{baseLookup}{Path.GetFileNameWithoutExtension(dep)}\"";
+			=> WebAppBasePathHelper.BuildDependencyPath(dep, baseLookup);
 
 		private void GenerateConfig()
 		{
