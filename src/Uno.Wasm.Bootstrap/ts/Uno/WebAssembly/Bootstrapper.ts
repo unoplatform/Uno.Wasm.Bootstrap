@@ -626,6 +626,18 @@ namespace Uno.WebAssembly.Bootstrap {
 			// Stylesheets are loaded as media="print" so that one stalling can't block this script (see ShellTask)
 			document.querySelectorAll<HTMLLinkElement>("link[data-uno-stylesheet]").forEach(link => link.media = "all");
 
+			// A Content-Security-Policy sent by the server can block the inlined loader styles: load the file instead
+			const inlined = <HTMLStyleElement | null>document.getElementById("uno-bootstrap-css");
+			if (inlined && !inlined.sheet && inlined.dataset.href) {
+				const link = document.createElement("link");
+				link.rel = "stylesheet";
+				link.href = inlined.dataset.href;
+				inlined.replaceWith(link);
+
+				// The baked manifest is in style attributes, which are blocked too
+				document.querySelector(".uno-loader")?.removeAttribute("data-manifest");
+			}
+
 			this.initProgress();
 		}
 
