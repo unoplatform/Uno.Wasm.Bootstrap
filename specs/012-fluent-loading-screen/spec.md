@@ -60,7 +60,14 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ### Older index.html files
 
-- Loader markup without the `.bar` element (the earlier template) keeps a progress bar at the bottom of the page, and the build reports warning `UNOWA0014` pointing to the current template or to `data-uno-loader="custom"`.
+- Loader markup without the `.bar` element (the earlier template) keeps a progress bar at the bottom of the page, and the build reports `UNOWA0014` pointing to the current template or to `data-uno-loader="custom"`. It is a high-importance message, not a warning, so builds that treat warnings as errors keep working.
+- An app `uno-bootstrap.css` written for the earlier loader, used with the current markup, never shows the Reload button outside the failed state: the template marks it `hidden`.
+
+### Compatibility
+
+- The page background and `color-scheme` only apply while the loader is in the page (`html:has(.uno-loader)`), so pages and renderers that style `html`/`body` themselves are unaffected once the app is up.
+- When a Content-Security-Policy sent by the server blocks the inlined stylesheet, the bootstrapper loads `uno-bootstrap.css` as a file (from the inline style's `data-href`) and applies the manifest from script, since the baked style attributes are blocked too.
+- An app `uno-bootstrap.css` with relative `url()` or `@import` references is linked instead of inlined, so those references keep resolving against the stylesheet.
 
 ## Non-goals
 
@@ -76,7 +83,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ## Validation
 
-Unit tests (`Given_LoaderMarkup`): manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors and logos, precedence, rejected colors and script URLs, attribute encoding, custom loaders left untouched, legacy markup detection.
+Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors and logos, precedence, rejected colors and script URLs, attribute encoding, custom loaders left untouched, legacy markup detection.
 
 `src/Uno.Wasm.Tests.Loader` drives the published RayTracer sample (which has an `AppManifest.js` with per-theme colors). It serves files only from inside the published root.
 
