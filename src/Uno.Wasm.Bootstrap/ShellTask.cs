@@ -59,6 +59,7 @@ namespace Uno.Wasm.Bootstrap
 		private List<AssemblyDefinition>? _resourceSearchList;
 		private List<string> _referencedAssemblies = new List<string>();
 		private string[]? _additionalStyles;
+		private string? _appManifestPath;
 		private string _intermediateAssetsPath = "";
 		private string[]? _contentExtensionsToExclude;
 		private RuntimeExecutionMode _runtimeExecutionMode;
@@ -211,7 +212,7 @@ namespace Uno.Wasm.Bootstrap
 			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
-			foreach(var staticAsset in StaticWebContent)
+			foreach (var staticAsset in StaticWebContent)
 			{
 				var targetPath = staticAsset.GetMetadata("Link");
 
@@ -398,6 +399,11 @@ namespace Uno.Wasm.Bootstrap
 					var scriptName = Path.GetFileName(path);
 
 					Log.LogMessage($"Embedded resources JS {scriptName}");
+
+					if (scriptName.Equals("AppManifest.js", StringComparison.OrdinalIgnoreCase))
+					{
+						_appManifestPath = fullSourcePath;
+					}
 
 					_dependencies.Add(scriptName);
 					AddStaticAsset(scriptName, fullSourcePath, overrideExisting: true);
@@ -703,7 +709,24 @@ namespace Uno.Wasm.Bootstrap
 			using var reader = new StreamReader(IndexHtmlPath);
 			var html = reader.ReadToEnd();
 
-			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(GetStyleMarkup)));
+			var customLoader = LoaderMarkup.IsCustomLoader(html);
+			if (LoaderMarkup.UsesLegacyMarkup(html))
+			{
+				Log.LogWarning(
+					subcategory: null,
+					warningCode: "UNOWA0014",
+					helpKeyword: null,
+					file: IndexHtmlPath, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+					message: "The loader markup in this index.html predates the current loader, so it only gets a basic look. Copy the loader from the bootstrapper's index.html template to get the new one, or mark your own loader with data-uno-loader=\"custom\".");
+			}
+
+			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(style => GetStyleMarkup(style, customLoader))));
+
+			// Under a Content-Security-Policy the inline style attribute could be blocked: the bootstrapper applies the manifest instead
+			if (!customLoader && string.IsNullOrEmpty(CSPConfiguration) && _appManifestPath is not null && File.Exists(_appManifestPath))
+			{
+				html = LoaderMarkup.BakeAppManifest(html, LoaderMarkup.ParseAppManifest(File.ReadAllText(_appManifestPath)));
+			}
 
 			// The loader's layout depends on these, so they must be right before the bootstrapper runs
 			html = html
@@ -754,10 +777,16 @@ namespace Uno.Wasm.Bootstrap
 		/// set (it would likely block inline styles). Other stylesheets load as media="print" and are switched to "all"
 		/// by the bootstrapper: a parser-inserted stylesheet that stalls would otherwise block the module scripts.
 		/// </summary>
-		private string GetStyleMarkup(string style)
+		private string GetStyleMarkup(string style, bool customLoader)
 		{
 			if (Path.GetFileName(style) == "uno-bootstrap.css")
 			{
+				// A custom loader brings its own styles, inline in index.html
+				if (customLoader)
+				{
+					return "";
+				}
+
 				// Last match: app WasmCSS is added after the framework's, so it overrides it
 				var source = StaticWebContent
 					.LastOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
