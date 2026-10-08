@@ -169,5 +169,23 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 			Assert.IsFalse(LoaderMarkup.UsesLegacyMarkup(CustomLoader));
 			Assert.IsFalse(LoaderMarkup.UsesLegacyMarkup("<div id=\"uno-body\"></div>"));
 		}
+
+		[TestMethod]
+		[DataRow(".logo { background: url(logo.png); }")]
+		[DataRow(".logo { background: url( './images/logo.png' ); }")]
+		[DataRow(".logo { background: URL(\"../logo.svg\"); }")]
+		[DataRow("@import 'theme.css';")]
+		public void When_Stylesheet_Has_Relative_Urls(string css)
+			=> Assert.IsTrue(LoaderMarkup.HasRelativeUrls(css));
+
+		[TestMethod]
+		[DataRow(".uno-loader { color: red; }")]
+		[DataRow(".alert { --icon: url(\"data:image/svg+xml;base64,PHN2Zz4=\"); }")]
+		[DataRow(".logo { background: url(https://example.com/logo.png); }")]
+		[DataRow(".logo { background: url(/assets/logo.png); }")]
+		[DataRow(".mask { mask: url(#shape); }")]
+		[DataRow("@import url(https://fonts.example.com/font.css);")]
+		public void When_Stylesheet_Has_No_Relative_Urls(string css)
+			=> Assert.IsFalse(LoaderMarkup.HasRelativeUrls(css));
 	}
 }
