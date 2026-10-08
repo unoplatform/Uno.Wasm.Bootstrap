@@ -123,7 +123,7 @@ public static class PreloadLinks
 		=> entries switch
 		{
 			JArray array => array.Select(e => e.Value<string>("name") ?? "").Where(n => n.Length > 0), // .NET 10+
-			JObject dictionary => dictionary.Properties().Select(p => p.Name),
+			JObject dictionary => dictionary.Properties().Select(p => (p.Value as JObject)?.Value<string>("name") ?? p.Name),
 			_ => [],
 		};
 
