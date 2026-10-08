@@ -1,4 +1,5 @@
 // Serves a published app with a switchable network: POST /__mode/normal | offline | flaky
+// GET /__hits?path=<path> returns how many times <path> was requested since the last mode switch.
 // usage: node server.js <wwwroot> <port>
 //
 // offline: every request is answered by closing the connection.
@@ -17,6 +18,7 @@ const types = {
 
 let mode = "normal";
 let seen = new Set();
+let hits = new Map();
 
 http.createServer((req, res) => {
 	const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
@@ -24,8 +26,15 @@ http.createServer((req, res) => {
 	if (urlPath.startsWith("/__mode/")) {
 		mode = urlPath.substring("/__mode/".length);
 		seen = new Set();
+		hits = new Map();
 		return res.end(mode);
 	}
+
+	if (urlPath === "/__hits") {
+		return res.end(String(hits.get(new URL(req.url, "http://localhost").searchParams.get("path")) || 0));
+	}
+
+	hits.set(urlPath, (hits.get(urlPath) || 0) + 1);
 
 	if (mode === "offline") {
 		return req.socket.destroy();

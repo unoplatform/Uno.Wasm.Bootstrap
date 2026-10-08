@@ -118,6 +118,17 @@ async function waitForStart(page, label) {
 		console.log(ok ? `OK: excluded file ${target} cached on use and served offline` : `FAIL: excluded file ${target} not cached on use`);
 	}
 
+	// Package files never change, so they are served from the cache without touching the network
+	if (ok) {
+		const packageFile = await page.evaluate(() => new URL(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src).pathname);
+		await setMode("normal");
+		ok = await page.evaluate(async p => (await fetch(p)).ok, packageFile);
+		const hits = await new Promise((resolve, reject) =>
+			http.get(`${baseUrl}__hits?path=${encodeURIComponent(packageFile)}`, res => { let b = ""; res.on("data", d => b += d); res.on("end", () => resolve(parseInt(b))); }).on("error", reject));
+		ok = ok && hits === 0;
+		console.log(ok ? `OK: package file ${packageFile} served from the cache` : `FAIL: package file ${packageFile} requested ${hits} time(s) from the network`);
+	}
+
 	// Requests that aren't app files are left to the browser: never cut off by the timeout, never cached
 	if (ok) {
 		const result = await page.evaluate(async () => {
