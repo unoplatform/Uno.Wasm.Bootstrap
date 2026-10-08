@@ -89,6 +89,9 @@
 			<_UnoServerConfigJsPath Condition="'$(_UnoServerConfigJsPath)' == '' AND '@(_UnoServerConfigJs->Count())' == '1'">@(_UnoServerConfigJs)</_UnoServerConfigJsPath>
 		</PropertyGroup>
 
+		<Warning Text="[Uno.Server] Found several uno-config.js files in $(_UnoServerActualPublishDir)wwwroot/package_*/ and none at the root, so none was updated with the dotnet.js fingerprint. Clean the publish directory and publish again."
+				 Condition="'$(_UnoServerConfigJsPath)' == '' AND '@(_UnoServerConfigJs->Count())' &gt; '1'" />
+
 		<Message Importance="low"
 				 Text="[Uno.Server] Found dotnet.js fingerprint: $(_UnoServerActualDotnetJsFingerprint) at $(_UnoServerActualPublishDir)wwwroot/_framework/"
 				 Condition="'$(_UnoServerActualDotnetJsFingerprint)' != ''" />
