@@ -32,6 +32,18 @@ function isImmutable(url) {
         || (path.startsWith(`${APP_ROOT}_framework/`) && /\.[a-z0-9]{10}\.[a-z]+$/.test(path));
 }
 
+const appFiles = new Set([WEBAPP_PATH, `${WEBAPP_PATH}index.html`, `${WEBAPP_PATH}uno-config.js`, ...unoConfig.offline_files].map(pathOf));
+
+/**
+ * The app's own files. Other requests (API calls, streams, user data) are left to the browser: they must not be
+ * cut off by the network timeout, nor cached and replayed for a different query.
+ */
+function isAppFile(url) {
+    const path = url.pathname;
+
+    return appFiles.has(path) || path.startsWith(PACKAGE_ROOT) || path.startsWith(`${APP_ROOT}_framework/`);
+}
+
 function globToRegExp(glob) {
     const escaped = glob.trim().replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\u0000").replace(/\*/g, "[^/]*").replace(/\u0000/g, ".*");
     return new RegExp(`(^|/)${escaped}$`, "i");
@@ -103,16 +115,18 @@ async function precache(files) {
 }
 
 /**
- * Fetches and reads the whole body within the timeout: a connection dropping mid-body must fall back to
- * the cache too, instead of handing the page a truncated response.
+ * Fetches and reads the whole body, within the timeout when there is one: a connection dropping mid-body must
+ * fall back to the cache or be retried, instead of handing the page a truncated response.
  */
-async function fetchWithTimeout(request, timeoutMs) {
+async function fetchFully(request, timeoutMs) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
     try {
         // A navigation request can't be combined with a RequestInit
         const response = await fetch(request.mode === "navigate" ? request.url : request, { signal: controller.signal });
-        const body = await response.arrayBuffer();
+
+        // These statuses can't carry a body, not even an empty one
+        const body = [101, 204, 205, 304].includes(response.status) ? null : await response.arrayBuffer();
         return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
     } finally {
         clearTimeout(timer);
@@ -147,8 +161,8 @@ async function cacheFirst(event) {
 async function networkFirst(event) {
     const request = event.request;
     try {
-        const response = await fetchWithTimeout(request.clone(), NETWORK_TIMEOUT_MS);
-        if (response.ok && request.method === "GET") {
+        const response = await fetchFully(request.clone(), NETWORK_TIMEOUT_MS);
+        if (response.ok && !/no-store/i.test(response.headers.get("cache-control") ?? "")) {
             event.waitUntil(putInCache(request, response.clone()));
         }
         return response;
@@ -162,10 +176,11 @@ async function networkFirst(event) {
         return cached;
     }
 
+    // No timeout here: this is the last resort for a large file on a slow connection
     for (let retry = 0; retry < fetchRetries; retry++) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, retry) * 500));
         try {
-            return await fetch(request.clone());
+            return await fetchFully(request.clone());
         } catch (e) {
             trace(`Retry ${retry + 1} failed for ${request.url}: ${e.message}`);
         }
@@ -215,15 +230,20 @@ if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True")
 
     // Sent by the bootstrapper once the app is running: caches the remaining files, so the app also works
     // offline after this first visit. Not done in 'activate', since fetches wait for activation to complete.
+    // Every open tab sends the message, so they share a single run
+    let backgroundPrecache = null;
+
     self.addEventListener('message', event => {
         if (event.data === 'uno-precache') {
-            event.waitUntil(precache(unoConfig.offline_files.filter(f => !precacheExclusions.some(r => r.test(f)))));
+            backgroundPrecache ??= precache(unoConfig.offline_files.filter(f => !precacheExclusions.some(r => r.test(f))))
+                .finally(() => backgroundPrecache = null);
+            event.waitUntil(backgroundPrecache);
         }
     });
 
     self.addEventListener('fetch', event => {
         const url = new URL(event.request.url);
-        if (event.request.method !== "GET" || url.origin !== self.location.origin) {
+        if (event.request.method !== "GET" || url.origin !== self.location.origin || !isAppFile(url)) {
             return;
         }
 

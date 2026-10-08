@@ -26,8 +26,8 @@ When a PWA manifest is set, a service worker is registered a few seconds after t
 - On install, it caches the files the app needs to start. Most come from the browser's HTTP cache, since the app just downloaded them.
 - Once active, it caches the remaining published files in the background, a few at a time, so the app also works offline after the first visit.
 - Files that never change (the `package_<hash>` folder and the fingerprinted `_framework` files) are served from the cache first. A dropped connection then can't break a visit when the files are already cached.
-- Other requests, like `index.html`, go to the network first. When the network fails or takes more than 4 seconds, the cached copy is used.
-- Files the app fetches are cached as it uses them.
+- The app's other files, like `index.html`, go to the network first. When the network fails or takes more than 4 seconds, the cached copy is used.
+- The app's files are cached as it uses them. Requests for anything else, such as API calls, are not handled by the service worker.
 
 Large files that are not always needed, like font families, can be left out of the background caching; they are still cached when the app uses them:
 
