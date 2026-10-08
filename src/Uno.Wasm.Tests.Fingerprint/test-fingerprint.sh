@@ -266,6 +266,16 @@ fi
 
 echo -e "${GREEN}✓ Publish config does not contain fingerprinted dotnet.js reference (fingerprinting disabled)${NC}"
 
+# The fingerprinted dotnet.js of Test 2 is still in the publish directory: the preload links must ignore it
+NOFP_PRELOAD=$(sed -n '/<!-- uno-preload-links -->/,/<!-- \/uno-preload-links -->/p' "$PUBLISH_DIR_NOFP/wwwroot/index.html")
+if ! echo "$NOFP_PRELOAD" | grep -q '_framework/dotnet\.js"' || echo "$NOFP_PRELOAD" | grep -qE '_framework/dotnet\.[a-z0-9]+\.js"'; then
+    echo -e "${RED}❌ FAIL: Preload links don't point at the plain dotnet.js (fingerprinting disabled)${NC}"
+    echo "$NOFP_PRELOAD"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Preload links point at the plain dotnet.js (fingerprinting disabled)${NC}"
+
 # Test 8: Publish with WasmFingerprintAssets=false
 # The SDK then emits plain dotnet.js, dotnet.native.js and dotnet.runtime.js, which
 # must not be mistaken for a fingerprinted dotnet.<hash>.js.
