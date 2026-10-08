@@ -97,7 +97,7 @@ The loader uses this markup, all of which is optional apart from the `.uno-loade
         </div>
         <div class="meta"></div>
         <div class="hint" role="status" aria-live="polite"></div>
-        <button class="reload" type="button">Reload</button>
+        <button class="reload" type="button" hidden>Reload</button>
     </div>
 </div>
 ```
