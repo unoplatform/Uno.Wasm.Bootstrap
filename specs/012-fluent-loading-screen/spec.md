@@ -65,7 +65,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 ## Non-goals
 
 - Re-rendering the loader when the OS theme changes mid-load (the `<picture>` source and CSS follow it, the runtime fallback doesn't).
-- Generating the per-theme manifest keys; `Uno.Resizetizer` currently emits `splashScreenImage` and `splashScreenColor` only.
+- Generating the manifest keys: that's `Uno.Resizetizer` (`BackgroundColor`, `DarkBackgroundColor` and `DarkFile` on `UnoSplashScreen`) and the Uno.Sdk (`UnoSplashScreenBackgroundColor`, `UnoSplashScreenDarkBackgroundColor`, `UnoSplashScreenDarkFile`; no default color on WebAssembly, so the loader follows the browser theme).
 
 ## Edge cases
 
