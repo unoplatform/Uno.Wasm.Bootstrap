@@ -983,7 +983,6 @@ namespace Uno.Wasm.Bootstrap
 		private string TouchServiceWorker(string workerBody)
 		{
 			workerBody = workerBody.Replace("$(CACHE_KEY)", Guid.NewGuid().ToString());
-			workerBody = workerBody.Replace("$(REMOTE_BASE_PATH)", PackageAssetsFolder);
 			workerBody = workerBody.Replace("$(REMOTE_WEBAPP_PATH)", WebAppBasePath);
 
 			return workerBody;
