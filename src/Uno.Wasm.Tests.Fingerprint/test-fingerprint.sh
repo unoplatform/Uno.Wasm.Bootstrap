@@ -31,7 +31,7 @@ dotnet build "$PROJECT_FILE" --configuration Release
 BUILD_OUTPUT="$PROJECT_DIR/bin/Release/net10.0"
 
 # Find uno-config.js (may be in a package subdirectory)
-BUILD_CONFIG=$(find "$BUILD_OUTPUT/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+BUILD_CONFIG="$BUILD_OUTPUT/wwwroot/uno-config.js"
 
 if [ ! -f "$BUILD_CONFIG" ]; then
     echo -e "${RED}❌ FAIL: uno-config.js not found in build output${NC}"
@@ -73,7 +73,7 @@ PUBLISH_DIR="$PROJECT_DIR/bin/Release/net10.0/publish"
 dotnet publish "$PROJECT_FILE" --configuration Release
 
 # Find uno-config.js in publish output (may be in a package subdirectory)
-PUBLISH_CONFIG=$(find "$PUBLISH_DIR/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+PUBLISH_CONFIG="$PUBLISH_DIR/wwwroot/uno-config.js"
 
 if [ ! -f "$PUBLISH_CONFIG" ]; then
     echo -e "${RED}❌ FAIL: uno-config.js not found in publish output${NC}"
@@ -219,7 +219,7 @@ rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
 dotnet build "$PROJECT_FILE" --configuration Release -p:WasmShellEnableDotnetJsFingerprinting=false
 
 BUILD_OUTPUT_NOFP="$PROJECT_DIR/bin/Release/net10.0"
-BUILD_CONFIG_NOFP=$(find "$BUILD_OUTPUT_NOFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+BUILD_CONFIG_NOFP="$BUILD_OUTPUT_NOFP/wwwroot/uno-config.js"
 
 if [ ! -f "$BUILD_CONFIG_NOFP" ]; then
     echo -e "${RED}❌ FAIL: uno-config.js not found in build output${NC}"
@@ -246,7 +246,7 @@ echo "----------------------------------------"
 PUBLISH_DIR_NOFP="$PROJECT_DIR/bin/Release/net10.0/publish"
 dotnet publish "$PROJECT_FILE" --configuration Release -p:WasmShellEnableDotnetJsFingerprinting=false
 
-PUBLISH_CONFIG_NOFP=$(find "$PUBLISH_DIR_NOFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+PUBLISH_CONFIG_NOFP="$PUBLISH_DIR_NOFP/wwwroot/uno-config.js"
 
 if [ ! -f "$PUBLISH_CONFIG_NOFP" ]; then
     echo -e "${RED}❌ FAIL: uno-config.js not found in publish output${NC}"
@@ -276,7 +276,7 @@ rm -rf "$PROJECT_DIR/bin" "$PROJECT_DIR/obj"
 PUBLISH_DIR_NOASSETFP="$PROJECT_DIR/bin/Release/net10.0/publish"
 dotnet publish "$PROJECT_FILE" --configuration Release -p:WasmFingerprintAssets=false
 
-PUBLISH_CONFIG_NOASSETFP=$(find "$PUBLISH_DIR_NOASSETFP/wwwroot" -name "uno-config.js" 2>/dev/null | head -1)
+PUBLISH_CONFIG_NOASSETFP="$PUBLISH_DIR_NOASSETFP/wwwroot/uno-config.js"
 
 if [ ! -f "$PUBLISH_CONFIG_NOASSETFP" ]; then
     echo -e "${RED}❌ FAIL: uno-config.js not found in publish output${NC}"
@@ -323,7 +323,7 @@ fi
 
 ENDPOINTS_FILE=$(find "$PUBLISH_DIR_REPUBLISH" -maxdepth 1 -name "*.staticwebassets.endpoints.json" | head -1)
 EXPECTED_DOTNET_JS=$(grep -o '"Route":"_framework/dotnet.js","AssetFile":"_framework/dotnet\.[a-z0-9]*\.js"' "$ENDPOINTS_FILE" | sed -n 's/.*"AssetFile":"_framework\/\(dotnet\.[a-z0-9]*\.js\)"/\1/p' | head -1)
-REPUBLISH_CONFIG=$(find "$PUBLISH_DIR_REPUBLISH/wwwroot" -name "uno-config.js" | head -1)
+REPUBLISH_CONFIG="$PUBLISH_DIR_REPUBLISH/wwwroot/uno-config.js"
 REPUBLISH_DOTNET_JS=$(sed -n 's/.*dotnet_js_filename = "\([^"]*\)".*/\1/p' "$REPUBLISH_CONFIG" | head -1)
 
 if [ -z "$EXPECTED_DOTNET_JS" ] || [ "$REPUBLISH_DOTNET_JS" != "$EXPECTED_DOTNET_JS" ]; then

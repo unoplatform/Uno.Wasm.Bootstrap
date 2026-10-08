@@ -61,7 +61,7 @@ echo ""
 echo "Step 2: Validating host uno-config.js..."
 echo "-----------------------------------------"
 
-HOST_CONFIG_JS=$(find "$WWWROOT" -maxdepth 2 -name "uno-config.js" -not -path "*/_worker/*" 2>/dev/null | head -1)
+HOST_CONFIG_JS="$WWWROOT/uno-config.js"
 if [ ! -f "$HOST_CONFIG_JS" ]; then
     echo -e "${RED}FAIL: Host uno-config.js not found in $WWWROOT${NC}"
     exit 1
