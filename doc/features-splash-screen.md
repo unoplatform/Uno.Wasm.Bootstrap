@@ -19,7 +19,17 @@ The default configuration for the bootstrapper is to show the Uno Platform logo.
   }
   ```
 
-`Uno.Resizetizer` generates this file from `UnoSplashScreen`, with `splashScreenImage` and `splashScreenColor`.
+With the Uno.Sdk, `Uno.Resizetizer` generates this file from the splash screen properties. Without a background color, which is the default for WebAssembly, the loader follows the browser's light or dark theme. To set colors or a dark-theme image:
+
+```xml
+<PropertyGroup>
+    <UnoSplashScreenBackgroundColor>#FFFFFF</UnoSplashScreenBackgroundColor>
+    <UnoSplashScreenDarkBackgroundColor>#202020</UnoSplashScreenDarkBackgroundColor>
+    <UnoSplashScreenDarkFile>Assets\Splash\splash_screen_dark.svg</UnoSplashScreenDarkFile>
+</PropertyGroup>
+```
+
+These become `lightThemeBackgroundColor`, `darkThemeBackgroundColor` and `splashScreenImageDark` below. They need versions of the Uno.Sdk and `Uno.Resizetizer` that support them.
 
 These properties are supported in the manifest:
 
