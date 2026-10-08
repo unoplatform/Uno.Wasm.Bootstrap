@@ -1,4 +1,4 @@
-// Follows the loader through a normal start, a slow one that goes offline, and a failed one.
+// Follows the loader through a normal start, a slow one that goes offline, a failed one, Uno Platform's hand-off and a custom loader.
 // usage: node app.js <base url>   (expects the RayTracer sample, which fills #results)
 const puppeteer = require("puppeteer");
 const http = require("http");
@@ -46,6 +46,10 @@ function check(condition, message) {
 
 	ok = check(await page.$("style#uno-bootstrap-css") !== null, "loader stylesheet is inlined") && ok;
 
+	// The AppManifest colors are in index.html, so they're right before the bootstrapper's script runs
+	ok = check(await page.$eval(".uno-loader", l => l.dataset.manifest).catch(() => null) === "baked", "manifest is baked into index.html") && ok;
+	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).backgroundColor).catch(() => "") === "rgb(253, 246, 227)", "light theme background from the manifest on the first paint") && ok;
+
 	// By default it's just the logo and the bar: the text block below takes no space
 	await page.waitForFunction(() => document.querySelector(".uno-loader")?.dataset.phase === "download", { timeout: 30000 }).catch(() => { });
 	// Layout offsets, not client rects: the text block's fade-in animates a transform
@@ -54,6 +58,13 @@ function check(condition, message) {
 		return info.offsetTop + info.offsetHeight - (bar.offsetTop + bar.offsetHeight);
 	}).catch(() => Infinity);
 	ok = check(below === 0, `nothing takes space below the bar (${below}px)`) && ok;
+
+	// Where ExtendedSplashScreen draws it, so the hand-off doesn't jump
+	const offCentre = await page.$eval(".uno-loader .logo", logo => {
+		const r = logo.getBoundingClientRect();
+		return Math.max(Math.abs(r.left + r.width / 2 - innerWidth / 2), Math.abs(r.top + r.height / 2 - innerHeight / 2));
+	}).catch(() => Infinity);
+	ok = check(offCentre < 1, `logo is centred in the viewport (off by ${offCentre.toFixed(1)}px)`) && ok;
 	ok = check(await page.$eval(".uno-loader .logo", l => getComputedStyle(l).animationName.includes("uno-loader-breathe")).catch(() => false), "logo breathes by default") && ok;
 
 	await page.waitForFunction(() => {
@@ -68,6 +79,78 @@ function check(condition, message) {
 	ok = check(!log.some(e => /\|(Getting ready…|Downloading app|Starting…)\|/.test(e)), "no phase labels by default") && ok;
 	ok = check(log.some(e => e.startsWith("starting|")), "starting phase after the downloads") && ok;
 	ok = check(log[log.length - 1] === "removed", "loader removed once the app runs") && ok;
+	await page.close();
+
+	// Dark theme background from the manifest
+	page = await browser.newPage();
+	await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).backgroundColor).catch(() => "") === "rgb(0, 43, 54)", "dark theme background from the manifest") && ok;
+	await page.close();
+
+	// Uno Platform's hand-off: it keeps the loader up, then removes the element itself on its first frame. The
+	// RayTracer sample replaces the page content once it runs, which removes the loader the same way.
+	await setMode("keep");
+	page = await browser.newPage();
+	await page.evaluateOnNewDocument(() => {
+		window.__handOff = {};
+		let loader = null;
+		new MutationObserver(() => {
+			loader ??= document.querySelector(".uno-loader");
+			if (!loader) {
+				return;
+			}
+			const h = window.__handOff;
+			if (!loader.isConnected && !h.removedAt) {
+				h.removedAt = performance.now();
+				h.kept = loader.classList.contains("uno-keep-loader");
+			} else if (loader.isConnected && h.removedAt && !h.backAt) {
+				h.backAt = performance.now();
+				h.fading = loader.classList.contains("uno-leaving");
+			} else if (!loader.isConnected && h.backAt && !h.goneAt) {
+				h.goneAt = performance.now();
+			}
+		}).observe(document, { subtree: true, childList: true });
+	});
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	await page.waitForFunction(() => window.__handOff.goneAt, { timeout: 60000 }).catch(() => { });
+	const handOff = await page.evaluate(() => window.__handOff);
+	ok = check(handOff.kept === true, "loader kept until the app removes it") && ok;
+	ok = check(handOff.fading === true && handOff.backAt - handOff.removedAt < 50, "then it's put back and fades out") && ok;
+	const fadeMs = Math.round((handOff.goneAt ?? 0) - (handOff.backAt ?? 0));
+	ok = check(handOff.goneAt > 0 && fadeMs >= 200, `and is removed after the fade (${fadeMs} ms)`) && ok;
+	await page.close();
+
+	// An app-provided loader: the bootstrapper publishes the state and leaves the content alone
+	await setMode("custom");
+	page = await browser.newPage();
+	await page.evaluateOnNewDocument(() => {
+		window.__phases = [];
+		document.addEventListener("uno-loader-phase", e => window.__phases.push(e.detail.phase));
+		new MutationObserver(() => {
+			const loader = document.querySelector(".uno-loader");
+			if (loader?.classList.contains("uno-leaving") && !window.__leavingAt) {
+				window.__leavingAt = performance.now();
+			}
+			if (!loader && window.__leavingAt && !window.__removedAt) {
+				window.__removedAt = performance.now();
+			}
+		}).observe(document, { subtree: true, childList: true, attributes: true });
+	});
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	await page.waitForFunction(() => document.querySelector(".uno-loader")?.dataset.phase === "download", { timeout: 30000 }).catch(() => { });
+	const custom = await page.$eval(".uno-loader", l => ({
+		text: l.querySelector(".mine").textContent,
+		progressValue: l.querySelector("progress").hasAttribute("value"),
+		alert: l.hasAttribute("loading-alert"),
+		statusText: l.hasAttribute("data-status-text"),
+	})).catch(() => null);
+	ok = check(custom && custom.text === "Custom" && !custom.progressValue && !custom.alert && !custom.statusText, "custom loader content and attributes left alone") && ok;
+	await page.waitForFunction(() => window.__removedAt, { timeout: 60000 }).catch(() => { });
+	const customExit = await page.evaluate(() => window.__leavingAt && window.__removedAt ? Math.round(window.__removedAt - window.__leavingAt) : -1);
+	const phases = await page.evaluate(() => window.__phases);
+	ok = check(phases.includes("download") && phases.includes("starting"), `phase events (${phases.join(", ")})`) && ok;
+	ok = check(customExit >= 300, `custom loader's own exit transition runs before removal (${customExit} ms)`) && ok;
 	await page.close();
 
 	// Slow start, then offline and back
