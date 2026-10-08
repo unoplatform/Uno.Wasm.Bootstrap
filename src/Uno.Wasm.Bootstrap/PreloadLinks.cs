@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Uno.Wasm.Bootstrap;
@@ -61,7 +62,7 @@ public static class PreloadLinks
 		};
 
 		var match = _bootJson.Match(dotnetJsContent);
-		if (match.Success && JObject.Parse(match.Groups[1].Value)["resources"] is JObject resources)
+		if (match.Success && TryParse(() => JObject.Parse(match.Groups[1].Value)) is { } bootConfig && bootConfig["resources"] is JObject resources)
 		{
 			foreach (var name in Names(resources["jsModuleRuntime"]).Concat(Names(resources["jsModuleNative"])))
 			{
@@ -78,14 +79,11 @@ public static class PreloadLinks
 
 		// Loaded by require.js as classic scripts once the runtime is ready
 		var dependencies = _dependencies.Match(unoConfigContent);
-		if (dependencies.Success)
+		if (dependencies.Success && TryParse(() => JArray.Parse(dependencies.Groups[1].Value)) is { } dependencyArray)
 		{
-			foreach (var dependency in JArray.Parse(dependencies.Groups[1].Value).Values<string>())
+			foreach (var dependency in dependencyArray.Values<string>().OfType<string>())
 			{
-				if (dependency is not null)
-				{
-					links.Add($"<link rel=\"preload\" href=\"{Attribute(dependency.EndsWith(".js") ? dependency : dependency + ".js")}\" as=\"script\" />");
-				}
+				links.Add($"<link rel=\"preload\" href=\"{Attribute(dependency.EndsWith(".js") ? dependency : dependency + ".js")}\" as=\"script\" />");
 			}
 		}
 
@@ -106,6 +104,19 @@ public static class PreloadLinks
 
 		var headEnd = html.IndexOf("</head>", System.StringComparison.OrdinalIgnoreCase);
 		return headEnd < 0 ? html : html.Insert(headEnd, block);
+	}
+
+	// A malformed section only loses its hints, it never fails the publish
+	private static T? TryParse<T>(System.Func<T> parse) where T : class
+	{
+		try
+		{
+			return parse();
+		}
+		catch (JsonReaderException)
+		{
+			return null;
+		}
 	}
 
 	private static IEnumerable<string> Names(JToken? entries)

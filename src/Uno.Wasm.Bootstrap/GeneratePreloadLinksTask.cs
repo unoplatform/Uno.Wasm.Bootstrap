@@ -48,6 +48,12 @@ public class GeneratePreloadLinksTask_v0 : Microsoft.Build.Utilities.Task
 	public override bool Execute()
 	{
 		var dotnetJsFileName = DotnetJsFingerprint is { Length: > 0 } ? $"dotnet.{DotnetJsFingerprint}.js" : "dotnet.js";
+		if (Path.GetFileName(dotnetJsFileName) != dotnetJsFileName)
+		{
+			Log.LogMessage(MessageImportance.Normal, $"[Uno] Invalid dotnet.js fingerprint '{DotnetJsFingerprint}', skipping preload links");
+			return true;
+		}
+
 		var dotnetJsPath = Path.Combine(FrameworkDirectory, dotnetJsFileName);
 
 		if (!File.Exists(IndexHtml) || !File.Exists(dotnetJsPath) || !File.Exists(ConfigFile))

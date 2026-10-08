@@ -27,7 +27,7 @@ A block from an earlier run is replaced, never duplicated. Pre-compressed `index
 
 ## Failure modes
 
-The task never fails the publish. It skips silently when `index.html`, `dotnet.js` or `uno-config.js` is missing, and logs a message when `index.html` has no `uno-bootstrap.js` script tag. A `dotnet.js` without an embedded boot config gets only the entry modules.
+The task never fails the publish. It skips silently when `index.html`, `dotnet.js` or `uno-config.js` is missing, and logs a message when `index.html` has no `uno-bootstrap.js` script tag. A `dotnet.js` without an embedded boot config, or with a malformed one, gets only the entry modules. Malformed `config.uno_dependencies` JSON drops only the dependency hints. A dotnet.js fingerprint that is not a plain file name skips generation.
 
 ## Validation
 
