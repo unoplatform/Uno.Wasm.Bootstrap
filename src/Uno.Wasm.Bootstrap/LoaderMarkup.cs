@@ -86,7 +86,8 @@ public static class LoaderMarkup
 	/// Applies the manifest's colors and logo to the built-in loader, the way the bootstrapper does at runtime, and marks
 	/// it <c>data-manifest="baked"</c> so the bootstrapper doesn't apply them again. Custom loaders are left untouched.
 	/// </summary>
-	public static string BakeAppManifest(string html, IReadOnlyDictionary<string, string> manifest)
+	/// <param name="packageUrl">URL of the package folder, ending with a slash: local manifest images are relative to it.</param>
+	public static string BakeAppManifest(string html, IReadOnlyDictionary<string, string> manifest, string packageUrl = "./")
 	{
 		var loader = _loaderTag.Match(html);
 		if (!loader.Success || _customAttribute.IsMatch(loader.Groups["attrs"].Value))
@@ -125,10 +126,10 @@ public static class LoaderMarkup
 		var tagEnd = loader.Index + loader.Length - 1;
 		var result = html.Substring(0, tagEnd) + attributes + html.Substring(tagEnd);
 
-		return BakeLogo(result, loader.Index, manifest);
+		return BakeLogo(result, loader.Index, manifest, packageUrl);
 	}
 
-	private static string BakeLogo(string html, int loaderIndex, IReadOnlyDictionary<string, string> manifest)
+	private static string BakeLogo(string html, int loaderIndex, IReadOnlyDictionary<string, string> manifest, string packageUrl)
 	{
 		var logo = _logoTag.Match(html, loaderIndex);
 		if (!logo.Success)
@@ -136,8 +137,8 @@ public static class LoaderMarkup
 			return html;
 		}
 
-		var light = ImageUrl(manifest, "splashScreenImage");
-		var dark = ImageUrl(manifest, "splashScreenImageDark") ?? light;
+		var light = ImageUrl(manifest, "splashScreenImage", packageUrl);
+		var dark = ImageUrl(manifest, "splashScreenImageDark", packageUrl) ?? light;
 
 		var currentSrc = _srcAttribute.Match(logo.Value);
 		if (light is null)
@@ -164,7 +165,7 @@ public static class LoaderMarkup
 		return html.Substring(0, logo.Index) + img + html.Substring(logo.Index + logo.Length);
 	}
 
-	private static string? ImageUrl(IReadOnlyDictionary<string, string> manifest, string key)
+	private static string? ImageUrl(IReadOnlyDictionary<string, string> manifest, string key, string packageUrl)
 	{
 		if (!manifest.TryGetValue(key, out var value) || value.Trim() is not { Length: > 0 } url)
 		{
@@ -182,8 +183,8 @@ public static class LoaderMarkup
 			return null;
 		}
 
-		// Local images are relative to the package folder: "./" is rewritten to it with the rest of index.html
-		return "./" + url.TrimStart('/');
+		// Like the runtime (uno_app_base): local images are in the package folder
+		return packageUrl + url.TrimStart('/');
 	}
 
 	private static bool IsKey((bool IsString, string Text) token)
