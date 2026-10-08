@@ -66,7 +66,7 @@ async function waitForStart(page, label) {
 			for (const name of await caches.keys()) {
 				cached.push(...(await (await caches.open(name)).keys()).map(r => new URL(r.url).pathname));
 			}
-			const config = await import(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src.replace(/uno-bootstrap\.js.*$/, "uno-config.js"));
+			const config = await import(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src.replace(/package_[^/]+\/uno-bootstrap\.js.*$/, "uno-config.js"));
 			// The WebWorker's _framework entries keep their unexpanded "#[.{fingerprint}]" placeholder, so they 404
 			const offline = config.config.offline_files.filter(f => !f.includes("#[")).map(f => new URL(f, location.href).pathname);
 			const isImage = p => p.includes("/pwa-images/");
@@ -92,7 +92,7 @@ async function waitForStart(page, label) {
 	// An excluded file is cached when the app uses it, then served offline
 	if (ok) {
 		const target = await page.evaluate(async () => {
-			const config = await import(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src.replace(/uno-bootstrap\.js.*$/, "uno-config.js"));
+			const config = await import(document.querySelector('script[type="module"][src*="uno-bootstrap.js"]').src.replace(/package_[^/]+\/uno-bootstrap\.js.*$/, "uno-config.js"));
 			const cached = new Set();
 			for (const name of await caches.keys()) {
 				(await (await caches.open(name)).keys()).forEach(r => cached.add(new URL(r.url).pathname));
