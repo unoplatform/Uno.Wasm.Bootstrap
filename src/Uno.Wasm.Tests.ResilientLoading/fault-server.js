@@ -26,7 +26,7 @@ function isFaultable(urlPath) {
 	const name = path.basename(urlPath);
 	return !["index.html", "late.html", "require.js", "uno-bootstrap.js", "service-worker.js"].includes(name)
 		&& !name.endsWith(".css")
-		&& (urlPath.includes("/_framework/") || urlPath.includes("/package_"));
+		&& (urlPath.includes("/_framework/") || urlPath.includes("/package_") || name === "uno-config.js");
 }
 
 function lateHtml() {
