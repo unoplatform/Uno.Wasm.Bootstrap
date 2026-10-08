@@ -14,6 +14,12 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		/** The logo's breathing animation; on by default. */
 		logoAnimation: boolean;
+
+		/**
+		 * The app replaced the loader (data-uno-loader="custom"): only publish the state, as data-phase, data-state and
+		 * --uno-loader-progress on the element and as uno-loader-phase/-state/-progress events, and never touch its content.
+		 */
+		custom?: boolean;
 	}
 
 	/**
@@ -24,6 +30,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private static readonly SLOW_AFTER_MS = 15000;
 		private static readonly RETRY_VISIBLE_MS = 8000;
 		private static readonly LEAVE_DURATION_MS = 300;
+		private static readonly CUSTOM_LEAVE_MAX_MS = 2000;
 
 		private readonly _start = performance.now();
 		private _phase: LoaderPhase = "connect";
@@ -34,22 +41,33 @@ namespace Uno.WebAssembly.Bootstrap {
 		private _timer: any;
 		private _removeTimer: any;
 		private _leaving = false;
+		private _appTookOver = false;
+		private _state = "";
 		private _observer?: PerformanceObserver;
+		private _detachObserver?: MutationObserver;
+		private readonly _home: Node | null;
 		private readonly _onNetworkChange = () => this.render();
 
 		private readonly format: LoaderProgressFormat;
 		private readonly statusText: boolean;
+		private readonly custom: boolean;
 
 		constructor(private readonly loader: HTMLElement, options: LoaderOptions) {
 			this.format = options.format;
 			this.statusText = options.statusText;
+			this.custom = options.custom ?? false;
+			this._home = loader.parentNode;
 
-			this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
+			if (!this.custom) {
+				this.loader.querySelector<HTMLButtonElement>(".reload")?.addEventListener("click", () => location.reload());
 
-			// Normally already set in index.html, so the first paint is right
-			this.setAttribute("data-status-text", options.statusText ? "on" : "off");
-			this.setAttribute("data-progress-format", options.format);
-			this.setAttribute("data-logo-animation", options.logoAnimation ? "on" : "off");
+				// Normally already set in index.html, so the first paint is right
+				this.setAttribute("data-status-text", options.statusText ? "on" : "off");
+				this.setAttribute("data-progress-format", options.format);
+				this.setAttribute("data-logo-animation", options.logoAnimation ? "on" : "off");
+			}
+
+			this.watchDetach();
 
 			if (options.format === "size" && typeof PerformanceObserver === "function") {
 				// Transfer sizes of the files fetched so far, without needing the total
@@ -80,16 +98,53 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._observer?.disconnect();
 		}
 
+		/**
+		 * Uno Platform removes the loader itself on the app's first frame. When that happens without leave(), put it
+		 * back and fade it out over the app: mutation observers run before the next paint, so it never disappears.
+		 */
+		private watchDetach() {
+			if (typeof MutationObserver !== "function" || !document.body) {
+				return;
+			}
+
+			this._detachObserver = new MutationObserver(() => {
+				if (this.loader.isConnected) {
+					return;
+				}
+
+				if (this._leaving) {
+					// Our own removal at the end of leave()
+					this._detachObserver.disconnect();
+					return;
+				}
+
+				this._appTookOver = this.loader.classList.contains("uno-keep-loader");
+				const home = this._home?.isConnected ? this._home : document.body;
+				home.appendChild(this.loader);
+				this.leave();
+			});
+
+			this._detachObserver.observe(document.body, { childList: true, subtree: true });
+		}
+
 		public get phase() {
 			return this._phase;
 		}
 
 		public setPhase(phase: LoaderPhase) {
-			if (this._phase === "failed") {
+			if (this._phase === "failed" || this._phase === phase) {
 				return;
 			}
 
 			this._phase = phase;
+			this.dispatch("uno-loader-phase", { phase });
+
+			// The app was already showing its first frame (Uno Platform removed the loader): don't cover it.
+			// A custom loader shows failures itself, from data-phase or the event.
+			if (phase === "failed" && (this._appTookOver || this.custom)) {
+				this.render();
+				return;
+			}
 
 			if (phase === "failed") {
 				// The app failed after the loader started leaving, or after the app removed it: bring it back
@@ -111,9 +166,15 @@ namespace Uno.WebAssembly.Bootstrap {
 		public setProgress(value: number) {
 			if (this._phase === "connect") {
 				this._phase = "download";
+				this.dispatch("uno-loader-phase", { phase: this._phase });
 			}
 
-			this._progress = Math.max(this._progress, Math.min(value, 100));
+			const progress = Math.max(this._progress, Math.min(value, 100));
+			if (progress !== this._progress) {
+				this._progress = progress;
+				this.dispatch("uno-loader-progress", { progress });
+			}
+
 			this.render();
 		}
 
@@ -134,7 +195,37 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this.loader.classList.add("uno-leaving");
-			this._removeTimer = setTimeout(remove, LoaderView.LEAVE_DURATION_MS);
+
+			if (!this.custom) {
+				this._removeTimer = setTimeout(remove, LoaderView.LEAVE_DURATION_MS);
+				return;
+			}
+
+			// A custom loader animates .uno-leaving however it likes: remove it once that's done, or right away without one
+			const style = getComputedStyle(this.loader);
+			const longest = (durations: string, delays: string) => {
+				const seconds = (list: string) => list.split(",").map(v => parseFloat(v) || 0);
+				const d = seconds(durations), l = seconds(delays);
+				return Math.max(0, ...d.map((v, i) => v + (l[i % l.length] ?? 0))) * 1000;
+			};
+			const duration = Math.max(
+				longest(style.transitionDuration, style.transitionDelay),
+				longest(style.animationDuration, style.animationDelay));
+
+			if (duration === 0) {
+				remove();
+				return;
+			}
+
+			const onEnd = (e: Event) => {
+				if (e.target === this.loader) {
+					clearTimeout(this._removeTimer);
+					remove();
+				}
+			};
+			this.loader.addEventListener("transitionend", onEnd);
+			this.loader.addEventListener("animationend", onEnd);
+			this._removeTimer = setTimeout(remove, Math.min(duration + 50, LoaderView.CUSTOM_LEAVE_MAX_MS));
 		}
 
 		private render() {
@@ -162,11 +253,20 @@ namespace Uno.WebAssembly.Bootstrap {
 
 			this.setAttribute("data-phase", this._phase);
 			this.setAttribute("data-state", state);
-			this.setAttribute("loading-alert", state === "failed" ? "error" : state === "ok" || state === "slow" ? "none" : "warning");
+			if (state !== this._state) {
+				this._state = state;
+				this.dispatch("uno-loader-state", { state });
+			}
 
 			// The fill is a CSS transform transition: the browser eases between updates on the compositor
 			const shown = this._phase === "starting" ? 100 : this._progress;
 			this.loader.style.setProperty("--uno-loader-progress", String(shown / 100));
+
+			if (this.custom) {
+				return;
+			}
+
+			this.setAttribute("loading-alert", state === "failed" ? "error" : state === "ok" || state === "slow" ? "none" : "warning");
 
 			const progress = this.loader.querySelector("progress");
 			if (progress) {
@@ -206,6 +306,12 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.setText(".label", label);
 			this.setText(".meta", meta);
 			this.setText(".hint", hint);
+		}
+
+		private dispatch(type: string, detail: object) {
+			if (typeof CustomEvent === "function") {
+				this.loader.dispatchEvent(new CustomEvent(type, { detail, bubbles: true }));
+			}
 		}
 
 		private setAttribute(name: string, value: string) {

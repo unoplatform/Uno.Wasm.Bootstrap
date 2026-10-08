@@ -645,6 +645,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.initProgress();
 		}
 
+		/** The app replaced the built-in loader with its own markup and styles. */
+		private static isCustomLoader(loader: Element | null) {
+			return loader?.getAttribute("data-uno-loader") === "custom";
+		}
+
 		/** Shows the failed state, also when the failure happened before the loader view was set up. */
 		private static showFailure() {
 			const bootstrapper = Bootstrapper._instance;
@@ -660,6 +665,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					format: <LoaderProgressFormat>loader.getAttribute("data-progress-format") ?? "none",
 					statusText: loader.getAttribute("data-status-text") === "on",
 					logoAnimation: loader.getAttribute("data-logo-animation") !== "off",
+					custom: Bootstrapper.isCustomLoader(loader),
 				});
 				view.setPhase("failed");
 				if (bootstrapper) {
@@ -908,9 +914,13 @@ namespace Uno.WebAssembly.Bootstrap {
 		private initProgress() {
 			this.loader = this.body.querySelector(".uno-loader");
 
+			const custom = Bootstrapper.isCustomLoader(this.loader);
+
 			if (this.loader) {
 				this.loader.id = "loading";
-				const progress = this.loader.querySelector("progress");
+
+				// A custom loader's content is the app's: it follows data-phase and --uno-loader-progress instead
+				const progress = custom ? null : this.loader.querySelector("progress");
 				if (progress) {
 					(<any>progress).value = ""; // indeterminate
 				}
@@ -921,6 +931,7 @@ namespace Uno.WebAssembly.Bootstrap {
 					format: this._unoConfig.uno_loader_progress_format ?? "none",
 					statusText: this._unoConfig.uno_loader_status_text ?? false,
 					logoAnimation: this._unoConfig.uno_loader_logo_animation ?? true,
+					custom,
 				});
 
 				this.bodyObserver = new MutationObserver(() => {
@@ -997,7 +1008,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			};
 
 			let manifest = (<any>window)["UnoAppManifest"];
-			if (manifest) {
+			if (!this.loader || custom || this.loader.getAttribute("data-manifest") === "baked") {
+				// Nothing to style: the app owns the loader, or the build already applied the manifest to index.html
+			} else if (manifest) {
 				configLoader();
 			} else {
 
