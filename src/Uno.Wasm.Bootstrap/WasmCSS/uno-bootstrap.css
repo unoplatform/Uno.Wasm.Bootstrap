@@ -29,13 +29,15 @@ html, body {
     --uno-loader-track: rgba(0, 0, 0, 0.16);
     --uno-loader-shine: rgba(255, 255, 255, 0.5);
     --uno-loader-duration: 1.6s;
+    --uno-loader-gap: clamp(32px, 8vh, 96px);
     position: fixed;
     inset: 0;
     z-index: 5000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    /* The logo is the centre of the screen, where ExtendedSplashScreen draws it; the bar and text hang below it */
+    display: grid;
+    grid-template-rows: 1fr auto 1fr;
+    grid-template-columns: 100%;
+    justify-items: center;
     background-color: var(--uno-loader-bg);
     color: var(--uno-loader-fg);
     font: 14px/20px "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
@@ -73,10 +75,17 @@ html, body {
     pointer-events: none;
 }
 
+/* A dark-theme logo baked from the AppManifest wraps the img in a <picture>: lay out the img itself */
+.uno-loader picture {
+    display: contents;
+}
+
 .uno-loader .logo {
-    max-width: min(90%, 620px);
-    max-height: min(30%, 300px);
-    margin-bottom: clamp(32px, 8vh, 96px);
+    grid-row: 2;
+    grid-column: 1;
+    max-width: min(90vw, 620px);
+    /* Never so tall that the bar below it leaves the screen (landscape phones) */
+    max-height: min(90vh, 300px, calc(100vh - 2 * (var(--uno-loader-gap) + 24px)));
     pointer-events: none;
     transition: transform 250ms cubic-bezier(0, 0, 0, 1), opacity 250ms;
     animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
@@ -98,6 +107,10 @@ html, body {
 
 /* Progress bar: the native <progress> stays for accessibility and compatibility, the fill is drawn with scaleX */
 .uno-loader .bar {
+    grid-row: 3;
+    grid-column: 1;
+    align-self: start;
+    margin-top: var(--uno-loader-gap);
     position: relative;
     width: 240px;
     max-width: 60vw;
@@ -167,6 +180,7 @@ html, body {
 .uno-loader[loading-position='top'] .bar {
     position: absolute;
     top: 0;
+    margin-top: 0;
     left: 0;
     width: 100%;
     max-width: none;
@@ -175,9 +189,14 @@ html, body {
 
 /* Text, revealed after a moment so loads served from the cache don't flash it */
 .uno-loader .info {
+    --uno-loader-info-offset: 16px;
+    grid-row: 3;
+    grid-column: 1;
+    align-self: start;
     position: relative;
     width: min(320px, 86vw);
-    margin-top: 16px;
+    /* Sits below the bar, which shares its grid cell */
+    margin-top: calc(var(--uno-loader-gap) + 4px + var(--uno-loader-info-offset));
     text-align: center;
     animation: uno-loader-fade-in 333ms cubic-bezier(0, 0, 0, 1) 600ms backwards;
 }
@@ -289,12 +308,12 @@ html, body {
     flex-direction: column;
     align-items: center;
     height: 20px;
-    margin-top: 8px;
+    --uno-loader-info-offset: 8px;
 }
 
 .uno-loader:not([data-status-text='on'])[data-progress-format='none'] .info {
     height: 0;
-    margin-top: 0;
+    --uno-loader-info-offset: 0px;
 }
 
 .uno-loader:not([data-status-text='on'])[data-progress-format='none'] .meta {
