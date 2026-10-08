@@ -52,6 +52,13 @@ public static class LoaderMarkup
 		@"^(#[0-9a-f]{3,8}|[a-z]+|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]*\))$",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
+	private static readonly Regex _relativeCssUrl = new(
+		@"(\burl\(\s*(?>[""']?)|@import\s+[""'])(?![a-z][a-z0-9+.-]*:|/|#)",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+	/// <summary>Whether a stylesheet references files relative to its own location, which inlining it would break.</summary>
+	public static bool HasRelativeUrls(string css) => _relativeCssUrl.IsMatch(css);
+
 	/// <summary>Whether the app replaces the loader (<c>data-uno-loader="custom"</c>), which the bootstrapper then leaves alone.</summary>
 	public static bool IsCustomLoader(string html)
 		=> _loaderTag.Match(html) is { Success: true } loader && _customAttribute.IsMatch(loader.Groups["attrs"].Value);

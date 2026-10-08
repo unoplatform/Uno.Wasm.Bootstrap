@@ -72,7 +72,7 @@ For example, to name the phases and show the amount of data downloaded:
 
 The loader fades out when it is dismissed: by the bootstrapper, by a call to `Uno.WebAssembly.Bootstrap.Bootstrapper.dismissLoader()`, or when the app removes the `.uno-loader` element itself, as Uno Platform does on the app's first frame.
 
-When no Content-Security-Policy is configured, the loader's stylesheet, `uno-bootstrap.css`, is inlined in `index.html` so the loader is displayed with the first response.
+When no Content-Security-Policy is configured, the loader's stylesheet, `uno-bootstrap.css`, is inlined in `index.html` so the loader is displayed with the first response. If the server sends a policy that blocks inline styles, the bootstrapper loads the stylesheet as a file instead. An app's own `uno-bootstrap.css` that references other files with relative URLs is linked, not inlined.
 
 > [!IMPORTANT]
 > Other stylesheets, including the app's `WasmCSS` files, are loaded without blocking the page and applied once the bootstrapper starts, so they don't delay the loader. CSS in `WasmCSS` that restyles the loader therefore only applies after the first paint, and the default loader shows briefly before it. Use the manifest properties above, or [replace the loader](#replacing-the-loader) with styles inline in `index.html`.

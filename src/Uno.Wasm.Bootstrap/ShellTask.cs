@@ -790,9 +790,13 @@ namespace Uno.Wasm.Bootstrap
 					.LastOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
 					?.ItemSpec;
 
-				if (string.IsNullOrEmpty(CSPConfiguration) && source is not null && File.Exists(source))
+				var css = string.IsNullOrEmpty(CSPConfiguration) && source is not null && File.Exists(source) ? File.ReadAllText(source) : null;
+
+				// Relative URLs in an app's own uno-bootstrap.css would resolve against index.html once inlined
+				if (css is not null && !LoaderMarkup.HasRelativeUrls(css))
 				{
-					return $"<style id=\"uno-bootstrap-css\">\r\n{File.ReadAllText(source)}\r\n</style>";
+					// data-href: the bootstrapper loads the file instead when a policy sent by the server blocks inline styles
+					return $"<style id=\"uno-bootstrap-css\" data-href=\"{WebAppBasePath}{style}\">\r\n{css}\r\n</style>";
 				}
 
 				// The loader must be styled before it paints
