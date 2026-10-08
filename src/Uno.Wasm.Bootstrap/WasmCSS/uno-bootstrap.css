@@ -6,21 +6,19 @@
     is busy compiling WebAssembly.
 */
 
-:root {
-    color-scheme: light dark;
-}
-
-html, body {
+/* Only while the loader is shown: once it's gone, the page belongs to the app */
+html:has(.uno-loader), html:has(.uno-loader) body {
     background-color: #F3F3F3;
 }
 
 @media (prefers-color-scheme: dark) {
-    html, body {
+    html:has(.uno-loader), html:has(.uno-loader) body {
         background-color: #202020;
     }
 }
 
 .uno-loader {
+    color-scheme: light dark;
     --uno-loader-bg: var(--light-theme-bg-color, #F3F3F3);
     --uno-loader-fg: #1A1A1A;
     --uno-loader-fg-secondary: #5D5D5D;
