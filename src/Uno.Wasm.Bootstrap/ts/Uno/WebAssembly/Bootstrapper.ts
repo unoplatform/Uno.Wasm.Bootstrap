@@ -1091,7 +1091,11 @@ namespace Uno.WebAssembly.Bootstrap {
 							})
 							.then(function () {
 								console.debug('Service Worker Registered');
-							});
+							})
+							.catch(function(error) {
+								console.error('Error while registering service worker', error);
+								throw error;
+                            });
 					}
 
 					// Lets the worker cache the remaining offline files, or resume when a previous visit was cut short
