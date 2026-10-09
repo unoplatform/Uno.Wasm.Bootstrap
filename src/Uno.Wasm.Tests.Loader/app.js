@@ -86,6 +86,14 @@ function check(condition, message) {
 	}).catch(() => Infinity);
 	ok = check(offCentre < 1, `logo is centred in the viewport (off by ${offCentre.toFixed(1)}px)`) && ok;
 	ok = check(await page.$eval(".uno-loader .logo", l => getComputedStyle(l).animationName.includes("uno-loader-breathe")).catch(() => false), "logo breathes by default") && ok;
+	// loading-position="top": a full-width strip along the top edge of the window
+	const topBar = await page.$eval(".uno-loader", loader => {
+		loader.setAttribute("loading-position", "top");
+		const r = loader.querySelector(".bar").getBoundingClientRect();
+		loader.setAttribute("loading-position", "bottom");
+		return { top: r.top, left: r.left, width: r.width, viewport: innerWidth };
+	}).catch(() => null);
+	ok = check(topBar && topBar.top === 0 && topBar.left === 0 && topBar.width === topBar.viewport, `top bar along the top edge of the window (${JSON.stringify(topBar)})`) && ok;
 
 	await page.waitForFunction(() => {
 		const results = document.querySelector("#results");
