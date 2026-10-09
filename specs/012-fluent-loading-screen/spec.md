@@ -34,7 +34,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - The progress label is configurable through `uno_loader_progress_format` (`none` by default, `percent` or `size`; MSBuild `WasmShellLoaderProgressFormat`). With the defaults the loader is just the logo and the bar.
 - Phase labels and the slow hint are shown only when `uno_loader_status_text` is `true` (MSBuild `WasmShellLoaderStatusText`, default `false`), so a normal load has no text to translate. The `retry`, `offline` and `failed` states always show their label and hint.
 - Showing or hiding text never moves the logo or the bar. With status text on, the status, meta and hint lines keep their height and the Reload button sits outside the layout. With it off, only the progress value takes space (8 px below the bar; none at all with format `none`); problem text and the Reload button overflow below it.
-- In the `failed` state the bar and the progress value are removed and the failure text starts where the bar was (one gap below the logo). The logo still doesn't move.
+- In the `failed` state the bar and the progress value are removed and the failure text moves up to 24 px below the logo, with no line reserved for the hint. The Reload button sits the same 24 px below the text, so the group is evenly spaced. The logo still doesn't move.
 - The status label and its icon use the secondary text colour, the same as the progress value and the hint. The `warning` and `error` icons are Fluent System Icons Warning and Error Circle, 16 regular (outlined), each drawn from a single path in `currentColor`.
 - The logo breathes (scales to 1.04 and back) unless `uno_loader_logo_animation` is `false` (MSBuild `WasmShellLoaderLogoAnimation`, default `true`); its entrance and exit stay.
 
@@ -93,6 +93,6 @@ Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manife
 - Uno Platform hand-off (`keep` mode): the loader stays while marked `uno-keep-loader`; removing the element directly makes it fade out, then it's removed.
 - Custom loader (`custom` mode): content and attributes untouched, phase events received, and the loader's own exit transition runs before removal.
 - Slow start (`slow` mode, the native wasm held for 20 s): `slow` without a hint, then `offline` with its label and warning icon while the browser is offline, then back to `slow`.
-- Failed start (`failwasm` mode): `failed` with its label (in the same colour as the progress value) and the Reload button; the bar is removed, the failure text starts where it was, and the logo doesn't move.
+- Failed start (`failwasm` mode): `failed` with its label (in the same colour as the progress value) and the Reload button; the bar is removed, the failure text starts above where it was with the same space above it as below it (to the Reload button), and the logo doesn't move.
 
 `retry` is not covered: it needs the resource loader's retry counters, which this repository does not provide yet.

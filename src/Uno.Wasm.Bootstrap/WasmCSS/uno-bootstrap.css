@@ -337,18 +337,38 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     flex: none;
 }
 
-/* Failed: the bar and value go away and the text takes their place, the logo stays put */
+/*
+    Failed: the bar and value go away and the text moves up below the logo, the logo stays put. The text doesn't
+    change any more, so no line is reserved, and Reload sits as far below it as the logo is above.
+*/
+.uno-loader[data-state='failed'] {
+    --uno-loader-failed-gap: 24px;
+}
+
 .uno-loader[data-state='failed'] .bar,
 .uno-loader[data-state='failed'] .meta {
     display: none;
 }
 
 .uno-loader[data-state='failed'] .info {
-    margin-top: var(--uno-loader-gap);
+    margin-top: var(--uno-loader-failed-gap);
 }
 
 .uno-loader[data-state='failed'] .info .status {
     margin-top: 0;
+}
+
+/* Without status text .info has no height: keep the lines from shrinking to fit it */
+.uno-loader[data-state='failed'] .info > * {
+    flex: none;
+}
+
+.uno-loader[data-state='failed'] .hint {
+    min-height: 0;
+}
+
+.uno-loader[data-state='failed'] .reload {
+    margin-top: var(--uno-loader-failed-gap);
 }
 
 /* Markup of index.html files customized before the .bar/.info structure: a progress bar at the bottom */
