@@ -439,6 +439,7 @@
 			Assets="@(ContentWithTargetPath);@(_UnoWasmCopyToOutputAssets)"
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
+			PWAPrecacheExclude="$(WasmShellPWAPrecacheExclude)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"

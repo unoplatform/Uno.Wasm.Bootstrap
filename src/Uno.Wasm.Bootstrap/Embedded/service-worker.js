@@ -1,228 +1,253 @@
 ﻿import { config as unoConfig } from "$(REMOTE_WEBAPP_PATH)uno-config.js";
 
-const MAX_CACHE_CONCURRENCY = 10;
+const CACHE_NAME = '$(CACHE_KEY)';
+const WEBAPP_PATH = '$(REMOTE_WEBAPP_PATH)';
+
+// Absolute paths, as WEBAPP_PATH may be relative (./); the worker sits at the root of the app
+const APP_ROOT = new URL(WEBAPP_PATH, self.location).pathname;
+const PACKAGE_ROOT = new URL(`${unoConfig.uno_app_base}/`, self.location).pathname;
+const pathOf = file => new URL(file, self.location).pathname;
+
+// Network-first requests fall back to the cache after this long
+const NETWORK_TIMEOUT_MS = 4000;
+const PRECACHE_CONCURRENCY = 3;
+
+const tracing = unoConfig.uno_enable_tracing;
+const fetchRetries = parseInt(unoConfig.environmentVariables["UNO_BOOTSTRAP_FETCH_RETRIES"] || "1");
+
+function trace(message) {
+    if (tracing) {
+        console.debug(`[ServiceWorker] ${message}`);
+    }
+}
 
 /**
- * Adds an array of files to a Cache using a sliding concurrency pool.
- * A slow or failed download only occupies one slot and never blocks others.
- *
- * @param {Cache} cache - The Cache to add files to.
- * @param {string[]} files - URLs to cache.
- * @param {number} maxConcurrency - Maximum parallel downloads.
+ * URLs whose content never changes: the package folder is named after a hash of its content,
+ * and the .NET SDK fingerprints _framework files.
  */
-async function cacheFilesWithConcurrency(cache, files, maxConcurrency) {
-    const pendingPuts = [];
-    let inFlight = 0;
-    let nextIndex = 0;
+function isImmutable(url) {
+    const path = url.pathname;
 
-    // Download files with bounded concurrency. Cache writes are
-    // started immediately but not awaited until the end, so they
-    // never block the next download from starting.
-    await new Promise(resolve => {
-        if (files.length === 0) {
-            return resolve();
+    return path.startsWith(PACKAGE_ROOT)
+        || (path.startsWith(`${APP_ROOT}_framework/`) && /\.[a-z0-9]{10}\.[a-z]+$/.test(path));
+}
+
+const appFiles = new Set([WEBAPP_PATH, `${WEBAPP_PATH}index.html`, `${WEBAPP_PATH}uno-config.js`, ...unoConfig.offline_files].map(pathOf));
+
+/**
+ * The app's own files. Other requests (API calls, streams, user data) are left to the browser: they must not be
+ * cut off by the network timeout, nor cached and replayed for a different query.
+ */
+function isAppFile(url) {
+    const path = url.pathname;
+
+    return appFiles.has(path) || path.startsWith(PACKAGE_ROOT) || path.startsWith(`${APP_ROOT}_framework/`);
+}
+
+function globToRegExp(glob) {
+    const escaped = glob.trim().replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\u0000").replace(/\*/g, "[^/]*").replace(/\u0000/g, ".*");
+    return new RegExp(`(^|/)${escaped}$`, "i");
+}
+
+const precacheExclusions = (unoConfig.uno_pwa_precache_exclude || []).filter(g => g).map(globToRegExp);
+
+async function readBootFiles() {
+    // In .NET 10+, the boot config is embedded in dotnet.js
+    const response = await fetch(`${WEBAPP_PATH}_framework/${unoConfig.dotnet_js_filename}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ${unoConfig.dotnet_js_filename}: ${response.status} ${response.statusText}`);
+    }
+
+    // See https://github.com/dotnet/runtime/blob/41c9fa2d39a02d98cdead08e72f961e77b7888b0/src/tasks/Microsoft.NET.Sdk.WebAssembly.Pack.Tasks/BootJsonBuilderHelper.cs#L74
+    const match = (await response.text()).match(/\/\*json-start\*\/([\s\S]*?)\/\*json-end\*\//);
+    if (!match) {
+        throw new Error("Invalid boot config");
+    }
+
+    const resources = JSON.parse(match[1]).resources || {};
+
+    const names = resource => !resource ? []
+        : Array.isArray(resource) ? resource.filter(e => e && e.name).map(e => e.name)
+            : Object.keys(resource).map(key => resource[key] && typeof resource[key] === "object" && resource[key].name ? resource[key].name : key);
+
+    return [
+        resources.coreAssembly,
+        resources.assembly,
+        resources.lazyAssembly,
+        resources.jsModuleWorker,
+        resources.jsModuleGlobalization,
+        resources.jsModuleNative,
+        resources.jsModuleRuntime,
+        resources.wasmNative,
+        resources.icu
+    ].flatMap(names).map(name => `${WEBAPP_PATH}_framework/${name}`);
+}
+
+/** Caches the files that are not cached yet, a few at a time so they don't compete with the app. */
+async function precache(files) {
+    const cache = await caches.open(CACHE_NAME);
+    const pending = [];
+    for (const file of files) {
+        if (!(await cache.match(file, { ignoreSearch: true }))) {
+            pending.push(file);
         }
-        function startNext() {
-            while (inFlight < maxConcurrency && nextIndex < files.length) {
-                const currentFile = files[nextIndex++];
-                inFlight++;
-                if (unoConfig.uno_enable_tracing) {
-                    console.debug(`[ServiceWorker] caching ${currentFile}`);
+    }
+
+    let next = 0;
+    const worker = async () => {
+        while (next < pending.length) {
+            const file = pending[next++];
+            try {
+                const response = await fetch(file);
+                if (response.ok) {
+                    await cache.put(file, response);
+                    trace(`Cached ${file}`);
+                } else {
+                    trace(`Failed to fetch ${file}: ${response.status}`);
                 }
-                fetch(currentFile)
-                    .then(response => {
-                        if (!response.ok) {
-                            console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${response.status} ${response.statusText}`);
-                            return;
-                        }
-                        // Queue the cache write but don't wait for it
-                        pendingPuts.push(
-                            cache.put(currentFile, response).catch(e => {
-                                console.debug(`[ServiceWorker] Failed to cache ${currentFile}: ${e.message}`);
-                            })
-                        );
-                    })
-                    .catch(e => {
-                        console.debug(`[ServiceWorker] Failed to fetch ${currentFile}: ${e.message}`);
-                    })
-                    .then(() => {
-                        inFlight--;
-                        if (nextIndex < files.length) {
-                            startNext();
-                        } else if (inFlight === 0) {
-                            resolve();
-                        }
-                    });
+            } catch (e) {
+                trace(`Failed to fetch ${file}: ${e.message}`);
             }
         }
-        startNext();
-    });
+    };
 
-    // Wait for all cache writes to finish
-    await Promise.allSettled(pendingPuts);
+    await Promise.all(Array.from({ length: PRECACHE_CONCURRENCY }, worker));
+}
+
+/**
+ * Fetches and reads the whole body, within the timeout when there is one: a connection dropping mid-body must
+ * fall back to the cache or be retried, instead of handing the page a truncated response.
+ */
+async function fetchFully(request, timeoutMs) {
+    const controller = new AbortController();
+    const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+    try {
+        // A navigation request can't be combined with a RequestInit
+        const response = await fetch(request.mode === "navigate" ? request.url : request, { signal: controller.signal });
+
+        // These statuses can't carry a body, not even an empty one
+        const body = [101, 204, 205, 304].includes(response.status) ? null : await response.arrayBuffer();
+        return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function putInCache(request, response) {
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response);
+    } catch (e) {
+        trace(`Failed to cache ${request.url}: ${e.message}`);
+    }
+}
+
+/** Immutable files: the cached copy is always right, so the network is only used on a miss. */
+async function cacheFirst(event) {
+    const request = event.request;
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) {
+        return cached;
+    }
+
+    const response = await fetch(request);
+    if (response.ok) {
+        event.waitUntil(putInCache(request, response.clone()));
+    }
+    return response;
+}
+
+/** Everything else: fresh from the network when it answers in time, else from the cache. */
+async function networkFirst(event) {
+    const request = event.request;
+    try {
+        const response = await fetchFully(request.clone(), NETWORK_TIMEOUT_MS);
+        if (response.ok && !/no-store/i.test(response.headers.get("cache-control") ?? "")) {
+            event.waitUntil(putInCache(request, response.clone()));
+        }
+        return response;
+    } catch (err) {
+        trace(`Network failed or timed out, falling back to the cache for ${request.url}`);
+    }
+
+    // Retried requests carry a cache-busting query, precached ones don't
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) {
+        return cached;
+    }
+
+    // No timeout here: this is the last resort for a large file on a slow connection
+    for (let retry = 0; retry < fetchRetries; retry++) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retry) * 500));
+        try {
+            return await fetchFully(request.clone());
+        } catch (e) {
+            trace(`Retry ${retry + 1} failed for ${request.url}: ${e.message}`);
+        }
+    }
+
+    console.error(`[ServiceWorker] Resource not available in cache or network: ${request.url}`);
+    return new Response('Network error occurred, and resource was not found in cache.', {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: new Headers({ 'Content-Type': 'text/plain' })
+    });
 }
 
 if (unoConfig.environmentVariables["UNO_BOOTSTRAP_DEBUGGER_ENABLED"] !== "True") {
     console.debug("[ServiceWorker] Initializing");
-    let uno_enable_tracing = unoConfig.uno_enable_tracing;
 
-    // Get the number of fetch retries from environment variables or default to 1
-    const fetchRetries = parseInt(unoConfig.environmentVariables["UNO_BOOTSTRAP_FETCH_RETRIES"] || "1");
+    // Only what the app needs to start offline. Its files were just downloaded by the page,
+    // so most come from the HTTP cache.
+    self.addEventListener('install', event => {
+        event.waitUntil((async () => {
+            const bootFiles = [WEBAPP_PATH, `${WEBAPP_PATH}uno-config.js`, `${WEBAPP_PATH}_framework/${unoConfig.dotnet_js_filename}`]
+                .concat(unoConfig.offline_files.filter(f => pathOf(f).startsWith(PACKAGE_ROOT) && /\.(js|css)$/.test(f)));
 
-    self.addEventListener('install', function (e) {
-        console.debug('[ServiceWorker] Installing offline worker');
-        e.waitUntil(
-            caches.open('$(CACHE_KEY)').then(async function (cache) {
-                console.debug('[ServiceWorker] Caching app binaries and content');
+            try {
+                bootFiles.push(...await readBootFiles());
+            } catch (e) {
+                console.error('[ServiceWorker] Error processing boot configuration:', e.message);
+            }
 
-                await cacheFilesWithConcurrency(cache, unoConfig.offline_files, MAX_CACHE_CONCURRENCY);
-
-                // Add the runtime's own files to the cache. We cannot use the
-                // existing cached content from the runtime as the keys contain a
-                // hash we cannot reliably compute.
-                try {
-                    // Replace dynamic import with fetch and eval for web worker compatibility
-                    // In .NET 10+, dotnet.boot.js was merged with dotnet.js for performance
-                    // Use the fingerprinted filename from config for proper caching
-                    const response = await fetch(`$(REMOTE_WEBAPP_PATH)_framework/${unoConfig.dotnet_js_filename}`);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch ${unoConfig.dotnet_js_filename}: ${response.status} ${response.statusText}`);
-                    }
-
-                    let scriptContent = await response.text();
-
-                    // The parsing assumes that this block is present:
-                    // https://github.com/dotnet/runtime/blob/41c9fa2d39a02d98cdead08e72f961e77b7888b0/src/tasks/Microsoft.NET.Sdk.WebAssembly.Pack.Tasks/BootJsonBuilderHelper.cs#L74
-                    const match = scriptContent.match(/.*?\/\*json-start\*\/([\s\S]*?)\/\*json-end\*\//);
-
-                    // If found, wrap it with parentheses so eval can treat it as an object literal
-                    const c = match ? `(${match[1]})` : null;
-
-                    if (!c) {
-                        throw `Invalid config`;
-                    }
-
-                    const bootJson = eval(c);
-                    const monoConfigResources = bootJson.resources || {};
-
-                    function extractFilenames(resource) {
-                        if (!resource) return [];
-                        if (Array.isArray(resource)) {
-                            // Format 3: array of {virtualPath, name, integrity}
-                            return resource.filter(e => e && e.name).map(e => e.name);
-                        }
-                        // Format 1 or 2: object
-                        return Object.keys(resource).map(key => {
-                            const val = resource[key];
-                            // Format 2: value is an object with a name field (fingerprinted filename)
-                            // Format 1: value is a plain string (hash), use the key as the filename
-                            return (val && typeof val === 'object' && val.name) ? val.name : key;
-                        });
-                    }
-
-                    const frameworkUris = [
-                        monoConfigResources.coreAssembly,
-                        monoConfigResources.assembly,
-                        monoConfigResources.lazyAssembly,
-                        monoConfigResources.jsModuleWorker,
-                        monoConfigResources.jsModuleGlobalization,
-                        monoConfigResources.jsModuleNative,
-                        monoConfigResources.jsModuleRuntime,
-                        monoConfigResources.wasmNative,
-                        monoConfigResources.icu
-                    ].flatMap(extractFilenames).map(
-                        filename => `$(REMOTE_WEBAPP_PATH)_framework/${filename}`
-                    );
-                    await cacheFilesWithConcurrency(cache, frameworkUris, MAX_CACHE_CONCURRENCY);
-                } catch (e) {
-                    // Centralized error handling for the entire boot.json processing
-                    console.error('[ServiceWorker] Error processing boot configuration:', e.message);
-                }
-            })
-        );
+            await precache(bootFiles);
+        })());
     });
 
-    // Cache cleanup logic to prevent storage bloat
-    // This removes any old caches that might have been created by previous
-    // versions of the service worker, helping prevent storage quota issues
     self.addEventListener('activate', event => {
-        event.waitUntil(
-            caches.keys().then(function (cacheNames) {
-                return Promise.all(
-                    cacheNames.filter(function (cacheName) {
-                        return cacheName !== '$(CACHE_KEY)';
-                    }).map(function (cacheName) {
-                        console.debug('[ServiceWorker] Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    })
-                );
-            }).then(function () {
-                return self.clients.claim();
-            })
-        );
+        event.waitUntil((async () => {
+            // Drop caches of previous versions to avoid storage bloat
+            for (const name of await caches.keys()) {
+                if (name !== CACHE_NAME) {
+                    console.debug('[ServiceWorker] Deleting old cache:', name);
+                    await caches.delete(name);
+                }
+            }
+
+            await self.clients.claim();
+        })());
+    });
+
+    // Sent by the bootstrapper once the app is running: caches the remaining files, so the app also works
+    // offline after this first visit. Not done in 'activate', since fetches wait for activation to complete.
+    // Every open tab sends the message, so they share a single run
+    let backgroundPrecache = null;
+
+    self.addEventListener('message', event => {
+        if (event.data === 'uno-precache') {
+            backgroundPrecache ??= precache(unoConfig.offline_files.filter(f => !precacheExclusions.some(r => r.test(f))))
+                .finally(() => backgroundPrecache = null);
+            event.waitUntil(backgroundPrecache);
+        }
     });
 
     self.addEventListener('fetch', event => {
-        event.respondWith(
-            (async function () {
-                // FIXED: Critical fix for "already used" Request objects #956
-                // Request objects can only be used once in a fetch operation
-                // Cloning the request allows for reuse in fallback scenarios
-                const requestClone = event.request.clone();
+        const url = new URL(event.request.url);
+        if (event.request.method !== "GET" || url.origin !== self.location.origin || !isAppFile(url)) {
+            return;
+        }
 
-                try {
-                    // Network first mode to get fresh content every time, then fallback to
-                    // cache content if needed.
-                    return await fetch(requestClone);
-                } catch (err) {
-                    // Logging to track network failures
-                    console.debug(`[ServiceWorker] Network fetch failed, falling back to cache for: ${requestClone.url}`);
-
-                    const cachedResponse = await caches.match(event.request);
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-
-                    // Add retry mechanism - attempt to fetch again if retries are configured
-                    if (fetchRetries > 0) {
-                        console.debug(`[ServiceWorker] Resource not in cache, attempting ${fetchRetries} network retries for: ${requestClone.url}`);
-
-                        // Try multiple fetch attempts with exponential backoff
-                        for (let retryCount = 0; retryCount < fetchRetries; retryCount++) {
-                            try {
-                                // Exponential backoff between retries (500ms, 1s, 2s, etc.)
-                                const retryDelay = Math.pow(2, retryCount) * 500;
-                                await new Promise(resolve => setTimeout(resolve, retryDelay));
-
-                                if (uno_enable_tracing) {
-                                    console.debug(`[ServiceWorker] Retry attempt ${retryCount + 1}/${fetchRetries} for: ${requestClone.url}`);
-                                }
-
-                                // Need a fresh request clone for each retry
-                                return await fetch(event.request.clone());
-                            } catch (retryErr) {
-                                if (uno_enable_tracing) {
-                                    console.debug(`[ServiceWorker] Retry ${retryCount + 1} failed: ${retryErr.message}`);
-                                }
-                                // Continue to next retry attempt
-                            }
-                        }
-                    }
-
-                    // Graceful error handling with a proper HTTP response
-                    // Rather than letting the fetch fail with a generic error,
-                    // we return a controlled 503 Service Unavailable response
-                    console.error(`[ServiceWorker] Resource not available in cache or network after ${fetchRetries} retries: ${requestClone.url}`);
-                    return new Response('Network error occurred, and resource was not found in cache.', {
-                        status: 503,
-                        statusText: 'Service Unavailable',
-                        headers: new Headers({
-                            'Content-Type': 'text/plain'
-                        })
-                    });
-                }
-            })()
-        );
+        event.respondWith(isImmutable(url) ? cacheFirst(event) : networkFirst(event));
     });
 }
 else {

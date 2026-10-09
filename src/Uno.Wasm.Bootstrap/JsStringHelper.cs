@@ -15,12 +15,22 @@
 //
 // ******************************************************************
 
+using System;
+using System.Linq;
 using System.Text;
 
 namespace Uno.Wasm.Bootstrap
 {
 	internal static class JsStringHelper
 	{
+		/// <summary>A JS array literal of the non-empty, trimmed entries of a semicolon-separated list.</summary>
+		internal static string ToJsStringArray(string? semicolonSeparated)
+			=> "[" + string.Join(", ", (semicolonSeparated ?? "")
+				.Split([';'], StringSplitOptions.RemoveEmptyEntries)
+				.Select(e => e.Trim())
+				.Where(e => e.Length > 0)
+				.Select(e => $"\"{EscapeJsString(e)}\"")) + "]";
+
 		internal static string EscapeJsString(string value)
 		{
 			var escaped = new StringBuilder(value.Length);

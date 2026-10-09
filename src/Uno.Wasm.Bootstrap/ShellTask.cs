@@ -99,6 +99,11 @@ namespace Uno.Wasm.Bootstrap
 
 		public string CSPConfiguration { get; set; } = "";
 
+		/// <summary>
+		/// Semicolon-separated globs of offline files the service worker doesn't precache; they are still cached when the app uses them.
+		/// </summary>
+		public string PWAPrecacheExclude { get; set; } = "";
+
 		public bool Optimize { get; set; }
 
 		public bool EnableTracing { get; set; }
@@ -595,6 +600,7 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_dependencies = [{dependencies}];");
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_pwa_precache_exclude = {JsStringHelper.ToJsStringArray(PWAPrecacheExclude)};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
