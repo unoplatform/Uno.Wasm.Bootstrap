@@ -88,20 +88,50 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
-		public void When_Single_Theme_Color_Then_Background_Is_Inline()
-			=> StringAssert.Contains(LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenColor", "#123456")), "background-color: #123456");
+		public void When_Single_Theme_Color_Then_Both_Theme_Backgrounds_Use_It()
+		{
+			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenColor", "#123456"));
+
+			StringAssert.Contains(html, "--light-theme-bg-color: #123456");
+			StringAssert.Contains(html, "--dark-theme-bg-color: #123456");
+			Assert.IsFalse(html.Contains("background-color"));
+		}
 
 		[TestMethod]
 		public void When_Per_Theme_Colors_Then_SplashScreenColor_Is_Ignored()
 		{
 			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenColor", "#123456", "darkThemeBackgroundColor", "#000"));
 
-			Assert.IsFalse(html.Contains("background-color: #123456"));
+			Assert.IsFalse(html.Contains("#123456"));
 		}
 
 		[TestMethod]
 		public void When_Transparent_SplashScreenColor_Then_Not_Applied()
-			=> Assert.IsFalse(LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenColor", "transparent")).Contains("background-color"));
+			=> Assert.IsFalse(LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenColor", "transparent")).Contains("bg-color"));
+
+		[TestMethod]
+		public void When_Bake_Foreground_Colors_Then_Loader_Is_Styled()
+		{
+			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest(
+				"foregroundColor", "#111111",
+				"darkThemeForegroundColor", "#EEEEEE"));
+
+			StringAssert.Contains(html, "--foreground-color: #111111");
+			StringAssert.Contains(html, "--dark-theme-foreground-color: #EEEEEE");
+		}
+
+		[TestMethod]
+		public void When_Light_Theme_Foreground_Then_It_Wins_Over_ForegroundColor()
+		{
+			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest("foregroundColor", "#111111", "lightThemeForegroundColor", "#222222"));
+
+			StringAssert.Contains(html, "--foreground-color: #222222");
+			Assert.IsFalse(html.Contains("#111111"));
+		}
+
+		[TestMethod]
+		public void When_Foreground_Is_Not_A_Color_Then_Skipped()
+			=> Assert.IsFalse(LoaderMarkup.BakeAppManifest(Loader, Manifest("foregroundColor", "red; } body { display: none")).Contains("display"));
 
 		[TestMethod]
 		public void When_Color_Is_Not_A_Color_Then_Skipped()

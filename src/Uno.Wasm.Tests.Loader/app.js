@@ -94,6 +94,30 @@ function check(condition, message) {
 		return { top: r.top, left: r.left, width: r.width, viewport: innerWidth };
 	}).catch(() => null);
 	ok = check(topBar && topBar.top === 0 && topBar.left === 0 && topBar.width === topBar.viewport, `top bar along the top edge of the window (${JSON.stringify(topBar)})`) && ok;
+	// Text follows the background an app picks, unless the app sets it
+	const textContrast = (scheme, background, foreground) => page.evaluate(async (scheme, background, foreground) => {
+		const loader = document.querySelector(".uno-loader");
+		const saved = loader.getAttribute("style");
+		loader.style.setProperty(scheme === "dark" ? "--dark-theme-bg-color" : "--light-theme-bg-color", background);
+		if (foreground) {
+			loader.style.setProperty("--foreground-color", foreground);
+		}
+		const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+		const rgb = color => { context.fillStyle = "#000"; context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+		const luminance = c => c.map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+		const text = rgb(getComputedStyle(loader.querySelector(".status")).color), back = rgb(getComputedStyle(loader).backgroundColor);
+		const [a, b] = [luminance(text), luminance(back)].sort((x, y) => y - x);
+		loader.setAttribute("style", saved || "");
+		return { text, ratio: Math.round((a + 0.05) / (b + 0.05) * 100) / 100 };
+	}, scheme, background, foreground).catch(() => ({ text: [], ratio: 0 }));
+	const onDark = await textContrast("light", "#1B1B3A");
+	ok = check(onDark.ratio >= 4.5, `readable text on a dark custom background in light mode (${onDark.ratio}:1)`) && ok;
+	await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
+	const onLight = await textContrast("dark", "#FFF4D6");
+	await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+	ok = check(onLight.ratio >= 4.5, `readable text on a light custom background in dark mode (${onLight.ratio}:1)`) && ok;
+	const custom = await textContrast("light", "#1B1B3A", "#AA0000");
+	ok = check(custom.text.join() === "170,0,0", `the app's foreground color wins (${custom.text.join()})`) && ok;
 
 	await page.waitForFunction(() => {
 		const results = document.querySelector("#results");
