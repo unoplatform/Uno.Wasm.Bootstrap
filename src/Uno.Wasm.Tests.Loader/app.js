@@ -195,7 +195,7 @@ function check(condition, message) {
 	ok = check(await page.$eval(".uno-loader .label", l => l.textContent).catch(() => "") === "Could not load app", "failed label") && ok;
 	ok = check(await page.$eval(".uno-loader .reload", b => getComputedStyle(b).display !== "none").catch(() => false), "reload button shown") && ok;
 	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l.querySelector(".status")).color === getComputedStyle(l.querySelector(".meta")).color).catch(() => false), "failure label in the same grey as the progress value") && ok;
-	// The failure text takes the place of the hidden bar, and the logo doesn't move
+	// The bar goes away, the text moves up closer to the logo, and the logo doesn't move
 	const failedLayout = await page.$eval(".uno-loader", loader => {
 		const top = s => loader.querySelector(s).getBoundingClientRect().top;
 		const texts = [".label", ".hint"].map(s => loader.querySelector(s));
@@ -211,11 +211,20 @@ function check(condition, message) {
 		texts.forEach((e, i) => e.textContent = saved[i]);
 		loader.setAttribute("loading-alert", "error");
 		loader.setAttribute("data-state", "failed");
-		return { barShown, logoShift: Math.abs(logoWithFailure - logoWithoutFailure), textOffset: Math.abs(statusWithFailure - barWithoutFailure) };
-	}).catch(() => ({ barShown: true, logoShift: Infinity, textOffset: Infinity }));
+		return { barShown, logoShift: Math.abs(logoWithFailure - logoWithoutFailure), textRaise: barWithoutFailure - statusWithFailure };
+	}).catch(() => ({ barShown: true, logoShift: Infinity, textRaise: 0 }));
 	ok = check(!failedLayout.barShown, "bar removed when the failure is shown") && ok;
-	ok = check(failedLayout.textOffset < 1, `failure text starts where the bar was (off by ${failedLayout.textOffset}px)`) && ok;
+	ok = check(failedLayout.textRaise > 0, `failure text starts above where the bar was (by ${failedLayout.textRaise}px)`) && ok;
 	ok = check(failedLayout.logoShift < 1, `logo stays in place when the failure is shown (moved ${failedLayout.logoShift}px)`) && ok;
+	// Text is spaced evenly between the logo and the Reload button
+	const gaps = await page.$eval(".uno-loader", loader => {
+		loader.getAnimations({ subtree: true }).forEach(a => a.cancel());
+		const rect = s => loader.querySelector(s).getBoundingClientRect();
+		const hintText = document.createRange();
+		hintText.selectNodeContents(loader.querySelector(".hint"));
+		return { above: rect(".status").top - rect(".logo").bottom, below: rect(".reload").top - hintText.getBoundingClientRect().bottom };
+	}).catch(() => ({ above: 0, below: Infinity }));
+	ok = check(Math.abs(gaps.above - gaps.below) < 1, `same space above and below the failure text (${gaps.above}px, ${gaps.below}px)`) && ok;
 
 	await setMode("normal");
 	await browser.close();
