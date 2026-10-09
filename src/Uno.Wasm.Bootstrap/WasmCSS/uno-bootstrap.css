@@ -209,7 +209,9 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     opacity: 0.55;
 }
 
+/* Out of the grid: an absolutely positioned item with a grid row would be placed inside that row */
 .uno-loader[loading-position='top'] .bar {
+    grid-area: auto;
     position: absolute;
     top: 0;
     margin-top: 0;
