@@ -194,22 +194,28 @@ function check(condition, message) {
 	ok = check(failed, "failed state when the runtime can't load") && ok;
 	ok = check(await page.$eval(".uno-loader .label", l => l.textContent).catch(() => "") === "Could not load app", "failed label") && ok;
 	ok = check(await page.$eval(".uno-loader .reload", b => getComputedStyle(b).display !== "none").catch(() => false), "reload button shown") && ok;
-	// Showing the failure text and Reload button must not move the logo and bar
-	const barShift = await page.$eval(".uno-loader", loader => {
-		const top = () => loader.querySelector(".bar").getBoundingClientRect().top;
+	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l.querySelector(".status")).color === getComputedStyle(l.querySelector(".meta")).color).catch(() => false), "failure label in the same grey as the progress value") && ok;
+	// The failure text takes the place of the hidden bar, and the logo doesn't move
+	const failedLayout = await page.$eval(".uno-loader", loader => {
+		const top = s => loader.querySelector(s).getBoundingClientRect().top;
 		const texts = [".label", ".hint"].map(s => loader.querySelector(s));
 		const saved = texts.map(e => e.textContent);
-		const withFailure = top();
+		const logoWithFailure = top(".logo");
+		const statusWithFailure = top(".status");
+		const barShown = getComputedStyle(loader.querySelector(".bar")).display !== "none";
 		loader.setAttribute("data-state", "ok");
 		loader.setAttribute("loading-alert", "none");
 		texts.forEach(e => e.textContent = "");
-		const withoutFailure = top();
+		const logoWithoutFailure = top(".logo");
+		const barWithoutFailure = top(".bar");
 		texts.forEach((e, i) => e.textContent = saved[i]);
 		loader.setAttribute("loading-alert", "error");
 		loader.setAttribute("data-state", "failed");
-		return Math.abs(withFailure - withoutFailure);
-	}).catch(() => Infinity);
-	ok = check(barShift < 1, `bar stays in place when the failure is shown (moved ${barShift}px)`) && ok;
+		return { barShown, logoShift: Math.abs(logoWithFailure - logoWithoutFailure), textOffset: Math.abs(statusWithFailure - barWithoutFailure) };
+	}).catch(() => ({ barShown: true, logoShift: Infinity, textOffset: Infinity }));
+	ok = check(!failedLayout.barShown, "bar removed when the failure is shown") && ok;
+	ok = check(failedLayout.textOffset < 1, `failure text starts where the bar was (off by ${failedLayout.textOffset}px)`) && ok;
+	ok = check(failedLayout.logoShift < 1, `logo stays in place when the failure is shown (moved ${failedLayout.logoShift}px)`) && ok;
 
 	await setMode("normal");
 	await browser.close();
