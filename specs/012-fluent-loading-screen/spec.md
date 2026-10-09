@@ -30,6 +30,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 - The logo is centred in the viewport at all sizes, at most `min(90vw, 620px)` wide and `min(90vh, 300px)` tall: where Uno.Toolkit's `ExtendedSplashScreen` draws it, so the hand-off doesn't move it. The bar and text hang below the logo (gap `clamp(32px, 8vh, 96px)`) and don't move it on screens tall enough for everything.
 - On screens too short to centre the logo above everything below it (landscape phones), all visible content stays on screen. With the default layout and with only a progress value, the logo stays centred and shrinks so the bar and value fit (room below: gap + 24 px, or gap + 48 px with a value). When text is shown (status text on, `retry`, `offline`, `failed`), the logo moves up, at most to 16 px from the top, and shrinks only as much as the text and Reload button need. Status text on keeps the same position in every phase, so it doesn't move between phases.
+- With `loading-position="top"` on the loader (custom `index.html`), the bar is a full-width 4 px strip along the top edge of the window; the logo and text keep their places.
 - The native `<progress>` element is the accessible representation: it has a value only during `download`, and no value (indeterminate) in every other phase.
 - The progress label is configurable through `uno_loader_progress_format` (`none` by default, `percent` or `size`; MSBuild `WasmShellLoaderProgressFormat`). With the defaults the loader is just the logo and the bar.
 - Phase labels and the slow hint are shown only when `uno_loader_status_text` is `true` (MSBuild `WasmShellLoaderStatusText`, default `false`), so a normal load has no text to translate. The `retry`, `offline` and `failed` states always show their label and hint.
@@ -89,7 +90,7 @@ Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manife
 
 `src/Uno.Wasm.Tests.Loader` drives the published RayTracer sample (which has an `AppManifest.js` with per-theme colors). It serves files only from inside the published root.
 
-- Normal start: the stylesheet is inlined and the manifest baked (light background on the first paint); `download` with no text and nothing taking space below the bar; the logo centred in the viewport; then `starting`, then removal. A dark-scheme page gets the dark background.
+- Normal start: the stylesheet is inlined and the manifest baked (light background on the first paint); `download` with no text and nothing taking space below the bar; the logo centred in the viewport; with `loading-position="top"` the bar along the top edge of the window; then `starting`, then removal. A dark-scheme page gets the dark background.
 - Uno Platform hand-off (`keep` mode): the loader stays while marked `uno-keep-loader`; removing the element directly makes it fade out, then it's removed.
 - Custom loader (`custom` mode): content and attributes untouched, phase events received, and the loader's own exit transition runs before removal.
 - Slow start (`slow` mode, the native wasm held for 20 s): `slow` without a hint, then `offline` with its label and warning icon while the browser is offline (its text on screen on a 667×375 window), then back to `slow`.
