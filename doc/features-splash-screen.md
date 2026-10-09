@@ -44,7 +44,7 @@ These properties are supported in the manifest:
 
 The manifest's colors and logo are written into `index.html` at build time, so the first paint already shows them. When a Content-Security-Policy is configured (`WasmShellCSPConfiguration`), they are applied by the bootstrapper instead, once its script has loaded the manifest.
 
-The logo is centered in the page, at most 620×300 pixels, which is where `ExtendedSplashScreen` from Uno.Toolkit draws it, so the hand-off from the browser loader to the app's splash screen doesn't move it. On very short screens the logo shrinks just enough to keep the progress bar on screen.
+The logo is centered in the page, at most 620×300 pixels, which is where `ExtendedSplashScreen` from Uno.Toolkit draws it, so the hand-off from the browser loader to the app's splash screen doesn't move it. On very short screens, such as phones in landscape, the logo shrinks just enough to keep the progress bar on screen, and when a message or the Reload button is shown, it moves up so they stay visible too.
 
 ## Loading progress
 
