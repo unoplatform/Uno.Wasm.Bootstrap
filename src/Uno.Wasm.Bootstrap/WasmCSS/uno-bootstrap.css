@@ -211,6 +211,7 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     justify-content: center;
     gap: 8px;
     font-weight: 600;
+    color: var(--uno-loader-fg-secondary);
 }
 
 .uno-loader .meta,
@@ -230,11 +231,6 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     min-height: 32px;
 }
 
-.uno-loader[data-state='failed'] .bar,
-.uno-loader[data-state='failed'] .meta {
-    visibility: hidden;
-}
-
 .uno-loader .info .alert {
     display: none;
     flex: none;
@@ -250,13 +246,13 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     display: block;
 }
 
-/* Fluent System Icons (MIT): Warning and Error Circle, 16 filled */
+/* Fluent System Icons (MIT): Warning and Error Circle, 16 regular */
 .uno-loader[loading-alert='warning'] .info .alert {
-    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNS44MjAzMyAyLjI3NTM2QzYuNzc1ODkgMC41NzQ5NzkgOS4yMjQzNCAwLjU3NDc4MiAxMC4xNzk3IDIuMjc1MzZMMTQuNjc1OCAxMC4yNzkzQzE1LjYxMTggMTEuOTQ1NiAxNC40MDczIDE0LjAwMzYgMTIuNDk2MSAxNC4wMDM5SDMuNTAyOTRDMS41OTE3NyAxNC4wMDM2IDAuMzg4MTMzIDExLjk0NTYgMS4zMjQyMiAxMC4yNzkzTDUuODIwMzMgMi4yNzUzNlpNOC4wMDAwMyA5LjQ5OTk4QzcuNTg1ODkgOS40OTk5OCA3LjI1MDE1IDkuODM1ODggNy4yNTAwMiAxMC4yNUM3LjI1MDAyIDEwLjY2NDIgNy41ODU4MSAxMSA4LjAwMDAzIDExQzguNDE0MDMgMTAuOTk5NyA4Ljc1MDAzIDEwLjY2NCA4Ljc1MDAzIDEwLjI1QzguNzQ5OSA5LjgzNjAzIDguNDEzOTUgOS41MDAyMyA4LjAwMDAzIDkuNDk5OThaTTguMDAwMDMgNC45OTk5N0M3LjcyMzk2IDQuOTk5OTcgNy41MDAxNSA1LjIyMzk0IDcuNTAwMDIgNS40OTk5N1Y3Ljk5OTk4QzcuNTAwMDIgOC4yNzYxMiA3LjcyMzg4IDguNDk5OTggOC4wMDAwMyA4LjQ5OTk4QzguMjc1OTYgOC40OTk3MyA4LjUwMDAzIDguMjc1OTcgOC41MDAwMyA3Ljk5OTk4VjUuNDk5OTdDOC40OTk5IDUuMjI0MDkgOC4yNzU4OCA1LjAwMDIyIDguMDAwMDMgNC45OTk5N1oiIGZpbGw9IiMwMDAiLz48L3N2Zz4=");
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOC43NSAxMC4yNWEuNzUuNzUgMCAxIDEtMS41IDAgLjc1Ljc1IDAgMCAxIDEuNSAwWk03LjUgOGEuNS41IDAgMCAwIDEgMFY1LjVhLjUuNSAwIDAgMC0xIDBWOFptLS42LTUuMzZjLjQ5LS44NiAxLjcxLS44NiAyLjIgMGw0Ljc0IDguNWMuNDcuODMtLjE0IDEuODYtMS4wOSAxLjg2aC05LjVhMS4yNSAxLjI1IDAgMCAxLTEuMS0xLjg2bDQuNzYtOC41Wm0xLjMyLjQ5YS4yNS4yNSAwIDAgMC0uNDQgMGwtNC43NSA4LjVjLS4xLjE2LjAzLjM3LjIyLjM3aDkuNWMuMiAwIC4zMS0uMi4yMi0uMzdsLTQuNzUtOC41WiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==");
 }
 
 .uno-loader[loading-alert='error'] .info .alert {
-    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCAxQzExLjg2NiAxIDE1IDQuMTM0MDEgMTUgOEMxNSAxMS44NjYgMTEuODY2IDE1IDggMTVDNC4xMzQwMSAxNSAxIDExLjg2NiAxIDhDMSA0LjEzNDAxIDQuMTM0MDEgMSA4IDFaTTggMTBDNy41ODU3OSAxMCA3LjI1IDEwLjMzNTggNy4yNSAxMC43NUM3LjI1IDExLjE2NDIgNy41ODU3OSAxMS41IDggMTEuNUM4LjQxNDIxIDExLjUgOC43NSAxMS4xNjQyIDguNzUgMTAuNzVDOC43NSAxMC4zMzU4IDguNDE0MjEgMTAgOCAxMFpNOCA0LjVDNy43MjM4NiA0LjUgNy41IDQuNzIzODYgNy41IDVWOC41TDcuNTA3ODEgOC41ODk4NEM3LjU1MDE1IDguODIzMDkgNy43NTQ1NCA5IDggOUM4LjI3NjE0IDkgOC41IDguNzc2MTQgOC41IDguNVY1TDguNDkyMTkgNC45MTAxNkM4LjQ0OTg1IDQuNjc2OTEgOC4yNDU0NiA0LjUgOCA0LjVaIiBmaWxsPSIjMDAwIi8+PC9zdmc+");
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCAyYTYgNiAwIDEgMSAwIDEyQTYgNiAwIDAgMSA4IDJabTAgMWE1IDUgMCAxIDAgMCAxMEE1IDUgMCAwIDAgOCAzWm0wIDdhLjc1Ljc1IDAgMSAxIDAgMS41Ljc1Ljc1IDAgMCAxIDAtMS41Wm0wLTUuNWEuNS41IDAgMCAxIC41LjQxVjguNWEuNS41IDAgMCAxLTEgLjA5VjVjMC0uMjguMjItLjUuNS0uNVoiIGZpbGw9IiMwMDAiLz48L3N2Zz4=");
 }
 
 /* Out of the flow, below the text: showing it must not move the logo and bar */
@@ -339,6 +335,20 @@ html:has(.uno-loader), html:has(.uno-loader) body {
 .uno-loader:not([data-status-text='on']) .reload {
     position: static;
     flex: none;
+}
+
+/* Failed: the bar and value go away and the text takes their place, the logo stays put */
+.uno-loader[data-state='failed'] .bar,
+.uno-loader[data-state='failed'] .meta {
+    display: none;
+}
+
+.uno-loader[data-state='failed'] .info {
+    margin-top: var(--uno-loader-gap);
+}
+
+.uno-loader[data-state='failed'] .info .status {
+    margin-top: 0;
 }
 
 /* Markup of index.html files customized before the .bar/.info structure: a progress bar at the bottom */
