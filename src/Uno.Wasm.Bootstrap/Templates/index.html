@@ -1,8 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <script type="text/javascript" src="./require.js"></script>
@@ -14,15 +15,33 @@
     <div id="uno-body" class="container-fluid uno-body">
         <div class="uno-loader"
              loading-position="bottom"
-             loading-alert="none">
+             loading-alert="none"
+             data-status-text="off"
+             data-progress-format="none"
+             data-logo-animation="on"
+             data-phase="connect">
 
             <!-- Logo: change src to customize the logo -->
             <img class="logo"
                  src=""
+                 alt=""
                  title="Uno is loading your application" />
 
-            <progress></progress>
-            <span class="alert"></span>
+            <div class="bar">
+                <progress max="100" aria-label="Loading"></progress>
+                <i class="fill"></i>
+                <i class="sweep"></i>
+            </div>
+
+            <div class="info">
+                <div class="status" role="status" aria-live="polite">
+                    <span class="alert" aria-hidden="true"></span>
+                    <span class="label"></span>
+                </div>
+                <div class="meta"></div>
+                <div class="hint" role="status" aria-live="polite"></div>
+                <button class="reload" type="button" hidden>Reload</button>
+            </div>
         </div>
     </div>
     <noscript>

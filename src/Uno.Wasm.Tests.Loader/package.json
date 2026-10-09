@@ -1,0 +1,10 @@
+{
+  "name": "uno-wasm-tests-loader",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Follows the loader through a normal and a failed start of a published app",
+  "main": "app.js",
+  "dependencies": {
+    "puppeteer": "^14.1.2"
+  }
+}

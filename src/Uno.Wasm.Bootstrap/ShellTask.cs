@@ -59,6 +59,7 @@ namespace Uno.Wasm.Bootstrap
 		private List<AssemblyDefinition>? _resourceSearchList;
 		private List<string> _referencedAssemblies = new List<string>();
 		private string[]? _additionalStyles;
+		private string? _appManifestPath;
 		private string _intermediateAssetsPath = "";
 		private string[]? _contentExtensionsToExclude;
 		private RuntimeExecutionMode _runtimeExecutionMode;
@@ -103,6 +104,15 @@ namespace Uno.Wasm.Bootstrap
 		/// Semicolon-separated globs of offline files the service worker doesn't precache; they are still cached when the app uses them.
 		/// </summary>
 		public string PWAPrecacheExclude { get; set; } = "";
+
+		/// <summary>What the loader shows below its progress bar: <c>none</c> (default), <c>percent</c> or <c>size</c> (the megabytes downloaded).</summary>
+		public string LoaderProgressFormat { get; set; } = "";
+
+		/// <summary>Whether the loader names each phase ("Downloading app"…) and hints at a slow connection. Problems are always described.</summary>
+		public bool LoaderStatusText { get; set; }
+
+		/// <summary>Whether the loader's logo gently scales up and down while loading.</summary>
+		public bool LoaderLogoAnimation { get; set; } = true;
 
 		public bool Optimize { get; set; }
 
@@ -202,7 +212,7 @@ namespace Uno.Wasm.Bootstrap
 			using var hashFunction = SHA1.Create();
 			var hash = string.Join("", hashFunction.ComputeHash(allBytes).Select(b => b.ToString("x2")));
 
-			foreach(var staticAsset in StaticWebContent)
+			foreach (var staticAsset in StaticWebContent)
 			{
 				var targetPath = staticAsset.GetMetadata("Link");
 
@@ -389,6 +399,11 @@ namespace Uno.Wasm.Bootstrap
 					var scriptName = Path.GetFileName(path);
 
 					Log.LogMessage($"Embedded resources JS {scriptName}");
+
+					if (scriptName.Equals("AppManifest.js", StringComparison.OrdinalIgnoreCase))
+					{
+						_appManifestPath = fullSourcePath;
+					}
 
 					_dependencies.Add(scriptName);
 					AddStaticAsset(scriptName, fullSourcePath, overrideExisting: true);
@@ -601,6 +616,9 @@ namespace Uno.Wasm.Bootstrap
 				config.AppendLine($"config.uno_runtime_options = [{runtimeOptionsSet}];");
 				config.AppendLine($"config.enable_pwa = {enablePWA.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.uno_pwa_precache_exclude = {JsStringHelper.ToJsStringArray(PWAPrecacheExclude)};");
+				config.AppendLine($"config.uno_loader_progress_format = \"{GetLoaderProgressFormat()}\";");
+				config.AppendLine($"config.uno_loader_status_text = {LoaderStatusText.ToString().ToLowerInvariant()};");
+				config.AppendLine($"config.uno_loader_logo_animation = {LoaderLogoAnimation.ToString().ToLowerInvariant()};");
 				config.AppendLine($"config.offline_files = ['{WebAppBasePath}', {offlineFiles}];");
 				config.AppendLine($"config.uno_shell_mode = \"{_shellMode}\";");
 				config.AppendLine($"config.uno_debugging_enabled = {(!Optimize).ToString().ToLowerInvariant()};");
@@ -691,8 +709,28 @@ namespace Uno.Wasm.Bootstrap
 			using var reader = new StreamReader(IndexHtmlPath);
 			var html = reader.ReadToEnd();
 
-			var styles = string.Join("\r\n", _additionalStyles.Select(s => $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{s}\" />"));
-			html = html.Replace("$(ADDITIONAL_CSS)", styles);
+			var customLoader = LoaderMarkup.IsCustomLoader(html);
+			if (LoaderMarkup.UsesLegacyMarkup(html))
+			{
+				// Not a warning: the app still works, and builds treating warnings as errors must not break
+				Log.LogMessage(
+					MessageImportance.High,
+					"UNOWA0014: The loader markup in this index.html predates the current loader, so it only gets a basic look. Copy the loader from the bootstrapper's index.html template to get the new one, or mark your own loader with data-uno-loader=\"custom\".");
+			}
+
+			html = html.Replace("$(ADDITIONAL_CSS)", string.Join("\r\n", _additionalStyles.Select(style => GetStyleMarkup(style, customLoader))));
+
+			// Under a Content-Security-Policy the inline style attribute could be blocked: the bootstrapper applies the manifest instead
+			if (!customLoader && string.IsNullOrEmpty(CSPConfiguration) && _appManifestPath is not null && File.Exists(_appManifestPath))
+			{
+				html = LoaderMarkup.BakeAppManifest(html, LoaderMarkup.ParseAppManifest(File.ReadAllText(_appManifestPath)), $"{WebAppBasePath}{PackageAssetsFolder}/");
+			}
+
+			// The loader's layout depends on these, so they must be right before the bootstrapper runs
+			html = html
+				.Replace("data-status-text=\"off\"", $"data-status-text=\"{(LoaderStatusText ? "on" : "off")}\"")
+				.Replace("data-progress-format=\"none\"", $"data-progress-format=\"{GetLoaderProgressFormat()}\"")
+				.Replace("data-logo-animation=\"on\"", $"data-logo-animation=\"{(LoaderLogoAnimation ? "on" : "off")}\"");
 
 			var extraBuilder = new StringBuilder();
 			GeneratePWAContent(extraBuilder);
@@ -731,6 +769,49 @@ namespace Uno.Wasm.Bootstrap
 
 			Log.LogMessage($"HTML {indexHtmlOutputPath}");
 		}
+
+		/// <summary>
+		/// The loader's stylesheet is inlined so it paints with the HTML response, unless a Content-Security-Policy is
+		/// set (it would likely block inline styles). Other stylesheets load as media="print" and are switched to "all"
+		/// by the bootstrapper: a parser-inserted stylesheet that stalls would otherwise block the module scripts.
+		/// </summary>
+		private string GetStyleMarkup(string style, bool customLoader)
+		{
+			if (Path.GetFileName(style) == "uno-bootstrap.css")
+			{
+				// A custom loader brings its own styles, inline in index.html
+				if (customLoader)
+				{
+					return "";
+				}
+
+				// Last match: app WasmCSS is added after the framework's, so it overrides it
+				var source = StaticWebContent
+					.LastOrDefault(c => c.GetMetadata("Link").Replace("\\", "/").EndsWith("/uno-bootstrap.css", StringComparison.OrdinalIgnoreCase))
+					?.ItemSpec;
+
+				var css = string.IsNullOrEmpty(CSPConfiguration) && source is not null && File.Exists(source) ? File.ReadAllText(source) : null;
+
+				// Relative URLs in an app's own uno-bootstrap.css would resolve against index.html once inlined
+				if (css is not null && !LoaderMarkup.HasRelativeUrls(css))
+				{
+					// data-href: the bootstrapper loads the file instead when a policy sent by the server blocks inline styles
+					return $"<style id=\"uno-bootstrap-css\" data-href=\"{WebAppBasePath}{style}\">\r\n{css}\r\n</style>";
+				}
+
+				// The loader must be styled before it paints
+				return $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{style}\" />";
+			}
+
+			return $"<link rel=\"stylesheet\" type=\"text/css\" href=\"{WebAppBasePath}{style}\" media=\"print\" data-uno-stylesheet />";
+		}
+
+		private string GetLoaderProgressFormat() => LoaderProgressFormat.ToLowerInvariant() switch
+		{
+			"percent" => "percent",
+			"size" => "size",
+			_ => "none",
+		};
 
 		private void GeneratePWAContent(StringBuilder extraBuilder)
 		{

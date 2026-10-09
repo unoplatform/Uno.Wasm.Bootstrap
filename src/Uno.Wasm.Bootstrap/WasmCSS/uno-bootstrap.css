@@ -1,178 +1,519 @@
-﻿.uno-loader {
-    background-color: var(--light-theme-bg-color, #F3F3F3);
-    z-index: 5000;
+/*
+    Loader shown while the app downloads and starts. When no Content-Security-Policy is configured, this file is
+    inlined in index.html so the loader paints with the HTML response.
+
+    Animations only use transform and opacity: they run on the compositor and keep moving while the main thread
+    is busy compiling WebAssembly.
+*/
+
+/* Only while the loader is shown: once it's gone, the page belongs to the app */
+html:has(.uno-loader), html:has(.uno-loader) body {
+    background-color: #F3F3F3;
 }
 
 @media (prefers-color-scheme: dark) {
-    .uno-loader {
-        background-color: var(--dark-theme-bg-color, #202020);
+    html:has(.uno-loader), html:has(.uno-loader) body {
+        background-color: #202020;
     }
 }
 
 .uno-loader {
-    /* Main container of the loader */
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    color-scheme: light dark;
+    --uno-loader-bg: var(--light-theme-bg-color, #F3F3F3);
+    --uno-loader-fg: var(--foreground-color, #1A1A1A);
+    --uno-loader-fg-secondary: var(--foreground-color, #5D5D5D);
+    --uno-loader-accent: var(--accent-color, #0067C0);
+    --uno-loader-on-accent: #FFFFFF;
+    --uno-loader-track: rgba(0, 0, 0, 0.16);
+    --uno-loader-shine: rgba(255, 255, 255, 0.5);
+    --uno-loader-duration: 1.6s;
+    --uno-loader-gap: clamp(32px, 8vh, 96px);
+    /* Space the content below the logo needs, and the least kept above it: equal, the logo stays centred */
+    --uno-loader-below: calc(var(--uno-loader-gap) + 24px);
+    --uno-loader-above: var(--uno-loader-below);
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    /* The logo is the centre of the screen, where ExtendedSplashScreen draws it; the bar and text hang below it */
+    display: grid;
+    grid-template-rows: minmax(var(--uno-loader-above), 1fr) auto minmax(var(--uno-loader-below), 1fr);
+    grid-template-columns: 100%;
+    justify-items: center;
+    background-color: var(--uno-loader-bg);
+    color: var(--uno-loader-fg);
+    font: 14px/20px "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    transition: opacity 250ms cubic-bezier(0, 0, 0, 1);
 }
 
-    .uno-loader .logo {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-width: min(90%, 620px);
-        max-height: min(90%, 300px);
-        width: auto;
-        height: auto;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: 620px 300px;
-        pointer-events: none;
+@media (prefers-color-scheme: dark) {
+    .uno-loader {
+        --uno-loader-bg: var(--dark-theme-bg-color, #202020);
+        --uno-loader-fg: var(--dark-theme-foreground-color, var(--foreground-color, #FFFFFF));
+        --uno-loader-fg-secondary: var(--dark-theme-foreground-color, var(--foreground-color, #C5C5C5));
+        --uno-loader-accent: var(--dark-theme-accent-color, var(--accent-color, #60CDFF));
+        --uno-loader-on-accent: #000000;
+        --uno-loader-track: rgba(255, 255, 255, 0.22);
     }
+}
 
-    .uno-loader progress {
-        /* Reset the default appearance */
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        /* Get rid of default border in Firefox. */
-        border: none;
-        /* Dimensions */
-        width: calc(100% - 16px);
-        height: 4px;
-        position: absolute;
-        /* Position */
-        bottom: 8px;
-        left: 8px;
-        right: 8px;
-        /* Styling */
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .uno-loader img[src=''] {
-        visibility: collapse;
-    }
-
-    .uno-loader progress::-moz-progress-bar {
-        /* Firefox */
-        background-color: var(--accent-color, #159bff);
-        border-radius: 2px;
-        /* Smooth animation between progress updates */
-        transition: width 300ms ease-out;
-    }
-
-    .uno-loader progress::-webkit-progress-value {
-        /* Chrome & Safari */
-        background-color: var(--accent-color, #159bff);
-        border-radius: 2px;
-        /* Smooth animation between progress updates */
-        transition: width 300ms ease-out;
-    }
-
-    .uno-loader[loading-position='top'] progress {
-        bottom: auto;
-        top: 8px;
-        color: var(--accent-color, #159bff);
+/*
+    Like WinUI's MonochromaticOverlayPresenter, all text and icons draw in one color. Unless the app sets it
+    (foregroundColor), it is derived from the background's luminance, as are the track and, from the accent's,
+    the Reload label, so custom colors stay readable. y is the WCAG relative luminance. Text keeps the default
+    palette's contrast (5.93:1 on light, 9.44:1 on dark) and turns black or white near the middle, so it never
+    drops below 4.5:1. The default colors give the default palette.
+*/
+@supports (color: color(from red xyz-d65 x y z)) {
+    .uno-loader {
+        /* 1 on a light color, 0 on a dark one, where black and white text contrast equally: used inside color(from <color> xyz-d65 ...) */
+        --uno-loader-is-light: clamp(0, (y - 0.179) * 1e9, 1);
+        --uno-loader-auto-fg: color(from var(--uno-loader-bg) xyz-d65 calc(var(--uno-loader-text-y) * 0.9505) var(--uno-loader-text-y) calc(var(--uno-loader-text-y) * 1.089));
+        --uno-loader-text-y: clamp(0, var(--uno-loader-is-light) * ((y + 0.05) / 15.69 - 0.05) + (1 - var(--uno-loader-is-light)), 1);
+        --uno-loader-auto-fg-secondary: color(from var(--uno-loader-bg) xyz-d65 calc(var(--uno-loader-text2-y) * 0.9505) var(--uno-loader-text2-y) calc(var(--uno-loader-text2-y) * 1.089));
+        --uno-loader-text2-y: clamp(0, var(--uno-loader-is-light) * ((y + 0.05) / 5.932 - 0.05) + (1 - var(--uno-loader-is-light)) * (9.44 * (y + 0.05) - 0.05), 1);
+        --uno-loader-fg: var(--foreground-color, var(--uno-loader-auto-fg));
+        --uno-loader-fg-secondary: var(--foreground-color, var(--uno-loader-auto-fg-secondary));
+        --uno-loader-track: color(from var(--uno-loader-bg) xyz-d65 calc((1 - var(--uno-loader-is-light)) * 0.9505) calc(1 - var(--uno-loader-is-light)) calc((1 - var(--uno-loader-is-light)) * 1.089) / calc(0.22 - var(--uno-loader-is-light) * 0.06));
+        --uno-loader-on-accent: color(from var(--uno-loader-accent) xyz-d65 calc((1 - var(--uno-loader-is-light)) * 0.9505) calc(1 - var(--uno-loader-is-light)) calc((1 - var(--uno-loader-is-light)) * 1.089));
     }
 
     @media (prefers-color-scheme: dark) {
-        .uno-loader progress::-moz-progress-bar {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 2px;
-            /* Smooth animation between progress updates */
-            transition: width 300ms ease-out;
-        }
-
-        .uno-loader progress::-webkit-progress-value {
-            background-color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
-            border-radius: 2px;
-            /* Smooth animation between progress updates */
-            transition: width 300ms ease-out;
-        }
-
-        .uno-loader[loading-position='top'] progress {
-            color: var(--dark-theme-accent-color, var(--accent-color, #159bff));
+        .uno-loader {
+            --uno-loader-fg: var(--dark-theme-foreground-color, var(--foreground-color, var(--uno-loader-auto-fg)));
+            --uno-loader-fg-secondary: var(--dark-theme-foreground-color, var(--foreground-color, var(--uno-loader-auto-fg-secondary)));
         }
     }
+}
 
-    .uno-loader[loading-position='top'] .alert {
-        bottom: auto;
-        top: 10px;
-    }
-
-    .uno-loader[loading-alert] .alert {
-        /* Position */
-        display: block;
-        position: absolute;
-        bottom: 10px;
-        height: 32px;
-        font-weight: normal;
-        font-size: 14px;
-        font-family: monospace;
-        color: var(--accent-color, #f85977);
-        width: 32px;
-        background: whitesmoke;
-        border-radius: 50%;
-        transition: all 400ms ease;
-        transform-origin: 50% 50%;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
-        @media (prefers-color-scheme: dark) {
-            .uno-loader[loading-alert] .alert {
-                color: var(--dark-theme-accent-color, var(--accent-color, #f85977));
-            }
-        }
-
-        .uno-loader[loading-alert] .alert:after {
-            text-align: center;
-            display: block;
-            width: 100%;
-            position: absolute;
-            top: 0;
-        }
-
-    .uno-loader[loading-alert='none'] .alert {
-        display: none;
-    }
-
-    .uno-loader[loading-alert='error'] .alert:after {
-        animation-name: pulse;
-        animation-duration: 2500ms;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
-    }
-
-    .uno-loader[loading-alert='warning'] .alert:after,
-    .uno-loader[loading-alert='error'] .alert:after {
-        top: 2px;
-        font-size: 26px;
-        content: '\26A0';
-    }
-
-    .uno-loader[loading-alert='warning'] .alert:after {
-        color: DarkGoldenRod;
-    }
-
-    .uno-loader[loading-alert='error'] .alert:after {
-        color: DarkRed;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(0.85);
-        }
-
-        50% {
-            transform: scale(1.15);
-        }
-
-        100% {
-            transform: scale(0.85);
+/* White barely shows on the light dark-theme accent: use a tint of the accent */
+@supports (color: color-mix(in srgb, red, white)) {
+    @media (prefers-color-scheme: dark) {
+        .uno-loader {
+            --uno-loader-shine: color-mix(in srgb, var(--uno-loader-accent) 25%, white);
         }
     }
+}
+
+/*
+    Room below the logo for each layout, with a 16 px margin, or the hint's reserved second line as margin.
+    The progress value is in every phase's layout, so it keeps the logo centred. Text pulls the logo up, as little as needed, on screens
+    too short to centre it (landscape phones).
+*/
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none']) {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 48px);
+}
+
+.uno-loader[data-status-text='on'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 96px);
+    --uno-loader-above: 16px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-state='retry'],
+.uno-loader:not([data-status-text='on'])[data-state='offline'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 76px);
+    --uno-loader-above: 16px;
+}
+
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='retry'],
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='offline'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 100px);
+}
+
+.uno-loader[data-state='failed'],
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='failed'] {
+    --uno-loader-below: 136px;
+    --uno-loader-above: 16px;
+}
+
+/* Waiting on the network reads calmer than downloading */
+.uno-loader[data-state='retry'],
+.uno-loader[data-state='offline'] {
+    --uno-loader-duration: 3.6s;
+}
+
+.uno-loader.uno-leaving {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* A dark-theme logo baked from the AppManifest wraps the img in a <picture>: lay out the img itself */
+.uno-loader picture {
+    display: contents;
+}
+
+.uno-loader .logo {
+    grid-row: 2;
+    grid-column: 1;
+    max-width: min(90vw, 620px);
+    /* Never so tall that what's below it leaves the screen (landscape phones) */
+    max-height: min(90vh, 300px, calc(100vh - var(--uno-loader-above) - var(--uno-loader-below)));
+    pointer-events: none;
+    transition: transform 250ms cubic-bezier(0, 0, 0, 1), opacity 250ms;
+    animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
+}
+
+/* WasmShellLoaderLogoAnimation=false: the logo still enters and leaves, but doesn't breathe */
+.uno-loader[data-logo-animation='off'] .logo {
+    animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards;
+}
+
+.uno-loader img[src=''] {
+    visibility: hidden;
+}
+
+.uno-loader.uno-leaving .logo {
+    transform: scale(1.2);
+    opacity: 0;
+}
+
+/* Progress bar: the native <progress> stays for accessibility and compatibility, the fill is drawn with scaleX */
+.uno-loader .bar {
+    grid-row: 3;
+    grid-column: 1;
+    align-self: start;
+    margin-top: var(--uno-loader-gap);
+    position: relative;
+    width: 240px;
+    max-width: 60vw;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    background-color: var(--uno-loader-track);
+    transition: opacity 333ms;
+}
+
+.uno-loader .bar progress {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.uno-loader .bar .fill,
+.uno-loader .bar .sweep {
+    position: absolute;
+    inset: 0;
+}
+
+.uno-loader .fill {
+    background-color: var(--uno-loader-accent);
+    transform-origin: 0 0;
+    transform: scaleX(var(--uno-loader-progress, 0));
+    overflow: hidden;
+    transition: transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 333ms;
+}
+
+.uno-loader .fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--uno-loader-shine), transparent);
+    animation: uno-loader-shine var(--uno-loader-duration) ease-in-out infinite;
+}
+
+/* Indeterminate segment, while connecting and while the runtime starts after the downloads */
+.uno-loader .sweep {
+    right: auto;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--uno-loader-accent), transparent);
+    opacity: 0;
+    transition: opacity 333ms;
+    animation: uno-loader-sweep var(--uno-loader-duration) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.uno-loader[data-phase='connect'] .sweep,
+.uno-loader[data-phase='starting'] .sweep {
+    opacity: 1;
+}
+
+.uno-loader[data-phase='starting'] .fill {
+    opacity: 0.3;
+}
+
+.uno-loader[data-state='retry'] .bar,
+.uno-loader[data-state='offline'] .bar {
+    opacity: 0.55;
+}
+
+/* Out of the grid: an absolutely positioned item with a grid row would be placed inside that row */
+.uno-loader[loading-position='top'] .bar {
+    grid-area: auto;
+    position: absolute;
+    top: 0;
+    margin-top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+}
+
+/* Text, revealed after a moment so loads served from the cache don't flash it */
+.uno-loader .info {
+    --uno-loader-info-offset: 16px;
+    grid-row: 3;
+    grid-column: 1;
+    align-self: start;
+    position: relative;
+    width: min(320px, 86vw);
+    /* Sits below the bar, which shares its grid cell */
+    margin-top: calc(var(--uno-loader-gap) + 4px + var(--uno-loader-info-offset));
+    text-align: center;
+    animation: uno-loader-fade-in 333ms cubic-bezier(0, 0, 0, 1) 600ms backwards;
+}
+
+.uno-loader.uno-leaving .info {
+    opacity: 0;
+    transition: opacity 120ms;
+}
+
+.uno-loader .status {
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--uno-loader-fg-secondary);
+}
+
+.uno-loader .meta,
+.uno-loader .hint {
+    min-height: 16px;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--uno-loader-fg-secondary);
+}
+
+.uno-loader .meta {
+    font-variant-numeric: tabular-nums;
+}
+
+.uno-loader .hint {
+    min-height: 32px;
+}
+
+.uno-loader .info .alert {
+    display: none;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask: var(--uno-loader-icon) center / contain no-repeat;
+    mask: var(--uno-loader-icon) center / contain no-repeat;
+}
+
+.uno-loader[loading-alert='warning'] .info .alert,
+.uno-loader[loading-alert='error'] .info .alert {
+    display: block;
+}
+
+/* Fluent System Icons (MIT): Warning and Error Circle, 16 regular */
+.uno-loader[loading-alert='warning'] .info .alert {
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOC43NSAxMC4yNWEuNzUuNzUgMCAxIDEtMS41IDAgLjc1Ljc1IDAgMCAxIDEuNSAwWk03LjUgOGEuNS41IDAgMCAwIDEgMFY1LjVhLjUuNSAwIDAgMC0xIDBWOFptLS42LTUuMzZjLjQ5LS44NiAxLjcxLS44NiAyLjIgMGw0Ljc0IDguNWMuNDcuODMtLjE0IDEuODYtMS4wOSAxLjg2aC05LjVhMS4yNSAxLjI1IDAgMCAxLTEuMS0xLjg2bDQuNzYtOC41Wm0xLjMyLjQ5YS4yNS4yNSAwIDAgMC0uNDQgMGwtNC43NSA4LjVjLS4xLjE2LjAzLjM3LjIyLjM3aDkuNWMuMiAwIC4zMS0uMi4yMi0uMzdsLTQuNzUtOC41WiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==");
+}
+
+.uno-loader[loading-alert='error'] .info .alert {
+    --uno-loader-icon: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCAyYTYgNiAwIDEgMSAwIDEyQTYgNiAwIDAgMSA4IDJabTAgMWE1IDUgMCAxIDAgMCAxMEE1IDUgMCAwIDAgOCAzWm0wIDdhLjc1Ljc1IDAgMSAxIDAgMS41Ljc1Ljc1IDAgMCAxIDAtMS41Wm0wLTUuNWEuNS41IDAgMCAxIC41LjQxVjguNWEuNS41IDAgMCAxLTEgLjA5VjVjMC0uMjguMjItLjUuNS0uNVoiIGZpbGw9IiMwMDAiLz48L3N2Zz4=");
+}
+
+/* Out of the flow, below the text: showing it must not move the logo and bar */
+.uno-loader .reload {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: fit-content;
+    height: 32px;
+    margin: 12px auto 0;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 4px;
+    background-color: var(--uno-loader-accent);
+    color: var(--uno-loader-on-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.uno-loader .reload:hover {
+    filter: brightness(1.1);
+}
+
+.uno-loader .reload:active {
+    filter: brightness(0.9);
+}
+
+.uno-loader .reload:focus-visible {
+    outline: 2px solid var(--uno-loader-fg);
+    outline-offset: 2px;
+}
+
+.uno-loader[data-state='failed'] .reload {
+    display: inline-block;
+}
+
+/*
+    Without status text (the default), only the progress value takes space, close to the bar, so the group is
+    shorter and sits lower; with no value (the default) it is just the logo and the bar. Problem text and the
+    Reload button overflow below: they never move the logo and bar.
+*/
+.uno-loader:not([data-status-text='on']) .info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 20px;
+    --uno-loader-info-offset: 8px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-progress-format='none'] .info {
+    height: 0;
+    --uno-loader-info-offset: 0px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-progress-format='none'] .meta {
+    display: none;
+}
+
+/* The value is the only text on screen: as large as the status, but in the secondary colour */
+.uno-loader:not([data-status-text='on']) .meta {
+    order: -1;
+    min-height: 20px;
+    margin-top: 0;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.uno-loader:not([data-status-text='on']) .status {
+    margin-top: 12px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-progress-format='none'] .status {
+    margin-top: 16px;
+}
+
+.uno-loader:not([data-status-text='on']) .reload {
+    position: static;
+    flex: none;
+}
+
+/*
+    Failed: the bar and value go away and the text moves up below the logo, the logo stays put. The text doesn't
+    change any more, so no line is reserved, and Reload sits as far below it as the logo is above.
+*/
+.uno-loader[data-state='failed'] {
+    --uno-loader-failed-gap: 24px;
+}
+
+.uno-loader[data-state='failed'] .bar,
+.uno-loader[data-state='failed'] .meta {
+    display: none;
+}
+
+.uno-loader[data-state='failed'] .info {
+    margin-top: var(--uno-loader-failed-gap);
+}
+
+.uno-loader[data-state='failed'] .info .status {
+    margin-top: 0;
+}
+
+/* Without status text .info has no height: keep the lines from shrinking to fit it */
+.uno-loader[data-state='failed'] .info > * {
+    flex: none;
+}
+
+.uno-loader[data-state='failed'] .hint {
+    min-height: 0;
+}
+
+.uno-loader[data-state='failed'] .reload {
+    margin-top: var(--uno-loader-failed-gap);
+}
+
+/* Markup of index.html files customized before the .bar/.info structure: a progress bar at the bottom */
+.uno-loader > progress {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: calc(100% - 16px);
+    height: 4px;
+    border: none;
+    border-radius: 2px;
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--uno-loader-track);
+}
+
+.uno-loader > progress::-webkit-progress-bar {
+    background-color: transparent;
+}
+
+.uno-loader > progress::-webkit-progress-value {
+    background-color: var(--uno-loader-accent);
+    transition: width 300ms ease-out;
+}
+
+.uno-loader > progress::-moz-progress-bar {
+    background-color: var(--uno-loader-accent);
+}
+
+.uno-loader[loading-position='top'] > progress {
+    top: 8px;
+    bottom: auto;
+}
+
+.uno-loader > .alert {
+    display: none;
+}
+
+@keyframes uno-loader-shine {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+@keyframes uno-loader-sweep {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+@keyframes uno-loader-enter {
+    from { opacity: 0.6; transform: scale(0.94); }
+}
+
+@keyframes uno-loader-breathe {
+    50% { scale: 1.04; }
+}
+
+@keyframes uno-loader-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .uno-loader,
+    .uno-loader * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+@media (forced-colors: active) {
+    .uno-loader .bar {
+        border: 1px solid CanvasText;
+    }
+
+    .uno-loader .fill {
+        background-color: Highlight;
+    }
+
+    .uno-loader .info .alert {
+        forced-color-adjust: none;
+        background-color: CanvasText;
+    }
+}

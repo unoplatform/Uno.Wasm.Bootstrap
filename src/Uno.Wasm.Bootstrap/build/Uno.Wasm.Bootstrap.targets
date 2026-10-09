@@ -12,6 +12,8 @@
 
 		<WasmShellContentExtensionsToExclude Condition="'$(WasmShellContentExtensionsToExclude)' == ''">.a;.bc;.o</WasmShellContentExtensionsToExclude>
 
+		<WasmShellLoaderLogoAnimation Condition="'$(WasmShellLoaderLogoAnimation)' == ''">true</WasmShellLoaderLogoAnimation>
+
 		<WasmEnableThreads Condition=" '$(WasmShellEnableThreads)' == 'true' ">true</WasmEnableThreads>
 
 		<WasmShellMode Condition="'$(WasmShellMode)'==''">browser</WasmShellMode>
@@ -440,6 +442,9 @@
 			ContentExtensionsToExclude="$(WasmShellContentExtensionsToExclude)"
 			CSPConfiguration="$(WasmShellCSPConfiguration)"
 			PWAPrecacheExclude="$(WasmShellPWAPrecacheExclude)"
+			LoaderProgressFormat="$(WasmShellLoaderProgressFormat)"
+			LoaderStatusText="$(WasmShellLoaderStatusText)"
+			LoaderLogoAnimation="$(WasmShellLoaderLogoAnimation)"
 			CurrentProjectPath="$(MSBuildProjectDirectory)"
 			EmbeddedResources="@(EmbeddedResource)"
 			EmccExportedRuntimeMethod="@(EmccExportedRuntimeMethod)"
