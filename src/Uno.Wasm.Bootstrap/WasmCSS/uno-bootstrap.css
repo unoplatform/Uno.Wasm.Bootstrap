@@ -28,12 +28,15 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     --uno-loader-shine: rgba(255, 255, 255, 0.5);
     --uno-loader-duration: 1.6s;
     --uno-loader-gap: clamp(32px, 8vh, 96px);
+    /* Space the content below the logo needs, and the least kept above it: equal, the logo stays centred */
+    --uno-loader-below: calc(var(--uno-loader-gap) + 24px);
+    --uno-loader-above: var(--uno-loader-below);
     position: fixed;
     inset: 0;
     z-index: 5000;
     /* The logo is the centre of the screen, where ExtendedSplashScreen draws it; the bar and text hang below it */
     display: grid;
-    grid-template-rows: 1fr auto 1fr;
+    grid-template-rows: minmax(var(--uno-loader-above), 1fr) auto minmax(var(--uno-loader-below), 1fr);
     grid-template-columns: 100%;
     justify-items: center;
     background-color: var(--uno-loader-bg);
@@ -62,6 +65,37 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     }
 }
 
+/*
+    Room below the logo for each layout, with a 16 px margin, or the hint's reserved second line as margin.
+    The progress value is in every phase's layout, so it keeps the logo centred. Text pulls the logo up, as little as needed, on screens
+    too short to centre it (landscape phones).
+*/
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none']) {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 48px);
+}
+
+.uno-loader[data-status-text='on'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 96px);
+    --uno-loader-above: 16px;
+}
+
+.uno-loader:not([data-status-text='on'])[data-state='retry'],
+.uno-loader:not([data-status-text='on'])[data-state='offline'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 76px);
+    --uno-loader-above: 16px;
+}
+
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='retry'],
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='offline'] {
+    --uno-loader-below: calc(var(--uno-loader-gap) + 100px);
+}
+
+.uno-loader[data-state='failed'],
+.uno-loader:not([data-status-text='on']):not([data-progress-format='none'])[data-state='failed'] {
+    --uno-loader-below: 136px;
+    --uno-loader-above: 16px;
+}
+
 /* Waiting on the network reads calmer than downloading */
 .uno-loader[data-state='retry'],
 .uno-loader[data-state='offline'] {
@@ -82,8 +116,8 @@ html:has(.uno-loader), html:has(.uno-loader) body {
     grid-row: 2;
     grid-column: 1;
     max-width: min(90vw, 620px);
-    /* Never so tall that the bar below it leaves the screen (landscape phones) */
-    max-height: min(90vh, 300px, calc(100vh - 2 * (var(--uno-loader-gap) + 24px)));
+    /* Never so tall that what's below it leaves the screen (landscape phones) */
+    max-height: min(90vh, 300px, calc(100vh - var(--uno-loader-above) - var(--uno-loader-below)));
     pointer-events: none;
     transition: transform 250ms cubic-bezier(0, 0, 0, 1), opacity 250ms;
     animation: uno-loader-enter 333ms cubic-bezier(0, 0, 0, 1) backwards, uno-loader-breathe calc(var(--uno-loader-duration) * 1.5) ease-in-out 333ms infinite;
