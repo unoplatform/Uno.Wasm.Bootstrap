@@ -8,6 +8,26 @@ const baseUrl = process.argv[2] || "http://localhost:8005/";
 const setMode = mode => new Promise((resolve, reject) =>
 	http.get(`${baseUrl}__mode/${mode}`, res => { res.resume(); res.on("end", resolve); }).on("error", reject));
 
+// On a landscape phone, how far the logo and the loader's visible text and Reload button stick out of the window (0 when they fit)
+async function overflowOnShortScreen(page) {
+	await page.setViewport({ width: 667, height: 375 });
+	const overflow = await page.$eval(".uno-loader", loader => {
+		loader.getAnimations({ subtree: true }).forEach(a => a.cancel());
+		const bottoms = [".label", ".hint", ".reload"]
+			.map(s => loader.querySelector(s))
+			.filter(e => getComputedStyle(e).display !== "none" && e.textContent.trim())
+			.map(e => {
+				const range = document.createRange();
+				range.selectNodeContents(e);
+				return Math.max(range.getBoundingClientRect().bottom, e.matches(".reload") ? e.getBoundingClientRect().bottom : 0);
+			});
+		const logoTop = loader.querySelector(".logo").getBoundingClientRect().top;
+		return Math.max(0, -logoTop, ...bottoms.map(b => b - innerHeight));
+	}).catch(() => Infinity);
+	await page.setViewport({ width: 800, height: 600 });
+	return overflow;
+}
+
 // Records the loader's phases and labels as they change
 async function watchLoader(page) {
 	await page.evaluateOnNewDocument(() => {
@@ -179,6 +199,8 @@ function check(condition, message) {
 	await page.setOfflineMode(true);
 	ok = check(await loaderIs("offline", "Device offline"), "offline state when the connection drops") && ok;
 	ok = check(await page.$eval(".uno-loader", l => l.getAttribute("loading-alert")).catch(() => "") === "warning", "offline shows the warning icon") && ok;
+	const offlineOverflow = await overflowOnShortScreen(page);
+	ok = check(offlineOverflow < 1, `offline text fits on a landscape phone (${offlineOverflow}px out)`) && ok;
 	await page.setOfflineMode(false);
 	ok = check(await loaderIs("slow"), "back to slow once online") && ok;
 	await page.close();
@@ -225,6 +247,8 @@ function check(condition, message) {
 		return { above: rect(".status").top - rect(".logo").bottom, below: rect(".reload").top - hintText.getBoundingClientRect().bottom };
 	}).catch(() => ({ above: 0, below: Infinity }));
 	ok = check(Math.abs(gaps.above - gaps.below) < 1, `same space above and below the failure text (${gaps.above}px, ${gaps.below}px)`) && ok;
+	const failedOverflow = await overflowOnShortScreen(page);
+	ok = check(failedOverflow < 1, `failure text and Reload fit on a landscape phone (${failedOverflow}px out)`) && ok;
 
 	await setMode("normal");
 	await browser.close();
