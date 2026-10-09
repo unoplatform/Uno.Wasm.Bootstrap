@@ -20,8 +20,8 @@ html:has(.uno-loader), html:has(.uno-loader) body {
 .uno-loader {
     color-scheme: light dark;
     --uno-loader-bg: var(--light-theme-bg-color, #F3F3F3);
-    --uno-loader-fg: #1A1A1A;
-    --uno-loader-fg-secondary: #5D5D5D;
+    --uno-loader-fg: var(--foreground-color, #1A1A1A);
+    --uno-loader-fg-secondary: var(--foreground-color, #5D5D5D);
     --uno-loader-accent: var(--accent-color, #0067C0);
     --uno-loader-on-accent: #FFFFFF;
     --uno-loader-track: rgba(0, 0, 0, 0.16);
@@ -48,11 +48,40 @@ html:has(.uno-loader), html:has(.uno-loader) body {
 @media (prefers-color-scheme: dark) {
     .uno-loader {
         --uno-loader-bg: var(--dark-theme-bg-color, #202020);
-        --uno-loader-fg: #FFFFFF;
-        --uno-loader-fg-secondary: #C5C5C5;
+        --uno-loader-fg: var(--dark-theme-foreground-color, var(--foreground-color, #FFFFFF));
+        --uno-loader-fg-secondary: var(--dark-theme-foreground-color, var(--foreground-color, #C5C5C5));
         --uno-loader-accent: var(--dark-theme-accent-color, var(--accent-color, #60CDFF));
         --uno-loader-on-accent: #000000;
         --uno-loader-track: rgba(255, 255, 255, 0.22);
+    }
+}
+
+/*
+    Like WinUI's MonochromaticOverlayPresenter, all text and icons draw in one color. Unless the app sets it
+    (foregroundColor), it is derived from the background's luminance, as are the track and, from the accent's,
+    the Reload label, so custom colors stay readable. y is the WCAG relative luminance. Text keeps the default
+    palette's contrast (5.93:1 on light, 9.44:1 on dark) and turns black or white near the middle, so it never
+    drops below 4.5:1. The default colors give the default palette.
+*/
+@supports (color: color(from red xyz-d65 x y z)) {
+    .uno-loader {
+        /* 1 on a light color, 0 on a dark one, where black and white text contrast equally: used inside color(from <color> xyz-d65 ...) */
+        --uno-loader-is-light: clamp(0, (y - 0.179) * 1e9, 1);
+        --uno-loader-auto-fg: color(from var(--uno-loader-bg) xyz-d65 calc(var(--uno-loader-text-y) * 0.9505) var(--uno-loader-text-y) calc(var(--uno-loader-text-y) * 1.089));
+        --uno-loader-text-y: clamp(0, var(--uno-loader-is-light) * ((y + 0.05) / 15.69 - 0.05) + (1 - var(--uno-loader-is-light)), 1);
+        --uno-loader-auto-fg-secondary: color(from var(--uno-loader-bg) xyz-d65 calc(var(--uno-loader-text2-y) * 0.9505) var(--uno-loader-text2-y) calc(var(--uno-loader-text2-y) * 1.089));
+        --uno-loader-text2-y: clamp(0, var(--uno-loader-is-light) * ((y + 0.05) / 5.932 - 0.05) + (1 - var(--uno-loader-is-light)) * (9.44 * (y + 0.05) - 0.05), 1);
+        --uno-loader-fg: var(--foreground-color, var(--uno-loader-auto-fg));
+        --uno-loader-fg-secondary: var(--foreground-color, var(--uno-loader-auto-fg-secondary));
+        --uno-loader-track: color(from var(--uno-loader-bg) xyz-d65 calc((1 - var(--uno-loader-is-light)) * 0.9505) calc(1 - var(--uno-loader-is-light)) calc((1 - var(--uno-loader-is-light)) * 1.089) / calc(0.22 - var(--uno-loader-is-light) * 0.06));
+        --uno-loader-on-accent: color(from var(--uno-loader-accent) xyz-d65 calc((1 - var(--uno-loader-is-light)) * 0.9505) calc(1 - var(--uno-loader-is-light)) calc((1 - var(--uno-loader-is-light)) * 1.089));
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .uno-loader {
+            --uno-loader-fg: var(--dark-theme-foreground-color, var(--foreground-color, var(--uno-loader-auto-fg)));
+            --uno-loader-fg-secondary: var(--dark-theme-foreground-color, var(--foreground-color, var(--uno-loader-auto-fg-secondary)));
+        }
     }
 }
 

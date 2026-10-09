@@ -39,11 +39,17 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - The status label and its icon use the secondary text colour, the same as the progress value and the hint. The `warning` and `error` icons are Fluent System Icons Warning and Error Circle, 16 regular (outlined), each drawn from a single path in `currentColor`.
 - The logo breathes (scales to 1.04 and back) unless `uno_loader_logo_animation` is `false` (MSBuild `WasmShellLoaderLogoAnimation`, default `true`); its entrance and exit stay.
 
+### Colors
+
+- All text and icons (status, value, hint, warning and error icons) are drawn in one color, like WinUI's `MonochromaticOverlayPresenter`: the app's foreground color for the theme (`--foreground-color`, `--dark-theme-foreground-color`), used as is.
+- Without one, the color is derived from the loader background's WCAG relative luminance with CSS relative colors: on backgrounds lighter than 0.179 it keeps a 5.93:1 contrast, on darker ones 9.44:1, turning black or white near that point, so it is at least 4.5:1 on any background. The focus ring (15.7:1 / white) and the progress track (16% black / 22% white) follow the same switch, and the Reload label is black or white from the accent's luminance.
+- With the default colors the derived values equal the default palette (#5D5D5D / #C5C5C5 text, #1A1A1A / #FFFFFF focus ring, white / black Reload label).
+- Browsers without relative colors (`@supports (color: color(from red xyz-d65 x y z))` fails) use the default palette for each theme; an app foreground color still applies.
 ### First paint
 
 - `uno-bootstrap.css` is inlined in `index.html` when no Content-Security-Policy is set. Other stylesheets load as `media="print"` and are enabled by the bootstrapper, so a slow stylesheet never delays the loader or the scripts.
 - `data-status-text`, `data-progress-format` and `data-logo-animation` are written into `index.html` at build time.
-- The project's `AppManifest.js` is parsed at build time and its colors (`lightThemeBackgroundColor`, `darkThemeBackgroundColor`, `splashScreenColor`, `accentColor`, `lightThemeAccentColor`, `darkThemeAccentColor`) and logo (`splashScreenImage`, `splashScreenImageDark` as a `<picture>` source for `prefers-color-scheme: dark`) are written into the loader markup, marked `data-manifest="baked"`; the bootstrapper then doesn't apply the manifest again. Per-theme background colors take precedence over `splashScreenColor`. Colors that aren't plain CSS colors and image URLs with a scheme other than `http(s)` are ignored. Under a Content-Security-Policy, or without a manifest, the bootstrapper applies the manifest at runtime as before.
+- The project's `AppManifest.js` is parsed at build time and its colors (`lightThemeBackgroundColor`, `darkThemeBackgroundColor`, `splashScreenColor`, `accentColor`, `lightThemeAccentColor`, `darkThemeAccentColor`, `foregroundColor`, `lightThemeForegroundColor`, `darkThemeForegroundColor`) and logo (`splashScreenImage`, `splashScreenImageDark` as a `<picture>` source for `prefers-color-scheme: dark`) are written into the loader markup, marked `data-manifest="baked"`; the bootstrapper then doesn't apply the manifest again. Per-theme background colors take precedence over `splashScreenColor`, which sets both theme backgrounds. `lightThemeForegroundColor` takes precedence over `foregroundColor`, like the accent colors. Colors that aren't plain CSS colors and image URLs with a scheme other than `http(s)` are ignored. Under a Content-Security-Policy, or without a manifest, the bootstrapper applies the manifest at runtime as before.
 
 ### Lifecycle
 
@@ -86,11 +92,11 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ## Validation
 
-Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors and logos, precedence, rejected colors and script URLs, attribute encoding, custom loaders left untouched, legacy markup detection.
+Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors (including foreground colors and `splashScreenColor` through both theme variables) and logos, precedence, rejected colors and script URLs, attribute encoding, custom loaders left untouched, legacy markup detection.
 
 `src/Uno.Wasm.Tests.Loader` drives the published RayTracer sample (which has an `AppManifest.js` with per-theme colors). It serves files only from inside the published root.
 
-- Normal start: the stylesheet is inlined and the manifest baked (light background on the first paint); `download` with no text and nothing taking space below the bar; the logo centred in the viewport; with `loading-position="top"` the bar along the top edge of the window; then `starting`, then removal. A dark-scheme page gets the dark background.
+- Normal start: the stylesheet is inlined and the manifest baked (light background on the first paint); `download` with no text and nothing taking space below the bar; the logo centred in the viewport; with `loading-position="top"` the bar along the top edge of the window; readable text on a dark custom background in light mode and on a light one in dark mode, and an app foreground color winning; then `starting`, then removal. A dark-scheme page gets the dark background.
 - Uno Platform hand-off (`keep` mode): the loader stays while marked `uno-keep-loader`; removing the element directly makes it fade out, then it's removed.
 - Custom loader (`custom` mode): content and attributes untouched, phase events received, and the loader's own exit transition runs before removal.
 - Slow start (`slow` mode, the native wasm held for 20 s): `slow` without a hint, then `offline` with its label and warning icon while the browser is offline (its text on screen on a 667×375 window), then back to `slow`.

@@ -958,13 +958,13 @@ namespace Uno.WebAssembly.Bootstrap {
 					this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
 				}
 
-				// The inline splashScreenColor override is a legacy single-theme path — it
-				// would clobber the @media (prefers-color-scheme: dark) rule on .uno-loader.
-				// Skip it when per-theme values are provided so theme selection flows through CSS.
+				// The single-theme splashScreenColor applies to both themes, so per-theme values win.
+				// It goes through the theme variables so the text colors can be derived from it.
 				const hasPerThemeBackground =
 					manifest && (manifest.lightThemeBackgroundColor || manifest.darkThemeBackgroundColor);
 				if (manifest && !hasPerThemeBackground && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
-					this.loader.style.setProperty("background-color", manifest.splashScreenColor);
+					this.loader.style.setProperty("--light-theme-bg-color", manifest.splashScreenColor);
+					this.loader.style.setProperty("--dark-theme-bg-color", manifest.splashScreenColor);
 				}
 
 				if (manifest && manifest.accentColor) {
@@ -975,6 +975,12 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 				if (manifest && manifest.darkThemeAccentColor) {
 					this.loader.style.setProperty("--dark-theme-accent-color", manifest.darkThemeAccentColor);
+				}
+				if (manifest && (manifest.lightThemeForegroundColor || manifest.foregroundColor)) {
+					this.loader.style.setProperty("--foreground-color", manifest.lightThemeForegroundColor || manifest.foregroundColor);
+				}
+				if (manifest && manifest.darkThemeForegroundColor) {
+					this.loader.style.setProperty("--dark-theme-foreground-color", manifest.darkThemeForegroundColor);
 				}
 				const img = this.loader.querySelector("img");
 				if (img) {

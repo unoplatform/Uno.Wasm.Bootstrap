@@ -114,15 +114,19 @@ public static class LoaderMarkup
 		AddColor("--light-theme-bg-color", "lightThemeBackgroundColor");
 		AddColor("--dark-theme-bg-color", "darkThemeBackgroundColor");
 
-		// A single-theme color would override the dark theme, so per-theme colors win
+		// A single-theme color would override the dark theme, so per-theme colors win. It goes through the theme
+		// variables so the text colors can be derived from it.
 		var hasPerThemeBackground = manifest.ContainsKey("lightThemeBackgroundColor") || manifest.ContainsKey("darkThemeBackgroundColor");
 		if (!hasPerThemeBackground && manifest.TryGetValue("splashScreenColor", out var splashColor) && !splashColor.Trim().Equals("transparent", StringComparison.OrdinalIgnoreCase))
 		{
-			AddColor("background-color", "splashScreenColor");
+			AddColor("--light-theme-bg-color", "splashScreenColor");
+			AddColor("--dark-theme-bg-color", "splashScreenColor");
 		}
 
 		AddColor("--accent-color", manifest.ContainsKey("lightThemeAccentColor") ? "lightThemeAccentColor" : "accentColor");
 		AddColor("--dark-theme-accent-color", "darkThemeAccentColor");
+		AddColor("--foreground-color", manifest.ContainsKey("lightThemeForegroundColor") ? "lightThemeForegroundColor" : "foregroundColor");
+		AddColor("--dark-theme-foreground-color", "darkThemeForegroundColor");
 
 		var attributes = new StringBuilder(" data-manifest=\"baked\"");
 		if (styles.Count > 0)
