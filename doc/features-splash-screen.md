@@ -41,6 +41,9 @@ These properties are supported in the manifest:
 - `splashScreenImage` (optional) path or URL to the splash image shown while the application boots.
 - `splashScreenImageDark` (optional) path or URL to the splash image used when the browser reports `prefers-color-scheme: dark`. When absent, `splashScreenImage` is used in both themes.
 - `accentColor`, `lightThemeAccentColor`, `darkThemeAccentColor` (optional) color of the progress bar.
+- `foregroundColor`, `lightThemeForegroundColor`, `darkThemeForegroundColor` (optional) color of the loader's text and icons. All of them are drawn in this one color.
+
+Without a foreground color, the text and icons are derived from the background, as the progress track is, and the label of the Reload button from the accent color: dark on light colors and light on dark ones, keeping a contrast of at least 4.5:1 with any background or accent. With the default colors this gives the default palette. Browsers without CSS relative colors (before Chrome 119, Safari 18, Firefox 128) use the default text colors for each theme. A foreground color set by the app is used as is, so check its contrast against your background.
 
 The manifest's colors and logo are written into `index.html` at build time, so the first paint already shows them. When a Content-Security-Policy is configured (`WasmShellCSPConfiguration`), they are applied by the bootstrapper instead, once its script has loaded the manifest.
 
