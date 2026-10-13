@@ -36,7 +36,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - Phase labels and the slow hint are shown only when `uno_loader_status_text` is `true` (MSBuild `WasmShellLoaderStatusText`, default `false`), so a normal load has no text to translate. The `retry`, `offline` and `failed` states always show their label and hint.
 - On screens tall enough for everything, showing or hiding text never moves the logo or the bar. With status text on, the status, meta and hint lines keep their height and the Reload button sits outside the layout. With it off, only the progress value takes space (8 px below the bar; none at all with format `none`); problem text and the Reload button overflow below it.
 - In the `failed` state the bar and the progress value are removed and the failure text moves up to 24 px below the logo, with no line reserved for the hint. The Reload button sits the same 24 px below the text, so the group is evenly spaced. The logo still doesn't move.
-- The status label and its icon use the secondary text colour, the same as the progress value and the hint. The `warning` and `error` icons are Fluent System Icons Warning and Error Circle, 16 regular (outlined), each drawn from a single path in `currentColor`.
+- The status label and its icon use the secondary text color, the same as the progress value and the hint. The `warning` and `error` icons are Fluent System Icons Warning and Error Circle, 16 regular (outlined), each drawn from a single path in `currentColor`.
 - The logo breathes (scales to 1.04 and back) unless `uno_loader_logo_animation` is `false` (MSBuild `WasmShellLoaderLogoAnimation`, default `true`); its entrance and exit stay.
 
 ### Colors
@@ -45,6 +45,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - Without one, the color is derived from the loader background's WCAG relative luminance with CSS relative colors: on backgrounds lighter than 0.179 it keeps a 5.93:1 contrast, on darker ones 9.44:1, turning black or white near that point, so it is at least 4.5:1 on any background. The focus ring (15.7:1 / white) and the progress track (16% black / 22% white) follow the same switch, and the Reload label is black or white from the accent's luminance.
 - With the default colors the derived values equal the default palette (#5D5D5D / #C5C5C5 text, #1A1A1A / #FFFFFF focus ring, white / black Reload label).
 - Browsers without relative colors (`@supports (color: color(from red xyz-d65 x y z))` fails) use the default palette for each theme; an app foreground color still applies.
+
 ### First paint
 
 - `uno-bootstrap.css` is inlined in `index.html` when no Content-Security-Policy is set. Other stylesheets load as `media="print"` and are enabled by the bootstrapper, so a slow stylesheet never delays the loader or the scripts.
@@ -100,6 +101,6 @@ Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manife
 - Uno Platform hand-off (`keep` mode): the loader stays while marked `uno-keep-loader`; removing the element directly makes it fade out, then it's removed.
 - Custom loader (`custom` mode): content and attributes untouched, phase events received, and the loader's own exit transition runs before removal.
 - Slow start (`slow` mode, the native wasm held for 20 s): `slow` without a hint, then `offline` with its label and warning icon while the browser is offline (its text on screen on a 667×375 window), then back to `slow`.
-- Failed start (`failwasm` mode): `failed` with its label (in the same colour as the progress value) and the Reload button; the bar is removed, the failure text starts above where it was with the same space above it as below it (to the Reload button), and the logo doesn't move; on a 667×375 window the failure text and Reload button are on screen.
+- Failed start (`failwasm` mode): `failed` with its label (in the same color as the progress value) and the Reload button; the bar is removed, the failure text starts above where it was with the same space above it as below it (to the Reload button), and the logo doesn't move; on a 667×375 window the failure text and Reload button are on screen.
 
 `retry` is not covered: it needs the resource loader's retry counters, which this repository does not provide yet.
