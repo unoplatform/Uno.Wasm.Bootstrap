@@ -56,11 +56,18 @@ function check(condition, message) {
 
 (async () => {
 	const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+	// Each scenario in its own context: an earlier page's service worker would serve the files the server slows down or fails.
+	// Light scheme unless a check asks for dark, whatever the machine's theme.
+	const newPage = async () => {
+		const page = await (await browser.createBrowserContext()).newPage();
+		await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+		return page;
+	};
 	let ok = true;
 
 	// Normal start
 	await setMode("normal");
-	let page = await browser.newPage();
+	let page = await newPage();
 	await watchLoader(page);
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 
@@ -137,7 +144,7 @@ function check(condition, message) {
 	// A policy sent by the server blocks the inlined stylesheet and the baked style attributes: the bootstrapper loads
 	// the stylesheet as a file and applies the manifest itself
 	await setMode("csp");
-	page = await browser.newPage();
+	page = await newPage();
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 	await page.waitForFunction(() => getComputedStyle(document.querySelector(".uno-loader")).position === "fixed", { timeout: 30000 }).catch(() => { });
 	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).position).catch(() => "") === "fixed", "loader styled under a server-sent Content-Security-Policy") && ok;
@@ -147,7 +154,7 @@ function check(condition, message) {
 	await setMode("normal");
 
 	// Dark theme background from the manifest
-	page = await browser.newPage();
+	page = await newPage();
 	await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 	ok = check(await page.$eval(".uno-loader", l => getComputedStyle(l).backgroundColor).catch(() => "") === "rgb(0, 43, 54)", "dark theme background from the manifest") && ok;
@@ -156,7 +163,7 @@ function check(condition, message) {
 	// Uno Platform's hand-off: it keeps the loader up, then removes the element itself on its first frame. The
 	// RayTracer sample replaces the page content once it runs, which removes the loader the same way.
 	await setMode("keep");
-	page = await browser.newPage();
+	page = await newPage();
 	await page.evaluateOnNewDocument(() => {
 		window.__handOff = {};
 		let loader = null;
@@ -188,7 +195,7 @@ function check(condition, message) {
 
 	// An app-provided loader: the bootstrapper publishes the state and leaves the content alone
 	await setMode("custom");
-	page = await browser.newPage();
+	page = await newPage();
 	await page.evaluateOnNewDocument(() => {
 		window.__phases = [];
 		document.addEventListener("uno-loader-phase", e => window.__phases.push(e.detail.phase));
@@ -220,7 +227,7 @@ function check(condition, message) {
 
 	// Slow start, then offline and back
 	await setMode("slow");
-	page = await browser.newPage();
+	page = await newPage();
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 	const loaderIs = (state, label) => page.waitForFunction((state, label) => {
 		const loader = document.querySelector(".uno-loader");
@@ -239,7 +246,7 @@ function check(condition, message) {
 
 	// Failed start
 	await setMode("failwasm");
-	page = await browser.newPage();
+	page = await newPage();
 	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 	const failed = await page.waitForFunction(() => {
 		const loader = document.querySelector(".uno-loader");
