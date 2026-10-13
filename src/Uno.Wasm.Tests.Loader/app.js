@@ -116,8 +116,8 @@ function check(condition, message) {
 	const onLight = await textContrast("dark", "#FFF4D6");
 	await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
 	ok = check(onLight.ratio >= 4.5, `readable text on a light custom background in dark mode (${onLight.ratio}:1)`) && ok;
-	const custom = await textContrast("light", "#1B1B3A", "#AA0000");
-	ok = check(custom.text.join() === "170,0,0", `the app's foreground color wins (${custom.text.join()})`) && ok;
+	const appForeground = await textContrast("light", "#1B1B3A", "#AA0000");
+	ok = check(appForeground.text.join() === "170,0,0", `the app's foreground color wins (${appForeground.text.join()})`) && ok;
 
 	await page.waitForFunction(() => {
 		const results = document.querySelector("#results");
