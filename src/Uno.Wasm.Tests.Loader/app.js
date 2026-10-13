@@ -281,9 +281,7 @@ function check(condition, message) {
 	const gaps = await page.$eval(".uno-loader", loader => {
 		loader.getAnimations({ subtree: true }).forEach(a => a.cancel());
 		const rect = s => loader.querySelector(s).getBoundingClientRect();
-		const hintText = document.createRange();
-		hintText.selectNodeContents(loader.querySelector(".hint"));
-		return { above: rect(".status").top - rect(".logo").bottom, below: rect(".reload").top - hintText.getBoundingClientRect().bottom };
+		return { above: rect(".status").top - rect(".logo").bottom, below: rect(".reload").top - rect(".hint").bottom };
 	}).catch(() => ({ above: 0, below: Infinity }));
 	ok = check(Math.abs(gaps.above - gaps.below) < 1, `same space above and below the failure text (${gaps.above}px, ${gaps.below}px)`) && ok;
 	const failedOverflow = await overflowOnShortScreen(page);
