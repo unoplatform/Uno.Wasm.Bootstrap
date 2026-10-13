@@ -5,6 +5,6 @@
   "description": "Follows the loader through a normal and a failed start of a published app",
   "main": "app.js",
   "dependencies": {
-    "puppeteer": "^14.1.2"
+    "puppeteer": "^24.9.0"
   }
 }
