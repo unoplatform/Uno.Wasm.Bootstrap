@@ -3,6 +3,7 @@
 /// <reference path="HotReloadSupport.ts"/>
 /// <reference path="UnoConfig.ts"/>
 /// <reference path="ResourceLoader.ts"/>
+/// <reference path="LoaderView.ts"/>
 
 namespace Uno.WebAssembly.Bootstrap {
 
@@ -32,6 +33,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		private bodyObserver: MutationObserver;
 		private loader: HTMLElement;
 		private progress: HTMLProgressElement;
+		private _loaderView?: LoaderView;
+
+		private static _instance?: Bootstrapper;
 
 		private _isUsingCommonJS: boolean;
 		private _currentBrowserIsChrome: boolean;
@@ -62,6 +66,7 @@ namespace Uno.WebAssembly.Bootstrap {
 
 		constructor(unoConfig: Uno.WebAssembly.Bootstrap.UnoConfig) {
 			this._unoConfig = unoConfig;
+			Bootstrapper._instance = this;
 
 			this._webAppBasePath = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_WEBAPP_BASE_PATH"];
 			this._appBase = this._unoConfig.environmentVariables["UNO_BOOTSTRAP_APP_BASE"];
@@ -172,6 +177,7 @@ namespace Uno.WebAssembly.Bootstrap {
 				bootstrapper.setupExports(dotnetRuntime);
 			}
 			catch (e) {
+				Bootstrapper.showFailure();
 				throw `.NET runtime initialization failed (${e})`
 			}
 		}
@@ -292,6 +298,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private RuntimeReady() {
+			// Downloads are done, the app is initializing
+			this._loaderView?.setPhase("starting");
+
 			this.configureGlobal();
 			this.setupRequire();
 
@@ -614,7 +623,64 @@ namespace Uno.WebAssembly.Bootstrap {
 		public preInit() {
 			this.body = document.getElementById("uno-body");
 
+			// Stylesheets are loaded as media="print" so that one stalling can't block this script (see ShellTask)
+			document.querySelectorAll<HTMLLinkElement>("link[data-uno-stylesheet]").forEach(link => link.media = "all");
+
+			// A Content-Security-Policy sent by the server can block the inlined loader styles: load the file instead
+			const inlined = <HTMLStyleElement | null>document.getElementById("uno-bootstrap-css");
+			if (inlined && !inlined.sheet && inlined.dataset.href) {
+				const link = document.createElement("link");
+				link.rel = "stylesheet";
+				link.href = inlined.dataset.href;
+				inlined.replaceWith(link);
+
+				// The baked manifest is in style attributes, which are blocked too
+				document.querySelector(".uno-loader")?.removeAttribute("data-manifest");
+			}
+
 			this.initProgress();
+		}
+
+		/** The app replaced the built-in loader with its own markup and styles. */
+		private static isCustomLoader(loader: Element | null) {
+			return loader?.getAttribute("data-uno-loader") === "custom";
+		}
+
+		/** Shows the failed state, also when the failure happened before the loader view was set up. */
+		private static showFailure() {
+			const bootstrapper = Bootstrapper._instance;
+			if (bootstrapper?._loaderView) {
+				bootstrapper._loaderView.setPhase("failed");
+				return;
+			}
+
+			const loader = document.querySelector<HTMLElement>(".uno-loader");
+			if (loader) {
+				// Keep the layout index.html was built with, so the logo and bar don't move
+				const view = new LoaderView(loader, {
+					format: <LoaderProgressFormat>loader.getAttribute("data-progress-format") ?? "none",
+					statusText: loader.getAttribute("data-status-text") === "on",
+					logoAnimation: loader.getAttribute("data-logo-animation") !== "off",
+					custom: Bootstrapper.isCustomLoader(loader),
+				});
+				view.setPhase("failed");
+				if (bootstrapper) {
+					bootstrapper._loaderView = view;
+				}
+			}
+		}
+
+		/**
+		 * Fades the loader out, then removes it. Meant for the app to call once its first frame is shown,
+		 * instead of removing the .uno-loader element itself.
+		 */
+		public static dismissLoader() {
+			const bootstrapper = Bootstrapper._instance;
+			if (bootstrapper?._loaderView) {
+				bootstrapper._loaderView.leave();
+			} else {
+				document.querySelector(".uno-loader")?.remove();
+			}
 		}
 
 		private async mainInit(): Promise<void> {
@@ -631,12 +697,20 @@ namespace Uno.WebAssembly.Bootstrap {
 					await this._logProfiler.postInitializeLogProfiler();
 				}
 
-				this._runMain(this._unoConfig.uno_main, []);
+				// Not awaited: it settles when Main exits, which must not delay dismissing the loader
+				this._runMain(this._unoConfig.uno_main, []).catch(e => {
+					console.error(e);
+					this._loaderView?.setPhase("failed");
+				});
 
 				this.scheduleInitializePWA();
 
 			} catch (e) {
 				console.error(e);
+				if (this._loaderView) {
+					this._loaderView.setPhase("failed");
+					return;
+				}
 			}
 
 			this.cleanupInit();
@@ -646,9 +720,17 @@ namespace Uno.WebAssembly.Bootstrap {
 			if (this.progress) {
 				this.progress.value = this.progress.max;
 			}
-			// Remove loader node if observer will not handle it
-			if (!this.bodyObserver && this.loader && this.loader.parentNode) {
-				this.loader.parentNode.removeChild(this.loader);
+			// Remove loader node if observer will not handle it, unless the app keeps it until its first frame
+			if (!this.bodyObserver && this.loader && this.loader.parentNode && !this.loader.classList.contains("uno-keep-loader")) {
+				this.removeLoader();
+			}
+		}
+
+		private removeLoader() {
+			if (this._loaderView) {
+				this._loaderView.leave();
+			} else {
+				this.loader.remove();
 			}
 		}
 
@@ -712,7 +794,9 @@ namespace Uno.WebAssembly.Bootstrap {
 		}
 
 		private reportDownloadResourceProgress(resourcesLoaded: number, totalResources: number) {
-			this.progress.max = 100;
+			if (this.progress) {
+				this.progress.max = 100;
+			}
 			const now = Date.now();
 
 			// Record progress in history for velocity calculation
@@ -809,7 +893,10 @@ namespace Uno.WebAssembly.Bootstrap {
 				Math.min(scaledProgress, this._currentTargetProgress)
 			);
 
-			this.progress.value = newValue;
+			if (this.progress) {
+				this.progress.value = newValue;
+			}
+			this._loaderView?.setProgress(newValue);
 			this._lastReportedValue = newValue;
 			this._lastProgressTimestamp = now;
 
@@ -823,17 +910,31 @@ namespace Uno.WebAssembly.Bootstrap {
 		private initProgress() {
 			this.loader = this.body.querySelector(".uno-loader");
 
+			const custom = Bootstrapper.isCustomLoader(this.loader);
+
 			if (this.loader) {
 				this.loader.id = "loading";
-				const progress = this.loader.querySelector("progress");
-				(<any>progress).value = ""; // indeterminate
+
+				// A custom loader's content is the app's: it follows data-phase and --uno-loader-progress instead
+				const progress = custom ? null : this.loader.querySelector("progress");
+				if (progress) {
+					(<any>progress).value = ""; // indeterminate
+				}
 				this.progress = progress;
+
+				// Already set when startup failed before this point
+				this._loaderView ??= new LoaderView(this.loader, {
+					format: this._unoConfig.uno_loader_progress_format ?? "none",
+					statusText: this._unoConfig.uno_loader_status_text ?? false,
+					logoAnimation: this._unoConfig.uno_loader_logo_animation ?? true,
+					custom,
+				});
 
 				this.bodyObserver = new MutationObserver(() => {
 					if (!this.loader.classList.contains("uno-keep-loader")) {
 						// This version of Uno Platform cannot remove
 						// bootstrapper's loader, so we must do it.
-						this.loader.remove();
+						this.removeLoader();
 					}
 
 					if (this.bodyObserver) {
@@ -856,9 +957,16 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (manifest && manifest.darkThemeBackgroundColor) {
 					this.loader.style.setProperty("--dark-theme-bg-color", manifest.darkThemeBackgroundColor);
 				}
-				if (manifest && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
-					this.loader.style.setProperty("background-color", manifest.splashScreenColor);
+
+				// The single-theme splashScreenColor applies to both themes, so per-theme values win.
+				// It goes through the theme variables so the text colors can be derived from it.
+				const hasPerThemeBackground =
+					manifest && (manifest.lightThemeBackgroundColor || manifest.darkThemeBackgroundColor);
+				if (manifest && !hasPerThemeBackground && manifest.splashScreenColor && manifest.splashScreenColor != "transparent") {
+					this.loader.style.setProperty("--light-theme-bg-color", manifest.splashScreenColor);
+					this.loader.style.setProperty("--dark-theme-bg-color", manifest.splashScreenColor);
 				}
+
 				if (manifest && manifest.accentColor) {
 					this.loader.style.setProperty("--accent-color", manifest.accentColor);
 				}
@@ -868,23 +976,43 @@ namespace Uno.WebAssembly.Bootstrap {
 				if (manifest && manifest.darkThemeAccentColor) {
 					this.loader.style.setProperty("--dark-theme-accent-color", manifest.darkThemeAccentColor);
 				}
+				if (manifest && (manifest.lightThemeForegroundColor || manifest.foregroundColor)) {
+					this.loader.style.setProperty("--foreground-color", manifest.lightThemeForegroundColor || manifest.foregroundColor);
+				}
+				if (manifest && manifest.darkThemeForegroundColor) {
+					this.loader.style.setProperty("--dark-theme-foreground-color", manifest.darkThemeForegroundColor);
+				}
 				const img = this.loader.querySelector("img");
 				if (img) {
-					if (manifest && manifest.splashScreenImage) {
-						if (!manifest.splashScreenImage.match(/^(http(s)?:\/\/.)/g)) {
-							// Local images need to be prefixed with the app based path
-							manifest.splashScreenImage = `${this._unoConfig.uno_app_base}/${manifest.splashScreenImage}`;
-						}
+					const rewriteLocal = (src: string) =>
+						src.match(/^(http(s)?:\/\/.)/g)
+							? src
+							: `${this._unoConfig.uno_app_base}/${src}`;
 
-						img.setAttribute("src", manifest.splashScreenImage);
-					} else {
+					const lightSrc = manifest && manifest.splashScreenImage
+						? rewriteLocal(manifest.splashScreenImage)
+						: null;
+					const darkSrc = manifest && manifest.splashScreenImageDark
+						? rewriteLocal(manifest.splashScreenImageDark)
+						: lightSrc;
+
+					const prefersDark = typeof window.matchMedia === "function"
+						&& window.matchMedia("(prefers-color-scheme: dark)").matches;
+					const chosenSrc = prefersDark ? darkSrc : lightSrc;
+
+					if (chosenSrc) {
+						img.setAttribute("src", chosenSrc);
+					} else if (!img.getAttribute("src")) {
+						// Only when index.html doesn't set its own logo
 						img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
 					}
 				}
 			};
 
 			let manifest = (<any>window)["UnoAppManifest"];
-			if (manifest) {
+			if (!this.loader || custom || this.loader.getAttribute("data-manifest") === "baked") {
+				// Nothing to style: the app owns the loader, or the build already applied the manifest to index.html
+			} else if (manifest) {
 				configLoader();
 			} else {
 

@@ -39,6 +39,10 @@
 	<ItemGroup>
 	  <Content Include="app.webmanifest" />
 	</ItemGroup>
+	<ItemGroup>
+	  <!-- Per-theme colors baked into index.html at build time (checked by Uno.Wasm.Tests.Loader) -->
+	  <EmbeddedResource Include="WasmScripts\AppManifest.js" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<LinkerDescriptor Include="LinkerConfig.xml" />

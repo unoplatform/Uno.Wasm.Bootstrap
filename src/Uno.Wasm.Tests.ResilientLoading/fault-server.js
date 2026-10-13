@@ -5,6 +5,7 @@
 // and a 503. Retries succeed. Entry points loaded by index.html itself (index.html, require.js,
 // uno-bootstrap.js, stylesheets) are not faulted: nothing can retry them.
 // /late.html is index.html with uno-bootstrap.js imported after the load event.
+// Retries of image.js, the app's last require.js dependency, arrive 1.5 s late, after the other dependencies.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -78,7 +79,8 @@ http.createServer((req, res) => {
 	});
 
 	if (fault === null) {
-		return res.end(body);
+		const lateRetry = isFaultable(urlPath) && path.basename(urlPath) === "image.js";
+		return lateRetry ? setTimeout(() => res.end(body), 1500) : res.end(body);
 	}
 
 	// Part of the body, then a reset or silence
