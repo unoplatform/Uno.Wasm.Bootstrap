@@ -106,7 +106,15 @@ namespace Uno.WebAssembly.Bootstrap {
 		/** Loads AMD modules with require.js, retrying failed ones. */
 		public static require(modules: string[], callback: Function) {
 			let attempt = 0;
-			const load = () => require(modules, callback, (err: RequireError) => {
+			// A failed require() call still completes once a retry loads its modules, so both would call back
+			let called = false;
+			const once = function (this: any, ...args: any[]) {
+				if (!called) {
+					called = true;
+					callback.apply(this, args);
+				}
+			};
+			const load = () => require(modules, once, (err: RequireError) => {
 				(err.requireModules ?? modules).forEach(m => requirejs.undef(m));
 				// After the last attempt, report the error the way require.js does without an errback
 				ResourceLoader.beforeRetry(attempt++, modules.join(", "), err).then(load, e => requirejs.onError(e));

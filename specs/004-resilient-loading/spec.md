@@ -26,6 +26,7 @@ On an unstable connection, one failed or stalled file among the dozens downloade
 - Subresource integrity is verified by the bootstrapper, since `fetch` would hide progress until the whole body arrived. In insecure contexts, where `crypto.subtle` is unavailable, the browser verifies it instead (`fetch({ integrity })`) and only the headers timeout applies to those downloads. A missing verifier never skips the check.
 - `dotnet.native.wasm` is handed to the runtime as a cached response fetched by URL, so the browser keeps reusing its compiled-code cache. That lookup is cache-only (`only-if-cached`), so it can't stall; on a miss, or for a cross-origin URL, the downloaded copy is used.
 - A failed `require.js` dependency is reported through `requirejs.onError` after its last attempt, as require.js does without an error callback.
+- A retried `require.js` dependency calls back once. require.js still completes the failed call when a retry loads the module, which would otherwise count the dependency twice and start the app before the others are loaded.
 - Runtime JS module names are read from both boot config shapes: arrays of `{ name }` (.NET 10+) and objects keyed by file name, whose values may carry the fingerprinted `name`.
 - `uno-bootstrap.js` imported after the `load` event must still boot.
 
@@ -43,4 +44,11 @@ And the test confirms that all three fault modes were injected
 Given the same server
 When uno-bootstrap.js is imported after the load event (/late.html)
 Then the app starts
+```
+
+```gherkin
+Given the same server, where the retry of the app's last require.js dependency arrives after the others
+When the page is loaded
+Then the app's Main runs only once every dependency is loaded
+And the app starts
 ```
