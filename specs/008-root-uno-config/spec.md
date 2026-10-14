@@ -26,6 +26,8 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 
 **FR-2**: The main bootstrapper (`uno-bootstrap.js`, deployed inside `package_<hash>/`) SHALL import the configuration from `../uno-config.js`, relative to its own module URL, so that the resolution is correct when the application is hosted from a site root, from a sub-folder, or through `embedded.js`.
 
+**FR-2a**: When `index.html` loads `uno-bootstrap.js` with a `<script type="module">` element and the imported configuration's `uno_app_base` names a different package folder than the script's, the bootstrapper SHALL import `../uno-config.js?v=<package folder>` and use that configuration instead. The query bypasses a copy cached from an earlier deployment, and is stable within a deployment so it stays cacheable. When no such script element exists (embedded mode, custom host pages), the check is skipped.
+
 **FR-3**: The service worker SHALL import the configuration from `$(REMOTE_WEBAPP_PATH)uno-config.js`, and the offline file list SHALL reference `uno-config.js` at the web app base path. The bootstrapper SHALL register the service worker with `updateViaCache: 'none'`, so an updated worker never imports a previous deployment's `uno-config.js` from the HTTP cache.
 
 **FR-4**: In WebWorker shell mode, `worker.js` SHALL fetch `uno-config.js` from its own folder. The `__unoWorkerPackagePath` global is no longer emitted.
@@ -50,11 +52,12 @@ With the file inside `package_<hash>/`, a publish that only changes C# or XAML k
 - **Embedded mode**: `embedded.js` sets `<base>` to the package folder and imports `package_x/uno-bootstrap.js`; dynamic `import()` resolves relative to the module URL, not the document base, so the config is still found next to `embedded.js`.
 - **Custom `index.html`**: the template only references `./uno-bootstrap.js`; pages that referenced `./uno-config.js` directly must be updated to the root path.
 - **Pre-compressed siblings**: the publish-time update still deletes `uno-config.js.gz` and `uno-config.js.br` after rewriting the file.
-- **Hosts that cache root files**: a host that caches `uno-config.js` reintroduces the problem until the cached copy expires, and `index.html` and `uno-config.js` can then come from different deployments. Without an explicit `Cache-Control` header, browsers apply heuristic caching and some CDNs cache `.js` files by extension. The documentation asks for `no-cache` on the root files.
+- **Hosts that cache root files**: a host that caches `uno-config.js` reintroduces the problem until the cached copy expires, and `index.html` and `uno-config.js` can then come from different deployments. Without an explicit `Cache-Control` header, browsers apply heuristic caching and some CDNs cache `.js` files by extension. The documentation asks for `no-cache` on the root files. When the cached copy names another package, the bootstrapper detects it and reloads the configuration (FR-2a). A cached copy from a deployment with the same package folder (a managed-code-only change) can't be told apart and is still used.
 
 ## Validation
 
 - `src/Uno.Wasm.Tests.Fingerprint/test-fingerprint.sh` asserts that the published `uno-config.js` is at the `wwwroot` root and absent from every `package_*` folder.
 - `src/Uno.Wasm.VersionChecker.UnitTests/Given_VersionCheckService.cs` covers the root layout for both the `uno-bootstrap.js` and the `embedded.js` discovery paths, alongside the existing sibling-layout tests.
 - CI validation scripts (`validate-boot-config.sh`, `validate-dotnetjs-fingerprint.sh`, `test-webgl-4gb.sh`, `test-webworker.sh`) locate the configuration at the root. The two `validate-*` scripts check only the root file, so a stale copy under `package_*` cannot pass them.
+- `src/Uno.Wasm.Tests.ResilientLoading` serves a `uno-config.js` naming another package (cookie `stale=1`) and checks that the app still starts.
 - Manual: publish, load the app, change only managed code, publish again, reload with the package folder cached as immutable. The app boots the new build.

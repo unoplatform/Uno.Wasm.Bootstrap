@@ -114,6 +114,14 @@ namespace Uno.WebAssembly.Bootstrap {
 				// uno-config.js is next to index.html, one level above the hashed package folder
 				var config = (await ResourceLoader.importModule('../uno-config.js')).module;
 
+				// It isn't in the hashed folder, so it can be cached apart from this script: a copy from an earlier
+				// deployment names another package. Fetch the one matching this package, past the HTTP cache.
+				const ownPackage = Bootstrapper.getOwnPackage();
+				if (ownPackage && config.config.uno_app_base.split("/").pop() !== ownPackage) {
+					console.warn(`[Bootstrap] uno-config.js is from another deployment (${config.config.uno_app_base}), reloading it`);
+					config = (await ResourceLoader.importModule(`../uno-config.js?v=${ownPackage}`)).module;
+				}
+
 				ResourceLoader.configure(config.config.environmentVariables);
 
 				if (document && (document as any).uno_app_base_override) {
@@ -609,6 +617,14 @@ namespace Uno.WebAssembly.Bootstrap {
 					`, vfs: ${Array.isArray(res.vfs) ? "array" : typeof res.vfs}` +
 					`, mainAssemblyName: ${config.mainAssemblyName})`);
 			}
+		}
+
+		/** The package folder uno-bootstrap.js was loaded from, when index.html loads it with a script element. */
+		private static getOwnPackage(): string | null {
+			const script = typeof document === "object"
+				? document.querySelector<HTMLScriptElement>('script[type="module"][src*="uno-bootstrap.js"]')
+				: null;
+			return script ? new URL(".", script.src).pathname.split("/").filter(s => s).pop() ?? null : null;
 		}
 
 		public preInit() {

@@ -5,8 +5,9 @@ const puppeteer = require("puppeteer");
 const baseUrl = process.argv[2] || "http://localhost:8001/";
 const timeoutMs = 120000;
 
-async function load(browser, url) {
+async function load(browser, url, cookies = []) {
 	const page = await browser.newPage();
+	await page.setCookie(...cookies.map(c => ({ ...c, url })));
 	page.on("console", msg => console.log(`BROWSER LOG: ${msg.text()}`));
 	page.on("pageerror", err => console.log(`BROWSER ERROR: ${err}`));
 
@@ -54,6 +55,9 @@ async function load(browser, url) {
 	// uno-bootstrap.js imported after DOMContentLoaded
 	const late = await load(browser, `${baseUrl}late.html`);
 
+	// uno-config.js cached from an earlier deployment
+	const stale = await load(browser, baseUrl, [{ name: "stale", value: "1" }]);
+
 	await browser.close();
-	process.exit(faulted && late ? 0 : 1);
+	process.exit(faulted && late && stale ? 0 : 1);
 })();
