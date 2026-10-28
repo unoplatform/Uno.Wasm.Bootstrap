@@ -1,7 +1,7 @@
 parameters:
   jobName: ''
   linux_container: ''
-  linux_vmImage: 'ubuntu-latest'
+  linux_vmImage: 'ubuntu-24.04'
 
 jobs:
 - job: ${{ parameters.jobName }}
