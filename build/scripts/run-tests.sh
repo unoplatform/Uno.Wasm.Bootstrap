@@ -3,6 +3,7 @@ set -e
 
 cleanup() {
 	kill %%
+	pkill dotnet-serve
 }
 trap cleanup 0
 
