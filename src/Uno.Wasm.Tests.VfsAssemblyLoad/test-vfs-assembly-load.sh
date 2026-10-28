@@ -12,6 +12,7 @@ set -e
 
 cleanup() {
     kill %% 2>/dev/null || true
+    pkill dotnet-serve
 }
 trap cleanup EXIT
 
