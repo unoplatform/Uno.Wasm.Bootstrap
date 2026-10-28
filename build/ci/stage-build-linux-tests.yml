@@ -24,6 +24,8 @@ jobs:
     clean: true
 
   - template: host-cleanup-linux.yml
+    parameters:
+      target: host
 
   - template: dotnet-install.yml
   - template: gitversion.yml
@@ -297,6 +299,8 @@ jobs:
     clean: true
 
   - template: host-cleanup-linux.yml
+    parameters:
+      target: host
 
   - template: dotnet-install.yml
   - template: gitversion.yml
