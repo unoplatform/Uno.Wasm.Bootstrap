@@ -32,6 +32,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
+		<!-- The Mono.Cecil of the bootstrapper's tasks, which their tests use too -->
+		<_MonoCecilPackageVersion>0.11.6</_MonoCecilPackageVersion>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
 		<IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
 	</PropertyGroup>

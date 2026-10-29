@@ -46,6 +46,11 @@
 		     Emscripten VFS after the Mono runtime closes them. The runtime's in-memory
 		     image cache retains the MonoImage, so the VFS copy is no longer needed. -->
 		<WasmShellVfsFrameworkAssemblyLoadCleanup Condition="'$(WasmShellVfsFrameworkAssemblyLoadCleanup)' == ''">false</WasmShellVfsFrameworkAssemblyLoadCleanup>
+
+		<!-- Profile-guided AOT builds get the interpreter entry wrappers that methods missing from the profile need (_UnoGenerateAOTWrapperSeeds),
+		     and a check that the AOT compilation emitted them (_UnoValidateAOTWrapperSeeds). -->
+		<WasmShellEnableAOTWrapperSeeding Condition="'$(WasmShellEnableAOTWrapperSeeding)' == ''">true</WasmShellEnableAOTWrapperSeeding>
+		<WasmShellEnableAOTWrapperSeedingCheck Condition="'$(WasmShellEnableAOTWrapperSeedingCheck)' == ''">true</WasmShellEnableAOTWrapperSeedingCheck>
 	</PropertyGroup>
 
 	<!-- AOT Profiling support -->
@@ -327,6 +332,10 @@
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" />
 	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll"
+			   TaskName="Uno.Wasm.Bootstrap.GenerateAOTWrapperSeedsTask_v0" />
+	<UsingTask Condition="!$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll"
+			   TaskName="Uno.Wasm.Bootstrap.ValidateAOTWrapperSeedsTask_v0" />
 
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ShellTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GenerateUnoAssetsManifest_v0" TaskFactory="TaskHostFactory" />
@@ -336,6 +345,10 @@
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.PatchWebGLNativeJsForMaxMemoryTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.ResolvePublishedDotnetJsTask_v0" TaskFactory="TaskHostFactory" />
 	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll" TaskName="Uno.Wasm.Bootstrap.GeneratePreloadLinksTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll"
+			   TaskName="Uno.Wasm.Bootstrap.GenerateAOTWrapperSeedsTask_v0" TaskFactory="TaskHostFactory" />
+	<UsingTask Condition="$(_WasmShellTasksPathIsDevMode)" AssemblyFile="$(WasmShellTasksPath)/Uno.Wasm.Bootstrap.v0.dll"
+			   TaskName="Uno.Wasm.Bootstrap.ValidateAOTWrapperSeedsTask_v0" TaskFactory="TaskHostFactory" />
 
 	<PropertyGroup>
 		<UnoGenerateAssetsManifestDependsOn>
@@ -411,6 +424,193 @@
 
 		</PropertyGroup>
 
+	</Target>
+
+	<!--
+		AOT wrapper seeding. In profile-guided AOT, methods the profile doesn't list stay interpreted, and the AOT compiler only emits the interpreter
+		entry wrappers that compiled call sites name. Building an IMT slot resolves every interface method that hashes to it, so a method with more than
+		8 parameters that no compiled code calls makes the runtime abort on a call to another method of the same class. Before the AOT compilation, this
+		adds a seed assembly whose profiled seed methods call uncompiled methods of the interface, virtual and delegate target signatures of the AOT
+		inputs that compiled call sites may not name, so that the compiler emits their wrappers. It only applies to the Mono runtime, whose AOT
+		compilation it hooks: with UseMonoRuntime set to false (CoreCLR), the SDK has no _WasmAotCompileApp target. See
+		doc/runtime-execution-modes.md and specs/012-aot-wrapper-seeding/spec.md.
+	-->
+	<Target Name="_UnoGenerateAOTWrapperSeeds"
+			BeforeTargets="_WasmAotCompileApp"
+			DependsOnTargets="_UnoPrepareAOTWrapperSeeding;_UnoGenerateAOTWrapperSeedsCore"
+			Condition=" '$(WasmShellEnableAOTWrapperSeeding)' == 'true' AND '$(RunAOTCompilation)' == 'true' AND '$(_WasmShouldAOT)' == 'true'
+				AND '$(WasmAotProfilePath)' != '' AND '$(UseMonoRuntime)' != 'false' ">
+
+		<PropertyGroup>
+			<_UnoAOTWrapperSeedingRan>true</_UnoAOTWrapperSeedingRan>
+		</PropertyGroup>
+
+		<!--
+			Deduplication puts the wrappers into the aot-instances module, which the runtime searches. Without it, they would only be in the seed
+			assembly's module, which the runtime never loads: nothing references the seed assembly, and it isn't published.
+		-->
+		<PropertyGroup Condition=" '$(WasmDedup)' != 'true' ">
+			<_UnoAOTWrapperSeedingSkipped>[Uno] Skipped the crash prevention of this profile-guided AOT build</_UnoAOTWrapperSeedingSkipped>
+			<_UnoAOTWrapperSeedingSkipped>$(_UnoAOTWrapperSeedingSkipped) because AOT deduplication is off</_UnoAOTWrapperSeedingSkipped>
+			<_UnoAOTWrapperSeedingSkipped>$(_UnoAOTWrapperSeedingSkipped) (WasmShellEnableAOTDeduplication</_UnoAOTWrapperSeedingSkipped>
+			<_UnoAOTWrapperSeedingSkipped>$(_UnoAOTWrapperSeedingSkipped) or WasmDedup is false).</_UnoAOTWrapperSeedingSkipped>
+		</PropertyGroup>
+
+		<Warning Condition=" '$(WasmDedup)' != 'true' " Code="UNOWASM009" Text="$(_UnoAOTWrapperSeedingSkipped) See $(_UnoAOTWrapperSeedingDocs)" />
+
+		<PropertyGroup Condition=" '$(WasmDedup)' == 'true' AND Exists('$(_UnoAOTWrapperSeedingStamp)') ">
+			<_UnoAOTWrapperSeedingApplied>true</_UnoAOTWrapperSeedingApplied>
+		</PropertyGroup>
+
+		<ItemGroup Condition=" '$(_UnoAOTWrapperSeedingApplied)' == 'true' ">
+			<_WasmAssembliesInternal Include="$(_UnoAOTWrapperSeedAssembly)" />
+		</ItemGroup>
+
+		<!--
+			The AOT compiler merges the profiles it's given, so the app's profile still decides which of its methods are compiled. Other targets read
+			WasmAotProfilePath as a single file (ShellTask_v0's AotProfile, for example), so _UnoValidateAOTWrapperSeeds restores it after the AOT
+			compilation.
+		-->
+		<PropertyGroup Condition=" '$(_UnoAOTWrapperSeedingApplied)' == 'true' ">
+			<_UnoAOTWrapperSeedingOriginalProfilePath>$(WasmAotProfilePath)</_UnoAOTWrapperSeedingOriginalProfilePath>
+			<WasmAotProfilePath>$(WasmAotProfilePath);$(_UnoAOTWrapperSeedProfile)</WasmAotProfilePath>
+		</PropertyGroup>
+	</Target>
+
+	<!--
+		The AOT compiler compiles again only when one of its inputs is newer than its outputs, so when the seeding doesn't apply after it did (the
+		generation failed, or the seeding or deduplication was turned off), dropping the seed assembly from its inputs leaves the deduplicated instances
+		it compiled with the seeds in place. Deleting their bitcode, which _UnoValidateAOTWrapperSeeds lists, makes it compile them again without the
+		seeds.
+	-->
+	<Target Name="_UnoForgetAOTWrapperSeeds"
+			AfterTargets="_UnoGenerateAOTWrapperSeeds"
+			DependsOnTargets="_UnoAOTWrapperSeedingProperties"
+			Condition=" '$(_UnoAOTWrapperSeedingApplied)' != 'true' ">
+
+		<ReadLinesFromFile File="$(_UnoAOTWrapperSeedingCompiled)" Condition="Exists('$(_UnoAOTWrapperSeedingCompiled)')">
+			<Output TaskParameter="Lines" ItemName="_UnoAOTWrapperSeedingCompiledFile" />
+		</ReadLinesFromFile>
+
+		<Delete Files="@(_UnoAOTWrapperSeedingCompiledFile);$(_UnoAOTWrapperSeedingCompiled)" />
+	</Target>
+
+	<Target Name="_UnoAOTWrapperSeedingProperties">
+		<PropertyGroup>
+			<!-- The pages the build messages point to and ask to report problems on -->
+			<_UnoAOTWrapperSeedingDocs>https://platform.uno/docs/articles/external/uno.wasm.bootstrap/doc</_UnoAOTWrapperSeedingDocs>
+			<_UnoAOTWrapperSeedingDocs>$(_UnoAOTWrapperSeedingDocs)/runtime-execution-modes.html</_UnoAOTWrapperSeedingDocs>
+			<_UnoAOTWrapperSeedingDocs>$(_UnoAOTWrapperSeedingDocs)#preventing-crashes-in-profile-guided-aot-builds</_UnoAOTWrapperSeedingDocs>
+			<_UnoAOTWrapperSeedingIssues>https://github.com/unoplatform/Uno.Wasm.Bootstrap/issues</_UnoAOTWrapperSeedingIssues>
+			<_UnoAOTWrapperSeedingDir>$(IntermediateOutputPath)aot-wrapper-seeding</_UnoAOTWrapperSeedingDir>
+			<_UnoAOTWrapperSeedingDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(_UnoAOTWrapperSeedingDir)'))</_UnoAOTWrapperSeedingDir>
+			<_UnoAOTWrapperSeedAssembly>$(_UnoAOTWrapperSeedingDir)Uno.Wasm.AotWrapperSeeds.dll</_UnoAOTWrapperSeedAssembly>
+			<_UnoAOTWrapperSeedProfile>$(_UnoAOTWrapperSeedingDir)Uno.Wasm.AotWrapperSeeds.profile</_UnoAOTWrapperSeedProfile>
+			<_UnoAOTWrapperSeedExpectedWrappers>$(_UnoAOTWrapperSeedingDir)Uno.Wasm.AotWrapperSeeds.wrappers.txt</_UnoAOTWrapperSeedExpectedWrappers>
+
+			<!--
+				The package build replaces the version marker in the stamp's name with the bootstrapper's commit: a version that hasn't generated in this
+				folder, whose files can be older than the stamp, generates again.
+			-->
+			<_UnoAOTWrapperSeedingStamp>$(_UnoAOTWrapperSeedingDir)generated.v0.stamp</_UnoAOTWrapperSeedingStamp>
+
+			<!-- The bitcode that the AOT compilation compiled with the seeds (_UnoForgetAOTWrapperSeeds) -->
+			<_UnoAOTWrapperSeedingCompiled>$(_UnoAOTWrapperSeedingDir)compiled-with-seeds.txt</_UnoAOTWrapperSeedingCompiled>
+
+			<!--
+				The task assembly, which the generation depends on. For packages, WasmShellTasksPath is relative to this file, which UsingTask resolves it
+				against, while the inputs of a target resolve against the project.
+			-->
+			<_UnoAOTWrapperSeedingTasks>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '$(WasmShellTasksPath)'))</_UnoAOTWrapperSeedingTasks>
+			<_UnoAOTWrapperSeedingTaskAssembly>$(_UnoAOTWrapperSeedingTasks)Uno.Wasm.Bootstrap.v0.dll</_UnoAOTWrapperSeedingTaskAssembly>
+		</PropertyGroup>
+	</Target>
+
+	<Target Name="_UnoPrepareAOTWrapperSeeding" DependsOnTargets="_UnoAOTWrapperSeedingProperties">
+		<!-- Generates the files again when one of them is gone -->
+		<Delete Files="$(_UnoAOTWrapperSeedingStamp)"
+				Condition=" !Exists('$(_UnoAOTWrapperSeedAssembly)') OR !Exists('$(_UnoAOTWrapperSeedProfile)')
+					OR !Exists('$(_UnoAOTWrapperSeedExpectedWrappers)') " />
+	</Target>
+
+	<!--
+		Generates the files when an AOT input, the bootstrapper or this file changed. The generator only writes the files whose content changes, as the AOT
+		compiler compiles all the assemblies again when one of its inputs is newer than its output, and the stamp tells when it last ran.
+	-->
+	<Target Name="_UnoGenerateAOTWrapperSeedsCore"
+			Condition=" '$(WasmDedup)' == 'true' "
+			Inputs="@(_WasmAssembliesInternal);$(_UnoAOTWrapperSeedingTaskAssembly);$(MSBuildThisFileFullPath)"
+			Outputs="$(_UnoAOTWrapperSeedingStamp)">
+
+		<GenerateAOTWrapperSeedsTask_v0
+			Assemblies="@(_WasmAssembliesInternal)"
+			SeedAssembly="$(_UnoAOTWrapperSeedAssembly)"
+			SeedProfile="$(_UnoAOTWrapperSeedProfile)"
+			ExpectedWrappers="$(_UnoAOTWrapperSeedExpectedWrappers)"
+			DocumentationUrl="$(_UnoAOTWrapperSeedingDocs)"
+			IssuesUrl="$(_UnoAOTWrapperSeedingIssues)">
+			<Output TaskParameter="Generated" PropertyName="_UnoAOTWrapperSeedsGenerated" />
+		</GenerateAOTWrapperSeedsTask_v0>
+
+		<Touch Files="$(_UnoAOTWrapperSeedingStamp)" AlwaysCreate="true" Condition=" '$(_UnoAOTWrapperSeedsGenerated)' == 'true' " />
+
+		<!-- The task deleted the files of an earlier run, so the stamp must not apply them -->
+		<Delete Files="$(_UnoAOTWrapperSeedingStamp)" Condition=" '$(_UnoAOTWrapperSeedsGenerated)' != 'true' " />
+	</Target>
+
+	<!-- A publish doesn't add its file writes to the build's list, which Clean deletes, so this removes the files -->
+	<Target Name="_UnoCleanAOTWrapperSeeding" AfterTargets="Clean" DependsOnTargets="_UnoAOTWrapperSeedingProperties">
+		<RemoveDir Directories="$(_UnoAOTWrapperSeedingDir)" />
+	</Target>
+
+	<!--
+		The seeding hooks _WasmAotCompileApp and reads _WasmShouldAOT, which the SDK doesn't document: should an SDK rename them, the seeding wouldn't
+		run, which this reports. The SDK AOT-compiles a publish in the nested build of WasmNestedPublishApp.
+	-->
+	<Target Name="_UnoCheckAOTWrapperSeedingRan"
+			AfterTargets="WasmNestedPublishApp"
+			DependsOnTargets="_UnoAOTWrapperSeedingProperties"
+			Condition=" '$(WasmShellEnableAOTWrapperSeeding)' == 'true' AND '$(RunAOTCompilation)' == 'true' AND '$(WasmAotProfilePath)' != ''
+				AND '$(UseMonoRuntime)' != 'false' AND '$(_UnoAOTWrapperSeedingRan)' != 'true' ">
+
+		<!-- Its first sentence is also the one of GenerateAOTWrapperSeedsTask_v0's UNOWASM008 -->
+		<PropertyGroup>
+			<_UnoAOTWrapperSeedingNotRun>[Uno] Couldn't add the crash prevention to this profile-guided AOT build,</_UnoAOTWrapperSeedingNotRun>
+			<_UnoAOTWrapperSeedingNotRun>$(_UnoAOTWrapperSeedingNotRun) so the app can still crash as described in</_UnoAOTWrapperSeedingNotRun>
+			<_UnoAOTWrapperSeedingNotRun>$(_UnoAOTWrapperSeedingNotRun) $(_UnoAOTWrapperSeedingDocs): the .NET SDK didn't run the</_UnoAOTWrapperSeedingNotRun>
+			<_UnoAOTWrapperSeedingNotRun>$(_UnoAOTWrapperSeedingNotRun) targets that the crash prevention hooks,</_UnoAOTWrapperSeedingNotRun>
+			<_UnoAOTWrapperSeedingNotRun>$(_UnoAOTWrapperSeedingNotRun) which may have changed. Please report this warning at</_UnoAOTWrapperSeedingNotRun>
+			<_UnoAOTWrapperSeedingNotRun>$(_UnoAOTWrapperSeedingNotRun) $(_UnoAOTWrapperSeedingIssues).</_UnoAOTWrapperSeedingNotRun>
+		</PropertyGroup>
+
+		<Warning Code="UNOWASM008" Text="$(_UnoAOTWrapperSeedingNotRun)" />
+	</Target>
+
+	<Target Name="_UnoValidateAOTWrapperSeeds"
+			AfterTargets="_WasmAotCompileApp"
+			Condition=" '$(_UnoAOTWrapperSeedingApplied)' == 'true' ">
+
+		<PropertyGroup>
+			<!-- See _UnoGenerateAOTWrapperSeeds -->
+			<WasmAotProfilePath>$(_UnoAOTWrapperSeedingOriginalProfilePath)</WasmAotProfilePath>
+			<_UnoAOTWrapperSeedingLlvmNm>$([MSBuild]::NormalizeDirectory('$(EmscriptenUpstreamBinPath)'))llvm-nm</_UnoAOTWrapperSeedingLlvmNm>
+			<_UnoAOTWrapperSeedingLlvmNm Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(_UnoAOTWrapperSeedingLlvmNm).exe</_UnoAOTWrapperSeedingLlvmNm>
+		</PropertyGroup>
+
+		<WriteLinesToFile
+			File="$(_UnoAOTWrapperSeedingCompiled)"
+			Lines="@(_BitcodeFile->WithMetadataValue('Filename', 'aot-instances.dll'))"
+			Overwrite="true"
+			WriteOnlyWhenDifferent="true" />
+
+		<!-- The seeding requires deduplication, which emits every wrapper into the aot-instances module -->
+		<ValidateAOTWrapperSeedsTask_v0
+			Condition=" '$(WasmShellEnableAOTWrapperSeedingCheck)' == 'true' "
+			ExpectedWrappers="$(_UnoAOTWrapperSeedExpectedWrappers)"
+			BitcodeFile="@(_BitcodeFile->WithMetadataValue('Filename', 'aot-instances.dll'))"
+			LlvmNm="$(_UnoAOTWrapperSeedingLlvmNm)"
+			DocumentationUrl="$(_UnoAOTWrapperSeedingDocs)"
+			IssuesUrl="$(_UnoAOTWrapperSeedingIssues)" />
 	</Target>
 
 	<Target Name="GenerateUnoWasmAssets"

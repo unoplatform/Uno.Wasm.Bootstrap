@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Profile-guided AOT: only the methods aot.profile lists are compiled, the rest stay interpreted -->
+    <WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
+  </PropertyGroup>
+
+  <!-- Recorded with the bootstrapper's AOT profiler (see README.md); absent while recording it -->
+  <ItemGroup Condition="Exists('aot.profile')">
+    <WasmShellEnableAotProfile Include="aot.profile" />
+  </ItemGroup>
+
+  <Import Project="..\Uno.Wasm.Tests.Shared\Uno.Wasm.Tests.Shared.projitems" Label="Shared" />
+
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.props" />
+  <Import Project="..\Uno.Wasm.Bootstrap\build\Uno.Wasm.Bootstrap.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uno.Wasm.Bootstrap\Uno.Wasm.Bootstrap.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <UndefineProperties>TargetFramework</UndefineProperties>
+    </ProjectReference>
+
+    <!-- Two assemblies that define types of the same names -->
+    <ProjectReference Include="..\Uno.Wasm.Tests.AOTWrapperSeeding.TwinA\Uno.Wasm.Tests.AOTWrapperSeeding.TwinA.csproj" />
+    <ProjectReference Include="..\Uno.Wasm.Tests.AOTWrapperSeeding.TwinB\Uno.Wasm.Tests.AOTWrapperSeeding.TwinB.csproj" />
+  </ItemGroup>
+
+</Project>
