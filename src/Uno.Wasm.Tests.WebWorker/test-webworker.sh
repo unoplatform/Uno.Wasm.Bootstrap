@@ -15,6 +15,7 @@ cleanup() {
     if [ -n "$SERVER_PID" ]; then
         kill "$SERVER_PID" 2>/dev/null || true
     fi
+    pkill dotnet-serve
 }
 trap cleanup EXIT
 

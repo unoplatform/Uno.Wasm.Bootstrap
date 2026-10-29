@@ -106,7 +106,9 @@ jobs:
           exit $LASTEXITCODE
         }
 
-        & "$(Build.SourcesDirectory)\src\Uno.Wasm.VersionChecker.UnitTests\bin\Release\net10.0\Uno.Wasm.VersionChecker.UnitTests.exe" `
+        dotnet run --project "$(Build.SourcesDirectory)\src\Uno.Wasm.VersionChecker.UnitTests\Uno.Wasm.VersionChecker.UnitTests.csproj" `
+          -c Release `
+          -- `
           --no-progress `
           --report-trx `
           --report-trx-filename Uno.Wasm.VersionChecker.UnitTests.trx `
@@ -138,7 +140,9 @@ jobs:
           exit $LASTEXITCODE
         }
 
-        & "$(Build.SourcesDirectory)\src\Uno.Wasm.Bootstrap.UnitTests\bin\Release\net10.0\Uno.Wasm.Bootstrap.UnitTests.exe" `
+        dotnet run --project "$(Build.SourcesDirectory)\src\Uno.Wasm.Bootstrap.UnitTests\Uno.Wasm.Bootstrap.UnitTests.csproj" `
+          -c Release `
+          -- `
           --no-progress `
           --report-trx `
           --report-trx-filename Uno.Wasm.Bootstrap.UnitTests.trx `
