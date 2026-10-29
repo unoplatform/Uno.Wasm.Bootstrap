@@ -13,7 +13,6 @@
 		<Nullable>enable</Nullable>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<IsPublishable>false</IsPublishable>
-		<_MonoCecilPackageVersion>0.11.6</_MonoCecilPackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(NBGV_GitCommitId)'!=''">
