@@ -1,7 +1,7 @@
 parameters:
   jobName: ''
   linux_container: ''
-  linux_vmImage: 'ubuntu-latest'
+  linux_vmImage: 'ubuntu-24.04'
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -24,6 +24,8 @@ jobs:
     clean: true
 
   - template: host-cleanup-linux.yml
+    parameters:
+      target: host
 
   - template: dotnet-install.yml
   - template: gitversion.yml
@@ -280,6 +282,8 @@ jobs:
     clean: true
 
   - template: host-cleanup-linux.yml
+    parameters:
+      target: host
 
   - template: dotnet-install.yml
   - template: gitversion.yml

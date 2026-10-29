@@ -2,7 +2,7 @@ jobs:
 - job: evaluate_changes
   displayName: 'Check for Doc Only Changes'
   pool:
-    vmImage: 'ubuntu-latest'
+    vmImage: 'ubuntu-24.04'
   steps:
   - powershell: |
       # Determine the context of the build (PR or push) and set the target branch accordingly

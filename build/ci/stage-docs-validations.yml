@@ -3,7 +3,7 @@
   displayName: 'Spell Checking Validation'
 
   pool:
-    vmImage: 'ubuntu-latest'
+    vmImage: 'ubuntu-24.04'
 
   steps:
   - checkout: self
@@ -24,7 +24,7 @@
   displayName: 'Markdown Validation'
 
   pool:
-    vmImage: 'ubuntu-latest'
+    vmImage: 'ubuntu-24.04'
 
   steps:
   - checkout: self
