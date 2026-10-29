@@ -1,5 +1,6 @@
 parameters:
-  DotNetVersion: '10.0.100'
+  DotNetVersion: '11.0.100-rc.2.26504.105'
+
 
 steps:
 
@@ -19,22 +20,9 @@ steps:
   #   displayName: 'Setup .NET (Windows)'
 
   - pwsh: |
-      wget https://dot.net/v1/dotnet-install.sh
-      chmod +x dotnet-install.sh
-      ./dotnet-install.sh -v 10.0.100
-      echo "[task.setvariable variable=PATH;]${env:PATH}:$env:HOME/.dotnet"
-      echo "[task.setvariable variable=DOTNET_ROOT;]$env:HOME/.dotnet"
-
-      echo "##vso[task.setvariable variable=PATH;]$env:HOME/.dotnet:$env:HOME/.dotnet/tools:${env:PATH}"
-      echo "##vso[task.setvariable variable=DOTNET_ROOT;]$env:HOME/.dotnet"
-
-    condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
-    displayName: 'Setup .NET (Linux/macOS)'
-
-  - pwsh: |
       cd src
       dotnet --version
       dotnet --list-sdks
-      dotnet workload install wasm-tools
+      dotnet workload install wasm-tools wasm-tools-net10
 
     displayName: Setup Workloads
