@@ -369,6 +369,23 @@ jobs:
       ArtifactName: webworker-test
       ArtifactType: Container
 
+  ## AOT wrapper seeding test (Puppeteer, after NodeTool@0) - publishes a profile-guided AOT app without the seeding, with it, again with a seed
+  ## generation that fails, and without AOT deduplication, and checks that the first aborts, the second runs, and the last two skip the seeding
+  - bash: |
+      cd $(build.sourcesdirectory)/src/Uno.Wasm.Tests.AOTWrapperSeeding
+      chmod +x test-aot-wrapper-seeding.sh
+      ./test-aot-wrapper-seeding.sh "$(build.artifactstagingdirectory)/aot-wrapper-seeding"
+    displayName: AOT Wrapper Seeding Test
+    env:
+      BUILD_SOURCESDIRECTORY: "$(build.sourcesdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/aot-wrapper-seeding
+      ArtifactName: aot-wrapper-seeding
+      ArtifactType: Container
+
   - task: PublishBuildArtifacts@1
     condition: always()
     inputs:

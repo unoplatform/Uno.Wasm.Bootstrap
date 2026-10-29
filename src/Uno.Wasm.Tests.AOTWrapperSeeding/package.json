@@ -1,0 +1,10 @@
+{
+  "name": "uno-wasm-tests-aot-wrapper-seeding",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runs a profile-guided AOT app with and without AOT wrapper seeding",
+  "main": "validate-aot-wrapper-seeding.js",
+  "dependencies": {
+    "puppeteer": "^24.9.0"
+  }
+}
