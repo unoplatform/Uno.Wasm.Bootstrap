@@ -36,13 +36,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1.7.2
         with:
-          dotnet-version: '10.0.100'
+          dotnet-version: '11.0.100-rc.2.26504.105'
 
       # Daily builds .NET
       - run: |
           wget https://dot.net/v1/dotnet-install.sh
           chmod +x dotnet-install.sh
-          ./dotnet-install.sh -c 10.0 -q daily
+          ./dotnet-install.sh -c 11.0 -q daily
           echo ~/.dotnet >> $GITHUB_PATH
         if: github.event_name == 'schedule'
         name: Setup .NET
@@ -51,7 +51,7 @@ jobs:
         uses: actions/setup-dotnet@v1.7.2
         if: github.event_name == 'pull_request'
         with:
-          dotnet-version: '10.0.100'
+          dotnet-version: '11.0.100-rc.2.26504.105'
 
       - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
         id: nbgv
@@ -61,7 +61,7 @@ jobs:
 
       - run: |
           cd src
-          dotnet workload install wasm-tools
+          dotnet workload install wasm-tools wasm-tools-net10
       
         name: Setup Workloads
 
