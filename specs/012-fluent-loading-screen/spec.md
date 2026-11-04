@@ -80,7 +80,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 ### Compatibility
 
 - The page background and `color-scheme` only apply while the loader is in the page (`html:has(.uno-loader)`), so pages and renderers that style `html`/`body` themselves are unaffected once the app is up. The template has no page-wide `<meta name="color-scheme">`: it would keep applying after the loader is gone and turn the browser defaults (canvas, text, form controls, scrollbars) dark for existing apps.
-- When a Content-Security-Policy sent by the server blocks the inlined stylesheet, the bootstrapper loads `uno-bootstrap.css` as a file (from the inline style's `data-href`). The manifest is applied from script either way, through the CSSOM, which the policy doesn't block, so the colors also survive a blocked baked `style` attribute on a linked stylesheet.
+- When a Content-Security-Policy sent by the server blocks the inlined stylesheet, the bootstrapper loads `uno-bootstrap.css` as a file (from the inline style's `data-href`). The manifest is applied from script either way, through `style.setProperty`, which the policy doesn't block, so the colors also survive a blocked baked `style` attribute on a linked stylesheet.
 - An app `uno-bootstrap.css` with relative `url()` or `@import` references is linked instead of inlined, so those references keep resolving against the stylesheet.
 
 ## Non-goals
