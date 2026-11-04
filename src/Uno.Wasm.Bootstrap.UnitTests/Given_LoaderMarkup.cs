@@ -192,6 +192,78 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		[DataRow("<div class=\"uno-loader\" data-uno-loader='custom'></div>")]
+		[DataRow("<div class='uno-loader' data-uno-loader=custom></div>")]
+		[DataRow("<div class=uno-loader data-uno-loader=\"custom\"></div>")]
+		public void When_Custom_Attribute_Has_Any_Quoting_Then_IsCustomLoader(string html)
+		{
+			Assert.IsTrue(LoaderMarkup.IsCustomLoader(html));
+			Assert.AreEqual(html, LoaderMarkup.BakeAppManifest(html, Manifest("splashScreenColor", "#123456")));
+		}
+
+		[TestMethod]
+		public void When_Custom_Value_Is_Longer_Then_Not_Custom()
+			=> Assert.IsFalse(LoaderMarkup.IsCustomLoader("<div class=uno-loader data-uno-loader=customized></div>"));
+
+		[TestMethod]
+		public void When_Loader_Has_Style_Then_Merged_Into_It()
+		{
+			var html = LoaderMarkup.BakeAppManifest(
+				"<div class=\"uno-loader\" style=\"z-index:9999;\"><img class=\"logo\" src=\"\" /></div>",
+				Manifest("lightThemeBackgroundColor", "#fafafa"));
+
+			StringAssert.Contains(html, "style=\"z-index:9999; --light-theme-bg-color: #fafafa\"");
+			Assert.AreEqual(1, html.Split("style=").Length - 1);
+		}
+
+		[TestMethod]
+		[DataRow("oklch(60% 0.15 250)")]
+		[DataRow("color(display-p3 1 0 0)")]
+		[DataRow("color-mix(in srgb, red 40%, blue)")]
+		[DataRow("var(--brand)")]
+		[DataRow("hwb(194 0% 0%)")]
+		public void When_Color_Function_Then_Baked(string color)
+			=> StringAssert.Contains(LoaderMarkup.BakeAppManifest(Loader, Manifest("accentColor", color)), $"--accent-color: {color}");
+
+		[TestMethod]
+		public void When_Empty_Per_Theme_Color_Then_SplashScreenColor_Applies()
+			=> StringAssert.Contains(
+				LoaderMarkup.BakeAppManifest(Loader, Manifest("lightThemeBackgroundColor", "", "splashScreenColor", "#123456")),
+				"--light-theme-bg-color: #123456");
+
+		[TestMethod]
+		public void When_Empty_Light_Foreground_Then_ForegroundColor_Applies()
+			=> StringAssert.Contains(
+				LoaderMarkup.BakeAppManifest(Loader, Manifest("lightThemeForegroundColor", "", "foregroundColor", "#111111")),
+				"--foreground-color: #111111");
+
+		[TestMethod]
+		public void When_Only_Dark_Image_Then_Default_Logo_With_Dark_Source()
+		{
+			var html = LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenImageDark", "dark.png"));
+
+			StringAssert.Contains(html, "srcset=\"./dark.png\"");
+			StringAssert.Contains(html, $"src=\"{LoaderMarkup.DefaultLogo}\"");
+		}
+
+		[TestMethod]
+		public void When_Only_Dark_Image_Then_Own_Logo_Kept_For_Light()
+		{
+			var html = LoaderMarkup.BakeAppManifest(
+				"<div class=\"uno-loader\"><img class=\"logo\" src=\"my.png\" /></div>",
+				Manifest("splashScreenImageDark", "dark.png"));
+
+			StringAssert.Contains(html, "srcset=\"./dark.png\"");
+			StringAssert.Contains(html, "src=\"my.png\"");
+		}
+
+		[TestMethod]
+		public void When_Data_Image_Then_Kept()
+			=> StringAssert.Contains(
+				LoaderMarkup.BakeAppManifest(Loader, Manifest("splashScreenImage", "data:image/png;base64,iVBORw0=")),
+				"src=\"data:image/png;base64,iVBORw0=\"");
+
+		[TestMethod]
 		public void When_Pre_Fluent_Markup_Then_Legacy()
 		{
 			Assert.IsTrue(LoaderMarkup.UsesLegacyMarkup(LegacyLoader));
