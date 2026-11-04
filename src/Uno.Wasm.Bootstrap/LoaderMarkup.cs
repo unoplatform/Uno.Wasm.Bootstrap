@@ -34,22 +34,31 @@ public static class LoaderMarkup
 {
 	public const string DefaultLogo = "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png";
 
+	// Attribute values may be double-quoted, single-quoted or unquoted, as the runtime's getAttribute accepts them all
 	private static readonly Regex _loaderTag = new(
-		@"<div\b(?<attrs>[^>]*\bclass\s*=\s*""[^""]*(?<![\w-])uno-loader(?![\w-])[^""]*""[^>]*)>",
+		@"<div\b(?<attrs>[^>]*\bclass\s*=\s*(?:""[^""]*(?<![\w-])uno-loader(?![\w-])[^""]*""|'[^']*(?<![\w-])uno-loader(?![\w-])[^']*'|uno-loader(?![\w-]))[^>]*)>",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-	private static readonly Regex _customAttribute = new(@"\bdata-uno-loader\s*=\s*""custom""", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+	private static readonly Regex _customAttribute = new(
+		@"\bdata-uno-loader\s*=\s*(?:""custom""|'custom'|custom(?![\w-]))",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+	private static readonly Regex _styleAttribute = new(
+		@"\sstyle\s*=\s*(?:""(?<value>[^""]*)""|'(?<value>[^']*)')",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _logoTag = new(
 		@"<img\b[^>]*\bclass\s*=\s*""[^""]*(?<![\w-])logo(?![\w-])[^""]*""[^>]*>",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-	private static readonly Regex _srcAttribute = new(@"\ssrc\s*=\s*""[^""]*""", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+	private static readonly Regex _srcAttribute = new(
+		@"\ssrc\s*=\s*(?:""(?<value>[^""]*)""|'(?<value>[^']*)'|(?<value>[^\s>""']+))",
+		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _barClass = new(@"\bclass\s*=\s*""[^""]*(?<![\w-])bar(?![\w-])", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _color = new(
-		@"^(#[0-9a-f]{3,8}|[a-z]+|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]*\))$",
+		@"^(#[0-9a-f]{3,8}|[a-z]+|[a-z-]+\([^;{}<>""'\\]*\))$",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _relativeCssUrl = new(
@@ -91,7 +100,8 @@ public static class LoaderMarkup
 
 	/// <summary>
 	/// Applies the manifest's colors and logo to the built-in loader, the way the bootstrapper does at runtime, and marks
-	/// it <c>data-manifest="baked"</c> so the bootstrapper doesn't apply them again. Custom loaders are left untouched.
+	/// it <c>data-manifest="baked"</c>. Only the first paint relies on it: the bootstrapper still applies the manifest.
+	/// Custom loaders are left untouched.
 	/// </summary>
 	/// <param name="packageUrl">URL of the package folder, ending with a slash: local manifest images are relative to it.</param>
 	public static string BakeAppManifest(string html, IReadOnlyDictionary<string, string> manifest, string packageUrl = "./")
@@ -101,6 +111,9 @@ public static class LoaderMarkup
 		{
 			return html;
 		}
+
+		// Like the runtime, which tests the values for truthiness
+		bool Has(string key) => manifest.TryGetValue(key, out var value) && value.Length > 0;
 
 		List<string> styles = new();
 		void AddColor(string property, string key)
@@ -116,26 +129,37 @@ public static class LoaderMarkup
 
 		// A single-theme color would override the dark theme, so per-theme colors win. It goes through the theme
 		// variables so the text colors can be derived from it.
-		var hasPerThemeBackground = manifest.ContainsKey("lightThemeBackgroundColor") || manifest.ContainsKey("darkThemeBackgroundColor");
-		if (!hasPerThemeBackground && manifest.TryGetValue("splashScreenColor", out var splashColor) && !splashColor.Trim().Equals("transparent", StringComparison.OrdinalIgnoreCase))
+		var hasPerThemeBackground = Has("lightThemeBackgroundColor") || Has("darkThemeBackgroundColor");
+		if (!hasPerThemeBackground && manifest.TryGetValue("splashScreenColor", out var splashColor) && splashColor != "transparent")
 		{
 			AddColor("--light-theme-bg-color", "splashScreenColor");
 			AddColor("--dark-theme-bg-color", "splashScreenColor");
 		}
 
-		AddColor("--accent-color", manifest.ContainsKey("lightThemeAccentColor") ? "lightThemeAccentColor" : "accentColor");
+		AddColor("--accent-color", Has("lightThemeAccentColor") ? "lightThemeAccentColor" : "accentColor");
 		AddColor("--dark-theme-accent-color", "darkThemeAccentColor");
-		AddColor("--foreground-color", manifest.ContainsKey("lightThemeForegroundColor") ? "lightThemeForegroundColor" : "foregroundColor");
+		AddColor("--foreground-color", Has("lightThemeForegroundColor") ? "lightThemeForegroundColor" : "foregroundColor");
 		AddColor("--dark-theme-foreground-color", "darkThemeForegroundColor");
 
-		var attributes = new StringBuilder(" data-manifest=\"baked\"");
+		var tag = loader.Value;
 		if (styles.Count > 0)
 		{
-			attributes.Append($" style=\"{WebUtility.HtmlEncode(string.Join("; ", styles))}\"");
+			// HTML keeps the first of duplicate attributes: merge into the loader's own style
+			var existing = _styleAttribute.Match(tag);
+			var own = existing.Success ? WebUtility.HtmlDecode(existing.Groups["value"].Value).Trim().TrimEnd(';') : "";
+			if (own.Length > 0)
+			{
+				styles.Insert(0, own);
+			}
+
+			var attribute = $" style=\"{WebUtility.HtmlEncode(string.Join("; ", styles))}\"";
+			tag = existing.Success
+				? tag.Substring(0, existing.Index) + attribute + tag.Substring(existing.Index + existing.Length)
+				: tag.Insert(tag.Length - 1, attribute);
 		}
 
-		var tagEnd = loader.Index + loader.Length - 1;
-		var result = html.Substring(0, tagEnd) + attributes + html.Substring(tagEnd);
+		tag = tag.Insert(tag.Length - 1, " data-manifest=\"baked\"");
+		var result = html.Substring(0, loader.Index) + tag + html.Substring(loader.Index + loader.Length);
 
 		return BakeLogo(result, loader.Index, manifest, packageUrl);
 	}
@@ -149,19 +173,18 @@ public static class LoaderMarkup
 		}
 
 		var light = ImageUrl(manifest, "splashScreenImage", packageUrl);
-		var dark = ImageUrl(manifest, "splashScreenImageDark", packageUrl) ?? light;
+		var dark = ImageUrl(manifest, "splashScreenImageDark", packageUrl);
 
 		var currentSrc = _srcAttribute.Match(logo.Value);
-		if (light is null)
+		var ownSrc = currentSrc.Success && currentSrc.Groups["value"].Value.Length > 0;
+		if (light is null && dark is null && ownSrc)
 		{
-			// Like the runtime: the default logo only when index.html doesn't set its own
-			if (currentSrc.Success && currentSrc.Value.Trim() != "src=\"\"")
-			{
-				return html;
-			}
-
-			light = dark = DefaultLogo;
+			return html;
 		}
+
+		// Like the runtime: the default logo only when index.html doesn't set its own
+		light ??= ownSrc ? WebUtility.HtmlDecode(currentSrc.Groups["value"].Value) : DefaultLogo;
+		dark ??= light;
 
 		var src = $" src=\"{WebUtility.HtmlEncode(light)}\"";
 		var img = currentSrc.Success
@@ -188,7 +211,12 @@ public static class LoaderMarkup
 			return url;
 		}
 
-		// Anything else with a scheme (javascript:, data:...) isn't an image path
+		if (Regex.IsMatch(url, @"^data:image/", RegexOptions.IgnoreCase))
+		{
+			return url;
+		}
+
+		// Anything else with a scheme (javascript:, a blob: from another page...) isn't an image path
 		if (Regex.IsMatch(url, @"^[a-z][a-z0-9+.-]*:", RegexOptions.IgnoreCase))
 		{
 			return null;
