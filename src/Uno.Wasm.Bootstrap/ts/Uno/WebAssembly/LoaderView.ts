@@ -118,13 +118,15 @@ namespace Uno.WebAssembly.Bootstrap {
 					return;
 				}
 
-				this._appTookOver = this.loader.classList.contains("uno-keep-loader");
 				const home = this._home?.isConnected ? this._home : document.body;
 				home.appendChild(this.loader);
-				this.leave();
+				this.leave({ appShown: this.loader.classList.contains("uno-keep-loader") });
 			});
 
-			this._detachObserver.observe(document.body, { childList: true, subtree: true });
+			// Only the loader's ancestors: a subtree observer would run on every change while the app builds its tree
+			for (let node: Node | null = this.loader.parentNode; node; node = node.parentNode) {
+				this._detachObserver.observe(node, { childList: true });
+			}
 		}
 
 		public get phase() {
@@ -139,14 +141,9 @@ namespace Uno.WebAssembly.Bootstrap {
 			this._phase = phase;
 			this.dispatch("uno-loader-phase", { phase });
 
-			// The app was already showing its first frame (Uno Platform removed the loader): don't cover it.
-			// A custom loader shows failures itself, from data-phase or the event.
-			if (phase === "failed" && (this._appTookOver || this.custom)) {
-				this.render();
-				return;
-			}
-
-			if (phase === "failed") {
+			// Not when the app was already showing its first frame (it dismissed the loader, or Uno Platform removed it):
+			// don't cover it. A custom loader shows failures itself, from data-phase or the event.
+			if (phase === "failed" && !this._appTookOver && !this.custom) {
 				// The app failed after the loader started leaving, or after the app removed it: bring it back
 				if (this._leaving) {
 					clearTimeout(this._removeTimer);
@@ -160,6 +157,11 @@ namespace Uno.WebAssembly.Bootstrap {
 			}
 
 			this.render();
+
+			// Failed is final: nothing left to update
+			if (phase === "failed") {
+				this.stopListening();
+			}
 		}
 
 		/** Progress percentage, 0 to 100. Never goes backwards: the estimated total grows as downloads are discovered. */
@@ -178,8 +180,15 @@ namespace Uno.WebAssembly.Bootstrap {
 			this.render();
 		}
 
-		/** Fades the loader out, then removes it. */
-		public leave() {
+		/**
+		 * Fades the loader out, then removes it. appShown: the app is showing its first frame, so a later failure
+		 * mustn't cover it.
+		 */
+		public leave(options?: { appShown?: boolean }) {
+			if (options?.appShown) {
+				this._appTookOver = true;
+			}
+
 			if (this._leaving) {
 				return;
 			}

@@ -693,7 +693,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		public static dismissLoader() {
 			const bootstrapper = Bootstrapper._instance;
 			if (bootstrapper?._loaderView) {
-				bootstrapper._loaderView.leave();
+				bootstrapper._loaderView.leave({ appShown: true });
 			} else {
 				document.querySelector(".uno-loader")?.remove();
 			}
