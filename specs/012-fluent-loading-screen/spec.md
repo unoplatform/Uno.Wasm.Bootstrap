@@ -50,13 +50,17 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 - `uno-bootstrap.css` is inlined in `index.html` when no Content-Security-Policy is set. Other stylesheets load as `media="print"` and are enabled by the bootstrapper, so a slow stylesheet never delays the loader or the scripts.
 - `data-status-text`, `data-progress-format` and `data-logo-animation` are written into `index.html` at build time.
-- The project's `AppManifest.js` is parsed at build time and its colors (`lightThemeBackgroundColor`, `darkThemeBackgroundColor`, `splashScreenColor`, `accentColor`, `lightThemeAccentColor`, `darkThemeAccentColor`, `foregroundColor`, `lightThemeForegroundColor`, `darkThemeForegroundColor`) and logo (`splashScreenImage`, `splashScreenImageDark` as a `<picture>` source for `prefers-color-scheme: dark`) are written into the loader markup, marked `data-manifest="baked"`; the bootstrapper then doesn't apply the manifest again. Per-theme background colors take precedence over `splashScreenColor`, which sets both theme backgrounds. `lightThemeForegroundColor` takes precedence over `foregroundColor`, like the accent colors. Colors that aren't plain CSS colors and image URLs with a scheme other than `http(s)` are ignored. Under a Content-Security-Policy, or without a manifest, the bootstrapper applies the manifest at runtime as before.
+- The project's `AppManifest.js` is parsed at build time and its colors (`lightThemeBackgroundColor`, `darkThemeBackgroundColor`, `splashScreenColor`, `accentColor`, `lightThemeAccentColor`, `darkThemeAccentColor`, `foregroundColor`, `lightThemeForegroundColor`, `darkThemeForegroundColor`) and logo (`splashScreenImage`, `splashScreenImageDark` as a `<picture>` source for `prefers-color-scheme: dark`) are written into the loader markup, marked `data-manifest="baked"`, so the first paint is right. A `style` attribute already on the loader is merged with, not duplicated. Baking is only a first-paint optimization: the bootstrapper still applies the manifest at runtime, which stays the source of truth (it covers values the build can't read, such as non-literal strings, and the cases where the baked attributes are blocked by a Content-Security-Policy).
+- Build and runtime use the same precedence: a key counts as set when its value is a non-empty string. Per-theme background colors take precedence over `splashScreenColor`, which sets both theme backgrounds unless it is `transparent`. `lightThemeForegroundColor` takes precedence over `foregroundColor`, like the accent colors. `splashScreenImageDark` applies without `splashScreenImage`, over index.html's own logo or the default one.
+- The build accepts hex colors, named colors and CSS color functions (`rgb()`, `oklch()`, `color-mix()`, `var()`...) without `;`, braces, quotes or angle brackets; it accepts `http(s)` and `data:image/` logos and package-relative paths. Anything else is left to the runtime.
+- At runtime a dark logo is a `<picture>` `<source>` for `prefers-color-scheme: dark`, as in the baked markup, so the logo follows theme changes during the load.
+- The custom loader attribute (`data-uno-loader="custom"`) and the loader's `class` are recognized double-quoted, single-quoted or unquoted, matching the runtime's `getAttribute`.
 
 ### Lifecycle
 
-- A failure thrown during runtime initialization (including before the loader view exists), during `mainInit`, or by the promise returned from `runMain` moves the loader to `failed` and keeps it visible. A loader that was leaving, or that the bootstrapper had removed, is brought back.
+- A failure thrown during runtime initialization (including before the loader view exists), during `mainInit`, or by the promise returned from `runMain` moves the loader to `failed` and keeps it visible. A loader that was leaving, or that the bootstrapper had removed, is brought back, unless the app dismissed it with `Bootstrapper.dismissLoader()` (its first frame is showing).
 - When the app removes the loader element itself (Uno Platform does on its first frame), the loader is put back before the next paint and fades out like any dismissal. A later failure then doesn't bring it back over the running app, when the loader was marked `uno-keep-loader` (managed by the app).
-- Leaving the loader unregisters its network listeners, interval, `PerformanceObserver` and removal watcher.
+- Leaving the loader, or reaching `failed`, unregisters its network listeners, interval and `PerformanceObserver`. Leaving also stops the removal watcher, which observes only the loader's ancestors (no subtree), so building the app's tree doesn't run it.
 - The `runMain` promise is not awaited, so the loader is still dismissed as before when `Main` stays running.
 - The failed copy does not assume a network cause: "Could not load app" / "Reload the page to try again."
 
@@ -75,8 +79,8 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ### Compatibility
 
-- The page background and `color-scheme` only apply while the loader is in the page (`html:has(.uno-loader)`), so pages and renderers that style `html`/`body` themselves are unaffected once the app is up.
-- When a Content-Security-Policy sent by the server blocks the inlined stylesheet, the bootstrapper loads `uno-bootstrap.css` as a file (from the inline style's `data-href`) and applies the manifest from script, since the baked style attributes are blocked too.
+- The page background and `color-scheme` only apply while the loader is in the page (`html:has(.uno-loader)`), so pages and renderers that style `html`/`body` themselves are unaffected once the app is up. The template has no page-wide `<meta name="color-scheme">`: it would keep applying after the loader is gone and turn the browser defaults (canvas, text, form controls, scrollbars) dark for existing apps.
+- When a Content-Security-Policy sent by the server blocks the inlined stylesheet, the bootstrapper loads `uno-bootstrap.css` as a file (from the inline style's `data-href`). The manifest is applied from script either way, through the CSSOM, which the policy doesn't block, so the colors also survive a blocked baked `style` attribute on a linked stylesheet.
 - An app `uno-bootstrap.css` with relative `url()` or `@import` references is linked instead of inlined, so those references keep resolving against the stylesheet.
 
 ## Non-goals
@@ -93,7 +97,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ## Validation
 
-Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors (including foreground colors and `splashScreenColor` through both theme variables) and logos, precedence, rejected colors and script URLs, attribute encoding, custom loaders left untouched, legacy markup detection.
+Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors (including foreground colors, `splashScreenColor` through both theme variables and CSS color functions) and logos (including a dark-only logo and `data:` images), precedence (empty values count as unset), rejected colors and script URLs, attribute encoding, merging into an existing `style` attribute, custom loaders left untouched (with any attribute quoting), legacy markup detection.
 
 `src/Uno.Wasm.Tests.Loader` drives the published RayTracer sample (which has an `AppManifest.js` with per-theme colors). It serves files only from inside the published root.
 
