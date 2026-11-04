@@ -649,9 +649,6 @@ namespace Uno.WebAssembly.Bootstrap {
 				link.rel = "stylesheet";
 				link.href = inlined.dataset.href;
 				inlined.replaceWith(link);
-
-				// The baked manifest is in style attributes, which are blocked too
-				document.querySelector(".uno-loader")?.removeAttribute("data-manifest");
 			}
 
 			this.initProgress();
@@ -1000,34 +997,49 @@ namespace Uno.WebAssembly.Bootstrap {
 				}
 				const img = this.loader.querySelector("img");
 				if (img) {
+					// Local images are in the package folder; data: and other URLs with a scheme are used as they are
 					const rewriteLocal = (src: string) =>
-						src.match(/^(http(s)?:\/\/.)/g)
+						/^[a-z][a-z0-9+.-]*:/i.test(src)
 							? src
 							: `${this._unoConfig.uno_app_base}/${src}`;
 
+					// Only when index.html doesn't set its own logo
 					const lightSrc = manifest && manifest.splashScreenImage
 						? rewriteLocal(manifest.splashScreenImage)
-						: null;
+						: img.getAttribute("src") || "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png";
 					const darkSrc = manifest && manifest.splashScreenImageDark
 						? rewriteLocal(manifest.splashScreenImageDark)
-						: lightSrc;
+						: null;
 
-					const prefersDark = typeof window.matchMedia === "function"
-						&& window.matchMedia("(prefers-color-scheme: dark)").matches;
-					const chosenSrc = prefersDark ? darkSrc : lightSrc;
+					// The baked src may spell the same URL differently
+					if (img.src !== new URL(lightSrc, document.baseURI).href) {
+						img.setAttribute("src", lightSrc);
+					}
 
-					if (chosenSrc) {
-						img.setAttribute("src", chosenSrc);
-					} else if (!img.getAttribute("src")) {
-						// Only when index.html doesn't set its own logo
-						img.setAttribute("src", "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png");
+					// Like the markup the build bakes, so the logo follows theme changes
+					if (darkSrc && darkSrc !== lightSrc) {
+						let source = img.parentElement?.tagName === "PICTURE"
+							? img.parentElement.querySelector("source")
+							: null;
+						if (!source) {
+							const picture = document.createElement("picture");
+							source = document.createElement("source");
+							source.media = "(prefers-color-scheme: dark)";
+							img.replaceWith(picture);
+							picture.append(source, img);
+						}
+						if (source.getAttribute("srcset") !== darkSrc) {
+							source.setAttribute("srcset", darkSrc);
+						}
 					}
 				}
 			};
 
+			// Also when the build baked the manifest into index.html: that only makes the first paint right, and the
+			// runtime accepts values the build skips, such as any CSS color
 			let manifest = (<any>window)["UnoAppManifest"];
-			if (!this.loader || custom || this.loader.getAttribute("data-manifest") === "baked") {
-				// Nothing to style: the app owns the loader, or the build already applied the manifest to index.html
+			if (!this.loader || custom) {
+				// No loader, or the app owns it
 			} else if (manifest) {
 				configLoader();
 			} else {
