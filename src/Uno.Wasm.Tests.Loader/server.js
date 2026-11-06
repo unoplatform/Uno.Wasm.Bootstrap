@@ -51,7 +51,13 @@ function rewriteIndexHtml(html) {
 }
 
 http.createServer((req, res) => {
-	const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+	let urlPath;
+	try {
+		urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+	} catch {
+		res.statusCode = 400;
+		return res.end();
+	}
 
 	if (urlPath.startsWith("/__mode/")) {
 		mode = urlPath.substring("/__mode/".length);
