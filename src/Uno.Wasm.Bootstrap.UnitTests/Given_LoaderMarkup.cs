@@ -273,6 +273,33 @@ namespace Uno.Wasm.Bootstrap.UnitTests
 		}
 
 		[TestMethod]
+		[DataRow("<div class=\"bar\">")]
+		[DataRow("<div class='bar'>")]
+		[DataRow("<div class=bar>")]
+		[DataRow("<div class = 'wide bar'>")]
+		[DataRow("<div class='bar wide'>")]
+		public void When_Bar_Class_In_Any_Quoting_Then_Not_Legacy(string bar)
+			=> Assert.IsFalse(LoaderMarkup.UsesLegacyMarkup($"<div class=uno-loader>{bar}<progress></progress></div></div>"));
+
+		[TestMethod]
+		[DataRow("<div class='my-bar'>")]
+		[DataRow("<div class='bar-chart'>")]
+		[DataRow("<div class=my-bar>")]
+		[DataRow("<div class=bar-chart>")]
+		[DataRow("<div class=foobar>")]
+		public void When_Only_Similar_Class_Then_Legacy(string bar)
+			=> Assert.IsTrue(LoaderMarkup.UsesLegacyMarkup($"<div class=uno-loader>{bar}<progress></progress></div></div>"));
+
+		[TestMethod]
+		[DataRow("<img class=\"logo\" src=\"\" />")]
+		[DataRow("<img class='logo' src='' />")]
+		[DataRow("<img class=logo src=''>")]
+		public void When_Logo_Class_In_Any_Quoting_Then_Baked(string logo)
+			=> StringAssert.Contains(
+				LoaderMarkup.BakeAppManifest($"<div class=\"uno-loader\">{logo}</div>", Manifest("splashScreenImage", "splash.png")),
+				"src=\"./splash.png\"");
+
+		[TestMethod]
 		[DataRow(".logo { background: url(logo.png); }")]
 		[DataRow(".logo { background: url( './images/logo.png' ); }")]
 		[DataRow(".logo { background: URL(\"../logo.svg\"); }")]
