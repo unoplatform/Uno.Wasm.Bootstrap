@@ -54,7 +54,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 - Build and runtime use the same precedence: a key counts as set when its value is a non-empty string. Per-theme background colors take precedence over `splashScreenColor`, which sets both theme backgrounds unless it is `transparent`. `lightThemeForegroundColor` takes precedence over `foregroundColor`, like the accent colors. `splashScreenImageDark` applies without `splashScreenImage`, over index.html's own logo or the default one.
 - The build accepts hex colors, named colors and CSS color functions (`rgb()`, `oklch()`, `color-mix()`, `var()`...) without `;`, braces, quotes or angle brackets; it accepts `http(s)` and `data:image/` logos and package-relative paths. Anything else is left to the runtime.
 - At runtime a dark logo is a `<picture>` `<source>` for `prefers-color-scheme: dark`, as in the baked markup, so the logo follows theme changes during the load.
-- The custom loader attribute (`data-uno-loader="custom"`) and the loader's `class` are recognized double-quoted, single-quoted or unquoted, matching the runtime's `getAttribute`.
+- The custom loader attribute (`data-uno-loader="custom"`) and the `class` of the loader, its `.logo` and its `.bar` are recognized double-quoted, single-quoted or unquoted, matching the runtime's `getAttribute`. Current markup in any of these forms is not reported as `UNOWA0014`, and its logo is baked.
 
 ### Lifecycle
 
@@ -97,7 +97,7 @@ The bootstrapper shows a themed splash screen while the .NET runtime and the app
 
 ## Validation
 
-Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors (including foreground colors, `splashScreenColor` through both theme variables and CSS color functions) and logos (including a dark-only logo and `data:` images), precedence (empty values count as unset), rejected colors and script URLs, attribute encoding, merging into an existing `style` attribute, custom loaders left untouched (with any attribute quoting), legacy markup detection.
+Unit tests (`Given_LoaderMarkup`): relative URL detection in stylesheets, manifest parsing (Resizetizer output, quoted keys, single quotes, comments, garbage), baking colors (including foreground colors, `splashScreenColor` through both theme variables and CSS color functions) and logos (including a dark-only logo and `data:` images), precedence (empty values count as unset), rejected colors and script URLs, attribute encoding, merging into an existing `style` attribute, custom loaders left untouched (with any attribute quoting), legacy markup detection (with any attribute quoting, and without matching similar class names), logos baked with any attribute quoting.
 
 `src/Uno.Wasm.Tests.Loader` drives the published RayTracer sample (which has an `AppManifest.js` with per-theme colors). It serves files only from inside the published root.
 
