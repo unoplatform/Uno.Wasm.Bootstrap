@@ -32,7 +32,7 @@ namespace Uno.WebAssembly.Bootstrap {
 		private body: HTMLElement;
 		private bodyObserver: MutationObserver;
 		private loader: HTMLElement;
-		private progress: HTMLProgressElement;
+		private progress: HTMLProgressElement | null;
 		private _loaderView?: LoaderView;
 
 		private static _instance?: Bootstrapper;
