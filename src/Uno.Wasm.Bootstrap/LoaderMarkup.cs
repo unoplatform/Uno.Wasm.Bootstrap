@@ -35,8 +35,11 @@ public static class LoaderMarkup
 	public const string DefaultLogo = "https://uno-assets.platform.uno/logos/uno-splashscreen-light.png";
 
 	// Attribute values may be double-quoted, single-quoted or unquoted, as the runtime's getAttribute accepts them all
+	private static string ClassAttribute(string name)
+		=> $@"\bclass\s*=\s*(?:""[^""]*(?<![\w-]){name}(?![\w-])[^""]*""|'[^']*(?<![\w-]){name}(?![\w-])[^']*'|{name}(?![\w-]))";
+
 	private static readonly Regex _loaderTag = new(
-		@"<div\b(?<attrs>[^>]*\bclass\s*=\s*(?:""[^""]*(?<![\w-])uno-loader(?![\w-])[^""]*""|'[^']*(?<![\w-])uno-loader(?![\w-])[^']*'|uno-loader(?![\w-]))[^>]*)>",
+		$@"<div\b(?<attrs>[^>]*{ClassAttribute("uno-loader")}[^>]*)>",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _customAttribute = new(
@@ -48,14 +51,14 @@ public static class LoaderMarkup
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _logoTag = new(
-		@"<img\b[^>]*\bclass\s*=\s*""[^""]*(?<![\w-])logo(?![\w-])[^""]*""[^>]*>",
+		$@"<img\b[^>]*{ClassAttribute("logo")}[^>]*>",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _srcAttribute = new(
 		@"\ssrc\s*=\s*(?:""(?<value>[^""]*)""|'(?<value>[^']*)'|(?<value>[^\s>""']+))",
 		RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-	private static readonly Regex _barClass = new(@"\bclass\s*=\s*""[^""]*(?<![\w-])bar(?![\w-])", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+	private static readonly Regex _barClass = new(ClassAttribute("bar"), RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
 	private static readonly Regex _color = new(
 		@"^(#[0-9a-f]{3,8}|[a-z]+|[a-z-]+\([^;{}<>""'\\]*\))$",
