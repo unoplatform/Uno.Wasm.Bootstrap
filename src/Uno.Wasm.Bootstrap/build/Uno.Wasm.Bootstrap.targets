@@ -855,11 +855,20 @@
 			<_UnoRequiresWasmTools Condition="'@(WasmShellExtraEmccFlags)' != ''">true</_UnoRequiresWasmTools>
 			<_UnoRequiresWasmTools Condition="'@(EmccExportedRuntimeMethod)' != ''">true</_UnoRequiresWasmTools>
 			<_UnoRequiresWasmTools Condition="'@(_NativeAssetsFiltered)' != ''">true</_UnoRequiresWasmTools>
+
+			<!--
+				The workload that provides the toolchain for this TFM, picked the way the SDK's mono toolchain targets
+				pick WasmNativeWorkloadAvailable: 'wasm-tools' for the SDK's own TFM (TargetsCurrent), and
+				'wasm-tools-net<N>' for an older one, e.g. 'wasm-tools-net10' for net10.0 on the .NET 11 SDK.
+			-->
+			<_UnoWasmTfmMajor>$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)', 1))</_UnoWasmTfmMajor>
+			<_UnoWasmToolsWorkload>wasm-tools</_UnoWasmToolsWorkload>
+			<_UnoWasmToolsWorkload Condition="'$(TargetsCurrent)' != 'true' and '$(TargetFrameworkVersion)' != '' and '$(BundledNETCoreAppTargetFrameworkVersion)' != '' and $([MSBuild]::VersionLessThan('$(TargetFrameworkVersion)', '$(BundledNETCoreAppTargetFrameworkVersion)'))">wasm-tools-net$(_UnoWasmTfmMajor)</_UnoWasmToolsWorkload>
 		</PropertyGroup>
 
 		<Error Code="UNOWA0001"
 				Condition="'$(_UnoRequiresWasmTools)' == 'true' and '$(WasmNativeWorkloadAvailable)' != 'true'"
-				Text="Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'." />
+				Text="Native WebAssembly assets were detected, but the WebAssembly build tools for $(TargetFramework) could not be located (.NET SDK $(NETCoreSdkVersion)). Install them by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install $(_UnoWasmToolsWorkload)'." />
 	</Target>
 
 	<!-- Helper target to expose this project's TargetFramework to callers via MSBuild task. -->

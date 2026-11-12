@@ -137,18 +137,20 @@ Moving the .NET 9, the default interpreter runtime does not enable it by default
 
 #### UNOWA0001
 
-This error happens when the .NET for WebAssembly workload has not been detected:
+This error happens when the app needs native WebAssembly compilation, but the .NET for WebAssembly workload for its target framework has not been detected. The message names the target framework, the .NET SDK version, and the workload to install, for example for a `net10.0` app built with the .NET 11 SDK:
 
 ```text
-Native WebAssembly assets were detected, but the wasm-tools workload could not be located. Install it by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools'.
+Native WebAssembly assets were detected, but the WebAssembly build tools for net10.0-browserwasm could not be located (.NET SDK 11.0.100). Install them by running uno.check (https://aka.platform.uno/uno-check) or 'dotnet workload install wasm-tools-net10'.
 ```
 
-To fix this issue:
+The workload depends on the target framework and on the .NET SDK that builds the app:
 
-- If you're building with net10.0, either use [uno.check](https://aka.platform.uno/uno-check), or use `dotnet workload install wasm-tools` in the folder of your app's `csproj`.
-- If you're building with net9.0 with the .NET SDK 10.0 installed, run [uno.check](https://aka.platform.uno/uno-check) then run `dotnet workload install wasm-tools-net9` in the folder of your app's `csproj`.
+- When the target framework matches the .NET SDK's own version (for example `net11.0` with the .NET 11 SDK), the workload is `wasm-tools`.
+- When the target framework is older than the .NET SDK (for example `net10.0` with the .NET 11 SDK, or `net9.0` with the .NET 10 SDK), the workload is `wasm-tools-net<N>`, such as `wasm-tools-net10` or `wasm-tools-net9`. Having `wasm-tools` installed is not enough in that case.
 
-You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj.
+To fix this issue, either use [uno.check](https://aka.platform.uno/uno-check), or run the `dotnet workload install` command from the message in the folder of your app's `csproj`.
+
+You can also validate manually that this workload is installed by running `dotnet workload list` in the folder of your app's `csproj`.
 
 ### Deprecated APIs
 
